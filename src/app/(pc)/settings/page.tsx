@@ -47,7 +47,7 @@ export default function SettingsPage() {
   // 종목 관리 상태
   const [showTypeForm, setShowTypeForm] = useState(false);
   const [editingType, setEditingType] = useState<RecordType | null>(null);
-  const [typeForm, setTypeForm] = useState({ name: '', unit: '', direction: 'higher' as const });
+  const [typeForm, setTypeForm] = useState<{ name: string; unit: string; direction: 'higher' | 'lower' }>({ name: '', unit: '', direction: 'higher' });
 
   // 배점표 관리 상태
   const [showScoreForm, setShowScoreForm] = useState(false);
