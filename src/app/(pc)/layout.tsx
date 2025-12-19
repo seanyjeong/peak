@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const APP_VERSION = 'v0.2.0';
+const APP_VERSION = 'v0.2.1';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -16,7 +16,8 @@ import {
   Menu,
   ChevronLeft,
   Mountain,
-  UserCheck
+  UserCheck,
+  Settings
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -28,6 +29,7 @@ const navigation = [
   { name: '훈련 기록', href: '/training', icon: Activity },
   { name: '기록 측정', href: '/records', icon: Medal },
   { name: '학생 관리', href: '/students', icon: Calendar },
+  { name: '설정', href: '/settings', icon: Settings },
 ];
 
 // 역할 표시명 매핑

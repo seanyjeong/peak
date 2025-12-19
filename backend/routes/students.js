@@ -44,14 +44,43 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// GET /peak/students/:id/records - 학생 기록 히스토리
+// GET /peak/students/:id/records - 학생 기록 히스토리 (동적 종목)
 router.get('/:id/records', async (req, res) => {
     try {
-        const [records] = await db.query(
-            'SELECT * FROM student_records WHERE student_id = ? ORDER BY measured_at DESC',
-            [req.params.id]
-        );
-        res.json({ success: true, records });
+        const [records] = await db.query(`
+            SELECT r.*, rt.name as record_type_name, rt.unit, rt.direction
+            FROM student_records r
+            JOIN record_types rt ON r.record_type_id = rt.id
+            WHERE r.student_id = ?
+            ORDER BY r.measured_at DESC, rt.display_order
+        `, [req.params.id]);
+
+        // 날짜별로 그룹화해서 반환
+        const grouped = {};
+        records.forEach(r => {
+            const dateKey = r.measured_at.toISOString().split('T')[0];
+            if (!grouped[dateKey]) {
+                grouped[dateKey] = {
+                    measured_at: dateKey,
+                    records: []
+                };
+            }
+            grouped[dateKey].records.push({
+                record_type_id: r.record_type_id,
+                record_type_name: r.record_type_name,
+                unit: r.unit,
+                direction: r.direction,
+                value: r.value,
+                notes: r.notes
+            });
+        });
+
+        res.json({
+            success: true,
+            records: Object.values(grouped).sort((a, b) =>
+                new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime()
+            )
+        });
     } catch (error) {
         console.error('Get student records error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
