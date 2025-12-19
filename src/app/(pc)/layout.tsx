@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const APP_VERSION = 'v0.1.3';
+const APP_VERSION = 'v0.1.4';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -91,8 +91,7 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  title={!sidebarOpen ? item.name : undefined}
-                  className={`flex items-center rounded-lg transition-all duration-200 ${
+                  className={`group relative flex items-center rounded-lg transition-all duration-200 ${
                     sidebarOpen
                       ? `gap-3 px-3 py-3 ${isActive ? 'bg-orange-500/15 text-orange-400 border-l-[3px] border-orange-500 -ml-[3px] pl-[15px]' : 'text-slate-300 hover:bg-[#243a5e] hover:text-white'}`
                       : `justify-center p-3 ${isActive ? 'bg-orange-500/15 text-orange-400' : 'text-slate-300 hover:bg-[#243a5e] hover:text-white'}`
@@ -100,6 +99,12 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
                 >
                   <item.icon size={20} />
                   {sidebarOpen && <span className="font-medium">{item.name}</span>}
+                  {/* Tooltip for collapsed sidebar */}
+                  {!sidebarOpen && (
+                    <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-sm rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      {item.name}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -116,13 +121,17 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
           )}
           <button
             onClick={handleLogout}
-            title={!sidebarOpen ? '로그아웃' : undefined}
-            className={`flex items-center rounded-lg text-slate-400 hover:text-white hover:bg-[#243a5e] transition w-full ${
+            className={`group relative flex items-center rounded-lg text-slate-400 hover:text-white hover:bg-[#243a5e] transition w-full ${
               sidebarOpen ? 'gap-3 px-3 py-2' : 'justify-center p-3'
             }`}
           >
             <LogOut size={18} />
             {sidebarOpen && <span className="text-sm">로그아웃</span>}
+            {!sidebarOpen && (
+              <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-sm rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                로그아웃
+              </span>
+            )}
           </button>
           {sidebarOpen && (
             <p className="text-[10px] text-slate-500 text-center mt-3">{APP_VERSION}</p>
