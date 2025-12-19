@@ -3,10 +3,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { authAPI, User } from '@/lib/api/auth';
 
 interface Trainer {
   id: number;
   name: string;
+  paca_user_id?: number;
 }
 
 interface Exercise {
@@ -67,6 +69,12 @@ export default function PlansPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedPlanId, setExpandedPlanId] = useState<number | null>(null);
 
+  // 현재 로그인 사용자 정보
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [myTrainerId, setMyTrainerId] = useState<number | null>(null);
+  // admin 또는 owner는 관리자 권한
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
+
   // Form state
   const [selectedTrainer, setSelectedTrainer] = useState<number | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -94,15 +102,28 @@ export default function PlansPage() {
       setLoading(true);
       const dateStr = getLocalDateString();
 
+      // 현재 사용자 정보 가져오기
+      const user = authAPI.getCurrentUser();
+      setCurrentUser(user);
+
       const [trainersRes, plansRes, exercisesRes] = await Promise.all([
         apiClient.get('/trainers'),
         apiClient.get(`/plans?date=${dateStr}`),
         apiClient.get('/exercises')
       ]);
 
-      setTrainers(trainersRes.data.trainers || []);
+      const trainerList = trainersRes.data.trainers || [];
+      setTrainers(trainerList);
       setExercises(exercisesRes.data.exercises || []);
       setPlans(plansRes.data.plans || []);
+
+      // 현재 사용자의 trainer_id 찾기 (paca_user_id로 매칭)
+      if (user && user.role !== 'admin') {
+        const myTrainer = trainerList.find((t: Trainer) => t.paca_user_id === user.id);
+        if (myTrainer) {
+          setMyTrainerId(myTrainer.id);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -222,6 +243,14 @@ export default function PlansPage() {
     t => !plans.some(p => p.trainer_id === t.id)
   );
 
+  // 현재 사용자가 계획 추가 가능한지 확인
+  const canAddPlan = isAdmin
+    ? trainersWithoutPlan.length > 0
+    : (myTrainerId && !plans.some(p => p.trainer_id === myTrainerId));
+
+  // 내 계획 이미 있는지 확인
+  const myPlanExists = myTrainerId && plans.some(p => p.trainer_id === myTrainerId);
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
@@ -231,16 +260,25 @@ export default function PlansPage() {
           <p className="text-slate-500 mt-1">{today}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              resetForm();
-              setShowAddForm(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-          >
-            <Plus size={18} />
-            <span>계획 추가</span>
-          </button>
+          {canAddPlan && (
+            <button
+              onClick={() => {
+                resetForm();
+                // 트레이너는 자동으로 자기 ID 선택
+                if (!isAdmin && myTrainerId) {
+                  setSelectedTrainer(myTrainerId);
+                }
+                setShowAddForm(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+            >
+              <Plus size={18} />
+              <span>{isAdmin ? '계획 추가' : '내 계획 작성'}</span>
+            </button>
+          )}
+          {!isAdmin && myPlanExists && (
+            <span className="text-sm text-green-600 font-medium">✓ 오늘 계획 작성 완료</span>
+          )}
           <button
             onClick={fetchData}
             disabled={loading}
@@ -272,17 +310,23 @@ export default function PlansPage() {
             <label className="block text-sm font-medium text-slate-700 mb-2">
               트레이너
             </label>
-            <select
-              value={selectedTrainer || ''}
-              onChange={e => setSelectedTrainer(Number(e.target.value))}
-              disabled={!!editingId}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-slate-100"
-            >
-              <option value="">선택하세요</option>
-              {(editingId ? trainers : trainersWithoutPlan).map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
+            {isAdmin ? (
+              <select
+                value={selectedTrainer || ''}
+                onChange={e => setSelectedTrainer(Number(e.target.value))}
+                disabled={!!editingId}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-slate-100"
+              >
+                <option value="">선택하세요</option>
+                {(editingId ? trainers : trainersWithoutPlan).map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-700">
+                {trainers.find(t => t.id === selectedTrainer)?.name || currentUser?.name}
+              </div>
+            )}
           </div>
 
           {/* Tags */}
