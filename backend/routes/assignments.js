@@ -6,7 +6,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
-// GET /maxt/assignments - 오늘 반 배치 현황
+// GET /peak/assignments - 오늘 반 배치 현황
 router.get('/', async (req, res) => {
     try {
         const { date } = req.query;
@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST /maxt/assignments/init - 오늘 날짜로 학생 배치 초기화
+// POST /peak/assignments/init - 오늘 날짜로 학생 배치 초기화
 router.post('/init', async (req, res) => {
     try {
         const { date } = req.body;
@@ -102,7 +102,7 @@ router.post('/init', async (req, res) => {
     }
 });
 
-// PUT /maxt/assignments/:id - 반 배치 변경 (드래그앤드롭)
+// PUT /peak/assignments/:id - 반 배치 변경 (드래그앤드롭)
 router.put('/:id', async (req, res) => {
     try {
         const { trainer_id, status, order_num } = req.body;
@@ -119,7 +119,7 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// PUT /maxt/assignments/batch - 일괄 업데이트 (드래그앤드롭 후)
+// PUT /peak/assignments/batch - 일괄 업데이트 (드래그앤드롭 후)
 router.put('/batch', async (req, res) => {
     try {
         const { assignments } = req.body;

@@ -6,7 +6,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
-// GET /maxt/attendance - 오늘 출근 현황
+// GET /peak/attendance - 오늘 출근 현황
 router.get('/', async (req, res) => {
     try {
         const { date } = req.query;
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST /maxt/attendance/checkin - 출근 체크
+// POST /peak/attendance/checkin - 출근 체크
 router.post('/checkin', async (req, res) => {
     try {
         const { trainer_id } = req.body;

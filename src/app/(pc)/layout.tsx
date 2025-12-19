@@ -15,12 +15,14 @@ import {
   LogOut,
   Menu,
   ChevronLeft,
-  Mountain
+  Mountain,
+  UserCheck
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const navigation = [
   { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
+  { name: '출근 체크', href: '/attendance', icon: UserCheck },
   { name: '반 배치', href: '/assignments', icon: Users },
   { name: '훈련 계획', href: '/plans', icon: ClipboardList },
   { name: '훈련 기록', href: '/training', icon: Activity },

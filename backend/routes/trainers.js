@@ -6,7 +6,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
-// GET /maxt/trainers - 트레이너 목록
+// GET /peak/trainers - 트레이너 목록
 router.get('/', async (req, res) => {
     try {
         const [trainers] = await db.query(
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET /maxt/trainers/:id - 트레이너 상세
+// GET /peak/trainers/:id - 트레이너 상세
 router.get('/:id', async (req, res) => {
     try {
         const [trainers] = await db.query(
@@ -36,7 +36,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// POST /maxt/trainers - 트레이너 등록
+// POST /peak/trainers - 트레이너 등록
 router.post('/', async (req, res) => {
     try {
         const { paca_user_id, name, phone } = req.body;

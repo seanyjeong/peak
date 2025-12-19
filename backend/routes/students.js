@@ -6,7 +6,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
-// GET /maxt/students - 학생 목록
+// GET /peak/students - 학생 목록
 router.get('/', async (req, res) => {
     try {
         const { status } = req.query;
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET /maxt/students/:id - 학생 상세
+// GET /peak/students/:id - 학생 상세
 router.get('/:id', async (req, res) => {
     try {
         const [students] = await db.query(
@@ -44,7 +44,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// GET /maxt/students/:id/records - 학생 기록 히스토리
+// GET /peak/students/:id/records - 학생 기록 히스토리
 router.get('/:id/records', async (req, res) => {
     try {
         const [records] = await db.query(

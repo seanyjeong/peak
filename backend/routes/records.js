@@ -6,7 +6,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
-// GET /maxt/records - 기록 목록
+// GET /peak/records - 기록 목록
 router.get('/', async (req, res) => {
     try {
         const { student_id, from_date, to_date } = req.query;
@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST /maxt/records - 기록 측정 입력
+// POST /peak/records - 기록 측정 입력
 router.post('/', async (req, res) => {
     try {
         const {
@@ -71,7 +71,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// GET /maxt/records/latest - 학생별 최신 기록
+// GET /peak/records/latest - 학생별 최신 기록
 router.get('/latest', async (req, res) => {
     try {
         const [records] = await db.query(`
@@ -92,7 +92,7 @@ router.get('/latest', async (req, res) => {
     }
 });
 
-// GET /maxt/records/stats/:student_id - 학생 기록 통계 (그래프용)
+// GET /peak/records/stats/:student_id - 학생 기록 통계 (그래프용)
 router.get('/stats/:student_id', async (req, res) => {
     try {
         const [records] = await db.query(`

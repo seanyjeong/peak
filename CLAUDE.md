@@ -92,10 +92,10 @@
 ## TODO (2025-12-16)
 
 ### 원장 대상 프레젠테이션
-- [x] P-ACA + MAXT 소개 PPT 초안 완성 (`/home/sean/pacapro/workspace/PACA-MAXT-소개.pptx`)
-- [ ] MAXT UI 목업 또는 랜딩페이지 필요 (실제 화면 없으면 설득력 부족)
+- [x] P-ACA + P-EAK 소개 PPT 초안 완성
+- [ ] P-EAK UI 목업 또는 랜딩페이지 필요 (실제 화면 없으면 설득력 부족)
 - [ ] P-ACA 스크린샷 PPT에 추가
-- [ ] MAXT 핵심 화면 스크린샷 (개발 후)
+- [ ] P-EAK 핵심 화면 스크린샷 (개발 후)
 
 ### 논문/연구자료 수집
 - [ ] 체력 측정 지표와 훈련 효과 연구
@@ -120,8 +120,8 @@
 npm run dev
 
 # 백엔드 재시작
-sudo systemctl restart maxt
+sudo systemctl restart peak
 
 # DB 접속
-mysql -u paca -p maxt
+mysql -u paca -p peak
 ```

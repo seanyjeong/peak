@@ -23,7 +23,7 @@ const pacaPool = mysql.createPool({
 });
 
 /**
- * POST /maxt/auth/login
+ * POST /peak/auth/login
  * P-ACA 계정으로 로그인
  */
 router.post('/login', async (req, res) => {
@@ -107,7 +107,7 @@ router.post('/login', async (req, res) => {
 });
 
 /**
- * GET /maxt/auth/me
+ * GET /peak/auth/me
  * 현재 로그인 사용자 정보
  */
 router.get('/me', require('../middleware/auth').verifyToken, (req, res) => {

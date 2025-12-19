@@ -6,7 +6,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
-// GET /maxt/training - 훈련 기록 목록
+// GET /peak/training - 훈련 기록 목록
 router.get('/', async (req, res) => {
     try {
         const { date, trainer_id, student_id } = req.query;
@@ -45,7 +45,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST /maxt/training - 훈련 기록 저장
+// POST /peak/training - 훈련 기록 저장
 router.post('/', async (req, res) => {
     try {
         const { date, student_id, trainer_id, plan_id, condition_score, notes } = req.body;
@@ -66,7 +66,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// PUT /maxt/training/:id - 훈련 기록 수정
+// PUT /peak/training/:id - 훈련 기록 수정
 router.put('/:id', async (req, res) => {
     try {
         const { condition_score, notes } = req.body;

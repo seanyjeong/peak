@@ -86,6 +86,7 @@ app.use('/peak/assignments', verifyToken, require('./routes/assignments'));
 app.use('/peak/training', verifyToken, require('./routes/training'));
 app.use('/peak/records', verifyToken, require('./routes/records'));
 app.use('/peak/attendance', verifyToken, require('./routes/attendance'));
+app.use('/peak/exercises', verifyToken, require('./routes/exercises'));
 
 // ==========================================
 // Error Handler
