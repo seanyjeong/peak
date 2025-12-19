@@ -30,9 +30,23 @@ const navigation = [
   { name: '학생 관리', href: '/students', icon: Calendar },
 ];
 
+// 역할 표시명 매핑
+const getRoleDisplayName = (role?: string, position?: string | null): string => {
+  // position이 있으면 position 우선
+  if (position) return position;
+
+  // role 매핑
+  switch (role) {
+    case 'owner': return '원장';
+    case 'admin': return '관리자';
+    case 'staff': return '코치';
+    default: return '코치';
+  }
+};
+
 export default function PCLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; role?: string; position?: string | null } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
@@ -116,7 +130,7 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
           {sidebarOpen && user && (
             <div className="mb-3 px-3">
               <p className="text-sm font-medium text-white">{user.name}</p>
-              <p className="text-xs text-slate-400">트레이너</p>
+              <p className="text-xs text-slate-400">{getRoleDisplayName(user.role, user.position)}</p>
             </div>
           )}
           <button
