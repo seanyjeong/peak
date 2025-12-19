@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const APP_VERSION = 'v0.1.5';
+const APP_VERSION = 'v0.1.6';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -50,7 +50,7 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex bg-slate-100">
       {/* Sidebar - Dark Navy */}
       <aside
-        className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-[#1a2b4a] text-white transition-all duration-300 flex flex-col fixed h-full z-10`}
+        className={`${sidebarOpen ? 'w-52' : 'w-20'} bg-[#1a2b4a] text-white transition-all duration-300 flex flex-col fixed h-full z-10`}
       >
         {/* Logo */}
         <div className={`h-16 flex items-center border-b border-[#243a5e] ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'}`}>
@@ -137,7 +137,7 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
+      <main className={`flex-1 ${sidebarOpen ? 'ml-52' : 'ml-20'} transition-all duration-300`}>
         <div className="p-8 min-h-screen">
           {children}
         </div>
