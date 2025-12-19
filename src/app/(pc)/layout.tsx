@@ -51,39 +51,49 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
         className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-[#1a2b4a] text-white transition-all duration-300 flex flex-col fixed h-full z-10`}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-[#243a5e]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-              <Mountain size={24} className="text-white" />
-            </div>
-            {sidebarOpen && (
-              <div>
-                <h1 className="text-lg font-bold tracking-wide">P-EAK</h1>
-                <p className="text-[10px] text-slate-400 -mt-1">Physical Excellence</p>
+        <div className={`h-16 flex items-center border-b border-[#243a5e] ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'}`}>
+          {sidebarOpen ? (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Mountain size={24} className="text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold tracking-wide">P-EAK</h1>
+                  <p className="text-[10px] text-slate-400 -mt-1">Physical Excellence</p>
+                </div>
               </div>
-            )}
-          </div>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-[#243a5e] rounded-lg transition"
-          >
-            {sidebarOpen ? <ChevronLeft size={18} /> : <Menu size={18} />}
-          </button>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-2 hover:bg-[#243a5e] rounded-lg transition"
+              >
+                <ChevronLeft size={18} />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center hover:bg-orange-600 transition"
+            >
+              <Mountain size={24} className="text-white" />
+            </button>
+          )}
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 py-6 overflow-y-auto">
-          <div className="space-y-1 px-3">
+          <div className={`space-y-1 ${sidebarOpen ? 'px-3' : 'px-2'}`}>
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${
-                    isActive
-                      ? 'bg-orange-500/15 text-orange-400 border-l-[3px] border-orange-500 -ml-[3px] pl-[15px]'
-                      : 'text-slate-300 hover:bg-[#243a5e] hover:text-white'
+                  title={!sidebarOpen ? item.name : undefined}
+                  className={`flex items-center rounded-lg transition-all duration-200 ${
+                    sidebarOpen
+                      ? `gap-3 px-3 py-3 ${isActive ? 'bg-orange-500/15 text-orange-400 border-l-[3px] border-orange-500 -ml-[3px] pl-[15px]' : 'text-slate-300 hover:bg-[#243a5e] hover:text-white'}`
+                      : `justify-center p-3 ${isActive ? 'bg-orange-500/15 text-orange-400' : 'text-slate-300 hover:bg-[#243a5e] hover:text-white'}`
                   }`}
                 >
                   <item.icon size={20} />
@@ -95,7 +105,7 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User Section */}
-        <div className="p-4 border-t border-[#243a5e]">
+        <div className={`border-t border-[#243a5e] ${sidebarOpen ? 'p-4' : 'p-2'}`}>
           {sidebarOpen && user && (
             <div className="mb-3 px-3">
               <p className="text-sm font-medium text-white">{user.name}</p>
@@ -104,7 +114,10 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
           )}
           <button
             onClick={handleLogout}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#243a5e] transition w-full ${!sidebarOpen && 'justify-center'}`}
+            title={!sidebarOpen ? '로그아웃' : undefined}
+            className={`flex items-center rounded-lg text-slate-400 hover:text-white hover:bg-[#243a5e] transition w-full ${
+              sidebarOpen ? 'gap-3 px-3 py-2' : 'justify-center p-3'
+            }`}
           >
             <LogOut size={18} />
             {sidebarOpen && <span className="text-sm">로그아웃</span>}
