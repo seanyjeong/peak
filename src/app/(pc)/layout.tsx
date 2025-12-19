@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+const APP_VERSION = 'v0.1.3';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -122,6 +124,9 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
             <LogOut size={18} />
             {sidebarOpen && <span className="text-sm">로그아웃</span>}
           </button>
+          {sidebarOpen && (
+            <p className="text-[10px] text-slate-500 text-center mt-3">{APP_VERSION}</p>
+          )}
         </div>
       </aside>
 
