@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const APP_VERSION = 'v0.1.4';
+const APP_VERSION = 'v0.1.5';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -83,27 +83,25 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 py-6 overflow-y-auto">
-          <div className={`space-y-1 ${sidebarOpen ? 'px-3' : 'px-2'}`}>
+        <nav className="flex-1 py-4 overflow-y-auto">
+          <div className={`space-y-1 ${sidebarOpen ? 'px-3' : 'px-1'}`}>
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group relative flex items-center rounded-lg transition-all duration-200 ${
+                  className={`flex rounded-lg transition-all duration-200 ${
                     sidebarOpen
-                      ? `gap-3 px-3 py-3 ${isActive ? 'bg-orange-500/15 text-orange-400 border-l-[3px] border-orange-500 -ml-[3px] pl-[15px]' : 'text-slate-300 hover:bg-[#243a5e] hover:text-white'}`
-                      : `justify-center p-3 ${isActive ? 'bg-orange-500/15 text-orange-400' : 'text-slate-300 hover:bg-[#243a5e] hover:text-white'}`
+                      ? `items-center gap-3 px-3 py-3 ${isActive ? 'bg-orange-500/15 text-orange-400 border-l-[3px] border-orange-500 -ml-[3px] pl-[15px]' : 'text-slate-300 hover:bg-[#243a5e] hover:text-white'}`
+                      : `flex-col items-center py-2 px-1 ${isActive ? 'bg-orange-500/15 text-orange-400' : 'text-slate-300 hover:bg-[#243a5e] hover:text-white'}`
                   }`}
                 >
                   <item.icon size={20} />
-                  {sidebarOpen && <span className="font-medium">{item.name}</span>}
-                  {/* Tooltip for collapsed sidebar */}
-                  {!sidebarOpen && (
-                    <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-sm rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                      {item.name}
-                    </span>
+                  {sidebarOpen ? (
+                    <span className="font-medium">{item.name}</span>
+                  ) : (
+                    <span className="text-[10px] mt-1 text-center leading-tight">{item.name}</span>
                   )}
                 </Link>
               );
@@ -121,16 +119,15 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
           )}
           <button
             onClick={handleLogout}
-            className={`group relative flex items-center rounded-lg text-slate-400 hover:text-white hover:bg-[#243a5e] transition w-full ${
-              sidebarOpen ? 'gap-3 px-3 py-2' : 'justify-center p-3'
+            className={`flex rounded-lg text-slate-400 hover:text-white hover:bg-[#243a5e] transition w-full ${
+              sidebarOpen ? 'items-center gap-3 px-3 py-2' : 'flex-col items-center py-2'
             }`}
           >
             <LogOut size={18} />
-            {sidebarOpen && <span className="text-sm">로그아웃</span>}
-            {!sidebarOpen && (
-              <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-sm rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                로그아웃
-              </span>
+            {sidebarOpen ? (
+              <span className="text-sm">로그아웃</span>
+            ) : (
+              <span className="text-[10px] mt-1">로그아웃</span>
             )}
           </button>
           {sidebarOpen && (
