@@ -32,8 +32,14 @@ const navigation = [
 
 // 역할 표시명 매핑
 const getRoleDisplayName = (role?: string, position?: string | null): string => {
-  // position이 있으면 position 우선
-  if (position) return position;
+  // position이 있으면 position 매핑 후 반환
+  if (position) {
+    switch (position) {
+      case '팀장': return '팀리더';
+      case '강사': return '코치';
+      default: return position;
+    }
+  }
 
   // role 매핑
   switch (role) {
