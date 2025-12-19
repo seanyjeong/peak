@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAXT (맥스트레이닝) - 제품 기획서 v1.0</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+        * {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+            line-height: 1.8;
+            color: #333;
+            font-size: 14px;
+        }
+
+        h1 {
+            color: #1a365d;
+            border-bottom: 3px solid #3182ce;
+            padding-bottom: 10px;
+            font-size: 28px;
+        }
+
+        h2 {
+            color: #2c5282;
+            border-bottom: 2px solid #90cdf4;
+            padding-bottom: 8px;
+            margin-top: 40px;
+            font-size: 22px;
+        }
+
+        h3 {
+            color: #2b6cb0;
+            margin-top: 30px;
+            font-size: 18px;
+        }
+
+        h4 {
+            color: #3182ce;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        blockquote {
+            background: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 15px 20px;
+            margin: 20px 0;
+            font-style: italic;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 13px;
+        }
+
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #edf2f7;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        pre {
+            background: #f7fafc;
+            color: #1a202c;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* 인쇄용 스타일 */
+        @media print {
+            body {
+                padding: 20px;
+                font-size: 11px;
+            }
+            h1 { font-size: 24px; }
+            h2 { font-size: 18px; margin-top: 30px; }
+            h3 { font-size: 15px; margin-top: 20px; }
+            h4 { font-size: 13px; }
+            pre { font-size: 10px; padding: 10px; }
+            table { font-size: 11px; }
+            th, td { padding: 6px 8px; }
+            .page-break { page-break-before: always; }
+        }
+
+        code {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        strong {
+            color: #2d3748;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 40px 0;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        @media print {
+            body {
+                padding: 20px;
+            }
+            pre {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1>MAXT (맥스트레이닝) - 제품 기획서 v1.0</h1>
+
+<blockquote>
+체대입시 전문 트레이닝 관리 시스템<br>
+작성일: 2025-12-15
+</blockquote>
+
+<hr>
+
+<h2>1. 프로젝트 개요</h2>
+
+<h3>1.1 비전</h3>
+<p><strong>"데이터 기반 체대입시 트레이닝의 새로운 기준"</strong></p>
+<p>FM2025가 축구 데이터를 축적하여 최적의 전술을 찾듯이, MAXT는 체대입시 훈련 데이터를 축적하여 최적의 훈련 방법을 발견한다.</p>
+
+<h3>1.2 핵심 가치</h3>
+<ul>
+    <li><strong>간편함</strong>: 트레이너가 현장에서 10초 만에 기록</li>
+    <li><strong>축적</strong>: 모든 훈련 데이터를 체계적으로 저장</li>
+    <li><strong>발견</strong>: 쌓인 데이터에서 성공 패턴을 찾아냄</li>
+    <li><strong>연동</strong>: P-ACA와 완벽한 데이터 동기화</li>
+</ul>
+
+<h3>1.3 목표</h3>
+<table>
+    <tr><th>단기 (6개월)</th><th>중기 (1년)</th><th>장기 (2년+)</th></tr>
+    <tr><td>MVP 출시</td><td>데이터 축적</td><td>AI 추천 시스템</td></tr>
+    <tr><td>일일 훈련 기록 정착</td><td>패턴 분석 기능</td><td>개인 맞춤 프로그램</td></tr>
+    <tr><td>P-ACA 연동 완료</td><td>성공 사례 DB 구축</td><td>타 학원 확장 가능</td></tr>
+</table>
+
+<hr>
+
+<h2>2. 사용자 분석</h2>
+
+<h3>2.1 사용자 유형</h3>
+
+<h4>원장 (1명)</h4>
+<ul>
+    <li><strong>역할</strong>: 전체 관리, 데이터 분석, 의사결정</li>
+    <li><strong>주요 활동</strong>: 통계 확인, 트레이너 관리, 학생 성장 모니터링</li>
+    <li><strong>Pain Point</strong>: 경험에만 의존하는 훈련 판단</li>
+</ul>
+
+<h4>트레이너 (7명)</h4>
+<ul>
+    <li><strong>역할</strong>: 일일 훈련 진행, 기록 입력</li>
+    <li><strong>주요 활동</strong>: 반 배치 확인, 훈련 계획 작성, 기록 측정</li>
+    <li><strong>Pain Point</strong>: 매번 수기 기록, 학생별 히스토리 파악 어려움</li>
+</ul>
+
+<h3>2.2 사용 환경</h3>
+<table>
+    <tr><th>항목</th><th>내용</th></tr>
+    <tr><td>주 사용 기기</td><td>스마트폰, 태블릿</td></tr>
+    <tr><td>보조 기기</td><td>PC (반 배치, 통계 확인)</td></tr>
+    <tr><td>네트워크</td><td>WiFi (안정적)</td></tr>
+    <tr><td>사용 시간</td><td>수업 전 (배치), 수업 중/후 (기록)</td></tr>
+</table>
+
+<h3>2.3 사용 시나리오</h3>
+
+<p><strong>시나리오 1: 수업 시작 전</strong></p>
+<pre>
+1. 원장/선임 트레이너가 오늘 출근 트레이너 체크
+2. 각 트레이너가 오늘 훈련 계획 작성
+3. 드래그앤드롭으로 학생 반 배치
+4. 배치 완료 → 각 트레이너에게 알림
+</pre>
+
+<p><strong>시나리오 2: 수업 중</strong></p>
+<pre>
+1. 트레이너가 자기 학생 명단 확인
+2. 훈련 진행
+3. 기록 측정 시 바로 입력 (스마트폰)
+4. 특이사항/컨디션 메모
+</pre>
+
+<p><strong>시나리오 3: 수업 후</strong></p>
+<pre>
+1. 오늘 훈련 내용 최종 저장
+2. P-ACA 출결 자동 동기화
+3. (선택) 학생별 메모 추가
+</pre>
+
+<hr>
+
+<h2>3. 기능 상세 명세</h2>
+
+<h3>3.1 인증/계정</h3>
+
+<h4>3.1.1 로그인</h4>
+<ul>
+    <li>P-ACA 계정 연동 (OAuth 또는 API 연동)</li>
+    <li>일산맥스 소속 트레이너만 접근 가능</li>
+    <li>자동 로그인 유지 (토큰 기반)</li>
+</ul>
+
+<h4>3.1.2 권한</h4>
+<ul>
+    <li>모든 트레이너 동등 권한</li>
+    <li>별도 관리자 기능 없음 (심플하게)</li>
+</ul>
+
+<h3>3.2 대시보드</h3>
+
+<h4>3.2.1 오늘 현황</h4>
+<pre>
+┌─────────────────────────────────────────┐
+│ 📅 2025년 12월 15일 (월) ☀️ 맑음 -2°C  │
+├─────────────────────────────────────────┤
+│ 👥 오늘 출석: 32명 / 40명               │
+│ 🏃 훈련 중: 28명                        │
+│ 🤕 부상 휴식: 4명                       │
+├─────────────────────────────────────────┤
+│ 👨‍🏫 출근 트레이너: 5명                  │
+│ 박코치(6명) 김코치(8명) 이코치(7명)...  │
+├─────────────────────────────────────────┤
+│ ⚠️ 알림                                 │
+│ • 김철수 기록 측정 14일째 없음          │
+│ • 이영희 제멀 목표 달성! 🎉             │
+└─────────────────────────────────────────┘
+</pre>
+
+<h4>3.2.2 빠른 액션</h4>
+<ul>
+    <li>[반 배치하기] 버튼</li>
+    <li>[기록 입력] 버튼</li>
+    <li>[내 학생 보기] 버튼</li>
+</ul>
+
+<h3>3.3 트레이너 출근 관리</h3>
+
+<h4>3.3.1 출근 체크</h4>
+<pre>
+┌─────────────────────────────────────────┐
+│ 오늘 출근 트레이너 선택                 │
+├─────────────────────────────────────────┤
+│ ☑️ 박코치    ☑️ 김코치    ☐ 이코치     │
+│ ☑️ 최코치    ☐ 정코치    ☑️ 한코치     │
+│ ☐ 송코치    ☑️ 윤코치                  │
+├─────────────────────────────────────────┤
+│ 출근: 5명 / 8명                         │
+│                          [확인] 버튼    │
+└─────────────────────────────────────────┘
+</pre>
+
+<h4>3.3.2 데이터</h4>
+<ul>
+    <li>트레이너별 출근 이력 저장</li>
+    <li>월별 출근 통계 (나중에 급여 연동 가능)</li>
+</ul>
+
+<h3>3.4 훈련 계획 작성</h3>
+
+<h4>3.4.1 계획 입력 화면</h4>
+<pre>
+┌─────────────────────────────────────────┐
+│ 📝 박코치의 오늘 훈련 계획              │
+├─────────────────────────────────────────┤
+│ 훈련 분류 (복수 선택)                   │
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐    │
+│ │☑️하체파워│ │☑️민첩성 │ │☐상체파워│   │
+│ └─────────┘ └─────────┘ └─────────┘    │
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐    │
+│ │☐유연성  │ │☑️기술   │ │☐컨디셔닝│   │
+│ └─────────┘ └─────────┘ └─────────┘    │
+├─────────────────────────────────────────┤
+│ 상세 내용                               │
+│ ┌─────────────────────────────────────┐ │
+│ │ 박스점프 10개 3세트                 │ │
+│ │ 허들 드릴                           │ │
+│ │ 제멀 자세 교정 (팔 스윙 집중)       │ │
+│ └─────────────────────────────────────┘ │
+├─────────────────────────────────────────┤
+│ 💾 저장된 템플릿 불러오기 [▼]          │
+│                          [저장] 버튼    │
+└─────────────────────────────────────────┘
+</pre>
+
+<h4>3.4.2 훈련 분류 태그</h4>
+<table>
+    <tr><th>태그</th><th>설명</th><th>관련 종목</th></tr>
+    <tr><td>하체 파워</td><td>점프력, 순발력</td><td>제멀</td></tr>
+    <tr><td>상체 파워</td><td>던지기, 밀기</td><td>메디신</td></tr>
+    <tr><td>민첩성</td><td>방향전환, 스피드</td><td>20m왕복</td></tr>
+    <tr><td>유연성</td><td>스트레칭, 가동범위</td><td>좌전굴</td></tr>
+    <tr><td>기술/자세</td><td>폼 교정, 동작 습득</td><td>전체</td></tr>
+    <tr><td>컨디셔닝</td><td>체력, 지구력</td><td>전체</td></tr>
+</table>
+
+<h4>3.4.3 템플릿 기능</h4>
+<ul>
+    <li>자주 쓰는 훈련 계획 저장</li>
+    <li>불러오기 후 수정 가능</li>
+    <li>트레이너별 개인 템플릿</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h3>3.5 반 배치 (핵심 기능)</h3>
+
+<h4>3.5.1 배치 보드 UI</h4>
+<pre>
+┌──────────────────────────────────────────────────────────┐
+│ 📅 2025-12-15 반 배치                    [어제 복사] 📋 │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│ [미배치]      [박코치]      [김코치]      [휴식/부상]   │
+│ ┌────────┐   ┌────────┐   ┌────────┐   ┌────────┐      │
+│ │ 김철수 │   │ 이영희 │   │ 최지훈 │   │ 송강호 │      │
+│ │ 남/고2 │   │ 여/고3 │   │ 남/고3 │   │ 🤕무릎 │      │
+│ │ 제멀247│   │ 제멀241│   │ 제멀289│   │        │      │
+│ └────────┘   ├────────┤   ├────────┤   └────────┘      │
+│ ┌────────┐   │ 정다운 │   │ 한소희 │                   │
+│ │ 박민수 │   │ 여/고2 │   │ 여/N수 │                   │
+│ │ 남/고2 │   │ 제멀198│   │ 제멀235│                   │
+│ │ 제멀251│   └────────┘   └────────┘                   │
+│ └────────┘   ┌────────┐                                │
+│              │ 윤아름 │                                │
+│              │ 여/고2 │                                │
+│              │ 제멀185│                                │
+│              └────────┘                                │
+│                                                          │
+│ 💡 학생 카드를 드래그하여 트레이너에게 배치하세요       │
+├──────────────────────────────────────────────────────────┤
+│ 미배치: 2명 | 배치완료: 35명 | 휴식: 3명   [배치완료] ✅│
+└──────────────────────────────────────────────────────────┘
+</pre>
+
+<h4>3.5.2 학생 카드 정보</h4>
+<ul>
+    <li>이름</li>
+    <li>성별/학년</li>
+    <li>최근 주요 기록 (제멀 기준)</li>
+    <li>부상 상태 아이콘</li>
+</ul>
+
+<h4>3.5.3 드래그앤드롭</h4>
+<ul>
+    <li>모바일: 터치 드래그</li>
+    <li>PC: 마우스 드래그</li>
+    <li>카드를 트레이너 영역에 놓으면 배치</li>
+    <li>여러 카드 동시 선택 후 이동 가능</li>
+</ul>
+
+<h4>3.5.4 특수 기능</h4>
+<ul>
+    <li><strong>어제 복사</strong>: 전날 배치 그대로 불러오기</li>
+    <li><strong>자동 배치</strong>: 균등 분배 (선택 사항)</li>
+    <li><strong>부상자 필터</strong>: 부상자만 따로 보기</li>
+</ul>
+
+<h3>3.6 학생 관리</h3>
+
+<h4>3.6.1 학생 목록</h4>
+<pre>
+┌─────────────────────────────────────────┐
+│ 👥 학생 목록                    🔍 검색 │
+├─────────────────────────────────────────┤
+│ 필터: [전체▼] [남▼] [고3▼]             │
+├─────────────────────────────────────────┤
+│ ┌─────────────────────────────────────┐ │
+│ │ 김철수 | 남 | 고2 | 일산고          │ │
+│ │ 제멀 247 | 메디신 9.2 | 왕복 15.8   │ │
+│ │ 마지막 기록: 3일 전                 │ │
+│ └─────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────┐ │
+│ │ 이영희 | 여 | 고3 | 백석고          │ │
+│ │ 제멀 241 | 메디신 7.1 | 왕복 17.2   │ │
+│ │ 마지막 기록: 1일 전                 │ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+</pre>
+
+<h4>3.6.2 학생 상세 프로필</h4>
+<pre>
+┌─────────────────────────────────────────┐
+│ 👤 김철수                               │
+│ 남 | 고2 | 일산고 | 입학: 2025.03       │
+├─────────────────────────────────────────┤
+│ 📊 현재 기록                            │
+│ ┌─────────┬─────────┬─────────┬───────┐ │
+│ │ 제멀    │ 메디신  │ 20m왕복 │ 좌전굴│ │
+│ │ 247cm   │ 9.2m    │ 15.8초  │ +12cm │ │
+│ │ (▲12)  │ (▲0.8) │ (▼0.3) │ (▲3) │ │
+│ └─────────┴─────────┴─────────┴───────┘ │
+├─────────────────────────────────────────┤
+│ 🎯 목표                                 │
+│ 제멀 280cm | 메디신 10.5m | 왕복 15.0초 │
+├─────────────────────────────────────────┤
+│ 📈 기록 변화 그래프                     │
+│     280 ─ ─ ─ ─ ─ ─ ─ ─ 목표선         │
+│     260 ─────────────●                  │
+│     240 ───────●────                    │
+│     220 ──●───                          │
+│     200 ●                               │
+│         3월  5월  7월  9월  11월        │
+├─────────────────────────────────────────┤
+│ 🤕 부상 이력                            │
+│ • 2025.10.15~10.30 왼쪽 발목 (완치)     │
+├─────────────────────────────────────────┤
+│ 📝 최근 훈련 (최근 7일)                 │
+│ • 12/14: 하체파워, 민첩성 (박코치)      │
+│ • 12/13: 휴식                           │
+│ • 12/12: 기술/자세 (김코치)             │
+└─────────────────────────────────────────┘
+</pre>
+
+<h4>3.6.3 목표 설정</h4>
+<ul>
+    <li>학생별 종목별 목표 기록 설정</li>
+    <li>목표 대비 현재 진척률 표시</li>
+    <li>목표 달성 시 알림/축하</li>
+</ul>
+
+<h4>3.6.4 P-ACA 연동 데이터</h4>
+<ul>
+    <li>이름, 성별, 학교, 학년: P-ACA에서 가져옴</li>
+    <li>출결: 양방향 동기화</li>
+    <li>학원비, 상담 등: 연동 안 함 (MAXT는 훈련에만 집중)</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h3>3.7 기록 측정</h3>
+
+<h4>3.7.1 기록 입력 화면</h4>
+<pre>
+┌─────────────────────────────────────────┐
+│ 📏 기록 입력                            │
+├─────────────────────────────────────────┤
+│ 학생 선택: [김철수 ▼]                   │
+│ 측정일: [2025-12-15]                    │
+├─────────────────────────────────────────┤
+│ 종목별 기록 (변경된 것만 입력)          │
+│                                         │
+│ 제자리멀리뛰기                          │
+│ [  252  ] cm    이전: 247cm (▲5)       │
+│                                         │
+│ 메디신볼던지기                          │
+│ [      ] m      이전: 9.2m              │
+│                                         │
+│ 20m왕복달리기                           │
+│ [      ] 초     이전: 15.8초            │
+│                                         │
+│ 좌전굴                                  │
+│ [      ] cm     이전: +12cm             │
+├─────────────────────────────────────────┤
+│ 📝 메모 (선택)                          │
+│ ┌─────────────────────────────────────┐ │
+│ │ 팔 스윙 타이밍 좋아짐               │ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+</pre>
+
+<h4>3.7.2 목록 입력 모드</h4>
+<pre>
+┌─────────────────────────────────────────┐
+│ 📏 제자리멀리뛰기 측정      [종목 선택▼]│
+├─────────────────────────────────────────┤
+│ 이름      이전    오늘    변화          │
+├─────────────────────────────────────────┤
+│ 김철수    247    [252]   ▲5            │
+│ 이영희    241    [243]   ▲2            │
+│ 박민수    251    [   ]   -             │
+│ 최지훈    289    [295]   ▲6            │
+│ 정다운    198    [205]   ▲7            │
+├─────────────────────────────────────────┤
+│                          [전체 저장]    │
+└─────────────────────────────────────────┘
+</pre>
+<ul>
+    <li>한 종목 선택 후 전체 학생 목록에서 바로 입력</li>
+    <li>입력칸 터치 → 숫자 키패드 → 다음 칸 자동 포커스</li>
+    <li>PC/모바일 동일한 UX</li>
+</ul>
+
+<h4>3.7.3 기록 히스토리</h4>
+<ul>
+    <li>모든 측정 기록 저장</li>
+    <li>날짜, 기록, 측정자(트레이너), 메모</li>
+    <li>수정/삭제 가능 (히스토리 남김)</li>
+</ul>
+
+<h3>3.8 부상 관리</h3>
+
+<h4>3.8.1 부상 등록</h4>
+<pre>
+┌─────────────────────────────────────────┐
+│ 🤕 부상 등록                            │
+├─────────────────────────────────────────┤
+│ 학생: 송강호                            │
+├─────────────────────────────────────────┤
+│ 부상 부위                               │
+│ ○ 상체 - ( ) 어깨 ( ) 팔꿈치 ( ) 손목   │
+│ ● 하체 - (●) 무릎 ( ) 발목 ( ) 허벅지  │
+│ ○ 기타 - [ 직접 입력 ]                 │
+├─────────────────────────────────────────┤
+│ 부상 정도                               │
+│ ○ 경미 (훈련 가능, 주의)               │
+│ ● 중간 (부분 훈련만 가능)              │
+│ ○ 심각 (완전 휴식 필요)                │
+├─────────────────────────────────────────┤
+│ 가능한 훈련                             │
+│ ☑️ 상체 파워  ☐ 하체 파워               │
+│ ☐ 민첩성     ☑️ 유연성                  │
+│ ☑️ 기술/자세  ☑️ 컨디셔닝 (가벼운)      │
+├─────────────────────────────────────────┤
+│ 예상 복귀일: [2025-12-30]               │
+│ 메모: 병원 진단 - 2주 안정 필요         │
+└─────────────────────────────────────────┘
+</pre>
+
+<h4>3.8.2 부상자 현황</h4>
+<ul>
+    <li>현재 부상 중인 학생 목록</li>
+    <li>부상 부위, 기간, 가능 훈련 한눈에</li>
+    <li>복귀 예정일 알림</li>
+</ul>
+
+<h3>3.9 훈련 기록 저장</h3>
+
+<h4>3.9.1 수업 후 기록</h4>
+<pre>
+┌─────────────────────────────────────────┐
+│ 📝 오늘 훈련 기록 저장                  │
+│ 박코치 | 2025-12-15                     │
+├─────────────────────────────────────────┤
+│ 오늘 계획: 하체파워, 민첩성, 기술       │
+│ "박스점프 10개 3세트, 허들, 제멀 자세"  │
+├─────────────────────────────────────────┤
+│ 참여 학생 컨디션 체크                   │
+│                                         │
+│ 이영희  [●●●●●●●●○○] 8/10  메모 [+]  │
+│ 정다운  [●●●●●●○○○○] 6/10  메모 [+]  │
+│ 윤아름  [●●●●●●●●●○] 9/10  메모 [+]  │
+├─────────────────────────────────────────┤
+│ 📸 훈련 사진/영상 (선택)     [첨부]     │
+├─────────────────────────────────────────┤
+│ 전체 메모                               │
+│ ┌─────────────────────────────────────┐ │
+│ │ 정다운 컨디션 안 좋아 보임,         │ │
+│ │ 내일 체크 필요                      │ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+</pre>
+
+<h4>3.9.2 저장 데이터</h4>
+<ul>
+    <li>날짜, 트레이너, 훈련 분류, 상세 내용</li>
+    <li>참여 학생 목록</li>
+    <li>학생별 컨디션 (1~10)</li>
+    <li>학생별 개인 메모</li>
+    <li>첨부 파일 (사진/영상) - 선택</li>
+</ul>
+
+<h3>3.10 날씨 연동</h3>
+
+<h4>3.10.1 자동 기록</h4>
+<ul>
+    <li>위치 기반 날씨 API (OpenWeatherMap 또는 기상청)</li>
+    <li>일산 지역 기준</li>
+    <li>기록 항목: 날씨(맑음/흐림/비/눈), 기온, 습도</li>
+</ul>
+
+<h4>3.10.2 활용</h4>
+<ul>
+    <li>훈련 기록에 날씨 자동 첨부</li>
+    <li>나중에 "비 오는 날 기록 변화" 등 분석 가능</li>
+</ul>
+
+<h3>3.11 알림/리마인더</h3>
+
+<h4>3.11.1 알림 종류</h4>
+<table>
+    <tr><th>알림</th><th>조건</th><th>대상</th></tr>
+    <tr><td>기록 측정 필요</td><td>7일 이상 기록 없음</td><td>전체 트레이너</td></tr>
+    <tr><td>목표 달성</td><td>목표 기록 도달</td><td>전체 트레이너</td></tr>
+    <tr><td>부상 복귀 예정</td><td>복귀일 3일 전</td><td>전체 트레이너</td></tr>
+    <tr><td>훈련 기록 미저장</td><td>수업 후 기록 안 함</td><td>해당 트레이너</td></tr>
+</table>
+
+<h4>3.11.2 알림 방식</h4>
+<ul>
+    <li>앱 내 알림 (대시보드)</li>
+    <li>푸시 알림 (PWA)</li>
+    <li>(선택) 카카오톡 알림</li>
+</ul>
+
+<h3>3.12 통계/분석 (Phase 2)</h3>
+
+<h4>3.12.1 학생별 분석</h4>
+<ul>
+    <li>기록 변화 그래프 (종목별, 기간별)</li>
+    <li>훈련량 대비 성장률</li>
+    <li>컨디션 추이</li>
+</ul>
+
+<h4>3.12.2 전체 분석</h4>
+<ul>
+    <li>학원 전체 평균 기록 추이</li>
+    <li>트레이너별 학생 성장률 (참고용)</li>
+    <li>훈련 분류별 효과 분석</li>
+</ul>
+
+<h4>3.12.3 패턴 발견</h4>
+<ul>
+    <li>"제멀 향상된 학생들의 공통 훈련 패턴"</li>
+    <li>"비슷한 시작 기록 → 성공한 사례 비교"</li>
+    <li>날씨/컨디션과 기록의 상관관계</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2>4. 데이터 모델</h2>
+
+<h3>4.1 ERD 개요</h3>
+<pre>
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  trainers   │     │  students   │     │   records   │
+│─────────────│     │─────────────│     │─────────────│
+│ id          │     │ id          │     │ id          │
+│ paca_id     │────▶│ paca_id     │◀────│ student_id  │
+│ name        │     │ name        │     │ measured_at │
+│ phone       │     │ gender      │     │ standing_jmp│
+│ active      │     │ school      │     │ medicine    │
+└─────────────┘     │ grade       │     │ shuttle_run │
+       │            │ status      │     │ flexibility │
+       │            │ goal_*      │     │ trainer_id  │
+       │            └─────────────┘     │ memo        │
+       │                   │            └─────────────┘
+       ▼                   ▼
+┌─────────────┐     ┌─────────────┐
+│daily_attend │     │  injuries   │
+│─────────────│     │─────────────│
+│ id          │     │ id          │
+│ date        │     │ student_id  │
+│ trainer_id  │     │ body_part   │
+└─────────────┘     │ severity    │
+       │            │ allowed_tags│
+       ▼            │ start_date  │
+┌─────────────┐     │ end_date    │
+│daily_plans  │     │ memo        │
+│─────────────│     └─────────────┘
+│ id          │
+│ date        │     ┌─────────────┐
+│ trainer_id  │     │daily_assign │
+│ tags (JSON) │     │─────────────│
+│ description │     │ id          │
+│ template_id │     │ date        │
+└─────────────┘     │ student_id  │
+                    │ trainer_id  │
+┌─────────────┐     │ status      │
+│training_logs│     └─────────────┘
+│─────────────│
+│ id          │     ┌─────────────┐
+│ date        │     │   weather   │
+│ student_id  │     │─────────────│
+│ trainer_id  │     │ id          │
+│ plan_id     │     │ date        │
+│ condition   │     │ weather     │
+│ memo        │     │ temperature │
+│ attachments │     │ humidity    │
+└─────────────┘     └─────────────┘
+
+┌─────────────┐
+│plan_template│
+│─────────────│
+│ id          │
+│ trainer_id  │
+│ name        │
+│ tags        │
+│ description │
+└─────────────┘
+</pre>
+
+<h3>4.2 테이블 상세</h3>
+
+<h4>trainers (트레이너)</h4>
+<table>
+    <tr><th>컬럼</th><th>타입</th><th>설명</th></tr>
+    <tr><td>id</td><td>INT PK</td><td>고유 ID</td></tr>
+    <tr><td>paca_id</td><td>INT</td><td>P-ACA 연동 ID</td></tr>
+    <tr><td>name</td><td>VARCHAR(50)</td><td>이름</td></tr>
+    <tr><td>phone</td><td>VARCHAR(20)</td><td>연락처</td></tr>
+    <tr><td>active</td><td>BOOLEAN</td><td>활성 여부</td></tr>
+    <tr><td>created_at</td><td>DATETIME</td><td>생성일</td></tr>
+</table>
+
+<h4>students (학생)</h4>
+<table>
+    <tr><th>컬럼</th><th>타입</th><th>설명</th></tr>
+    <tr><td>id</td><td>INT PK</td><td>고유 ID</td></tr>
+    <tr><td>paca_id</td><td>INT</td><td>P-ACA 연동 ID</td></tr>
+    <tr><td>name</td><td>VARCHAR(50)</td><td>이름 (P-ACA 연동)</td></tr>
+    <tr><td>gender</td><td>ENUM</td><td>male/female</td></tr>
+    <tr><td>school</td><td>VARCHAR(100)</td><td>학교</td></tr>
+    <tr><td>grade</td><td>VARCHAR(20)</td><td>학년</td></tr>
+    <tr><td>status</td><td>ENUM</td><td>active/paused/graduated</td></tr>
+    <tr><td>goal_standing_jump</td><td>INT</td><td>목표 제멀 (cm)</td></tr>
+    <tr><td>goal_medicine_ball</td><td>DECIMAL</td><td>목표 메디신 (m)</td></tr>
+    <tr><td>goal_shuttle_run</td><td>DECIMAL</td><td>목표 왕복 (초)</td></tr>
+    <tr><td>goal_flexibility</td><td>INT</td><td>목표 좌전굴 (cm)</td></tr>
+    <tr><td>created_at</td><td>DATETIME</td><td>등록일</td></tr>
+</table>
+
+<h4>records (기록 측정)</h4>
+<table>
+    <tr><th>컬럼</th><th>타입</th><th>설명</th></tr>
+    <tr><td>id</td><td>INT PK</td><td>고유 ID</td></tr>
+    <tr><td>student_id</td><td>INT FK</td><td>학생</td></tr>
+    <tr><td>measured_at</td><td>DATE</td><td>측정일</td></tr>
+    <tr><td>standing_jump</td><td>INT</td><td>제멀 (cm)</td></tr>
+    <tr><td>medicine_ball</td><td>DECIMAL(4,2)</td><td>메디신 (m)</td></tr>
+    <tr><td>shuttle_run</td><td>DECIMAL(4,2)</td><td>왕복 (초)</td></tr>
+    <tr><td>flexibility</td><td>INT</td><td>좌전굴 (cm, 음수 가능)</td></tr>
+    <tr><td>trainer_id</td><td>INT FK</td><td>측정 트레이너</td></tr>
+    <tr><td>memo</td><td>TEXT</td><td>메모</td></tr>
+    <tr><td>created_at</td><td>DATETIME</td><td>입력 시간</td></tr>
+</table>
+
+<h4>injuries (부상)</h4>
+<table>
+    <tr><th>컬럼</th><th>타입</th><th>설명</th></tr>
+    <tr><td>id</td><td>INT PK</td><td>고유 ID</td></tr>
+    <tr><td>student_id</td><td>INT FK</td><td>학생</td></tr>
+    <tr><td>body_part</td><td>VARCHAR(50)</td><td>부상 부위</td></tr>
+    <tr><td>severity</td><td>ENUM</td><td>mild/moderate/severe</td></tr>
+    <tr><td>allowed_tags</td><td>JSON</td><td>가능한 훈련 태그</td></tr>
+    <tr><td>start_date</td><td>DATE</td><td>부상 시작일</td></tr>
+    <tr><td>expected_end</td><td>DATE</td><td>예상 복귀일</td></tr>
+    <tr><td>actual_end</td><td>DATE</td><td>실제 복귀일</td></tr>
+    <tr><td>memo</td><td>TEXT</td><td>메모</td></tr>
+</table>
+
+<h4>daily_attendance (트레이너 출근)</h4>
+<table>
+    <tr><th>컬럼</th><th>타입</th><th>설명</th></tr>
+    <tr><td>id</td><td>INT PK</td><td>고유 ID</td></tr>
+    <tr><td>date</td><td>DATE</td><td>날짜</td></tr>
+    <tr><td>trainer_id</td><td>INT FK</td><td>트레이너</td></tr>
+</table>
+
+<h4>daily_plans (훈련 계획)</h4>
+<table>
+    <tr><th>컬럼</th><th>타입</th><th>설명</th></tr>
+    <tr><td>id</td><td>INT PK</td><td>고유 ID</td></tr>
+    <tr><td>date</td><td>DATE</td><td>날짜</td></tr>
+    <tr><td>trainer_id</td><td>INT FK</td><td>트레이너</td></tr>
+    <tr><td>tags</td><td>JSON</td><td>훈련 분류 태그</td></tr>
+    <tr><td>description</td><td>TEXT</td><td>상세 내용</td></tr>
+    <tr><td>template_id</td><td>INT FK</td><td>템플릿 참조 (선택)</td></tr>
+</table>
+
+<h4>daily_assignments (반 배치)</h4>
+<table>
+    <tr><th>컬럼</th><th>타입</th><th>설명</th></tr>
+    <tr><td>id</td><td>INT PK</td><td>고유 ID</td></tr>
+    <tr><td>date</td><td>DATE</td><td>날짜</td></tr>
+    <tr><td>student_id</td><td>INT FK</td><td>학생</td></tr>
+    <tr><td>trainer_id</td><td>INT FK</td><td>배치된 트레이너</td></tr>
+    <tr><td>status</td><td>ENUM</td><td>training/rest/injury</td></tr>
+</table>
+
+<h4>training_logs (훈련 기록)</h4>
+<table>
+    <tr><th>컬럼</th><th>타입</th><th>설명</th></tr>
+    <tr><td>id</td><td>INT PK</td><td>고유 ID</td></tr>
+    <tr><td>date</td><td>DATE</td><td>날짜</td></tr>
+    <tr><td>student_id</td><td>INT FK</td><td>학생</td></tr>
+    <tr><td>trainer_id</td><td>INT FK</td><td>트레이너</td></tr>
+    <tr><td>plan_id</td><td>INT FK</td><td>훈련 계획</td></tr>
+    <tr><td>condition</td><td>INT</td><td>컨디션 (1~10)</td></tr>
+    <tr><td>memo</td><td>TEXT</td><td>개인 메모</td></tr>
+    <tr><td>attachments</td><td>JSON</td><td>첨부파일 URL</td></tr>
+</table>
+
+<h4>weather (날씨)</h4>
+<table>
+    <tr><th>컬럼</th><th>타입</th><th>설명</th></tr>
+    <tr><td>id</td><td>INT PK</td><td>고유 ID</td></tr>
+    <tr><td>date</td><td>DATE</td><td>날짜</td></tr>
+    <tr><td>weather</td><td>VARCHAR(20)</td><td>날씨 상태</td></tr>
+    <tr><td>temperature</td><td>INT</td><td>기온 (°C)</td></tr>
+    <tr><td>humidity</td><td>INT</td><td>습도 (%)</td></tr>
+</table>
+
+<h4>plan_templates (훈련 템플릿)</h4>
+<table>
+    <tr><th>컬럼</th><th>타입</th><th>설명</th></tr>
+    <tr><td>id</td><td>INT PK</td><td>고유 ID</td></tr>
+    <tr><td>trainer_id</td><td>INT FK</td><td>트레이너</td></tr>
+    <tr><td>name</td><td>VARCHAR(100)</td><td>템플릿 이름</td></tr>
+    <tr><td>tags</td><td>JSON</td><td>훈련 분류</td></tr>
+    <tr><td>description</td><td>TEXT</td><td>상세 내용</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>5. 기술 스택</h2>
+
+<h3>5.1 프론트엔드</h3>
+<table>
+    <tr><th>항목</th><th>기술</th><th>이유</th></tr>
+    <tr><td>프레임워크</td><td>Next.js 15</td><td>P-ACA와 동일, SSR/SSG</td></tr>
+    <tr><td>스타일</td><td>TailwindCSS</td><td>빠른 개발, 반응형</td></tr>
+    <tr><td>상태관리</td><td>Zustand</td><td>가벼움, 간단</td></tr>
+    <tr><td>드래그앤드롭</td><td>dnd-kit</td><td>React용, 터치 지원</td></tr>
+    <tr><td>차트</td><td>Chart.js / Recharts</td><td>기록 그래프</td></tr>
+    <tr><td>PWA</td><td>next-pwa</td><td>모바일 앱처럼 사용</td></tr>
+</table>
+
+<h3>5.2 백엔드</h3>
+<table>
+    <tr><th>항목</th><th>기술</th><th>이유</th></tr>
+    <tr><td>프레임워크</td><td>Express.js</td><td>P-ACA와 동일</td></tr>
+    <tr><td>DB</td><td>MySQL</td><td>P-ACA 연동 용이</td></tr>
+    <tr><td>인증</td><td>JWT</td><td>P-ACA 토큰 공유 가능</td></tr>
+    <tr><td>날씨 API</td><td>기상청 / OpenWeatherMap</td><td>무료</td></tr>
+</table>
+
+<h3>5.3 인프라</h3>
+<table>
+    <tr><th>항목</th><th>기술</th><th>이유</th></tr>
+    <tr><td>프론트 호스팅</td><td>Vercel</td><td>자동 배포</td></tr>
+    <tr><td>백엔드 호스팅</td><td>로컬 서버</td><td>P-ACA와 동일 서버</td></tr>
+    <tr><td>DB</td><td>로컬 MySQL</td><td>P-ACA DB와 같이</td></tr>
+</table>
+
+<hr>
+
+<h2>6. P-ACA 연동 상세</h2>
+
+<h3>6.1 연동 항목</h3>
+<table>
+    <tr><th>데이터</th><th>방향</th><th>방식</th></tr>
+    <tr><td>로그인/인증</td><td>P-ACA → MAXT</td><td>JWT 토큰 공유</td></tr>
+    <tr><td>학생 정보</td><td>P-ACA → MAXT</td><td>API 호출</td></tr>
+    <tr><td>출결</td><td>P-ACA ↔ MAXT</td><td>양방향 동기화</td></tr>
+</table>
+
+<h3>6.2 인증 플로우</h3>
+<pre>
+1. MAXT 로그인 페이지 접속
+2. P-ACA 로그인 API 호출
+3. JWT 토큰 발급
+4. MAXT에서 토큰으로 인증
+5. 일산맥스 소속 확인 후 접근 허용
+</pre>
+
+<h3>6.3 출결 동기화</h3>
+<pre>
+[MAXT에서 출석 체크 시]
+1. MAXT daily_assignments 저장
+2. P-ACA 출결 API 호출
+3. P-ACA attendances 테이블 업데이트
+
+[P-ACA에서 출석 체크 시]
+1. P-ACA 출결 저장
+2. Webhook 또는 폴링으로 MAXT 감지
+3. MAXT daily_assignments 업데이트
+</pre>
+
+<hr>
+
+<h2>7. 화면 목록 (MVP)</h2>
+
+<table>
+    <tr><th>#</th><th>화면</th><th>설명</th><th>우선순위</th></tr>
+    <tr><td>1</td><td>로그인</td><td>P-ACA 계정 로그인</td><td>P0</td></tr>
+    <tr><td>2</td><td>대시보드</td><td>오늘 현황, 빠른 액션</td><td>P0</td></tr>
+    <tr><td>3</td><td>트레이너 출근</td><td>출근 체크</td><td>P0</td></tr>
+    <tr><td>4</td><td>훈련 계획 작성</td><td>오늘 훈련 계획</td><td>P0</td></tr>
+    <tr><td>5</td><td>반 배치</td><td>드래그앤드롭 보드</td><td>P0</td></tr>
+    <tr><td>6</td><td>학생 목록</td><td>전체 학생</td><td>P0</td></tr>
+    <tr><td>7</td><td>학생 상세</td><td>프로필, 기록, 히스토리</td><td>P0</td></tr>
+    <tr><td>8</td><td>기록 입력</td><td>종목별 기록 측정</td><td>P0</td></tr>
+    <tr><td>9</td><td>훈련 기록 저장</td><td>수업 후 기록</td><td>P0</td></tr>
+    <tr><td>10</td><td>부상 등록/관리</td><td>부상자 관리</td><td>P1</td></tr>
+    <tr><td>11</td><td>훈련 템플릿</td><td>템플릿 관리</td><td>P1</td></tr>
+    <tr><td>12</td><td>통계/분석</td><td>그래프, 패턴</td><td>P2</td></tr>
+    <tr><td>13</td><td>설정</td><td>알림, 프로필</td><td>P2</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>8. 개발 로드맵</h2>
+
+<h3>Phase 1: MVP (8주)</h3>
+
+<p><strong>Week 1-2: 프로젝트 셋업</strong></p>
+<ul>
+    <li>Next.js 프로젝트 생성</li>
+    <li>Express.js 백엔드 셋업</li>
+    <li>DB 스키마 생성</li>
+    <li>P-ACA 인증 연동</li>
+</ul>
+
+<p><strong>Week 3-4: 기본 CRUD</strong></p>
+<ul>
+    <li>트레이너 관리</li>
+    <li>학생 목록 (P-ACA 연동)</li>
+    <li>학생 상세 프로필</li>
+</ul>
+
+<p><strong>Week 5-6: 핵심 기능</strong></p>
+<ul>
+    <li>트레이너 출근 체크</li>
+    <li>훈련 계획 작성</li>
+    <li>반 배치 (드래그앤드롭)</li>
+</ul>
+
+<p><strong>Week 7-8: 기록 시스템</strong></p>
+<ul>
+    <li>기록 측정 입력</li>
+    <li>훈련 기록 저장</li>
+    <li>학생별 기록 히스토리</li>
+    <li>P-ACA 출결 연동</li>
+</ul>
+
+<h3>Phase 2: 고도화 (4주)</h3>
+
+<p><strong>Week 9-10</strong></p>
+<ul>
+    <li>부상 관리</li>
+    <li>훈련 템플릿</li>
+    <li>날씨 API 연동</li>
+</ul>
+
+<p><strong>Week 11-12</strong></p>
+<ul>
+    <li>알림/리마인더</li>
+    <li>기록 변화 그래프</li>
+    <li>PWA 최적화</li>
+</ul>
+
+<h3>Phase 3: 분석 (4주+)</h3>
+<ul>
+    <li>통계 대시보드</li>
+    <li>패턴 분석</li>
+    <li>AI 추천 (장기)</li>
+</ul>
+
+<hr>
+
+<h2>9. 리스크 & 대응</h2>
+
+<table>
+    <tr><th>리스크</th><th>영향</th><th>대응</th></tr>
+    <tr><td>트레이너 사용 저조</td><td>데이터 축적 실패</td><td>최대한 간편한 UX, 교육</td></tr>
+    <tr><td>P-ACA 연동 복잡</td><td>개발 지연</td><td>단계별 연동, MVP는 최소 연동</td></tr>
+    <tr><td>드래그앤드롭 모바일 이슈</td><td>UX 저하</td><td>dnd-kit 터치 최적화, 테스트</td></tr>
+    <tr><td>데이터 분석 어려움</td><td>인사이트 부족</td><td>전문가 자문, 논문 참고</td></tr>
+</table>
+
+<hr>
+
+<h2>10. 성공 지표</h2>
+
+<h3>10.1 사용 지표</h3>
+<table>
+    <tr><th>지표</th><th>목표 (3개월)</th></tr>
+    <tr><td>일일 활성 트레이너</td><td>6명 이상</td></tr>
+    <tr><td>일일 훈련 기록 수</td><td>30건 이상</td></tr>
+    <tr><td>주간 기록 측정 수</td><td>50건 이상</td></tr>
+</table>
+
+<h3>10.2 데이터 지표</h3>
+<table>
+    <tr><th>지표</th><th>목표 (6개월)</th></tr>
+    <tr><td>축적 훈련 기록</td><td>5,000건 이상</td></tr>
+    <tr><td>축적 측정 기록</td><td>1,000건 이상</td></tr>
+    <tr><td>학생별 평균 기록 수</td><td>20회 이상</td></tr>
+</table>
+
+<h3>10.3 성과 지표</h3>
+<table>
+    <tr><th>지표</th><th>목표 (1년)</th></tr>
+    <tr><td>훈련 패턴 발견</td><td>3개 이상</td></tr>
+    <tr><td>평균 기록 향상률</td><td>측정 가능</td></tr>
+</table>
+
+<hr>
+
+<h2>11. 부록</h2>
+
+<h3>11.1 용어 정의</h3>
+<table>
+    <tr><th>용어</th><th>정의</th></tr>
+    <tr><td>제멀</td><td>제자리멀리뛰기</td></tr>
+    <tr><td>메디신</td><td>메디신볼던지기</td></tr>
+    <tr><td>20m왕복</td><td>20m 왕복달리기 (콘 기준)</td></tr>
+    <tr><td>좌전굴</td><td>앉아서 앞으로 굽히기</td></tr>
+    <tr><td>반 배치</td><td>학생을 트레이너에게 배정</td></tr>
+</table>
+
+<h3>11.2 기록 기준</h3>
+<table>
+    <tr><th>종목</th><th>단위</th><th>측정 방법</th></tr>
+    <tr><td>제멀</td><td>cm</td><td>발 뒤꿈치 기준</td></tr>
+    <tr><td>메디신</td><td>m (소수점 1자리)</td><td>공 착지점</td></tr>
+    <tr><td>20m왕복</td><td>초 (소수점 1자리)</td><td>콘 터치 기준</td></tr>
+    <tr><td>좌전굴</td><td>cm (음수 가능)</td><td>발끝 기준 0</td></tr>
+</table>
+
+<h3>11.3 참고 자료</h3>
+<ul>
+    <li>체대입시 실기 평가 기준 (각 대학별)</li>
+    <li>운동생리학 논문 (추후 수집)</li>
+    <li>FM2025 데이터 시스템 분석</li>
+</ul>
+
+<hr>
+
+<p><strong>문서 버전</strong>: v1.0<br>
+<strong>기획자</strong>: 정으뜸<br>
+<strong>최종 수정</strong>: 2025-12-15</p>
+
+</body>
+</html>

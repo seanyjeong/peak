@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAXT - 데이터 기반 체대입시 트레이닝</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange-500: #FF6B00;
+      --orange-600: #E55A00;
+      --orange-400: #FF8533;
+      --black: #0A0A0A;
+      --gray-900: #141414;
+      --gray-800: #1F1F1F;
+      --gray-700: #2A2A2A;
+      --gray-400: #9CA3AF;
+      --gray-300: #D1D5DB;
+      --white: #FFFFFF;
+      --green-400: #4ADE80;
+      --blue-400: #60A5FA;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--black);
+      color: var(--white);
+      overflow-x: hidden;
+    }
+
+    /* ===== NAVIGATION ===== */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      padding: 1rem 2rem;
+      background: linear-gradient(to bottom, rgba(10,10,10,0.95), transparent);
+      transition: background 0.3s;
+    }
+
+    nav.scrolled {
+      background: rgba(10,10,10,0.98);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-accent {
+      color: var(--orange-500);
+    }
+
+    .nav-cta {
+      background: var(--orange-500);
+      color: var(--white);
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      transition: all 0.3s;
+      border: 2px solid var(--orange-500);
+    }
+
+    .nav-cta:hover {
+      background: transparent;
+      color: var(--orange-500);
+    }
+
+    /* ===== HERO SECTION ===== */
+    .hero {
+      min-height: 100vh;
+      position: relative;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, var(--black) 0%, var(--gray-900) 50%, var(--black) 100%);
+    }
+
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,107,0,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,107,0,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridMove 20s linear infinite;
+    }
+
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(60px, 60px); }
+    }
+
+    .hero-diagonal {
+      position: absolute;
+      right: -20%;
+      top: -20%;
+      width: 80%;
+      height: 140%;
+      background: linear-gradient(135deg, var(--orange-500) 0%, var(--orange-600) 100%);
+      transform: skewX(-12deg);
+      opacity: 0.08;
+    }
+
+    .hero-content {
+      position: relative;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 8rem 2rem 4rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .hero-text {
+      animation: fadeInUp 1s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,107,0,0.1);
+      border: 1px solid rgba(255,107,0,0.3);
+      padding: 0.5rem 1rem;
+      border-radius: 100px;
+      font-size: 0.875rem;
+      color: var(--orange-400);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--orange-500);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .hero h1 {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: clamp(3rem, 6vw, 5rem);
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hero h1 span {
+      color: var(--orange-500);
+    }
+
+    .hero-desc {
+      font-size: 1.25rem;
+      color: var(--gray-300);
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+      max-width: 520px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--orange-500);
+      color: var(--white);
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.1rem;
+      transition: all 0.3s;
+      border: 2px solid var(--orange-500);
+    }
+
+    .btn-primary:hover {
+      background: var(--orange-600);
+      border-color: var(--orange-600);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px rgba(255,107,0,0.3);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: transparent;
+      color: var(--white);
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.1rem;
+      border: 2px solid var(--gray-700);
+      transition: all 0.3s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--gray-400);
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* Hero Visual */
+    .hero-visual {
+      position: relative;
+      animation: fadeInUp 1s ease-out 0.3s both;
+    }
+
+    .hero-card {
+      background: var(--gray-900);
+      border: 1px solid var(--gray-800);
+      border-radius: 20px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--orange-500), var(--orange-400));
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 0.875rem;
+      color: var(--gray-400);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .card-date {
+      font-size: 0.875rem;
+      color: var(--orange-500);
+      font-weight: 600;
+    }
+
+    .student-card {
+      background: var(--gray-800);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .student-card:hover {
+      background: var(--gray-700);
+      transform: translateX(4px);
+    }
+
+    .student-avatar {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--orange-500), var(--orange-600));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .student-info {
+      flex: 1;
+    }
+
+    .student-name {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .student-meta {
+      font-size: 0.875rem;
+      color: var(--gray-400);
+    }
+
+    .student-record {
+      text-align: right;
+    }
+
+    .record-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--orange-500);
+    }
+
+    .record-change {
+      font-size: 0.75rem;
+      color: var(--green-400);
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .stat-item {
+      background: var(--gray-800);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--gray-400);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Floating Elements */
+    .floating-badges-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .floating-badge {
+      position: absolute;
+      background: rgba(20, 20, 20, 0.95);
+      border: 1px solid var(--gray-700);
+      border-radius: 16px;
+      padding: 0.875rem 1.25rem;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      white-space: nowrap;
+      pointer-events: auto;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .floating-badge:hover {
+      transform: scale(1.05);
+      box-shadow: 0 12px 40px rgba(255, 107, 0, 0.2);
+    }
+
+    .floating-badge .value {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .floating-badge .label {
+      color: var(--gray-300);
+    }
+
+    .floating-badge.green .value { color: var(--green-400); }
+    .floating-badge.blue .value { color: var(--blue-400); }
+    .floating-badge.orange .value { color: var(--orange-400); }
+    .floating-badge.white .value { color: var(--white); }
+
+    .floating-badge.pos-1 {
+      top: 15%;
+      left: 5%;
+      animation: floatBadge1 4s ease-in-out infinite;
+    }
+
+    .floating-badge.pos-2 {
+      top: 25%;
+      right: 8%;
+      animation: floatBadge2 5s ease-in-out infinite;
+    }
+
+    .floating-badge.pos-3 {
+      top: 55%;
+      left: 3%;
+      animation: floatBadge3 4.5s ease-in-out infinite;
+    }
+
+    .floating-badge.pos-4 {
+      bottom: 30%;
+      right: 5%;
+      animation: floatBadge4 3.5s ease-in-out infinite;
+    }
+
+    .floating-badge.pos-5 {
+      bottom: 15%;
+      left: 8%;
+      animation: floatBadge5 5.5s ease-in-out infinite;
+    }
+
+    .floating-badge.pos-6 {
+      top: 40%;
+      right: 3%;
+      animation: floatBadge6 4s ease-in-out infinite;
+    }
+
+    .floating-badge.pos-7 {
+      bottom: 45%;
+      left: 12%;
+      animation: floatBadge7 3.8s ease-in-out infinite;
+    }
+
+    .floating-badge.pos-8 {
+      top: 70%;
+      right: 12%;
+      animation: floatBadge8 4.2s ease-in-out infinite;
+    }
+
+    @keyframes floatBadge1 {
+      0%, 100% { transform: translate(0, 0) rotate(-2deg); }
+      50% { transform: translate(10px, -15px) rotate(2deg); }
+    }
+
+    @keyframes floatBadge2 {
+      0%, 100% { transform: translate(0, 0) rotate(1deg); }
+      50% { transform: translate(-8px, -20px) rotate(-1deg); }
+    }
+
+    @keyframes floatBadge3 {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(15px, -12px) rotate(3deg); }
+    }
+
+    @keyframes floatBadge4 {
+      0%, 100% { transform: translate(0, 0) rotate(-1deg); }
+      50% { transform: translate(-12px, -18px) rotate(1deg); }
+    }
+
+    @keyframes floatBadge5 {
+      0%, 100% { transform: translate(0, 0) rotate(2deg); }
+      50% { transform: translate(8px, -25px) rotate(-2deg); }
+    }
+
+    @keyframes floatBadge6 {
+      0%, 100% { transform: translate(0, 0) rotate(-3deg); }
+      50% { transform: translate(-15px, -10px) rotate(0deg); }
+    }
+
+    @keyframes floatBadge7 {
+      0%, 100% { transform: translate(0, 0) rotate(1deg); }
+      50% { transform: translate(12px, -22px) rotate(-1deg); }
+    }
+
+    @keyframes floatBadge8 {
+      0%, 100% { transform: translate(0, 0) rotate(-2deg); }
+      50% { transform: translate(-10px, -16px) rotate(2deg); }
+    }
+
+    /* ===== FEATURES SECTION ===== */
+    .features {
+      padding: 8rem 2rem;
+      position: relative;
+    }
+
+    .features-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, var(--black) 0%, var(--gray-900) 50%, var(--black) 100%);
+    }
+
+    .section-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .section-label {
+      display: inline-block;
+      font-size: 0.875rem;
+      color: var(--orange-500);
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .section-title {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      margin-bottom: 1rem;
+    }
+
+    .section-desc {
+      color: var(--gray-400);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+
+    .feature-card {
+      background: var(--gray-900);
+      border: 1px solid var(--gray-800);
+      border-radius: 20px;
+      padding: 2rem;
+      transition: all 0.4s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255,107,0,0.1) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--orange-500);
+      transform: translateY(-8px);
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--orange-500), var(--orange-600));
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .feature-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .feature-desc {
+      color: var(--gray-400);
+      line-height: 1.7;
+      font-size: 0.95rem;
+    }
+
+    /* ===== PREVIEW SECTION ===== */
+    .preview {
+      padding: 8rem 2rem;
+      background: var(--black);
+    }
+
+    .preview-card {
+      background: var(--gray-800);
+      border: 1px solid var(--gray-700);
+      border-radius: 24px;
+      overflow: hidden;
+      max-width: 900px;
+      margin: 0 auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      background: var(--gray-900);
+      border-bottom: 1px solid var(--gray-700);
+    }
+
+    .preview-tabs {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .preview-tabs .tab {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: var(--gray-400);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .preview-tabs .tab.active {
+      background: var(--orange-500);
+      color: var(--white);
+    }
+
+    .preview-tabs .tab:hover:not(.active) {
+      color: var(--white);
+      background: var(--gray-700);
+    }
+
+    .preview-date {
+      font-size: 0.875rem;
+      color: var(--gray-400);
+    }
+
+    .preview-content {
+      padding: 2rem;
+    }
+
+    .profile-section {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--gray-700);
+    }
+
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--orange-500), var(--orange-600));
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .profile-info h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .profile-info p {
+      color: var(--gray-400);
+      margin-bottom: 0.75rem;
+    }
+
+    .profile-status {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      background: var(--gray-700);
+      color: var(--gray-300);
+    }
+
+    .status-badge.active {
+      background: rgba(74, 222, 128, 0.2);
+      color: var(--green-400);
+    }
+
+    .records-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .record-item {
+      background: var(--gray-900);
+      border-radius: 16px;
+      padding: 1.25rem;
+    }
+
+    .record-label {
+      font-size: 0.8rem;
+      color: var(--gray-400);
+      margin-bottom: 0.5rem;
+    }
+
+    .record-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 0.75rem;
+    }
+
+    .record-number span {
+      font-size: 1rem;
+      color: var(--gray-400);
+      margin-left: 0.25rem;
+    }
+
+    .record-progress {
+      height: 6px;
+      background: var(--gray-700);
+      border-radius: 3px;
+      margin-bottom: 0.75rem;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--orange-500), var(--orange-400));
+      border-radius: 3px;
+      transition: width 1s ease;
+    }
+
+    .progress-bar.reverse {
+      background: linear-gradient(90deg, var(--blue-400), #38BDF8);
+    }
+
+    .record-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+    }
+
+    .record-meta .change {
+      color: var(--green-400);
+    }
+
+    .record-meta .target {
+      color: var(--gray-400);
+    }
+
+    .history-section h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--gray-300);
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--gray-900);
+      border-radius: 12px;
+      font-size: 0.875rem;
+    }
+
+    .history-date {
+      color: var(--gray-400);
+      min-width: 50px;
+    }
+
+    .history-tags {
+      display: flex;
+      gap: 0.5rem;
+      flex: 1;
+    }
+
+    .history-tags .tag {
+      padding: 0.25rem 0.5rem;
+      background: rgba(255, 107, 0, 0.15);
+      color: var(--orange-400);
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+
+    .history-trainer {
+      color: var(--gray-300);
+    }
+
+    .history-condition {
+      color: var(--green-400);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 768px) {
+      .records-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-section {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .profile-status {
+        justify-content: center;
+      }
+
+      .history-item {
+        flex-wrap: wrap;
+      }
+
+      .history-tags {
+        order: 3;
+        width: 100%;
+        margin-top: 0.5rem;
+      }
+
+      .preview-header {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .preview-tabs {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    /* ===== WORKFLOW SECTION ===== */
+    .workflow {
+      padding: 8rem 2rem;
+      background: var(--gray-900);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .workflow-diagonal {
+      position: absolute;
+      left: -10%;
+      top: 0;
+      width: 30%;
+      height: 100%;
+      background: var(--orange-500);
+      transform: skewX(-12deg);
+      opacity: 0.03;
+    }
+
+    .workflow-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-top: 4rem;
+    }
+
+    .workflow-step {
+      position: relative;
+      padding: 2rem;
+      background: var(--gray-800);
+      border-radius: 20px;
+      border: 1px solid var(--gray-700);
+    }
+
+    .step-number {
+      position: absolute;
+      top: -20px;
+      left: 24px;
+      width: 48px;
+      height: 48px;
+      background: var(--orange-500);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 1.5rem;
+    }
+
+    .step-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .step-desc {
+      color: var(--gray-400);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    /* ===== RECORDS SECTION ===== */
+    .records {
+      padding: 8rem 2rem;
+      background: var(--black);
+    }
+
+    .records-showcase {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      margin-top: 4rem;
+    }
+
+    .records-visual {
+      background: var(--gray-900);
+      border: 1px solid var(--gray-800);
+      border-radius: 24px;
+      padding: 2rem;
+      position: relative;
+    }
+
+    .records-chart {
+      height: 200px;
+      display: flex;
+      align-items: flex-end;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--gray-700);
+      margin-bottom: 1.5rem;
+    }
+
+    .chart-bar {
+      flex: 1;
+      background: linear-gradient(to top, var(--orange-600), var(--orange-400));
+      border-radius: 8px 8px 0 0;
+      position: relative;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .chart-bar:hover {
+      filter: brightness(1.1);
+    }
+
+    .chart-bar::after {
+      content: attr(data-value);
+      position: absolute;
+      top: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--orange-400);
+    }
+
+    .chart-labels {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .chart-label {
+      flex: 1;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--gray-400);
+    }
+
+    .records-info h3 {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .records-list {
+      list-style: none;
+    }
+
+    .records-list li {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--gray-800);
+    }
+
+    .records-list li::before {
+      content: '';
+      width: 12px;
+      height: 12px;
+      background: var(--orange-500);
+      border-radius: 4px;
+    }
+
+    .records-list li span {
+      color: var(--orange-400);
+      font-weight: 600;
+    }
+
+    /* ===== INTEGRATION SECTION ===== */
+    .integration {
+      padding: 8rem 2rem;
+      background: linear-gradient(180deg, var(--black) 0%, var(--gray-900) 100%);
+    }
+
+    .integration-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      margin-top: 4rem;
+    }
+
+    .integration-visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .integration-logo {
+      width: 120px;
+      height: 120px;
+      background: var(--gray-800);
+      border: 2px solid var(--gray-700);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 1.5rem;
+      position: relative;
+    }
+
+    .integration-logo.maxt {
+      background: linear-gradient(135deg, var(--orange-500), var(--orange-600));
+      border-color: var(--orange-500);
+    }
+
+    .integration-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .connector-line {
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--orange-500), var(--blue-400));
+      border-radius: 2px;
+    }
+
+    .connector-arrows {
+      display: flex;
+      gap: 4px;
+      color: var(--gray-400);
+      font-size: 0.75rem;
+    }
+
+    .integration-features {
+      list-style: none;
+    }
+
+    .integration-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .integration-features .icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(255,107,0,0.1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .integration-features h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .integration-features p {
+      font-size: 0.9rem;
+      color: var(--gray-400);
+    }
+
+    /* ===== CTA SECTION ===== */
+    .cta {
+      padding: 8rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--orange-600) 0%, var(--orange-500) 100%);
+    }
+
+    .cta-pattern {
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 50%, rgba(0,0,0,0.1) 0%, transparent 50%);
+    }
+
+    .cta-content {
+      position: relative;
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .cta h2 {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      margin-bottom: 1.5rem;
+    }
+
+    .cta p {
+      font-size: 1.25rem;
+      opacity: 0.9;
+      margin-bottom: 2.5rem;
+    }
+
+    .cta .btn-primary {
+      background: var(--white);
+      color: var(--orange-600);
+      border-color: var(--white);
+      font-size: 1.25rem;
+      padding: 1.25rem 2.5rem;
+    }
+
+    .cta .btn-primary:hover {
+      background: transparent;
+      color: var(--white);
+      border-color: var(--white);
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      padding: 4rem 2rem;
+      background: var(--black);
+      border-top: 1px solid var(--gray-800);
+    }
+
+    .footer-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+
+    .footer-logo {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 1.5rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .footer-links a {
+      color: var(--gray-400);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.3s;
+    }
+
+    .footer-links a:hover {
+      color: var(--orange-500);
+    }
+
+    .footer-copy {
+      color: var(--gray-400);
+      font-size: 0.875rem;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .hero-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .hero-desc {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-buttons {
+        justify-content: center;
+      }
+
+      .hero-visual {
+        max-width: 500px;
+        margin: 0 auto;
+      }
+
+      .floating-badges-container {
+        display: none;
+      }
+
+      .records-showcase,
+      .integration-content {
+        grid-template-columns: 1fr;
+      }
+
+      .records-info {
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        padding: 1rem;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+      }
+
+      .nav-cta {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+      }
+
+      .hero-content {
+        padding: 6rem 1rem 3rem;
+      }
+
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+
+      .hero-desc {
+        font-size: 1rem;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+      }
+
+      .btn-primary,
+      .btn-secondary {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .features,
+      .workflow,
+      .records,
+      .integration,
+      .cta {
+        padding: 4rem 1rem;
+      }
+
+      .stats-row {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-links {
+        flex-direction: column;
+        gap: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav id="navbar">
+    <div class="nav-container">
+      <div class="logo">
+        <span class="logo-accent">MAX</span>T
+      </div>
+      <a href="#cta" class="nav-cta">시작하기</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-diagonal"></div>
+
+    <!-- Floating Badges -->
+    <div class="floating-badges-container">
+      <div class="floating-badge green pos-1">
+        <span class="value">+12cm</span>
+        <span class="label">이번 달 향상</span>
+      </div>
+      <div class="floating-badge blue pos-2">
+        <span class="value">32명</span>
+        <span class="label">오늘 출석</span>
+      </div>
+      <div class="floating-badge orange pos-3">
+        <span class="value">89%</span>
+        <span class="label">출석률</span>
+      </div>
+      <div class="floating-badge green pos-4">
+        <span class="value">목표 달성!</span>
+        <span class="label">김철수 제멀</span>
+      </div>
+      <div class="floating-badge white pos-5">
+        <span class="value">5명</span>
+        <span class="label">트레이너 출근</span>
+      </div>
+      <div class="floating-badge blue pos-6">
+        <span class="value">NEW</span>
+        <span class="label">기록 갱신</span>
+      </div>
+      <div class="floating-badge orange pos-7">
+        <span class="value">278cm</span>
+        <span class="label">최고 제멀</span>
+      </div>
+      <div class="floating-badge green pos-8">
+        <span class="value">+8cm</span>
+        <span class="label">주간 평균</span>
+      </div>
+    </div>
+
+    <div class="hero-content">
+      <div class="hero-text">
+        <div class="hero-badge">P-ACA 공식 연동</div>
+        <h1>체대입시 훈련,<br><span>체계적으로</span> 관리하세요</h1>
+        <p class="hero-desc">
+          반 배치, 기록 측정, 훈련 계획까지 한 곳에서.
+          트레이너의 업무를 줄이고, 학생의 성장을 기록합니다.
+        </p>
+        <div class="hero-buttons">
+          <a href="#cta" class="btn-primary">
+            무료로 시작하기
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+          <a href="#features" class="btn-secondary">
+            기능 살펴보기
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-card">
+          <div class="card-header">
+            <span class="card-title">오늘의 반 배치</span>
+            <span class="card-date">2025.12.18</span>
+          </div>
+
+          <div class="student-card">
+            <div class="student-avatar">김</div>
+            <div class="student-info">
+              <div class="student-name">김철수</div>
+              <div class="student-meta">남 · 고2 · 일산고</div>
+            </div>
+            <div class="student-record">
+              <div class="record-value">265cm</div>
+              <div class="record-change">▲ 12cm</div>
+            </div>
+          </div>
+
+          <div class="student-card">
+            <div class="student-avatar">이</div>
+            <div class="student-info">
+              <div class="student-name">이영희</div>
+              <div class="student-meta">여 · 고3 · 백석고</div>
+            </div>
+            <div class="student-record">
+              <div class="record-value">241cm</div>
+              <div class="record-change">▲ 8cm</div>
+            </div>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-value">32</div>
+              <div class="stat-label">출석</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">5</div>
+              <div class="stat-label">트레이너</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">89%</div>
+              <div class="stat-label">출석률</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="features-bg"></div>
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-label">Core Features</span>
+        <h2 class="section-title">트레이너를 위한 모든 기능</h2>
+        <p class="section-desc">현장에서 10초 만에 기록하고, 학생별 성장 과정을 한눈에 확인하세요.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📋</div>
+          <h3 class="feature-title">반 배치</h3>
+          <p class="feature-desc">드래그 앤 드롭으로 학생을 트레이너에게 쉽게 배치. 어제 배치 복사, 자동 균등 분배까지.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📏</div>
+          <h3 class="feature-title">기록 측정</h3>
+          <p class="feature-desc">제멀, 메디신, 20m왕복, 좌전굴. 4대 종목 기록을 빠르게 입력하고 변화를 추적합니다.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3 class="feature-title">성장 그래프</h3>
+          <p class="feature-desc">학생별 기록 변화를 그래프로 시각화. 목표 달성률과 성장 추이를 한눈에 확인.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📝</div>
+          <h3 class="feature-title">훈련 계획</h3>
+          <p class="feature-desc">하체파워, 민첩성, 유연성 등 태그로 훈련을 분류하고 상세 계획을 작성합니다.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🤕</div>
+          <h3 class="feature-title">부상 관리</h3>
+          <p class="feature-desc">부상 부위, 정도, 가능한 훈련을 기록. 복귀 예정일까지 체계적으로 관리합니다.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <h3 class="feature-title">알림 시스템</h3>
+          <p class="feature-desc">기록 측정 필요, 목표 달성, 부상 복귀 예정 등 중요한 알림을 놓치지 마세요.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Preview Section - Student Profile -->
+  <section class="preview">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-label">Preview</span>
+        <h2 class="section-title">이렇게 관리됩니다</h2>
+        <p class="section-desc">학생별 프로필에서 기록 변화와 훈련 히스토리를 한눈에 확인하세요.</p>
+      </div>
+
+      <div class="preview-card">
+        <div class="preview-header">
+          <div class="preview-tabs">
+            <span class="tab active">학생 프로필</span>
+            <span class="tab">훈련 기록</span>
+            <span class="tab">기록 측정</span>
+          </div>
+          <div class="preview-date">2025.12.18</div>
+        </div>
+
+        <div class="preview-content">
+          <div class="profile-section">
+            <div class="profile-avatar">김철수</div>
+            <div class="profile-info">
+              <h3>김철수</h3>
+              <p>남 · 고2 · 일산고 · 입학 2025.03</p>
+              <div class="profile-status">
+                <span class="status-badge active">재원중</span>
+                <span class="status-badge">목표: 제멀 280cm</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="records-grid">
+            <div class="record-item">
+              <div class="record-label">제자리멀리뛰기</div>
+              <div class="record-number">265<span>cm</span></div>
+              <div class="record-progress">
+                <div class="progress-bar" style="width: 88%;"></div>
+              </div>
+              <div class="record-meta">
+                <span class="change positive">▲ 12cm</span>
+                <span class="target">목표 280cm</span>
+              </div>
+            </div>
+            <div class="record-item">
+              <div class="record-label">메디신볼던지기</div>
+              <div class="record-number">9.8<span>m</span></div>
+              <div class="record-progress">
+                <div class="progress-bar" style="width: 75%;"></div>
+              </div>
+              <div class="record-meta">
+                <span class="change positive">▲ 0.6m</span>
+                <span class="target">목표 11m</span>
+              </div>
+            </div>
+            <div class="record-item">
+              <div class="record-label">20m왕복달리기</div>
+              <div class="record-number">15.2<span>초</span></div>
+              <div class="record-progress">
+                <div class="progress-bar reverse" style="width: 70%;"></div>
+              </div>
+              <div class="record-meta">
+                <span class="change positive">▼ 0.6초</span>
+                <span class="target">목표 14.5초</span>
+              </div>
+            </div>
+            <div class="record-item">
+              <div class="record-label">좌전굴</div>
+              <div class="record-number">+15<span>cm</span></div>
+              <div class="record-progress">
+                <div class="progress-bar" style="width: 60%;"></div>
+              </div>
+              <div class="record-meta">
+                <span class="change positive">▲ 3cm</span>
+                <span class="target">꾸준히 향상</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="history-section">
+            <h4>최근 훈련 기록</h4>
+            <div class="history-list">
+              <div class="history-item">
+                <span class="history-date">12/17</span>
+                <span class="history-tags">
+                  <span class="tag">하체파워</span>
+                  <span class="tag">민첩성</span>
+                </span>
+                <span class="history-trainer">박코치</span>
+                <span class="history-condition">컨디션 8/10</span>
+              </div>
+              <div class="history-item">
+                <span class="history-date">12/16</span>
+                <span class="history-tags">
+                  <span class="tag">기술/자세</span>
+                </span>
+                <span class="history-trainer">김코치</span>
+                <span class="history-condition">컨디션 9/10</span>
+              </div>
+              <div class="history-item">
+                <span class="history-date">12/15</span>
+                <span class="history-tags">
+                  <span class="tag">상체파워</span>
+                  <span class="tag">유연성</span>
+                </span>
+                <span class="history-trainer">박코치</span>
+                <span class="history-condition">컨디션 7/10</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workflow Section -->
+  <section class="workflow">
+    <div class="workflow-diagonal"></div>
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-label">Daily Workflow</span>
+        <h2 class="section-title">하루 수업 흐름</h2>
+        <p class="section-desc">수업 전, 중, 후 모든 과정을 MAXT 하나로 관리하세요.</p>
+      </div>
+
+      <div class="workflow-steps">
+        <div class="workflow-step">
+          <div class="step-number">1</div>
+          <h4 class="step-title">수업 전</h4>
+          <p class="step-desc">출근 체크 → 훈련 계획 작성 → 드래그앤드롭으로 학생 반 배치</p>
+        </div>
+
+        <div class="workflow-step">
+          <div class="step-number">2</div>
+          <h4 class="step-title">수업 중</h4>
+          <p class="step-desc">내 학생 명단 확인 → 훈련 진행 → 기록 측정 시 바로 입력</p>
+        </div>
+
+        <div class="workflow-step">
+          <div class="step-number">3</div>
+          <h4 class="step-title">수업 후</h4>
+          <p class="step-desc">학생별 컨디션 체크 → 훈련 기록 저장 → P-ACA 출결 자동 동기화</p>
+        </div>
+
+        <div class="workflow-step">
+          <div class="step-number">4</div>
+          <h4 class="step-title">확인</h4>
+          <p class="step-desc">학생별 기록 변화 그래프 확인 → 목표 대비 진척률 체크 → 다음 훈련 계획</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Records Section -->
+  <section class="records">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-label">Performance Tracking</span>
+        <h2 class="section-title">4대 종목 기록 관리</h2>
+        <p class="section-desc">체대입시 핵심 종목의 기록을 체계적으로 측정하고 추적합니다.</p>
+      </div>
+
+      <div class="records-showcase">
+        <div class="records-visual">
+          <div class="card-header">
+            <span class="card-title">김철수 - 제자리멀리뛰기</span>
+            <span class="card-date">최근 6개월</span>
+          </div>
+          <div class="records-chart">
+            <div class="chart-bar" style="height: 50%;" data-value="220"></div>
+            <div class="chart-bar" style="height: 58%;" data-value="235"></div>
+            <div class="chart-bar" style="height: 65%;" data-value="247"></div>
+            <div class="chart-bar" style="height: 72%;" data-value="258"></div>
+            <div class="chart-bar" style="height: 80%;" data-value="265"></div>
+            <div class="chart-bar" style="height: 88%;" data-value="278"></div>
+          </div>
+          <div class="chart-labels">
+            <span class="chart-label">7월</span>
+            <span class="chart-label">8월</span>
+            <span class="chart-label">9월</span>
+            <span class="chart-label">10월</span>
+            <span class="chart-label">11월</span>
+            <span class="chart-label">12월</span>
+          </div>
+        </div>
+
+        <div class="records-info">
+          <h3>기록을 측정하고<br>성장을 확인하세요</h3>
+          <ul class="records-list">
+            <li><strong>제자리멀리뛰기</strong> - 남 시작 250cm → 만점 <span>300cm</span></li>
+            <li><strong>메디신볼던지기</strong> - 남 시작 8.5m → 만점 <span>12m</span></li>
+            <li><strong>20m왕복달리기</strong> - 남 시작 16.5초 → 만점 <span>14.5초</span></li>
+            <li><strong>좌전굴</strong> - 개인별 시작점 → <span>최대 향상</span> 추적</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Integration Section -->
+  <section class="integration">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-label">P-ACA Integration</span>
+        <h2 class="section-title">P-ACA와 완벽 연동</h2>
+        <p class="section-desc">학원 관리는 P-ACA, 트레이닝 관리는 MAXT. 데이터는 자동 동기화.</p>
+      </div>
+
+      <div class="integration-content">
+        <div class="integration-visual">
+          <div class="integration-logo">P-ACA</div>
+          <div class="integration-connector">
+            <span class="connector-arrows">← →</span>
+            <div class="connector-line"></div>
+            <span style="font-size: 0.75rem; color: var(--gray-400);">실시간 동기화</span>
+          </div>
+          <div class="integration-logo maxt">MAXT</div>
+        </div>
+
+        <ul class="integration-features">
+          <li>
+            <div class="icon">🔐</div>
+            <div>
+              <h4>통합 로그인</h4>
+              <p>P-ACA 계정으로 바로 로그인. 별도 가입 없이 바로 시작.</p>
+            </div>
+          </li>
+          <li>
+            <div class="icon">👥</div>
+            <div>
+              <h4>학생 정보 연동</h4>
+              <p>P-ACA에 등록된 학생 정보가 자동으로 MAXT에 동기화.</p>
+            </div>
+          </li>
+          <li>
+            <div class="icon">✅</div>
+            <div>
+              <h4>출결 양방향 동기화</h4>
+              <p>MAXT에서 체크한 출석이 P-ACA에 자동 반영. 반대도 가능.</p>
+            </div>
+          </li>
+          <li>
+            <div class="icon">📱</div>
+            <div>
+              <h4>모바일 최적화</h4>
+              <p>스마트폰, 태블릿, PC 어디서든 동일한 경험.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta" id="cta">
+    <div class="cta-bg"></div>
+    <div class="cta-pattern"></div>
+    <div class="cta-content">
+      <h2>지금 바로 시작하세요</h2>
+      <p>일산맥스 트레이너라면 무료로 사용할 수 있습니다.</p>
+      <a href="#" class="btn-primary">
+        P-ACA 계정으로 로그인
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-logo">
+        <span style="color: var(--orange-500);">MAX</span>T
+      </div>
+      <div class="footer-links">
+        <a href="#">기능 소개</a>
+        <a href="#">이용 가이드</a>
+        <a href="#">문의하기</a>
+      </div>
+      <div class="footer-copy">
+        &copy; 2025 MAXT. P-ACA 연동 서비스.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Navbar scroll effect
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+
+    // Smooth reveal on scroll
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.feature-card, .workflow-step, .integration-features li, .preview-card').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(30px)';
+      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+      observer.observe(el);
+    });
+
+    // Stagger animation for grid items
+    document.querySelectorAll('.features-grid .feature-card').forEach((card, index) => {
+      card.style.transitionDelay = `${index * 0.1}s`;
+    });
+
+    document.querySelectorAll('.workflow-steps .workflow-step').forEach((step, index) => {
+      step.style.transitionDelay = `${index * 0.15}s`;
+    });
+  </script>
+</body>
+</html>
