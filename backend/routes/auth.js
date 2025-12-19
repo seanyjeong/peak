@@ -8,6 +8,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const mysql = require('mysql2/promise');
+const { decrypt } = require('../utils/encryption');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'jeong-paca-secret';
 
@@ -88,7 +89,7 @@ router.post('/login', async (req, res) => {
             user: {
                 id: user.id,
                 email: user.email,
-                name: user.name,
+                name: decrypt(user.name), // P-ACA 암호화된 이름 복호화
                 role: user.role,
                 academyId: user.academy_id,
                 position: user.position,
