@@ -38,7 +38,7 @@ router.post('/login', async (req, res) => {
 
         // P-ACA DB에서 사용자 조회
         const [users] = await pacaPool.query(
-            'SELECT id, email, password, name, role, academy_id, is_active, approval_status, position, instructor_id FROM users WHERE email = ? AND deleted_at IS NULL',
+            'SELECT id, email, password_hash, name, role, academy_id, is_active, approval_status, position, instructor_id FROM users WHERE email = ? AND deleted_at IS NULL',
             [email]
         );
 
@@ -52,7 +52,7 @@ router.post('/login', async (req, res) => {
         const user = users[0];
 
         // 비밀번호 확인
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
             return res.status(401).json({
                 error: 'Unauthorized',

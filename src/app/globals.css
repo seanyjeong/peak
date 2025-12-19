@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #1e293b;
+
+  /* P-EAK Color Palette */
+  --peak-navy: #1a2b4a;
+  --peak-navy-light: #243a5e;
+  --peak-navy-dark: #0f1a2e;
+  --peak-orange: #f97316;
+  --peak-orange-light: #fb923c;
+  --peak-teal: #14b8a6;
+  --peak-red: #ef4444;
+  --peak-green: #22c55e;
 }
 
 @theme inline {
@@ -12,15 +22,33 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Sidebar active state */
+.sidebar-active {
+  background: rgba(249, 115, 22, 0.15);
+  border-left: 3px solid var(--peak-orange);
 }

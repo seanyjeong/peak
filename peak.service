@@ -1,0 +1,15 @@
+[Unit]
+Description=P-EAK Backend API
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=sean
+WorkingDirectory=/home/sean/ilsanmaxtraining/backend
+ExecStart=/home/sean/.nvm/versions/node/v25.2.1/bin/node peak.js
+Restart=on-failure
+RestartSec=10
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
