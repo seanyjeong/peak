@@ -318,7 +318,10 @@ export default function AssignmentsPage() {
         newTrainers[targetIdx].students.push(student);
       }
 
-      newSlots[activeSlot] = { trainers: newTrainers };
+      newSlots[activeSlot] = {
+        instructors: newSlots[activeSlot].instructors,
+        trainers: newTrainers
+      };
       return newSlots;
     });
 
