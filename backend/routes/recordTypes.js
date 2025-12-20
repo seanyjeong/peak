@@ -6,6 +6,28 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
+// 자동 줄임말 생성
+const generateShortName = (name) => {
+    if (!name) return null;
+
+    // 숫자+단위로 시작하면 그 뒤 단어만 줄이기 (예: 20m왕복달리기 → 왕복)
+    const numMatch = name.match(/^(\d+[a-zA-Z]*)(.+)/);
+    if (numMatch) {
+        const word = numMatch[2];
+        // 4글자 이상이면 앞 2글자만
+        return word.length >= 4 ? word.substring(0, 2) : word;
+    }
+
+    // 한글 단어 처리
+    // 긴 이름: 앞 2글자만 (예: 제자리멀리뛰기 → 제자, 메디신볼 → 메디)
+    if (name.length >= 4) {
+        return name.substring(0, 2);
+    }
+
+    // 짧은 이름은 그대로
+    return name;
+};
+
 // GET /peak/record-types - 종목 목록
 router.get('/', async (req, res) => {
     try {
@@ -28,20 +50,24 @@ router.get('/', async (req, res) => {
 // POST /peak/record-types - 종목 추가
 router.post('/', async (req, res) => {
     try {
-        const { name, unit, direction, display_order } = req.body;
+        const { name, unit, direction, display_order, short_name } = req.body;
 
         if (!name || !unit) {
             return res.status(400).json({ error: '종목명과 단위는 필수입니다.' });
         }
 
+        // 줄임말이 없으면 자동 생성
+        const finalShortName = short_name || generateShortName(name);
+
         const [result] = await db.query(
-            'INSERT INTO record_types (name, unit, direction, display_order) VALUES (?, ?, ?, ?)',
-            [name, unit, direction || 'higher', display_order || 0]
+            'INSERT INTO record_types (name, short_name, unit, direction, display_order) VALUES (?, ?, ?, ?, ?)',
+            [name, finalShortName, unit, direction || 'higher', display_order || 0]
         );
 
         res.status(201).json({
             success: true,
             id: result.insertId,
+            short_name: finalShortName,
             message: '종목이 추가되었습니다.'
         });
     } catch (error) {
@@ -53,14 +79,20 @@ router.post('/', async (req, res) => {
 // PUT /peak/record-types/:id - 종목 수정
 router.put('/:id', async (req, res) => {
     try {
-        const { name, unit, direction, is_active, display_order } = req.body;
+        const { name, short_name, unit, direction, is_active, display_order } = req.body;
+
+        // 줄임말이 없고 이름이 바뀌면 자동 생성
+        let finalShortName = short_name;
+        if (!short_name && name) {
+            finalShortName = generateShortName(name);
+        }
 
         await db.query(
-            'UPDATE record_types SET name = ?, unit = ?, direction = ?, is_active = ?, display_order = ? WHERE id = ?',
-            [name, unit, direction, is_active, display_order, req.params.id]
+            'UPDATE record_types SET name = ?, short_name = ?, unit = ?, direction = ?, is_active = ?, display_order = ? WHERE id = ?',
+            [name, finalShortName, unit, direction, is_active, display_order, req.params.id]
         );
 
-        res.json({ success: true });
+        res.json({ success: true, short_name: finalShortName });
     } catch (error) {
         console.error('Update record type error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
