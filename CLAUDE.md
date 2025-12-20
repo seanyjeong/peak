@@ -79,17 +79,23 @@ chejump.com {
 
 ### 자주 쓰는 명령어
 ```bash
-# 백엔드 재시작 (코드 수정 후 필수!)
-sudo systemctl restart peak
+# 재시작 (sudo 비밀번호 자동 입력)
+echo 'q141171616!' | sudo -S systemctl restart peak
+
+# 로그 확인
+echo 'q141171616!' | sudo -S journalctl -u peak -f
 
 # 상태 확인
 systemctl status peak
+```
 
-# 로그 보기
-journalctl -u peak -f
+### sudo 팁 (안 될 때)
+```bash
+# -k 옵션 추가하면 캐시된 자격증명 초기화되어 더 안정적
+echo 'q141171616!' | sudo -S -k systemctl restart peak
 
-# Caddy 재시작 (설정 변경 시)
-sudo systemctl restart caddy
+# 여러 명령 연속 실행 시 sh -c 사용
+echo 'q141171616!' | sudo -S sh -c "systemctl stop peak && systemctl start peak"
 ```
 
 **⚠️ 주의**: 백엔드 코드 수정 후 반드시 `sudo systemctl restart peak` 실행!
