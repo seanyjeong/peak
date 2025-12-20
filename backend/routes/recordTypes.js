@@ -7,25 +7,13 @@ const router = express.Router();
 const db = require('../config/database');
 
 // 자동 줄임말 생성
+// 4글자 이하는 그대로, 그 이상은 null (수동 설정 필요)
 const generateShortName = (name) => {
     if (!name) return null;
-
-    // 숫자+단위로 시작하면 그 뒤 단어만 줄이기 (예: 20m왕복달리기 → 왕복)
-    const numMatch = name.match(/^(\d+[a-zA-Z]*)(.+)/);
-    if (numMatch) {
-        const word = numMatch[2];
-        // 4글자 이상이면 앞 2글자만
-        return word.length >= 4 ? word.substring(0, 2) : word;
-    }
-
-    // 한글 단어 처리
-    // 긴 이름: 앞 2글자만 (예: 제자리멀리뛰기 → 제자, 메디신볼 → 메디)
-    if (name.length >= 4) {
-        return name.substring(0, 2);
-    }
-
-    // 짧은 이름은 그대로
-    return name;
+    // 짧은 이름(4글자 이하)은 그대로 사용
+    if (name.length <= 4) return name;
+    // 긴 이름은 자동생성 안함 (설정에서 수동 입력)
+    return null;
 };
 
 // GET /peak/record-types - 종목 목록

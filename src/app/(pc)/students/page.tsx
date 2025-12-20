@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, RefreshCw, Search, User, TrendingUp, TrendingDown, Minus, X, ChevronRight, Activity, Plus, Save, Trophy, Calendar, Download } from 'lucide-react';
+import { Users, RefreshCw, Search, User, TrendingUp, TrendingDown, Minus, X, ChevronRight, Activity, Plus, Save, Trophy, Calendar, Download, BarChart3 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { authAPI } from '@/lib/api/auth';
 import apiClient from '@/lib/api/client';
 
@@ -80,6 +81,7 @@ export default function StudentsPage() {
   const [scoreTables, setScoreTables] = useState<{ [key: number]: ScoreTableData }>({});
   const [savingRecord, setSavingRecord] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [selectedRecordType, setSelectedRecordType] = useState<number | null>(null);
 
   // 탭별 인원수 계산
   const statusCounts = {
@@ -300,6 +302,24 @@ export default function StudentsPage() {
   const selectStudent = (student: Student) => {
     setSelectedStudent(student);
     setStudentRecords([]);
+    setSelectedRecordType(null);
+  };
+
+  // 차트 데이터 생성
+  const getChartData = (typeId: number) => {
+    const chartData: { date: string; value: number; label: string }[] = [];
+    studentRecords.forEach(sr => {
+      const record = sr.records.find(r => r.record_type_id === typeId);
+      if (record) {
+        chartData.push({
+          date: sr.measured_at,
+          value: typeof record.value === 'string' ? parseFloat(record.value) : record.value,
+          label: new Date(sr.measured_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+        });
+      }
+    });
+    // 날짜순 정렬 (오래된 것부터)
+    return chartData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
 
   return (
@@ -553,23 +573,49 @@ export default function StudentsPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Record Type Summary */}
+                    {/* 종목 버튼들 */}
                     <div className="grid grid-cols-2 gap-3">
                       {recordTypes.map(type => {
                         const { value, trend } = getLatestRecordByType(type.id);
+                        const isSelected = selectedRecordType === type.id;
+                        const chartData = getChartData(type.id);
+                        const hasData = chartData.length > 0;
 
                         return (
-                          <div key={type.id} className="bg-slate-50 rounded-xl p-4">
-                            <p className="text-xs text-slate-500 mb-1">{type.name}</p>
+                          <button
+                            key={type.id}
+                            onClick={() => setSelectedRecordType(isSelected ? null : type.id)}
+                            disabled={!hasData}
+                            className={`text-left rounded-xl p-4 transition ${
+                              isSelected
+                                ? 'bg-orange-500 text-white ring-2 ring-orange-300'
+                                : hasData
+                                  ? 'bg-slate-50 hover:bg-slate-100'
+                                  : 'bg-slate-50 opacity-50 cursor-not-allowed'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <p className={`text-xs ${isSelected ? 'text-orange-100' : 'text-slate-500'}`}>
+                                {type.name}
+                              </p>
+                              {hasData && (
+                                <BarChart3 size={14} className={isSelected ? 'text-white' : 'text-slate-400'} />
+                              )}
+                            </div>
                             <div className="flex items-end justify-between">
-                              <p className="text-2xl font-bold text-slate-800">
+                              <p className={`text-2xl font-bold ${isSelected ? 'text-white' : 'text-slate-800'}`}>
                                 {value !== null ? value : '-'}
-                                <span className="text-sm font-normal text-slate-400 ml-1">{type.unit}</span>
+                                <span className={`text-sm font-normal ml-1 ${isSelected ? 'text-orange-200' : 'text-slate-400'}`}>
+                                  {type.unit}
+                                </span>
                               </p>
                               {trend && (
                                 <div className={`flex items-center gap-1 text-sm ${
-                                  trend.direction === 'up' ? 'text-green-600' :
-                                  trend.direction === 'down' ? 'text-red-600' : 'text-slate-400'
+                                  isSelected
+                                    ? 'text-white'
+                                    : trend.direction === 'up' ? 'text-green-600'
+                                    : trend.direction === 'down' ? 'text-red-600'
+                                    : 'text-slate-400'
                                 }`}>
                                   {trend.direction === 'up' && <TrendingUp size={16} />}
                                   {trend.direction === 'down' && <TrendingDown size={16} />}
@@ -578,46 +624,88 @@ export default function StudentsPage() {
                                 </div>
                               )}
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
 
-                    {/* Record History */}
-                    {studentRecords.length > 0 && (
-                      <div className="mt-6">
-                        <h4 className="text-sm font-medium text-slate-700 mb-3">기록 히스토리</h4>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-slate-200">
-                                <th className="text-left py-2 px-2 text-slate-500 font-medium">날짜</th>
-                                {recordTypes.map(type => (
-                                  <th key={type.id} className="text-right py-2 px-2 text-slate-500 font-medium">
-                                    {type.name.length > 4 ? type.name.slice(0, 4) : type.name}
-                                  </th>
+                    {/* 선택된 종목 그래프 */}
+                    {selectedRecordType && (
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        {(() => {
+                          const type = recordTypes.find(t => t.id === selectedRecordType);
+                          const chartData = getChartData(selectedRecordType);
+                          if (!type || chartData.length === 0) return null;
+
+                          const values = chartData.map(d => d.value);
+                          const minVal = Math.min(...values);
+                          const maxVal = Math.max(...values);
+                          const avg = values.reduce((a, b) => a + b, 0) / values.length;
+
+                          return (
+                            <>
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-medium text-slate-800">{type.name} 변화</h4>
+                                <div className="text-xs text-slate-500">
+                                  평균: {avg.toFixed(1)}{type.unit}
+                                </div>
+                              </div>
+                              <div className="h-48">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                    <XAxis
+                                      dataKey="label"
+                                      tick={{ fontSize: 11, fill: '#64748b' }}
+                                      tickLine={false}
+                                      axisLine={{ stroke: '#e2e8f0' }}
+                                    />
+                                    <YAxis
+                                      domain={[minVal * 0.95, maxVal * 1.05]}
+                                      tick={{ fontSize: 11, fill: '#64748b' }}
+                                      tickLine={false}
+                                      axisLine={{ stroke: '#e2e8f0' }}
+                                      width={40}
+                                    />
+                                    <Tooltip
+                                      contentStyle={{
+                                        backgroundColor: 'white',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '8px',
+                                        fontSize: '12px'
+                                      }}
+                                      formatter={(value) => [`${value}${type.unit}`, type.name]}
+                                    />
+                                    <ReferenceLine y={avg} stroke="#f97316" strokeDasharray="5 5" />
+                                    <Line
+                                      type="monotone"
+                                      dataKey="value"
+                                      stroke="#f97316"
+                                      strokeWidth={2}
+                                      dot={{ fill: '#f97316', strokeWidth: 2, r: 4 }}
+                                      activeDot={{ r: 6, fill: '#ea580c' }}
+                                    />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
+                              {/* 기록 목록 */}
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {chartData.map((d, i) => (
+                                  <span
+                                    key={i}
+                                    className={`text-xs px-2 py-1 rounded-full ${
+                                      i === chartData.length - 1
+                                        ? 'bg-orange-100 text-orange-700 font-medium'
+                                        : 'bg-slate-200 text-slate-600'
+                                    }`}
+                                  >
+                                    {d.label}: {d.value}{type.unit}
+                                  </span>
                                 ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {studentRecords.slice(0, 10).map((sr, idx) => (
-                                <tr key={sr.measured_at} className={`border-b border-slate-100 ${idx === 0 ? 'bg-orange-50' : ''}`}>
-                                  <td className="py-2 px-2 text-slate-600">
-                                    {new Date(sr.measured_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-                                  </td>
-                                  {recordTypes.map(type => {
-                                    const record = sr.records.find(r => r.record_type_id === type.id);
-                                    return (
-                                      <td key={type.id} className="text-right py-2 px-2 text-slate-800">
-                                        {record ? record.value : '-'}
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
 
