@@ -19,7 +19,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Users, RefreshCw, AlertCircle, Coffee, Sunrise, Sun, Moon, Download } from 'lucide-react';
+import { Users, RefreshCw, AlertCircle, Coffee, Sunrise, Sun, Moon, Download, Calendar } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening';
@@ -181,20 +181,25 @@ export default function AssignmentsPage() {
   const [activeStudent, setActiveStudent] = useState<Student | null>(null);
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
 
-  const getLocalDateString = () => {
+  // 날짜 선택 state
+  const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  };
-
-  const today = new Date().toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long'
   });
+
+  // 선택된 날짜를 한글로 표시
+  const formatDateKorean = (dateStr: string) => {
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    });
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -206,9 +211,8 @@ export default function AssignmentsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const dateStr = getLocalDateString();
 
-      const assignmentsRes = await apiClient.get(`/assignments?date=${dateStr}`);
+      const assignmentsRes = await apiClient.get(`/assignments?date=${selectedDate}`);
 
       const slots = assignmentsRes.data.slots || {
         morning: { instructors: [], trainers: [] },
@@ -237,8 +241,7 @@ export default function AssignmentsPage() {
   const handleSync = async () => {
     try {
       setSyncing(true);
-      const dateStr = getLocalDateString();
-      await apiClient.post('/assignments/sync', { date: dateStr });
+      await apiClient.post('/assignments/sync', { date: selectedDate });
       await fetchData();
     } catch (error) {
       console.error('Failed to sync:', error);
@@ -249,7 +252,7 @@ export default function AssignmentsPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedDate]);
 
   const currentColumns = slotsData[activeSlot].trainers;
 
@@ -355,9 +358,19 @@ export default function AssignmentsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">반 배치</h1>
-          <p className="text-slate-500 mt-1">{today}</p>
+          <p className="text-slate-500 mt-1">{formatDateKorean(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* 날짜 선택 */}
+          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-200">
+            <Calendar size={18} className="text-slate-400" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+              className="border-none focus:ring-0 text-slate-700"
+            />
+          </div>
           <div className="px-4 py-2 bg-white rounded-lg shadow-sm">
             <span className="text-slate-500 text-sm">배정 현황</span>
             <span className="ml-2 font-bold text-orange-500">{assignedStudents}/{totalStudents}명</span>
@@ -376,7 +389,6 @@ export default function AssignmentsPage() {
             className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-            <span>새로고침</span>
           </button>
         </div>
       </div>
