@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ClipboardList, Save, RefreshCw, Calendar, Users, Trophy, ChevronDown, ChevronUp, Check, List, AlertCircle } from 'lucide-react';
+import { ClipboardList, RefreshCw, Calendar, Users, Trophy, ChevronDown, ChevronUp, Check, List, AlertCircle } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { authAPI } from '@/lib/api/auth';
 
@@ -211,11 +211,25 @@ export default function RecordsPage() {
   const currentSlotData = slots[selectedSlot] as SlotData | undefined;
   const currentTrainers = currentSlotData?.trainers?.filter(t => t.trainer_id) || [];
 
-  // 선택된 강사의 학생 목록
+  // 학생 목록 (원장은 전체, 강사는 자기 반)
   const getMyStudents = (): Student[] => {
-    if (!selectedTrainerId) return [];
-    const trainer = currentTrainers.find(t => t.trainer_id === selectedTrainerId);
-    return trainer?.students || [];
+    if (!currentSlotData) return [];
+
+    if (isAdmin) {
+      // 원장/admin: 해당 시간대 전체 학생
+      const allStudents: Student[] = [];
+      currentSlotData.trainers?.forEach(t => {
+        if (t.students) {
+          allStudents.push(...t.students);
+        }
+      });
+      return allStudents;
+    } else {
+      // 일반 강사: 자기 반 학생만
+      if (!selectedTrainerId) return [];
+      const trainer = currentTrainers.find(t => t.trainer_id === selectedTrainerId);
+      return trainer?.students || [];
+    }
   };
 
   const myStudents = getMyStudents();
@@ -257,6 +271,36 @@ export default function RecordsPage() {
       newSet.delete(studentId);
       return newSet;
     });
+  };
+
+  // 자동저장 (blur 시)
+  const handleInputBlur = async (studentId: number, recordTypeId: number) => {
+    const studentInputs = inputs[studentId];
+    const inputData = studentInputs?.[recordTypeId];
+    if (!inputData || !inputData.value || inputData.value.trim() === '') return;
+
+    // 이미 저장 중이면 스킵
+    if (saving) return;
+
+    try {
+      setSaving(true);
+      await apiClient.post('/records/batch', {
+        student_id: studentId,
+        measured_at: measuredAt,
+        records: [{
+          record_type_id: recordTypeId,
+          value: parseFloat(inputData.value),
+          notes: null
+        }]
+      });
+
+      // 저장 성공 표시
+      setSavedStudents(prev => new Set([...prev, studentId]));
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // 학생 펼치기/접기
@@ -369,7 +413,10 @@ export default function RecordsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">기록 측정</h1>
           <p className="text-slate-500 mt-1">
-            {currentUser?.name ? `${currentUser.name} ${getRoleDisplayName(currentUser.role, currentUser.position)}` : ''}의 반 학생 기록 입력
+            {isAdmin
+              ? `${SLOT_LABELS[selectedSlot] || ''} 전체 학생 기록 입력`
+              : `${currentUser?.name || ''} ${getRoleDisplayName(currentUser?.role, currentUser?.position)}의 반 학생 기록 입력`
+            }
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -388,14 +435,6 @@ export default function RecordsPage() {
             className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          </button>
-          <button
-            onClick={saveAll}
-            disabled={saving || Object.keys(inputs).length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50"
-          >
-            {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
-            <span>전체 저장</span>
           </button>
         </div>
       </div>
@@ -434,29 +473,11 @@ export default function RecordsPage() {
             ))}
           </div>
 
-          {/* 강사 선택 (관리자용) */}
-          {isAdmin && selectedSlot && (
-            <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">강사 선택</label>
-              <select
-                value={selectedTrainerId || ''}
-                onChange={e => setSelectedTrainerId(Number(e.target.value) || null)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              >
-                <option value="">선택하세요</option>
-                {currentTrainers.map(t => (
-                  <option key={t.trainer_id} value={t.trainer_id!}>
-                    {t.trainer_name} ({t.students.length}명)
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {!selectedTrainerId ? (
+          {/* 강사가 선택 안된 경우 (일반 강사만) */}
+          {!isAdmin && !selectedTrainerId ? (
             <div className="bg-white rounded-xl shadow-sm p-12 text-center">
               <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500">강사를 선택하세요.</p>
+              <p className="text-slate-500">해당 시간대에 배정된 수업이 없습니다.</p>
             </div>
           ) : myStudents.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm p-12 text-center">
@@ -582,15 +603,8 @@ export default function RecordsPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {inputCount > 0 && !isSaved && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); saveStudent(student.student_id); }}
-                                disabled={saving}
-                                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50"
-                              >
-                                <Save size={14} />
-                                저장
-                              </button>
+                            {saving && (
+                              <RefreshCw size={16} className="animate-spin text-orange-500" />
                             )}
                             {isExpanded ? (
                               <ChevronUp size={20} className="text-slate-400" />
@@ -619,6 +633,7 @@ export default function RecordsPage() {
                                         step={Math.pow(10, -decimalPlaces)}
                                         value={inputData.value}
                                         onChange={e => handleInputChange(student.student_id, type.id, e.target.value, student.gender)}
+                                        onBlur={() => handleInputBlur(student.student_id, type.id)}
                                         placeholder={`0${decimalPlaces > 0 ? '.' + '0'.repeat(decimalPlaces) : ''}`}
                                         className="w-full px-3 py-2 pr-16 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                                       />
@@ -694,6 +709,7 @@ export default function RecordsPage() {
                                       step={Math.pow(10, -decimalPlaces)}
                                       value={inputData.value}
                                       onChange={e => handleInputChange(student.student_id, currentRecordType.id, e.target.value, student.gender)}
+                                      onBlur={() => handleInputBlur(student.student_id, currentRecordType.id)}
                                       placeholder={`0${decimalPlaces > 0 ? '.' + '0'.repeat(decimalPlaces) : ''}`}
                                       className="w-28 px-3 py-2 border border-slate-200 rounded-lg text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                                     />
@@ -709,19 +725,13 @@ export default function RecordsPage() {
                                     )}
                                   </td>
                                   <td className="py-3 px-4 text-center">
-                                    {isSaved ? (
+                                    {saving ? (
+                                      <RefreshCw size={14} className="animate-spin text-orange-500 mx-auto" />
+                                    ) : isSaved ? (
                                       <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
                                         <Check size={12} />
                                         저장됨
                                       </span>
-                                    ) : inputData.value ? (
-                                      <button
-                                        onClick={() => saveStudent(student.student_id)}
-                                        disabled={saving}
-                                        className="text-xs px-2 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50"
-                                      >
-                                        저장
-                                      </button>
                                     ) : (
                                       <span className="text-slate-300">-</span>
                                     )}

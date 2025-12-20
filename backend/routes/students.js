@@ -246,7 +246,15 @@ router.get('/:id/records', async (req, res) => {
         // 날짜별로 그룹화해서 반환
         const grouped = {};
         records.forEach(r => {
-            const dateKey = r.measured_at.toISOString().split('T')[0];
+            // measured_at이 Date 객체일 수도 있고 문자열일 수도 있음
+            let dateKey;
+            if (r.measured_at instanceof Date) {
+                dateKey = r.measured_at.toISOString().split('T')[0];
+            } else if (typeof r.measured_at === 'string') {
+                dateKey = r.measured_at.split('T')[0];
+            } else {
+                dateKey = String(r.measured_at);
+            }
             if (!grouped[dateKey]) {
                 grouped[dateKey] = {
                     measured_at: dateKey,
