@@ -29,7 +29,7 @@ const navigation = [
   { name: '수업 기록', href: '/training', icon: Activity },
   { name: '기록 측정', href: '/records', icon: Medal },
   { name: '학생 관리', href: '/students', icon: Calendar },
-  { name: '설정', href: '/settings', icon: Settings },
+  { name: '설정', href: '/settings', icon: Settings, adminOnly: true },
 ];
 
 // 역할 표시명 매핑
@@ -109,7 +109,9 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
         {/* Navigation */}
         <nav className="flex-1 py-4 overflow-y-auto">
           <div className={`space-y-1 ${sidebarOpen ? 'px-3' : 'px-1'}`}>
-            {navigation.map((item) => {
+            {navigation
+              .filter(item => !item.adminOnly || user?.role === 'admin' || user?.role === 'owner')
+              .map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
