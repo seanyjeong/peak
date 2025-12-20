@@ -195,8 +195,17 @@ router.post('/sync', async (req, res) => {
         const { date } = req.body;
         const targetDate = date || new Date().toISOString().split('T')[0];
 
-        // 기존 배치 삭제 (해당 날짜)
-        await db.query('DELETE FROM daily_assignments WHERE date = ?', [targetDate]);
+        // 기존 배치 조회 (trainer_id 유지를 위해)
+        const [existingAssignments] = await db.query(`
+            SELECT id, student_id, time_slot, trainer_id, paca_attendance_id
+            FROM daily_assignments WHERE date = ?
+        `, [targetDate]);
+
+        // 기존 배치를 student_id+time_slot로 맵핑
+        const existingMap = new Map();
+        existingAssignments.forEach(a => {
+            existingMap.set(`${a.student_id}-${a.time_slot}`, a);
+        });
 
         // P-ACA에서 오늘 수업에 배정된 학생들 조회
         const [pacaStudents] = await pacaPool.query(`
@@ -220,14 +229,6 @@ router.post('/sync', async (req, res) => {
             ORDER BY cs.time_slot, s.name
         `, [ACADEMY_ID, targetDate]);
 
-        if (pacaStudents.length === 0) {
-            return res.json({
-                success: true,
-                message: '오늘 스케줄에 배정된 학생이 없습니다.',
-                synced: 0
-            });
-        }
-
         // P-ACA gender 변환 함수 (male/female → M/F)
         const convertGender = (g) => {
             if (g === 'male' || g === 'M') return 'M';
@@ -235,13 +236,16 @@ router.post('/sync', async (req, res) => {
             return 'M'; // 기본값
         };
 
-        let syncedCount = 0;
+        let addedCount = 0;
+        let updatedCount = 0;
+        const syncedStudentKeys = new Set();
 
         for (const ps of pacaStudents) {
             const decryptedName = ps.student_name ? decrypt(ps.student_name) : ps.student_name;
             const gender = convertGender(ps.gender);
             const trialTotal = ps.is_trial ? (ps.trial_remaining || 2) : 0;
 
+            // Peak 학생 조회/생성
             let [peakStudents] = await db.query(
                 'SELECT id FROM students WHERE paca_student_id = ?',
                 [ps.paca_student_id]
@@ -266,6 +270,7 @@ router.post('/sync', async (req, res) => {
                 peakStudentId = insertResult.insertId;
             } else {
                 peakStudentId = peakStudents[0].id;
+                // 학생 정보 업데이트
                 await db.query(`
                     UPDATE students SET name = ?, gender = ?, school = ?, grade = ?,
                            is_trial = ?, trial_total = ?, trial_remaining = ?
@@ -282,19 +287,44 @@ router.post('/sync', async (req, res) => {
                 ]);
             }
 
-            // 반 배치 생성 (재원중 상태로)
-            await db.query(`
-                INSERT INTO daily_assignments (date, time_slot, student_id, paca_attendance_id, trainer_id, status, order_num)
-                VALUES (?, ?, ?, ?, NULL, 'enrolled', 0)
-            `, [targetDate, ps.time_slot, peakStudentId, ps.attendance_id]);
+            const studentKey = `${peakStudentId}-${ps.time_slot}`;
+            syncedStudentKeys.add(studentKey);
 
-            syncedCount++;
+            const existing = existingMap.get(studentKey);
+
+            if (existing) {
+                // 기존 배치 있음 - trainer_id 유지, paca_attendance_id만 업데이트
+                await db.query(`
+                    UPDATE daily_assignments SET paca_attendance_id = ?
+                    WHERE id = ?
+                `, [ps.attendance_id, existing.id]);
+                updatedCount++;
+            } else {
+                // 새 학생 추가 - trainer_id는 NULL
+                await db.query(`
+                    INSERT INTO daily_assignments (date, time_slot, student_id, paca_attendance_id, trainer_id, status, order_num)
+                    VALUES (?, ?, ?, ?, NULL, 'enrolled', 0)
+                `, [targetDate, ps.time_slot, peakStudentId, ps.attendance_id]);
+                addedCount++;
+            }
+        }
+
+        // P-ACA에서 제거된 학생 삭제 (취소/보강 변경 등)
+        let removedCount = 0;
+        for (const existing of existingAssignments) {
+            const studentKey = `${existing.student_id}-${existing.time_slot}`;
+            if (!syncedStudentKeys.has(studentKey)) {
+                await db.query('DELETE FROM daily_assignments WHERE id = ?', [existing.id]);
+                removedCount++;
+            }
         }
 
         res.json({
             success: true,
-            message: `${syncedCount}명 학생 동기화 완료`,
-            synced: syncedCount
+            message: `동기화 완료: 추가 ${addedCount}명, 유지 ${updatedCount}명, 제거 ${removedCount}명`,
+            added: addedCount,
+            updated: updatedCount,
+            removed: removedCount
         });
     } catch (error) {
         console.error('Sync assignments error:', error);

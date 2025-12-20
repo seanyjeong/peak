@@ -27,7 +27,7 @@
 
 ---
 
-## 현재 버전: v1.5.2
+## 현재 버전: v1.6.0
 
 ## 버전 정책
 
@@ -39,17 +39,19 @@
 | **둘째 (Minor)** | 기존 기능에 소규모 추가 | 탭 추가, 필터 추가 |
 | **셋째 (Patch)** | 버그 수정 | 에러 수정, UI 수정 |
 
-```
-v1.0.0 → v1.0.1 (버그 수정)
-v1.0.1 → v1.1.0 (소규모 기능 추가)
-v1.1.0 → v2.0.0 (대규모 기능 추가)
-```
+**버전 업데이트 위치**:
+- `package.json` → `"version": "x.x.x"`
+- `src/app/(pc)/layout.tsx` → `const APP_VERSION = 'vx.x.x'`
+
+---
 
 ## 기술 스택
 
-- **프론트**: Next.js 16 + TailwindCSS + dnd-kit
-- **백엔드**: Express.js + MySQL
-- **배포**: Vercel + 로컬서버 (P-ACA와 동일)
+- **프론트**: Next.js 16 + React 19 + TailwindCSS 4 + dnd-kit
+- **백엔드**: Express.js 5 + MySQL (mysql2)
+- **인증**: JWT (P-ACA 연동)
+- **차트**: Recharts
+- **배포**: Vercel (프론트) + systemd (백엔드)
 
 ---
 
@@ -57,7 +59,7 @@ v1.1.0 → v2.0.0 (대규모 기능 추가)
 
 ### 서비스 구조
 ```
-chejump.com/peak/* → Caddy → localhost:8330 (peak.service)
+인터넷 → chejump.com/peak/* → Caddy → localhost:8330 (peak.service)
 ```
 
 ### Caddy 설정 (/etc/caddy/Caddyfile)
@@ -73,28 +75,34 @@ chejump.com {
 ```
 
 ### systemd 서비스
-- **서비스 파일**: `/etc/systemd/system/peak.service`
-- **백엔드 코드**: `/home/sean/ilsanmaxtraining/backend/peak.js`
-- **포트**: 8330
+| 항목 | 값 |
+|------|-----|
+| 서비스 파일 | `/etc/systemd/system/peak.service` |
+| 백엔드 코드 | `/home/sean/ilsanmaxtraining/backend/peak.js` |
+| 포트 | 8330 |
+| 로그 | `journalctl -u peak` |
 
-### 자주 쓰는 명령어
+### 서버 명령어
 ```bash
-# 재시작 (sudo 비밀번호 자동 입력)
+# 백엔드 재시작 (비밀번호 자동 입력)
 echo 'q141171616!' | sudo -S systemctl restart peak
 
-# 로그 확인
+# 로그 실시간 확인
 echo 'q141171616!' | sudo -S journalctl -u peak -f
 
 # 상태 확인
 systemctl status peak
+
+# Caddy 재시작 (설정 변경 시)
+echo 'q141171616!' | sudo -S systemctl restart caddy
 ```
 
 ### sudo 팁 (안 될 때)
 ```bash
-# -k 옵션 추가하면 캐시된 자격증명 초기화되어 더 안정적
+# -k 옵션으로 캐시 초기화
 echo 'q141171616!' | sudo -S -k systemctl restart peak
 
-# 여러 명령 연속 실행 시 sh -c 사용
+# 여러 명령 연속 실행
 echo 'q141171616!' | sudo -S sh -c "systemctl stop peak && systemctl start peak"
 ```
 
@@ -102,102 +110,157 @@ echo 'q141171616!' | sudo -S sh -c "systemctl stop peak && systemctl start peak"
 
 ---
 
-## 완료된 기능 (2025-12-20)
+## 핵심 기술 구현
 
-### 페이지
-| 페이지 | 기능 |
-|--------|------|
-| /dashboard | 대시보드 (오늘 현황, 코치/학생 수) |
-| /attendance | 코치 출근 체크 (P-ACA 연동, 시간대별 탭) |
-| /assignments | 반 배치 (드래그앤드롭, 시간대별) |
-| /plans | 수업 계획 (P-ACA 연동, 날짜/시간대, 권한별) |
-| /training | 수업 기록 (컨디션/메모) |
-| /records | 기록 측정 입력 |
-| /students | 학생 관리 (전체/체험생 필터) |
-| /settings | 설정 (종목/배점표/운동/태그/팩 관리) |
+### 1. P-ACA 동기화 (반 배치)
+**파일**: `backend/routes/assignments.js`
 
-### 핵심 시스템
-- [x] P-ACA 인증 연동 (JWT)
-- [x] P-ACA 스케줄 연동 (instructor_schedules)
-- [x] 동적 종목 시스템 (학원별 커스텀)
-- [x] 자동 배점표 생성 (만점/최소/급간/감점단위)
-- [x] 남/여 별도 배점, higher/lower 방향 지원
+```javascript
+// POST /peak/assignments/sync
+// 기존 배치(trainer_id) 유지하면서 P-ACA 학생 동기화
+// - 새 학생: INSERT (trainer_id = NULL)
+// - 기존 학생: trainer_id 유지
+// - 취소된 학생: DELETE
+```
 
-### v1.1.x 변경사항 (2025-12-20)
-- [x] **v1.1.0** 팩 불러오기 기능 - 운동 목록을 팩 스냅샷으로 교체
-- [x] **v1.1.1** 배점표 버그 수정 - toFixed 에러, score_step=0 무한루프
-- [x] **v1.1.2** 기록측정/수업기록 페이지 개선
-  - 시간대 탭 추가 (오전반/오후반/저녁반)
-  - 롤 표시 통일 (원장/코치)
-  - 원장은 모든 학생 측정 가능
-- [x] **v1.1.3** 기록측정 UX 개선
-  - 강사 선택 드롭다운 제거 (원장은 전체 학생, 강사는 자기 반)
-  - 자동저장 (입력 후 blur 시 자동 저장)
-  - 학생 기록 조회 버그 수정 (measured_at 타입 처리)
-- [x] **v1.1.4** 종목 줄임말 시스템
-  - DB에 short_name 컬럼 추가
-  - 자동 줄임말 생성 (종목 추가/수정 시)
-- [x] **v1.2.0** 학생 기록 그래프 UI
-  - 종목별 버튼 클릭 → 그래프 표시
-  - 평균선, 기록 목록 표시
-  - 테이블 히스토리 → 인터랙티브 차트로 변경
+**로직**:
+1. 기존 배치를 `student_id + time_slot`로 맵핑
+2. P-ACA에서 학생 목록 조회
+3. 기존에 있으면 `trainer_id` 유지, 없으면 새로 추가
+4. P-ACA에 없는 학생은 삭제
 
-### v1.0.0 신규 기능 (2025-12-20)
-- [x] **태그 동적 관리** - DB 기반 태그 CRUD (시스템 admin 전용)
-- [x] **운동 팩 시스템** - 운동 묶음 생성/내보내기/가져오기
-  - JSON 형식으로 다른 학원과 공유 가능
-  - 가져오기 시 태그 + 운동 자동 등록
-- [x] **메뉴 네이밍 변경** - 훈련 → 수업
-- [x] **학생 관리 개선**
-  - 탭별 인원수 표시 (전체/재원/휴원/부상/체험생)
-  - 휴원생 동기화 지원 (P-ACA paused → P-EAK inactive)
-  - 체험생 정확도 개선 (미등록관리 제외, status='trial'만 체험생)
+### 2. 기록 측정 UPSERT
+**파일**: `backend/routes/records.js`
 
-### 권한 체계
-| 기능 | staff (코치) | owner (원장) | admin (시스템) |
-|------|-------------|--------------|----------------|
-| 설정 메뉴 | ❌ | ✅ | ✅ |
-| 운동 목록 관리 | - | ✅ | ✅ |
-| 운동 팩 관리 | - | ✅ | ✅ |
-| **태그 관리** | - | ❌ | ✅ |
-| 수업 계획 (자기 것) | ✅ | ✅ | ✅ |
-| 수업 계획 (전체) | ❌ | ✅ | ✅ |
+```javascript
+// POST /peak/records/batch
+// 하루에 한 종목당 최고 기록만 저장
+// direction: 'higher' → 높을수록 좋음 (멀리뛰기)
+// direction: 'lower' → 낮을수록 좋음 (달리기)
+```
+
+**로직**:
+1. 같은 날짜, 학생, 종목 기록 조회
+2. `direction`에 따라 비교
+3. 더 좋은 기록이면 UPDATE, 아니면 무시
+
+### 3. 드래그앤드롭 (반 배치)
+**파일**: `src/app/(pc)/assignments/page.tsx`
+
+```javascript
+// dnd-kit 사용
+// collisionDetection: pointerWithin (정확한 마우스 위치 감지)
+// closestCorners는 가로 배열에서 부정확함
+```
+
+### 4. 시간대 설정 (P-ACA 연동)
+**파일**: `backend/routes/assignments.js`
+
+```sql
+-- P-ACA academy_settings에서 시간대 조회
+SELECT morning_class_time, afternoon_class_time, evening_class_time
+FROM academy_settings WHERE academy_id = 2
+```
+
+**응답에 포함**:
+```json
+{
+  "timeSlots": {
+    "morning": "09:30-12:00",
+    "afternoon": "14:00-18:00",
+    "evening": "18:30-21:00"
+  }
+}
+```
+
+### 5. 역할 표시명
+```javascript
+// 모든 페이지에서 동일하게 사용
+const getRoleDisplayName = (role, position) => {
+  if (position) return position;  // position 우선
+  switch (role) {
+    case 'owner': return '원장';
+    case 'admin': return '관리자';
+    case 'staff': return '강사';
+    default: return '강사';
+  }
+};
+```
 
 ---
 
-## DB 테이블
+## DB 스키마
 
 ### peak DB
 ```sql
+-- 학생
+students (
+  id, paca_student_id, name, gender, school, grade,
+  is_trial, trial_total, trial_remaining, status
+)
+
 -- 종목 관리
-record_types (id, name, unit, direction, is_active, display_order)
+record_types (
+  id, name, short_name, unit, direction, is_active, display_order
+)
+-- direction: 'higher' (높을수록 좋음) / 'lower' (낮을수록 좋음)
 
 -- 배점표
-score_tables (id, record_type_id, max_score, min_score, score_step, value_step, male_perfect, female_perfect)
-score_ranges (id, score_table_id, score, male_min, male_max, female_min, female_max)
+score_tables (
+  id, record_type_id, max_score, min_score, score_step, value_step,
+  male_perfect, female_perfect
+)
+score_ranges (
+  id, score_table_id, score, male_min, male_max, female_min, female_max
+)
 
 -- 학생 기록
-student_records (id, student_id, record_type_id, value, measured_at)
-training_logs (id, date, student_id, trainer_id, condition_score, notes)
+student_records (
+  id, student_id, record_type_id, value, measured_at
+)
+-- UNIQUE KEY (student_id, record_type_id, measured_at) 하루 한 기록
+
+-- 수업 기록
+training_logs (
+  id, date, student_id, trainer_id, condition_score, notes
+)
 
 -- 반 배치
-daily_assignments (id, date, time_slot, student_id, trainer_id)
+daily_assignments (
+  id, date, time_slot, student_id, trainer_id, paca_attendance_id,
+  status, order_num
+)
+-- UNIQUE KEY uk_date_slot_student (date, time_slot, student_id)
 
--- 운동 관리 (v0.5.0)
+-- 운동 관리
 exercises (id, name, tags JSON, default_sets, default_reps, description)
 exercise_tags (id, tag_id, label, color, display_order, is_active)
 exercise_packs (id, name, description, version, author)
 exercise_pack_items (id, pack_id, exercise_id, display_order)
 
 -- 수업 계획
-daily_plans (id, date, time_slot, instructor_id, trainer_id, focus_areas, exercises, notes)
+daily_plans (
+  id, date, time_slot, instructor_id, trainer_id,
+  focus_areas, exercises JSON, notes
+)
 ```
 
 ### P-ACA 연동 테이블 (paca DB)
 ```sql
+-- 강사 스케줄
 instructor_schedules (instructor_id, work_date, time_slot, academy_id)
+
+-- 출근 체크
 instructor_attendance (instructor_id, check_in_time, work_date, academy_id)
+
+-- 강사 정보
 instructors (id, name, user_id, academy_id)
+-- name은 암호화됨 → decrypt() 필요
+
+-- 학원 설정 (시간대 등)
+academy_settings (
+  academy_id, morning_class_time, afternoon_class_time, evening_class_time, ...
+)
 ```
 
 ---
@@ -205,55 +268,107 @@ instructors (id, name, user_id, academy_id)
 ## API 엔드포인트
 
 ### 인증
-- POST `/peak/auth/login` - P-ACA 로그인
+| Method | Path | 설명 |
+|--------|------|------|
+| POST | `/peak/auth/login` | P-ACA 로그인 |
 
-### 운동 관리 (v0.5.0)
-- GET/POST `/peak/exercises` - 운동 목록/추가
-- PUT/DELETE `/peak/exercises/:id` - 수정/삭제
-- GET/POST `/peak/exercise-tags` - 태그 관리 (admin 전용)
-- GET/POST `/peak/exercise-packs` - 팩 관리
-- GET `/peak/exercise-packs/:id/export` - 팩 내보내기 (JSON)
-- POST `/peak/exercise-packs/import` - 팩 가져오기
+### 반 배치
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | `/peak/assignments?date=YYYY-MM-DD` | 반 배치 + timeSlots |
+| POST | `/peak/assignments/sync` | P-ACA 동기화 (trainer_id 유지) |
+| PUT | `/peak/assignments/:id` | 학생 배치 변경 |
 
-### 기타
-- GET/POST `/peak/record-types` - 종목 관리
-- GET/POST `/peak/score-tables` - 배점표 관리
-- GET/POST `/peak/assignments` - 반 배치
-- GET/POST `/peak/plans` - 수업 계획
-- GET/POST `/peak/training` - 수업 기록
-- GET `/peak/students` - 학생 목록
+### 기록 측정
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | `/peak/records/by-date?date=&student_ids=` | 날짜별 기록 조회 |
+| POST | `/peak/records/batch` | 기록 일괄 저장 (UPSERT) |
+
+### 수업 기록
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | `/peak/training?date=` | 수업 기록 조회 |
+| PUT | `/peak/training/:id` | 컨디션/메모 저장 |
+
+### 종목/배점표
+| Method | Path | 설명 |
+|--------|------|------|
+| GET/POST | `/peak/record-types` | 종목 CRUD |
+| GET/POST | `/peak/score-tables` | 배점표 CRUD |
+
+### 운동/팩
+| Method | Path | 설명 |
+|--------|------|------|
+| GET/POST | `/peak/exercises` | 운동 CRUD |
+| GET/POST | `/peak/exercise-tags` | 태그 CRUD (admin) |
+| GET/POST | `/peak/exercise-packs` | 팩 CRUD |
+| GET | `/peak/exercise-packs/:id/export` | 팩 JSON 내보내기 |
+| POST | `/peak/exercise-packs/import` | 팩 JSON 가져오기 |
 
 ---
 
-## TODO (다음 작업)
+## 버전 히스토리
 
-### 우선순위 높음
-- [x] /records 페이지 개선 (시간대 탭, 롤 표시, 권한)
-- [ ] 학생 기록에 점수 자동 계산 연동
-- [ ] 기록 변화 그래프 (학생 프로필)
+### v1.6.0 (2025-12-21)
+- **용어 통일**: '코치' → '강사' 전체 변경
+- **대시보드 시간대**: P-ACA 설정 연동 (하드코딩 제거)
+- **드래그앤드롭**: `pointerWithin` 충돌감지로 정확도 개선
+- **P-ACA 동기화**: 기존 배치(trainer_id) 유지하면서 동기화
 
-### 추가 기능
-- [ ] 부상 관리
-- [ ] 알림 시스템
-- [ ] 통계/분석 대시보드
-- [ ] 모바일 PWA 최적화
+### v1.5.x (2025-12-20)
+- **v1.5.0**: 기록측정 UPSERT (하루 최고기록만 저장)
+- **v1.5.1**: 반 배치 날짜 선택 기능
+- **v1.5.2**: daily_assignments unique key 수정 (date, time_slot, student_id)
+
+### v1.2.0 (2025-12-20)
+- 학생 기록 그래프 UI (Recharts)
+- 종목별 버튼 → 그래프 표시
+
+### v1.1.x (2025-12-20)
+- v1.1.0: 팩 불러오기 (운동 목록 교체)
+- v1.1.1: 배점표 버그 수정
+- v1.1.2: 기록측정/수업기록 시간대 탭
+- v1.1.3: 기록측정 자동저장
+- v1.1.4: 종목 줄임말 시스템
+
+### v1.0.0 (2025-12-20)
+- 태그/팩 동적 관리
+- 학생 관리 개선 (탭별 인원수)
 
 ---
 
-## 명령어
+## 권한 체계
+
+| 기능 | staff (강사) | owner (원장) | admin (시스템) |
+|------|-------------|--------------|----------------|
+| 설정 메뉴 | ❌ | ✅ | ✅ |
+| 운동/팩 관리 | ❌ | ✅ | ✅ |
+| **태그 관리** | ❌ | ❌ | ✅ |
+| 수업 계획 (자기) | ✅ | ✅ | ✅ |
+| 수업 계획 (전체) | ❌ | ✅ | ✅ |
+| 기록 측정 (자기 반) | ✅ | ✅ | ✅ |
+| 기록 측정 (전체) | ❌ | ✅ | ✅ |
+
+---
+
+## 개발 명령어
 
 ```bash
 # 프론트 개발 서버
 npm run dev
 
+# 프로덕션 빌드
+npm run build
+
 # 백엔드 재시작
-sudo systemctl restart peak
+echo 'q141171616!' | sudo -S systemctl restart peak
 
 # DB 접속
-mysql -u paca -p peak
+mysql -u paca -pq141171616! peak
 
-# 빌드
-npm run build
+# 로그 확인
+echo 'q141171616!' | sudo -S journalctl -u peak -f
 ```
 
 ---
@@ -263,3 +378,17 @@ npm run build
 - **이메일**: sean8320@naver.com
 - **비밀번호**: q141171616!
 - **역할**: admin (시스템 관리자)
+
+---
+
+## TODO
+
+### 우선순위 높음
+- [ ] 학생 기록에 점수 자동 계산 연동
+- [ ] 수업 기록 체크리스트 UI (계획된 운동 체크)
+
+### 추가 기능
+- [ ] 부상 관리
+- [ ] 알림 시스템
+- [ ] 통계/분석 대시보드
+- [ ] 모바일 PWA 최적화
