@@ -423,7 +423,7 @@ export default function TrainingPage() {
                 </div>
                 {/* 온습도 입력 */}
                 <div className="bg-white/20 rounded-xl p-4">
-                  <p className="text-orange-100 text-sm mb-2">체육관 환경 (전체 학생에 적용)</p>
+                  <p className="text-orange-100 text-sm mb-2">체육관 환경 (내 반 학생에 적용)</p>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 flex-1">
                       <Thermometer size={18} className="text-orange-200" />
