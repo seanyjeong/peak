@@ -1442,9 +1442,52 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        포함할 운동 선택 ({packForm.exercise_ids.length}개)
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-slate-700">
+                          포함할 운동 선택 ({packForm.exercise_ids.length}개)
+                        </label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPackForm({ ...packForm, exercise_ids: exercises.map(e => e.id) })}
+                            className="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded hover:bg-orange-200"
+                          >
+                            전체 선택
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPackForm({ ...packForm, exercise_ids: [] })}
+                            className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
+                          >
+                            전체 해제
+                          </button>
+                        </div>
+                      </div>
+                      {/* 태그별 빠른 선택 */}
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {exerciseTags.map(tag => {
+                          const tagExerciseIds = exercises.filter(e => e.tags.includes(tag.tag_id)).map(e => e.id);
+                          const allSelected = tagExerciseIds.length > 0 && tagExerciseIds.every(id => packForm.exercise_ids.includes(id));
+                          return (
+                            <button
+                              key={tag.tag_id}
+                              type="button"
+                              onClick={() => {
+                                if (allSelected) {
+                                  setPackForm({ ...packForm, exercise_ids: packForm.exercise_ids.filter(id => !tagExerciseIds.includes(id)) });
+                                } else {
+                                  setPackForm({ ...packForm, exercise_ids: [...new Set([...packForm.exercise_ids, ...tagExerciseIds])] });
+                                }
+                              }}
+                              className={`px-2 py-1 rounded-full text-xs font-medium transition ${
+                                allSelected ? tag.color : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                              }`}
+                            >
+                              {tag.label} ({tagExerciseIds.length})
+                            </button>
+                          );
+                        })}
+                      </div>
                       <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg divide-y">
                         {exercises.map(ex => (
                           <label
@@ -1457,7 +1500,17 @@ export default function SettingsPage() {
                               onChange={() => togglePackExercise(ex.id)}
                               className="rounded text-orange-500 focus:ring-orange-500"
                             />
-                            <span className="text-slate-700">{ex.name}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-700">{ex.name}</span>
+                              {ex.tags.map(tagId => {
+                                const tag = exerciseTags.find(t => t.tag_id === tagId);
+                                return tag ? (
+                                  <span key={tagId} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${tag.color}`}>
+                                    {tag.label}
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
                           </label>
                         ))}
                       </div>
