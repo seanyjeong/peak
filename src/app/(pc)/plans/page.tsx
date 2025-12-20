@@ -388,7 +388,7 @@ export default function PlansPage() {
 
           {/* Instructor Select */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">코치</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">강사</label>
             {isOwner ? (
               <select
                 value={selectedInstructor || ''}
@@ -557,7 +557,7 @@ export default function PlansPage() {
           </div>
         ) : currentInstructors.length === 0 ? (
           <div className="p-12 text-center text-slate-400">
-            <p>{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 코치가 없습니다.</p>
+            <p>{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 강사가 없습니다.</p>
             <p className="text-sm mt-2">P-ACA에서 강사 스케줄을 등록하세요.</p>
           </div>
         ) : currentPlans.length === 0 ? (

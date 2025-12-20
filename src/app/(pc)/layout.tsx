@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const APP_VERSION = 'v1.1.1';
+const APP_VERSION = 'v1.6.0';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -34,21 +34,17 @@ const navigation = [
 
 // 역할 표시명 매핑
 const getRoleDisplayName = (role?: string, position?: string | null): string => {
-  // position이 있으면 position 매핑 후 반환
+  // position이 있으면 그대로 반환
   if (position) {
-    switch (position) {
-      case '팀장': return '팀리더';
-      case '강사': return '코치';
-      default: return position;
-    }
+    return position;
   }
 
   // role 매핑
   switch (role) {
     case 'owner': return '원장';
     case 'admin': return '관리자';
-    case 'staff': return '코치';
-    default: return '코치';
+    case 'staff': return '강사';
+    default: return '강사';
   }
 };
 

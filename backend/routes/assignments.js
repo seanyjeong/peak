@@ -18,6 +18,23 @@ router.get('/', async (req, res) => {
         const { date } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
 
+        // P-ACA에서 시간대 설정 가져오기
+        const [settingsRows] = await pacaPool.query(`
+            SELECT morning_class_time, afternoon_class_time, evening_class_time
+            FROM academy_settings
+            WHERE academy_id = ?
+        `, [ACADEMY_ID]);
+
+        const timeSlots = settingsRows[0] ? {
+            morning: settingsRows[0].morning_class_time || '09:00-12:00',
+            afternoon: settingsRows[0].afternoon_class_time || '13:00-17:00',
+            evening: settingsRows[0].evening_class_time || '18:00-21:00'
+        } : {
+            morning: '09:00-12:00',
+            afternoon: '13:00-17:00',
+            evening: '18:00-21:00'
+        };
+
         // P-ACA에서 오늘 출근 강사 조회 (시간대별)
         const [pacaInstructors] = await pacaPool.query(`
             SELECT DISTINCT
@@ -120,7 +137,8 @@ router.get('/', async (req, res) => {
         res.json({
             success: true,
             date: targetDate,
-            slots: result
+            slots: result,
+            timeSlots
         });
     } catch (error) {
         console.error('Get assignments error:', error);

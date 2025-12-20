@@ -117,7 +117,7 @@ export default function AttendancePage() {
               {stats.checkedIn}
               <span className="text-slate-400 text-2xl">/{stats.uniqueInstructors}</span>
             </p>
-            <p className="text-slate-500 mt-1">코치 출근</p>
+            <p className="text-slate-500 mt-1">강사 출근</p>
           </div>
           <div className="ml-auto text-right">
             <p className="text-sm text-slate-500">출근률</p>
@@ -163,7 +163,7 @@ export default function AttendancePage() {
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100">
           <h2 className="font-semibold text-slate-800">
-            {TIME_SLOT_INFO[activeSlot].label} 코치 ({currentInstructors.length}명)
+            {TIME_SLOT_INFO[activeSlot].label} 강사 ({currentInstructors.length}명)
           </h2>
         </div>
 
@@ -174,7 +174,7 @@ export default function AttendancePage() {
           </div>
         ) : currentInstructors.length === 0 ? (
           <div className="p-12 text-center text-slate-400">
-            <p>{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 코치가 없습니다.</p>
+            <p>{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 강사가 없습니다.</p>
             <p className="text-sm mt-2">P-ACA에서 강사 스케줄을 등록하세요.</p>
           </div>
         ) : (

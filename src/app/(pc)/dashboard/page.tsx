@@ -78,16 +78,33 @@ interface SlotsData {
   evening: SlotData;
 }
 
-const TIME_SLOTS = [
-  { key: 'morning', label: '오전반', icon: Sunrise, time: '09:00~12:00' },
-  { key: 'afternoon', label: '오후반', icon: Sun, time: '13:00~17:00' },
-  { key: 'evening', label: '저녁반', icon: Moon, time: '18:00~21:00' },
-] as const;
+interface TimeSlots {
+  morning: string;
+  afternoon: string;
+  evening: string;
+}
+
+const SLOT_ICONS = {
+  morning: Sunrise,
+  afternoon: Sun,
+  evening: Moon,
+};
+
+const SLOT_LABELS = {
+  morning: '오전반',
+  afternoon: '오후반',
+  evening: '저녁반',
+};
 
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [slotsData, setSlotsData] = useState<SlotsData | null>(null);
+  const [timeSlots, setTimeSlots] = useState<TimeSlots>({
+    morning: '09:00-12:00',
+    afternoon: '13:00-17:00',
+    evening: '18:00-21:00'
+  });
 
   const today = new Date().toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -108,6 +125,9 @@ export default function DashboardPage() {
         const dateStr = getLocalDateString();
         const res = await apiClient.get(`/assignments?date=${dateStr}`);
         setSlotsData(res.data.slots);
+        if (res.data.timeSlots) {
+          setTimeSlots(res.data.timeSlots);
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -144,16 +164,19 @@ export default function DashboardPage() {
   const getScheduleData = () => {
     if (!slotsData) return [];
 
-    return TIME_SLOTS.map(slot => {
-      const data = slotsData[slot.key];
+    const slots: ('morning' | 'afternoon' | 'evening')[] = ['morning', 'afternoon', 'evening'];
+
+    return slots.map(slotKey => {
+      const data = slotsData[slotKey];
       const studentCount = data.trainers.reduce((sum, t) => sum + t.students.length, 0);
       const instructorNames = data.instructors.map(i => i.name).join(', ') || '미정';
+      const timeStr = timeSlots[slotKey].replace('-', '~');
 
       return {
-        slot: slot.key,
-        label: slot.label,
-        time: slot.time,
-        icon: slot.icon,
+        slot: slotKey,
+        label: SLOT_LABELS[slotKey],
+        time: timeStr,
+        icon: SLOT_ICONS[slotKey],
         trainer: instructorNames,
         students: studentCount,
       };
@@ -227,13 +250,13 @@ export default function DashboardPage() {
               value={stats.trainersPresent}
               max={Math.max(stats.totalTrainers, 1)}
               color="#f97316"
-              label="출근 코치"
+              label="출근 강사"
             />
             <div>
               <p className="text-2xl font-bold text-slate-800">
                 {stats.trainersPresent}명
               </p>
-              <p className="text-sm text-slate-500">오늘 출근 코치</p>
+              <p className="text-sm text-slate-500">오늘 출근 강사</p>
             </div>
           </div>
 
@@ -306,7 +329,7 @@ export default function DashboardPage() {
         {/* Trainer Status */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-800">코치 현황</h2>
+            <h2 className="text-lg font-semibold text-slate-800">강사 현황</h2>
             <button
               onClick={() => router.push('/attendance')}
               className="text-orange-500 text-sm font-medium flex items-center gap-1 hover:text-orange-600"
@@ -316,7 +339,7 @@ export default function DashboardPage() {
           </div>
           {trainerData.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
-              <p>오늘 출근한 코치가 없습니다</p>
+              <p>오늘 출근한 강사가 없습니다</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -351,7 +374,7 @@ export default function DashboardPage() {
           <div>
             <h3 className="text-lg font-semibold mb-1">오늘 요약</h3>
             <p className="text-slate-300 text-sm">
-              코치 {stats.trainersPresent}명 출근 · 학생 {stats.studentsToday}명 수업 예정
+              강사 {stats.trainersPresent}명 출근 · 학생 {stats.studentsToday}명 수업 예정
             </p>
           </div>
           <button

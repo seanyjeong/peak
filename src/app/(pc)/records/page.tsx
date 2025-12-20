@@ -63,17 +63,13 @@ const SLOT_LABELS: Record<string, string> = {
 // 역할 표시명 매핑
 const getRoleDisplayName = (role?: string, position?: string | null): string => {
   if (position) {
-    switch (position) {
-      case '팀장': return '팀리더';
-      case '강사': return '코치';
-      default: return position;
-    }
+    return position;
   }
   switch (role) {
     case 'owner': return '원장';
     case 'admin': return '관리자';
-    case 'staff': return '코치';
-    default: return '코치';
+    case 'staff': return '강사';
+    default: return '강사';
   }
 };
 
