@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Activity, RefreshCw, Save, Check, User, Smile, Meh, Frown, AlertCircle, ThumbsUp } from 'lucide-react';
+import { Activity, RefreshCw, Save, Check, User, Smile, Meh, Frown, AlertCircle, ThumbsUp, Thermometer, Droplets } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { authAPI, User as AuthUser } from '@/lib/api/auth';
 
@@ -36,6 +36,8 @@ interface ExistingLog {
   student_id: number;
   condition_score: number | null;
   notes: string;
+  temperature: number | null;
+  humidity: number | null;
 }
 
 // 컨디션 점수 아이콘 및 색상
@@ -62,6 +64,9 @@ export default function TrainingPage() {
   const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
   const [logs, setLogs] = useState<Record<number, TrainingLog>>({});
   const [existingLogs, setExistingLogs] = useState<ExistingLog[]>([]);
+  const [temperature, setTemperature] = useState<string>('');
+  const [humidity, setHumidity] = useState<string>('');
+  const [conditionsSaved, setConditionsSaved] = useState(false);
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
@@ -157,6 +162,16 @@ export default function TrainingPage() {
       });
       setLogs(initialLogs);
 
+      // 기존 온습도 로드 (첫 번째 기록에서 가져옴)
+      if (existingLogList.length > 0) {
+        const firstLog = existingLogList[0];
+        if (firstLog.temperature !== null) setTemperature(String(firstLog.temperature));
+        if (firstLog.humidity !== null) setHumidity(String(firstLog.humidity));
+        if (firstLog.temperature !== null || firstLog.humidity !== null) {
+          setConditionsSaved(true);
+        }
+      }
+
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -214,11 +229,16 @@ export default function TrainingPage() {
       // 기존 기록 확인
       const existing = existingLogs.find(l => l.student_id === studentId);
 
+      const temp = temperature ? parseFloat(temperature) : null;
+      const hum = humidity ? parseInt(humidity) : null;
+
       if (existing) {
         // 수정
         await apiClient.put(`/training/${existing.id}`, {
           condition_score: log.condition_score,
-          notes: log.notes
+          notes: log.notes,
+          temperature: temp,
+          humidity: hum
         });
       } else {
         // 새로 생성
@@ -228,7 +248,9 @@ export default function TrainingPage() {
           trainer_id: selectedTrainerId,
           plan_id: null,
           condition_score: log.condition_score,
-          notes: log.notes
+          notes: log.notes,
+          temperature: temp,
+          humidity: hum
         });
       }
 
@@ -255,7 +277,32 @@ export default function TrainingPage() {
     }
   };
 
+  // 온습도 일괄 저장
+  const saveConditions = async () => {
+    const dateStr = getLocalDateString();
+    const temp = temperature ? parseFloat(temperature) : null;
+    const hum = humidity ? parseInt(humidity) : null;
+
+    try {
+      setSaving(true);
+      // 기존 기록들에 온습도 일괄 업데이트
+      await apiClient.put(`/training/conditions/${dateStr}`, {
+        temperature: temp,
+        humidity: hum,
+        trainer_id: selectedTrainerId
+      });
+      setConditionsSaved(true);
+      await fetchData();
+    } catch (error) {
+      console.error('Failed to save conditions:', error);
+      alert('온습도 저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const hasUnsavedChanges = myStudents.some(s => logs[s.student_id] && !logs[s.student_id].saved);
+  const hasConditionsChanged = !conditionsSaved && (temperature || humidity);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -362,7 +409,7 @@ export default function TrainingPage() {
             <div className="space-y-4">
               {/* Summary Card */}
               <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-6 text-white">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-orange-100 text-sm">내 반 학생</p>
                     <p className="text-3xl font-bold">{myStudents.length}명</p>
@@ -372,6 +419,50 @@ export default function TrainingPage() {
                     <p className="text-3xl font-bold">
                       {myStudents.filter(s => logs[s.student_id]?.saved).length}명
                     </p>
+                  </div>
+                </div>
+                {/* 온습도 입력 */}
+                <div className="bg-white/20 rounded-xl p-4">
+                  <p className="text-orange-100 text-sm mb-2">체육관 환경 (전체 학생에 적용)</p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 flex-1">
+                      <Thermometer size={18} className="text-orange-200" />
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={temperature}
+                        onChange={e => { setTemperature(e.target.value); setConditionsSaved(false); }}
+                        placeholder="온도"
+                        className="flex-1 px-3 py-2 bg-white/90 text-slate-800 rounded-lg text-sm placeholder-slate-400 focus:ring-2 focus:ring-orange-300"
+                      />
+                      <span className="text-orange-100">°C</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-1">
+                      <Droplets size={18} className="text-orange-200" />
+                      <input
+                        type="number"
+                        value={humidity}
+                        onChange={e => { setHumidity(e.target.value); setConditionsSaved(false); }}
+                        placeholder="습도"
+                        className="flex-1 px-3 py-2 bg-white/90 text-slate-800 rounded-lg text-sm placeholder-slate-400 focus:ring-2 focus:ring-orange-300"
+                      />
+                      <span className="text-orange-100">%</span>
+                    </div>
+                    {hasConditionsChanged && (
+                      <button
+                        onClick={saveConditions}
+                        disabled={saving}
+                        className="px-4 py-2 bg-white text-orange-600 rounded-lg text-sm font-medium hover:bg-orange-50 transition disabled:opacity-50"
+                      >
+                        저장
+                      </button>
+                    )}
+                    {conditionsSaved && (
+                      <span className="flex items-center gap-1 text-orange-100 text-sm">
+                        <Check size={14} />
+                        저장됨
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
