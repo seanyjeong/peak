@@ -13,6 +13,10 @@ interface Student {
   phone: string | null;
   school: string | null;
   grade: string | null;
+  class_days: number[] | null;
+  is_trial: boolean;
+  trial_total: number;
+  trial_remaining: number;
   join_date: string | null;
   status: 'active' | 'inactive' | 'injury';
 }
@@ -386,6 +390,11 @@ export default function StudentsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {!!student.is_trial && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                          체험 {student.trial_total - student.trial_remaining + 1}/{student.trial_total}
+                        </span>
+                      )}
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_MAP[student.status].color}`}>
                         {STATUS_MAP[student.status].label}
                       </span>

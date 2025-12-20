@@ -18,6 +18,11 @@ router.get('/', async (req, res) => {
                 a.*,
                 s.name as student_name,
                 s.gender,
+                s.school,
+                s.grade,
+                s.is_trial,
+                s.trial_total,
+                s.trial_remaining,
                 t.name as trainer_name
             FROM daily_assignments a
             JOIN students s ON a.student_id = s.id
@@ -42,6 +47,11 @@ router.get('/', async (req, res) => {
                 student_id: a.student_id,
                 student_name: a.student_name,
                 gender: a.gender,
+                school: a.school,
+                grade: a.grade,
+                is_trial: a.is_trial,
+                trial_total: a.trial_total,
+                trial_remaining: a.trial_remaining,
                 status: a.status,
                 order_num: a.order_num
             });
@@ -78,10 +88,18 @@ router.post('/init', async (req, res) => {
             });
         }
 
-        // 활성 학생 목록으로 초기화 (미배정 상태로)
-        const [students] = await db.query(
-            'SELECT id FROM students WHERE status = "active"'
-        );
+        // 해당 날짜의 요일 계산 (0=일요일, 1=월요일, ... 6=토요일)
+        const dayOfWeek = new Date(targetDate).getDay();
+
+        // 해당 요일에 수업 있는 학생 + 체험생만 초기화
+        const [students] = await db.query(`
+            SELECT id FROM students
+            WHERE status = 'active'
+              AND (
+                (class_days IS NOT NULL AND JSON_CONTAINS(class_days, ?))
+                OR is_trial = 1
+              )
+        `, [dayOfWeek.toString()]);
 
         for (const s of students) {
             await db.query(

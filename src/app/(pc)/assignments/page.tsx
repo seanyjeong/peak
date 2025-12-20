@@ -27,6 +27,11 @@ interface Student {
   student_id: number;
   student_name: string;
   gender: 'M' | 'F';
+  school: string | null;
+  grade: string | null;
+  is_trial: boolean;
+  trial_total: number;
+  trial_remaining: number;
   status: 'training' | 'rest' | 'injury';
 }
 
@@ -58,8 +63,18 @@ function StudentCard({ student, isDragging }: { student: Student; isDragging?: b
           {student.gender === 'M' ? '남' : '여'}
         </span>
         <span className="font-medium text-slate-800">{student.student_name}</span>
+        {!!student.is_trial && (
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">
+            체험 {student.trial_total - student.trial_remaining + 1}/{student.trial_total}
+          </span>
+        )}
         {statusIcon && <span className="ml-auto text-slate-400">{statusIcon}</span>}
       </div>
+      {(student.school || student.grade) && (
+        <p className="text-xs text-slate-400 mt-1 ml-9">
+          {student.school}{student.school && student.grade && ' '}{student.grade}
+        </p>
+      )}
     </div>
   );
 }

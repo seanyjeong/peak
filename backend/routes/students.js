@@ -30,11 +30,12 @@ router.post('/sync', async (req, res) => {
             return res.status(400).json({ error: '학원 ID가 필요합니다.' });
         }
 
-        // P-ACA에서 해당 학원의 active 학생 목록 가져오기
+        // P-ACA에서 해당 학원의 학생 목록 가져오기 (체험생 포함)
         const [pacaStudents] = await pacaPool.query(`
-            SELECT id, name, gender, phone, school, grade, enrollment_date, status
+            SELECT id, name, gender, phone, school, grade, enrollment_date, status,
+                   class_days, is_trial, trial_remaining
             FROM students
-            WHERE academy_id = ? AND status IN ('active', 'paused', 'trial')
+            WHERE academy_id = ? AND status IN ('active', 'trial')
             ORDER BY name
         `, [academyId]);
 
@@ -75,20 +76,36 @@ router.post('/sync', async (req, res) => {
                 [student.id]
             );
 
+            // class_days JSON 처리
+            const classDays = student.class_days ? JSON.stringify(student.class_days) : null;
+
+            // 체험생 상태 처리
+            const isTrial = student.is_trial || student.status === 'trial' ? 1 : 0;
+            const trialTotal = 2; // 체험 총 횟수 (기본 2회)
+            const trialRemaining = student.trial_remaining ?? 2;
+
             if (existing.length > 0) {
                 // 업데이트
                 await db.query(`
                     UPDATE students SET
-                        name = ?, gender = ?, phone = ?, school = ?, grade = ?, status = ?, updated_at = NOW()
+                        name = ?, gender = ?, phone = ?, school = ?, grade = ?,
+                        class_days = ?, is_trial = ?, trial_total = ?, trial_remaining = ?,
+                        status = ?, updated_at = NOW()
                     WHERE paca_student_id = ?
-                `, [decryptedName, gender, decryptedPhone, student.school, student.grade, status, student.id]);
+                `, [decryptedName, gender, decryptedPhone, student.school, student.grade,
+                    classDays, isTrial, trialTotal, trialRemaining,
+                    status, student.id]);
                 updated++;
             } else {
                 // 새로 추가
                 await db.query(`
-                    INSERT INTO students (paca_student_id, name, gender, phone, school, grade, join_date, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                `, [student.id, decryptedName, gender, decryptedPhone, student.school, student.grade, student.enrollment_date, status]);
+                    INSERT INTO students (paca_student_id, name, gender, phone, school, grade,
+                                          class_days, is_trial, trial_total, trial_remaining,
+                                          join_date, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [student.id, decryptedName, gender, decryptedPhone, student.school, student.grade,
+                    classDays, isTrial, trialTotal, trialRemaining,
+                    student.enrollment_date, status]);
                 synced++;
             }
         }
@@ -103,6 +120,73 @@ router.post('/sync', async (req, res) => {
 
     } catch (error) {
         console.error('Sync students error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /peak/students/today
+ * 오늘 수업인 학생 목록 (스케줄 기반)
+ */
+router.get('/today', async (req, res) => {
+    try {
+        // 오늘 요일 구하기 (0=일요일, 1=월요일, ... 6=토요일)
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+
+        // class_days에 오늘 요일이 포함된 학생만 조회
+        // JSON_CONTAINS를 사용하여 배열에서 요일 확인
+        const [students] = await db.query(`
+            SELECT *
+            FROM students
+            WHERE status = 'active'
+              AND class_days IS NOT NULL
+              AND JSON_CONTAINS(class_days, ?)
+            ORDER BY name
+        `, [dayOfWeek.toString()]);
+
+        res.json({
+            success: true,
+            date: today.toISOString().split('T')[0],
+            dayOfWeek,
+            students
+        });
+    } catch (error) {
+        console.error('Get today students error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /peak/students/schedule
+ * 특정 날짜의 학생 목록 (스케줄 기반)
+ */
+router.get('/schedule', async (req, res) => {
+    try {
+        const { date } = req.query;
+        const targetDate = date ? new Date(date) : new Date();
+        const dayOfWeek = targetDate.getDay();
+
+        // class_days에 해당 요일이 포함된 학생 + 체험생
+        const [students] = await db.query(`
+            SELECT *
+            FROM students
+            WHERE status = 'active'
+              AND (
+                (class_days IS NOT NULL AND JSON_CONTAINS(class_days, ?))
+                OR is_trial = 1
+              )
+            ORDER BY is_trial DESC, name
+        `, [dayOfWeek.toString()]);
+
+        res.json({
+            success: true,
+            date: targetDate.toISOString().split('T')[0],
+            dayOfWeek,
+            students
+        });
+    } catch (error) {
+        console.error('Get schedule students error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
