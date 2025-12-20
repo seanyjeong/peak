@@ -404,6 +404,10 @@ export default function SettingsPage() {
       alert('종목을 선택하세요.');
       return;
     }
+    if (!scoreForm.score_step || scoreForm.score_step < 1) {
+      alert('급간 점수는 1 이상이어야 합니다.');
+      return;
+    }
     try {
       await apiClient.post('/score-tables', {
         record_type_id: selectedTypeForScore,
@@ -764,6 +768,7 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">급간 점수</label>
                   <input
                     type="number"
+                    min="1"
                     value={scoreForm.score_step}
                     onChange={e => setScoreForm({ ...scoreForm, score_step: Number(e.target.value) })}
                     placeholder="2점씩"

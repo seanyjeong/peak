@@ -111,6 +111,11 @@ router.post('/', async (req, res) => {
         const recordType = recordTypes[0];
         const isHigherBetter = recordType.direction === 'higher';
 
+        // 급간 점수 검증
+        if (!score_step || score_step <= 0) {
+            return res.status(400).json({ error: '급간 점수는 1 이상이어야 합니다.' });
+        }
+
         const connection = await db.getConnection();
         await connection.beginTransaction();
 
