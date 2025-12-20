@@ -58,7 +58,7 @@ interface ScoreTableData {
 }
 
 const STATUS_MAP = {
-  active: { label: '훈련 중', color: 'bg-green-100 text-green-700' },
+  active: { label: '재원', color: 'bg-green-100 text-green-700' },
   inactive: { label: '휴원', color: 'bg-slate-100 text-slate-600' },
   injury: { label: '부상', color: 'bg-red-100 text-red-700' },
 };
@@ -229,8 +229,11 @@ export default function StudentsPage() {
   // 필터링
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesStatus = statusFilter === 'all'
+      || statusFilter === 'trial' ? student.is_trial
+      : student.status === statusFilter;
+    const matchesTrial = statusFilter === 'trial' ? student.is_trial : true;
+    return matchesSearch && (statusFilter === 'trial' ? matchesTrial : (statusFilter === 'all' || student.status === statusFilter));
   });
 
   // 종목별 최신 기록 및 변화 계산
@@ -320,7 +323,7 @@ export default function StudentsPage() {
             />
           </div>
           {/* Status Filter */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setStatusFilter('all')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
@@ -344,6 +347,16 @@ export default function StudentsPage() {
                 {value.label}
               </button>
             ))}
+            <button
+              onClick={() => setStatusFilter('trial')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                statusFilter === 'trial'
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+              }`}
+            >
+              체험생
+            </button>
           </div>
         </div>
       </div>

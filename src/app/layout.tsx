@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "P-EAK | 피크",
-  description: "Physical Excellence Achievement Keeper - 체육 실기 훈련 관리",
+  description: "Physical Excellence Achievement Keeper - 체육 실기 수업 관리",
   manifest: "/manifest.json",
 };
 

@@ -220,7 +220,7 @@ export default function TrainingPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">훈련 기록</h1>
+          <h1 className="text-2xl font-bold text-slate-800">수업 기록</h1>
           <p className="text-slate-500 mt-1">{today}</p>
         </div>
         <div className="flex items-center gap-3">
@@ -372,7 +372,7 @@ export default function TrainingPage() {
                         type="text"
                         value={log.notes}
                         onChange={e => updateLog(student.student_id, 'notes', e.target.value)}
-                        placeholder="오늘의 훈련 특이사항..."
+                        placeholder="오늘의 수업 특이사항..."
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       />
                     </div>

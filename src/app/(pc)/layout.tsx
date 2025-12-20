@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const APP_VERSION = 'v0.3.0';
+const APP_VERSION = 'v0.4.1';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -25,8 +25,8 @@ const navigation = [
   { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
   { name: '출근 체크', href: '/attendance', icon: UserCheck },
   { name: '반 배치', href: '/assignments', icon: Users },
-  { name: '훈련 계획', href: '/plans', icon: ClipboardList },
-  { name: '훈련 기록', href: '/training', icon: Activity },
+  { name: '수업 계획', href: '/plans', icon: ClipboardList },
+  { name: '수업 기록', href: '/training', icon: Activity },
   { name: '기록 측정', href: '/records', icon: Medal },
   { name: '학생 관리', href: '/students', icon: Calendar },
   { name: '설정', href: '/settings', icon: Settings },

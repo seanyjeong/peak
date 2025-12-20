@@ -242,13 +242,13 @@ export default function DashboardPage() {
               value={stats.studentsToday}
               max={Math.max(stats.studentsToday, 1)}
               color="#14b8a6"
-              label="훈련 학생"
+              label="수업 학생"
             />
             <div>
               <p className="text-2xl font-bold text-slate-800">
                 {stats.studentsToday}명
               </p>
-              <p className="text-sm text-slate-500">오늘 훈련 학생</p>
+              <p className="text-sm text-slate-500">오늘 수업 학생</p>
             </div>
           </div>
         </div>
@@ -351,7 +351,7 @@ export default function DashboardPage() {
           <div>
             <h3 className="text-lg font-semibold mb-1">오늘 요약</h3>
             <p className="text-slate-300 text-sm">
-              코치 {stats.trainersPresent}명 출근 · 학생 {stats.studentsToday}명 훈련 예정
+              코치 {stats.trainersPresent}명 출근 · 학생 {stats.studentsToday}명 수업 예정
             </p>
           </div>
           <button
