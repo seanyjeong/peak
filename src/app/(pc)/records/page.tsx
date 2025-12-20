@@ -112,6 +112,33 @@ export default function RecordsPage() {
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
+  // 기존 기록 로드
+  const loadExistingRecords = useCallback(async (studentIds: number[], date: string) => {
+    if (studentIds.length === 0) return;
+    try {
+      const res = await apiClient.get(`/records/by-date?date=${date}&student_ids=${studentIds.join(',')}`);
+      const records = res.data.records || [];
+
+      // 입력값으로 변환
+      const newInputs: { [key: number]: { [key: number]: RecordInput } } = {};
+      records.forEach((r: { student_id: number; record_type_id: number; value: number }) => {
+        if (!newInputs[r.student_id]) {
+          newInputs[r.student_id] = {};
+        }
+        newInputs[r.student_id][r.record_type_id] = {
+          value: r.value.toString(),
+          score: null // 점수는 나중에 계산
+        };
+      });
+
+      setInputs(newInputs);
+      // 기록이 있는 학생은 저장됨 표시
+      setSavedStudents(new Set(Object.keys(newInputs).map(Number)));
+    } catch (error) {
+      console.error('Failed to load existing records:', error);
+    }
+  }, []);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -187,12 +214,29 @@ export default function RecordsPage() {
         }
       }
       setScoreTablesCache(scoreTablesData);
+
+      // 해당 시간대의 학생 ID 목록 수집 후 기존 기록 로드
+      const allStudentIds: number[] = [];
+      Object.values(slotsData).forEach((slotData) => {
+        const sd = slotData as SlotData;
+        sd.trainers?.forEach(t => {
+          t.students?.forEach(s => {
+            if (!allStudentIds.includes(s.student_id)) {
+              allStudentIds.push(s.student_id);
+            }
+          });
+        });
+      });
+
+      if (allStudentIds.length > 0) {
+        await loadExistingRecords(allStudentIds, measuredAt);
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }
-  }, [measuredAt, selectedRecordType]);
+  }, [measuredAt, selectedRecordType, loadExistingRecords]);
 
   useEffect(() => {
     fetchData();

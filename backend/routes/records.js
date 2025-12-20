@@ -73,7 +73,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// POST /peak/records/batch - 여러 종목 한번에 입력
+// POST /peak/records/batch - 여러 종목 한번에 입력 (UPSERT: 같은 날 최고 기록만 유지)
 router.post('/batch', async (req, res) => {
     try {
         const { student_id, measured_at, records } = req.body;
@@ -87,21 +87,59 @@ router.post('/batch', async (req, res) => {
         await connection.beginTransaction();
 
         try {
-            const insertedIds = [];
+            const results = [];
             for (const record of records) {
-                if (record.value !== null && record.value !== undefined && record.value !== '') {
+                if (record.value === null || record.value === undefined || record.value === '') {
+                    continue;
+                }
+
+                const newValue = parseFloat(record.value);
+
+                // 종목의 direction 확인 (higher/lower)
+                const [typeRows] = await connection.query(
+                    'SELECT direction FROM record_types WHERE id = ?',
+                    [record.record_type_id]
+                );
+                const direction = typeRows[0]?.direction || 'higher';
+
+                // 해당 날짜에 기존 기록이 있는지 확인
+                const [existing] = await connection.query(
+                    'SELECT id, value FROM student_records WHERE student_id = ? AND record_type_id = ? AND measured_at = ?',
+                    [student_id, record.record_type_id, measured_at]
+                );
+
+                if (existing.length > 0) {
+                    const oldValue = parseFloat(existing[0].value);
+                    // direction에 따라 더 좋은 기록인지 비교
+                    const isBetter = direction === 'higher'
+                        ? newValue > oldValue
+                        : newValue < oldValue;
+
+                    if (isBetter) {
+                        // 더 좋은 기록이면 업데이트
+                        await connection.query(
+                            'UPDATE student_records SET value = ?, notes = ?, created_at = NOW() WHERE id = ?',
+                            [newValue, record.notes || null, existing[0].id]
+                        );
+                        results.push({ id: existing[0].id, action: 'updated', oldValue, newValue });
+                    } else {
+                        // 기존 기록이 더 좋으면 스킵
+                        results.push({ id: existing[0].id, action: 'skipped', oldValue, newValue });
+                    }
+                } else {
+                    // 새 기록 삽입
                     const [result] = await connection.query(
                         'INSERT INTO student_records (student_id, record_type_id, measured_at, value, notes) VALUES (?, ?, ?, ?, ?)',
-                        [student_id, record.record_type_id, measured_at, record.value, record.notes || null]
+                        [student_id, record.record_type_id, measured_at, newValue, record.notes || null]
                     );
-                    insertedIds.push(result.insertId);
+                    results.push({ id: result.insertId, action: 'inserted', newValue });
                 }
             }
             await connection.commit();
             res.status(201).json({
                 success: true,
-                count: insertedIds.length,
-                recordIds: insertedIds
+                count: results.filter(r => r.action !== 'skipped').length,
+                results
             });
         } catch (err) {
             await connection.rollback();
@@ -111,6 +149,40 @@ router.post('/batch', async (req, res) => {
         }
     } catch (error) {
         console.error('Batch create records error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// GET /peak/records/by-date - 특정 날짜의 학생별 기록 (기록측정 페이지에서 사용)
+router.get('/by-date', async (req, res) => {
+    try {
+        const { date, student_ids } = req.query;
+        if (!date) {
+            return res.status(400).json({ error: '날짜가 필요합니다.' });
+        }
+
+        let query = `
+            SELECT r.id, r.student_id, r.record_type_id, r.value, r.notes,
+                   rt.name as record_type_name, rt.unit, rt.direction
+            FROM student_records r
+            JOIN record_types rt ON r.record_type_id = rt.id
+            WHERE r.measured_at = ?
+        `;
+        const params = [date];
+
+        // student_ids가 있으면 해당 학생들만
+        if (student_ids) {
+            const ids = student_ids.split(',').map(Number);
+            query += ` AND r.student_id IN (${ids.map(() => '?').join(',')})`;
+            params.push(...ids);
+        }
+
+        query += ' ORDER BY r.student_id, rt.display_order';
+
+        const [records] = await db.query(query, params);
+        res.json({ success: true, date, records });
+    } catch (error) {
+        console.error('Get records by date error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
