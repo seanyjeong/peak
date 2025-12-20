@@ -90,7 +90,33 @@ export default function TrainingPage() {
         apiClient.get(`/training?date=${dateStr}`)
       ]);
 
-      const assignmentList = assignmentsRes.data.assignments || [];
+      // slots에서 모든 시간대의 trainers를 합쳐서 평면 배열로 변환
+      const slots = assignmentsRes.data.slots || {};
+      const allTrainers: Assignment[] = [];
+      const seenTrainerIds = new Set<number | null>();
+
+      ['morning', 'afternoon', 'evening'].forEach(slot => {
+        const slotTrainers = slots[slot]?.trainers || [];
+        slotTrainers.forEach((t: Assignment) => {
+          // trainer_id가 있고, 아직 추가하지 않은 경우에만 추가
+          if (t.trainer_id && !seenTrainerIds.has(t.trainer_id)) {
+            seenTrainerIds.add(t.trainer_id);
+            // 같은 trainer의 모든 학생을 합침
+            const existingTrainer = allTrainers.find(a => a.trainer_id === t.trainer_id);
+            if (existingTrainer) {
+              t.students.forEach(s => {
+                if (!existingTrainer.students.some(es => es.student_id === s.student_id)) {
+                  existingTrainer.students.push(s);
+                }
+              });
+            } else {
+              allTrainers.push({ ...t });
+            }
+          }
+        });
+      });
+
+      const assignmentList = allTrainers;
       const trainerList = trainersRes.data.trainers || [];
       const existingLogList = trainingRes.data.logs || [];
 
