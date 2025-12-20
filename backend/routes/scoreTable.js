@@ -93,6 +93,7 @@ router.post('/', async (req, res) => {
             min_score,        // 최소 점수 (50)
             score_step,       // 급간 점수 (2점씩)
             value_step,       // 1감점당 기록 단위 (5cm, 0.1초)
+            decimal_places = 0, // 소수점 자리수 (0, 1, 2)
             male_perfect,     // 남자 만점 기록
             female_perfect    // 여자 만점 기록
         } = req.body;
@@ -134,9 +135,9 @@ router.post('/', async (req, res) => {
             // 배점표 생성
             const [result] = await connection.query(`
                 INSERT INTO score_tables
-                (record_type_id, name, max_score, min_score, score_step, value_step, male_perfect, female_perfect)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `, [record_type_id, name, max_score, min_score, score_step, value_step, male_perfect, female_perfect]);
+                (record_type_id, name, max_score, min_score, score_step, value_step, decimal_places, male_perfect, female_perfect)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [record_type_id, name, max_score, min_score, score_step, value_step, decimal_places, male_perfect, female_perfect]);
 
             const scoreTableId = result.insertId;
 
@@ -147,6 +148,10 @@ router.post('/', async (req, res) => {
             let femaleValue = parseFloat(female_perfect);
             const step = parseFloat(value_step);
 
+            // 소수점 자리수에 따른 최소 단위
+            const precision = Math.pow(10, -decimal_places); // 0자리:1, 1자리:0.1, 2자리:0.01
+            const round = (val) => Math.round(val * Math.pow(10, decimal_places)) / Math.pow(10, decimal_places);
+
             while (currentScore >= min_score) {
                 let maleMin, maleMax, femaleMin, femaleMax;
 
@@ -154,43 +159,43 @@ router.post('/', async (req, res) => {
                     // 높을수록 좋음 (제멀, 메디신볼)
                     if (currentScore === max_score) {
                         // 만점: 만점기록 이상
-                        maleMin = maleValue;
+                        maleMin = round(maleValue);
                         maleMax = 9999.99;
-                        femaleMin = femaleValue;
+                        femaleMin = round(femaleValue);
                         femaleMax = 9999.99;
                     } else if (currentScore === min_score) {
                         // 최하점: 해당값 이하
                         maleMin = 0;
-                        maleMax = maleValue + step - 0.01;
+                        maleMax = round(maleValue + step - precision);
                         femaleMin = 0;
-                        femaleMax = femaleValue + step - 0.01;
+                        femaleMax = round(femaleValue + step - precision);
                     } else {
                         // 중간: 범위
-                        maleMin = maleValue;
-                        maleMax = maleValue + step - 0.01;
-                        femaleMin = femaleValue;
-                        femaleMax = femaleValue + step - 0.01;
+                        maleMin = round(maleValue);
+                        maleMax = round(maleValue + step - precision);
+                        femaleMin = round(femaleValue);
+                        femaleMax = round(femaleValue + step - precision);
                     }
                 } else {
                     // 낮을수록 좋음 (왕복달리기)
                     if (currentScore === max_score) {
                         // 만점: 만점기록 이하
                         maleMin = 0;
-                        maleMax = maleValue;
+                        maleMax = round(maleValue);
                         femaleMin = 0;
-                        femaleMax = femaleValue;
+                        femaleMax = round(femaleValue);
                     } else if (currentScore === min_score) {
                         // 최하점: 해당값 이상
-                        maleMin = maleValue - step + 0.01;
+                        maleMin = round(maleValue - step + precision);
                         maleMax = 9999.99;
-                        femaleMin = femaleValue - step + 0.01;
+                        femaleMin = round(femaleValue - step + precision);
                         femaleMax = 9999.99;
                     } else {
                         // 중간: 범위
-                        maleMin = maleValue - step + 0.01;
-                        maleMax = maleValue;
-                        femaleMin = femaleValue - step + 0.01;
-                        femaleMax = femaleValue;
+                        maleMin = round(maleValue - step + precision);
+                        maleMax = round(maleValue);
+                        femaleMin = round(femaleValue - step + precision);
+                        femaleMax = round(femaleValue);
                     }
                 }
 

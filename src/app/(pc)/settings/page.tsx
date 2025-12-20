@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator } from 'lucide-react';
+import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 
 interface RecordType {
@@ -24,6 +24,7 @@ interface ScoreTable {
   min_score: number;
   score_step: number;
   value_step: number;
+  decimal_places: number;
   male_perfect: number;
   female_perfect: number;
 }
@@ -57,12 +58,16 @@ export default function SettingsPage() {
     min_score: 50,
     score_step: 2,
     value_step: 5,
+    decimal_places: 0,
     male_perfect: 300,
     female_perfect: 250
   });
   const [expandedScoreTable, setExpandedScoreTable] = useState<number | null>(null);
   const [scoreRanges, setScoreRanges] = useState<ScoreRange[]>([]);
   const [loadingRanges, setLoadingRanges] = useState(false);
+  const [editingRanges, setEditingRanges] = useState<{ [key: number]: ScoreRange }>({});
+  const [savingRange, setSavingRange] = useState<number | null>(null);
+  const [currentTable, setCurrentTable] = useState<ScoreTable | null>(null);
 
   const fetchData = async () => {
     try {
@@ -148,6 +153,8 @@ export default function SettingsPage() {
     if (expandedScoreTable === tableId) {
       setExpandedScoreTable(null);
       setScoreRanges([]);
+      setEditingRanges({});
+      setCurrentTable(null);
       return;
     }
 
@@ -156,6 +163,8 @@ export default function SettingsPage() {
       setExpandedScoreTable(tableId);
       const res = await apiClient.get(`/score-tables/${tableId}`);
       setScoreRanges(res.data.ranges || []);
+      setCurrentTable(res.data.scoreTable || null);
+      setEditingRanges({});
     } catch (error) {
       console.error('Failed to fetch ranges:', error);
     } finally {
@@ -173,19 +182,62 @@ export default function SettingsPage() {
     }
   };
 
+  // 개별 구간 수정
+  const startEditRange = (range: ScoreRange) => {
+    setEditingRanges({ ...editingRanges, [range.id]: { ...range } });
+  };
+
+  const cancelEditRange = (rangeId: number) => {
+    const newEditing = { ...editingRanges };
+    delete newEditing[rangeId];
+    setEditingRanges(newEditing);
+  };
+
+  const updateEditingRange = (rangeId: number, field: keyof ScoreRange, value: number) => {
+    setEditingRanges({
+      ...editingRanges,
+      [rangeId]: { ...editingRanges[rangeId], [field]: value }
+    });
+  };
+
+  const saveRange = async (rangeId: number) => {
+    const range = editingRanges[rangeId];
+    if (!range) return;
+
+    try {
+      setSavingRange(rangeId);
+      await apiClient.put(`/score-tables/ranges/${rangeId}`, {
+        male_min: range.male_min,
+        male_max: range.male_max,
+        female_min: range.female_min,
+        female_max: range.female_max
+      });
+
+      // 저장 후 목록 갱신
+      setScoreRanges(scoreRanges.map(r => r.id === rangeId ? range : r));
+      cancelEditRange(rangeId);
+    } catch (error) {
+      console.error('Failed to save range:', error);
+      alert('저장에 실패했습니다.');
+    } finally {
+      setSavingRange(null);
+    }
+  };
+
   // 배점표 없는 종목
   const typesWithoutScore = recordTypes.filter(
     t => t.is_active && !scoreTables.some(s => s.record_type_id === t.id)
   );
 
-  const formatValue = (value: number, isMax: boolean) => {
-    if (isMax && value >= 9999) return '이상';
-    if (!isMax && value <= 0) return '이하';
-    return value;
+  // 숫자 포맷팅 (소수점 자리수에 따라)
+  const formatValue = (value: number, decimalPlaces: number = 0) => {
+    if (value >= 9999) return '이상';
+    if (value <= 0) return '이하';
+    return value.toFixed(decimalPlaces);
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -404,7 +456,7 @@ export default function SettingsPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">만점 점수</label>
                   <input
@@ -443,6 +495,21 @@ export default function SettingsPage() {
                     placeholder="5cm, 0.1초"
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">소수점 자리수</label>
+                  <select
+                    value={scoreForm.decimal_places}
+                    onChange={e => setScoreForm({ ...scoreForm, decimal_places: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value={0}>정수 (0자리)</option>
+                    <option value={1}>소수점 1자리 (0.1)</option>
+                    <option value={2}>소수점 2자리 (0.01)</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">남자 만점 기록</label>
@@ -501,13 +568,24 @@ export default function SettingsPage() {
                     onClick={() => toggleScoreTable(table.id)}
                   >
                     <div>
-                      <h3 className="font-semibold text-slate-800">{table.record_type_name}</h3>
-                      <p className="text-sm text-slate-500">
-                        만점 {table.max_score}점 / 최소 {table.min_score}점 / {table.score_step}점 간격
-                      </p>
-                      <p className="text-sm text-slate-400">
-                        남 {table.male_perfect}{table.unit} / 여 {table.female_perfect}{table.unit}
-                      </p>
+                      <h3 className="font-semibold text-slate-800 text-lg">{table.record_type_name}</h3>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">
+                          만점 {table.max_score}점
+                        </span>
+                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">
+                          최소 {table.min_score}점
+                        </span>
+                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">
+                          {table.score_step}점 간격
+                        </span>
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded">
+                          남 {table.male_perfect}{table.unit}
+                        </span>
+                        <span className="text-xs px-2 py-1 bg-pink-100 text-pink-600 rounded">
+                          여 {table.female_perfect}{table.unit}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -524,9 +602,9 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* Expanded Content - 배점표 */}
+                  {/* Expanded Content - 배점표 테이블 */}
                   {expandedScoreTable === table.id && (
-                    <div className="border-t border-slate-100 p-4">
+                    <div className="border-t border-slate-100">
                       {loadingRanges ? (
                         <div className="flex justify-center py-8">
                           <RefreshCw size={24} className="animate-spin text-slate-400" />
@@ -534,37 +612,161 @@ export default function SettingsPage() {
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
-                            <thead className="bg-slate-50">
-                              <tr>
-                                <th className="py-2 px-3 text-center font-medium text-slate-600">배점</th>
-                                <th className="py-2 px-3 text-center font-medium text-blue-600">남자 기록</th>
-                                <th className="py-2 px-3 text-center font-medium text-pink-600">여자 기록</th>
+                            <thead>
+                              <tr className="bg-gradient-to-r from-slate-100 to-slate-50">
+                                <th className="py-3 px-4 text-center font-bold text-slate-700 border-b-2 border-slate-200 w-20">
+                                  배점
+                                </th>
+                                <th colSpan={2} className="py-3 px-4 text-center font-bold text-blue-600 border-b-2 border-blue-200 bg-blue-50/50">
+                                  남자 기록 ({table.unit})
+                                </th>
+                                <th colSpan={2} className="py-3 px-4 text-center font-bold text-pink-600 border-b-2 border-pink-200 bg-pink-50/50">
+                                  여자 기록 ({table.unit})
+                                </th>
+                                <th className="py-3 px-4 text-center font-bold text-slate-700 border-b-2 border-slate-200 w-24">
+                                  수정
+                                </th>
+                              </tr>
+                              <tr className="bg-slate-50 text-xs">
+                                <th className="py-2 px-4 text-slate-500"></th>
+                                <th className="py-2 px-4 text-blue-500">최소</th>
+                                <th className="py-2 px-4 text-blue-500">최대</th>
+                                <th className="py-2 px-4 text-pink-500">최소</th>
+                                <th className="py-2 px-4 text-pink-500">최대</th>
+                                <th className="py-2 px-4"></th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {scoreRanges.map((range, idx) => (
-                                <tr key={range.id} className={idx === 0 ? 'bg-orange-50' : ''}>
-                                  <td className="py-2 px-3 text-center font-bold text-slate-800">
-                                    {range.score}점
-                                  </td>
-                                  <td className="py-2 px-3 text-center text-blue-700">
-                                    {range.male_max >= 9999
-                                      ? `${range.male_min}${table.unit} 이상`
-                                      : range.male_min <= 0
-                                        ? `${range.male_max}${table.unit} 이하`
-                                        : `${range.male_min}~${range.male_max}${table.unit}`
-                                    }
-                                  </td>
-                                  <td className="py-2 px-3 text-center text-pink-700">
-                                    {range.female_max >= 9999
-                                      ? `${range.female_min}${table.unit} 이상`
-                                      : range.female_min <= 0
-                                        ? `${range.female_max}${table.unit} 이하`
-                                        : `${range.female_min}~${range.female_max}${table.unit}`
-                                    }
-                                  </td>
-                                </tr>
-                              ))}
+                            <tbody>
+                              {scoreRanges.map((range, idx) => {
+                                const isEditing = !!editingRanges[range.id];
+                                const editData = editingRanges[range.id];
+                                const decimalPlaces = currentTable?.decimal_places || 0;
+                                const isFirst = idx === 0;
+                                const isLast = idx === scoreRanges.length - 1;
+
+                                return (
+                                  <tr
+                                    key={range.id}
+                                    className={`border-b border-slate-100 ${
+                                      isFirst ? 'bg-orange-50' : isLast ? 'bg-slate-50' : 'hover:bg-slate-50'
+                                    } ${isEditing ? 'bg-yellow-50' : ''}`}
+                                  >
+                                    <td className="py-3 px-4 text-center">
+                                      <span className={`inline-flex items-center justify-center w-12 h-8 rounded-lg font-bold ${
+                                        isFirst
+                                          ? 'bg-orange-500 text-white'
+                                          : isLast
+                                            ? 'bg-slate-300 text-slate-700'
+                                            : 'bg-slate-200 text-slate-700'
+                                      }`}>
+                                        {range.score}
+                                      </span>
+                                    </td>
+
+                                    {/* 남자 최소 */}
+                                    <td className="py-3 px-4 text-center text-blue-700">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          step={Math.pow(10, -decimalPlaces)}
+                                          value={editData.male_min}
+                                          onChange={e => updateEditingRange(range.id, 'male_min', Number(e.target.value))}
+                                          className="w-20 px-2 py-1 border border-blue-300 rounded text-center text-sm"
+                                        />
+                                      ) : (
+                                        <span className={range.male_min <= 0 ? 'text-slate-400' : ''}>
+                                          {formatValue(range.male_min, decimalPlaces)}
+                                        </span>
+                                      )}
+                                    </td>
+
+                                    {/* 남자 최대 */}
+                                    <td className="py-3 px-4 text-center text-blue-700">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          step={Math.pow(10, -decimalPlaces)}
+                                          value={editData.male_max >= 9999 ? '' : editData.male_max}
+                                          onChange={e => updateEditingRange(range.id, 'male_max', e.target.value ? Number(e.target.value) : 9999.99)}
+                                          placeholder="이상"
+                                          className="w-20 px-2 py-1 border border-blue-300 rounded text-center text-sm"
+                                        />
+                                      ) : (
+                                        <span className={range.male_max >= 9999 ? 'text-slate-400' : ''}>
+                                          {formatValue(range.male_max, decimalPlaces)}
+                                        </span>
+                                      )}
+                                    </td>
+
+                                    {/* 여자 최소 */}
+                                    <td className="py-3 px-4 text-center text-pink-700">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          step={Math.pow(10, -decimalPlaces)}
+                                          value={editData.female_min}
+                                          onChange={e => updateEditingRange(range.id, 'female_min', Number(e.target.value))}
+                                          className="w-20 px-2 py-1 border border-pink-300 rounded text-center text-sm"
+                                        />
+                                      ) : (
+                                        <span className={range.female_min <= 0 ? 'text-slate-400' : ''}>
+                                          {formatValue(range.female_min, decimalPlaces)}
+                                        </span>
+                                      )}
+                                    </td>
+
+                                    {/* 여자 최대 */}
+                                    <td className="py-3 px-4 text-center text-pink-700">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          step={Math.pow(10, -decimalPlaces)}
+                                          value={editData.female_max >= 9999 ? '' : editData.female_max}
+                                          onChange={e => updateEditingRange(range.id, 'female_max', e.target.value ? Number(e.target.value) : 9999.99)}
+                                          placeholder="이상"
+                                          className="w-20 px-2 py-1 border border-pink-300 rounded text-center text-sm"
+                                        />
+                                      ) : (
+                                        <span className={range.female_max >= 9999 ? 'text-slate-400' : ''}>
+                                          {formatValue(range.female_max, decimalPlaces)}
+                                        </span>
+                                      )}
+                                    </td>
+
+                                    {/* 수정 버튼 */}
+                                    <td className="py-3 px-4 text-center">
+                                      {isEditing ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <button
+                                            onClick={() => saveRange(range.id)}
+                                            disabled={savingRange === range.id}
+                                            className="p-1.5 text-green-600 hover:bg-green-100 rounded disabled:opacity-50"
+                                          >
+                                            {savingRange === range.id ? (
+                                              <RefreshCw size={16} className="animate-spin" />
+                                            ) : (
+                                              <Check size={16} />
+                                            )}
+                                          </button>
+                                          <button
+                                            onClick={() => cancelEditRange(range.id)}
+                                            className="p-1.5 text-slate-400 hover:bg-slate-100 rounded"
+                                          >
+                                            <X size={16} />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => startEditRange(range)}
+                                          className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded"
+                                        >
+                                          <Edit2 size={16} />
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
