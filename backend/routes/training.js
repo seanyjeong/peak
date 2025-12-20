@@ -66,24 +66,8 @@ router.post('/', async (req, res) => {
     }
 });
 
-// PUT /peak/training/:id - 훈련 기록 수정
-router.put('/:id', async (req, res) => {
-    try {
-        const { condition_score, notes, temperature, humidity } = req.body;
-
-        await db.query(
-            'UPDATE training_logs SET condition_score = ?, notes = ?, temperature = ?, humidity = ? WHERE id = ?',
-            [condition_score, notes, temperature ?? null, humidity ?? null, req.params.id]
-        );
-
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Update training log error:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
 // PUT /peak/training/conditions/:date - 해당 날짜 전체 온습도 일괄 업데이트
+// 주의: /:id 보다 먼저 정의해야 함 (Express 라우트 순서)
 router.put('/conditions/:date', async (req, res) => {
     try {
         const { date } = req.params;
@@ -119,6 +103,23 @@ router.put('/conditions/:date', async (req, res) => {
         });
     } catch (error) {
         console.error('Update conditions error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// PUT /peak/training/:id - 훈련 기록 수정
+router.put('/:id', async (req, res) => {
+    try {
+        const { condition_score, notes, temperature, humidity } = req.body;
+
+        await db.query(
+            'UPDATE training_logs SET condition_score = ?, notes = ?, temperature = ?, humidity = ? WHERE id = ?',
+            [condition_score, notes, temperature ?? null, humidity ?? null, req.params.id]
+        );
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Update training log error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
