@@ -1,14 +1,23 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp } from 'lucide-react';
+import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { authAPI, User } from '@/lib/api/auth';
 
-interface Trainer {
+type TimeSlot = 'morning' | 'afternoon' | 'evening';
+
+interface Instructor {
   id: number;
   name: string;
-  paca_user_id?: number;
+  user_id: number | null;
+  time_slot: TimeSlot;
+}
+
+interface SlotsData {
+  morning: Instructor[];
+  afternoon: Instructor[];
+  evening: Instructor[];
 }
 
 interface Exercise {
@@ -27,13 +36,20 @@ interface SelectedExercise {
 
 interface Plan {
   id: number;
-  trainer_id: number;
-  trainer_name: string;
+  instructor_id: number;
+  instructor_name: string;
+  time_slot: TimeSlot;
   tags: string[];
   exercises: SelectedExercise[];
   description: string;
   date: string;
 }
+
+const TIME_SLOT_INFO: Record<TimeSlot, { label: string; icon: typeof Sun; color: string; bgColor: string }> = {
+  morning: { label: '오전', icon: Sunrise, color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  afternoon: { label: '오후', icon: Sun, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  evening: { label: '저녁', icon: Moon, color: 'text-purple-600', bgColor: 'bg-purple-100' },
+};
 
 // 훈련 태그 목록
 const TRAINING_TAGS = [
@@ -46,12 +62,8 @@ const TRAINING_TAGS = [
 ];
 
 function TagBadge({ tagId, small = false }: { tagId: string; small?: boolean }) {
-  // tagId가 영문 ID인지 한글 라벨인지 확인
   let tag = TRAINING_TAGS.find(t => t.id === tagId);
-  if (!tag) {
-    // 한글 라벨로 검색
-    tag = TRAINING_TAGS.find(t => t.label === tagId);
-  }
+  if (!tag) tag = TRAINING_TAGS.find(t => t.label === tagId);
   if (!tag) return <span className={`${small ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-xs'} rounded-full font-medium bg-slate-100 text-slate-600`}>{tagId}</span>;
   return (
     <span className={`${small ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-xs'} rounded-full font-medium ${tag.color}`}>
@@ -61,7 +73,7 @@ function TagBadge({ tagId, small = false }: { tagId: string; small?: boolean }) 
 }
 
 export default function PlansPage() {
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [slotsData, setSlotsData] = useState<SlotsData>({ morning: [], afternoon: [], evening: [] });
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,61 +81,62 @@ export default function PlansPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedPlanId, setExpandedPlanId] = useState<number | null>(null);
 
+  // 날짜 선택
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
+
+  // 시간대 탭
+  const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
+
   // 현재 로그인 사용자 정보
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [myTrainerId, setMyTrainerId] = useState<number | null>(null);
-  // admin 또는 owner는 관리자 권한
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
+  const isOwner = currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
   // Form state
-  const [selectedTrainer, setSelectedTrainer] = useState<number | null>(null);
+  const [selectedInstructor, setSelectedInstructor] = useState<number | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedExercises, setSelectedExercises] = useState<SelectedExercise[]>([]);
   const [description, setDescription] = useState('');
 
-  // 로컬 날짜 (KST)
-  const getLocalDateString = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  const formatDateDisplay = (dateStr: string) => {
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    });
   };
 
-  const today = new Date().toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long'
-  });
+  const changeDate = (delta: number) => {
+    const date = new Date(selectedDate + 'T00:00:00');
+    date.setDate(date.getDate() + delta);
+    const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    setSelectedDate(newDate);
+  };
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const dateStr = getLocalDateString();
-
-      // 현재 사용자 정보 가져오기
       const user = authAPI.getCurrentUser();
       setCurrentUser(user);
 
-      const [trainersRes, plansRes, exercisesRes] = await Promise.all([
-        apiClient.get('/trainers'),
-        apiClient.get(`/plans?date=${dateStr}`),
+      const [plansRes, exercisesRes] = await Promise.all([
+        apiClient.get(`/plans?date=${selectedDate}`),
         apiClient.get('/exercises')
       ]);
 
-      const trainerList = trainersRes.data.trainers || [];
-      setTrainers(trainerList);
-      setExercises(exercisesRes.data.exercises || []);
+      setSlotsData(plansRes.data.slots || { morning: [], afternoon: [], evening: [] });
       setPlans(plansRes.data.plans || []);
+      setExercises(exercisesRes.data.exercises || []);
 
-      // 현재 사용자의 trainer_id 찾기 (paca_user_id로 매칭)
-      if (user && user.role !== 'admin') {
-        const myTrainer = trainerList.find((t: Trainer) => t.paca_user_id === user.id);
-        if (myTrainer) {
-          setMyTrainerId(myTrainer.id);
-        }
-      }
+      // 강사가 있는 슬롯 자동 선택
+      const slots = plansRes.data.slots;
+      if (slots.evening?.length > 0) setActiveSlot('evening');
+      else if (slots.afternoon?.length > 0) setActiveSlot('afternoon');
+      else if (slots.morning?.length > 0) setActiveSlot('morning');
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -133,9 +146,39 @@ export default function PlansPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedDate]);
 
-  // 선택된 태그에 해당하는 운동만 필터링 (DB에 영문 ID로 저장됨)
+  // 현재 로그인한 강사의 instructor_id 찾기
+  const myInstructorId = useMemo(() => {
+    if (!currentUser || isOwner) return null;
+    const allInstructors = [...slotsData.morning, ...slotsData.afternoon, ...slotsData.evening];
+    const myInstructor = allInstructors.find(i => i.user_id === currentUser.id);
+    return myInstructor?.id || null;
+  }, [currentUser, slotsData, isOwner]);
+
+  // 현재 시간대의 강사들
+  const currentInstructors = slotsData[activeSlot];
+
+  // 현재 시간대의 계획들
+  const currentPlans = plans.filter(p => p.time_slot === activeSlot);
+
+  // 계획이 없는 강사 목록
+  const instructorsWithoutPlan = currentInstructors.filter(
+    i => !currentPlans.some(p => p.instructor_id === i.id)
+  );
+
+  // 내가 이 시간대에 스케줄되어 있는지
+  const amIScheduled = myInstructorId ? currentInstructors.some(i => i.id === myInstructorId) : false;
+
+  // 내 계획이 이미 있는지
+  const myPlanExists = myInstructorId ? currentPlans.some(p => p.instructor_id === myInstructorId) : false;
+
+  // 계획 추가 가능 여부
+  const canAddPlan = isOwner
+    ? instructorsWithoutPlan.length > 0
+    : (amIScheduled && !myPlanExists);
+
+  // 선택된 태그에 해당하는 운동만 필터링
   const filteredExercises = useMemo(() => {
     if (selectedTags.length === 0) return exercises;
     return exercises.filter(ex =>
@@ -145,9 +188,7 @@ export default function PlansPage() {
 
   const toggleTag = (tagId: string) => {
     setSelectedTags(prev =>
-      prev.includes(tagId)
-        ? prev.filter(t => t !== tagId)
-        : [...prev, tagId]
+      prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId]
     );
   };
 
@@ -164,22 +205,14 @@ export default function PlansPage() {
 
   const updateExerciseNote = (exerciseId: number, note: string) => {
     setSelectedExercises(prev =>
-      prev.map(e =>
-        e.exercise_id === exerciseId ? { ...e, note } : e
-      )
+      prev.map(e => e.exercise_id === exerciseId ? { ...e, note } : e)
     );
   };
 
-  const isExerciseSelected = (exerciseId: number) => {
-    return selectedExercises.some(e => e.exercise_id === exerciseId);
-  };
-
-  const getExerciseNote = (exerciseId: number) => {
-    return selectedExercises.find(e => e.exercise_id === exerciseId)?.note || '';
-  };
+  const isExerciseSelected = (exerciseId: number) => selectedExercises.some(e => e.exercise_id === exerciseId);
 
   const resetForm = () => {
-    setSelectedTrainer(null);
+    setSelectedInstructor(null);
     setSelectedTags([]);
     setSelectedExercises([]);
     setDescription('');
@@ -188,8 +221,9 @@ export default function PlansPage() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedTrainer) {
-      alert('트레이너를 선택하세요.');
+    const instructorId = isOwner ? selectedInstructor : myInstructorId;
+    if (!instructorId) {
+      alert('강사를 선택하세요.');
       return;
     }
 
@@ -199,8 +233,6 @@ export default function PlansPage() {
     }
 
     try {
-      const dateStr = getLocalDateString();
-
       if (editingId) {
         await apiClient.put(`/plans/${editingId}`, {
           tags: selectedTags,
@@ -209,14 +241,14 @@ export default function PlansPage() {
         });
       } else {
         await apiClient.post('/plans', {
-          date: dateStr,
-          trainer_id: selectedTrainer,
+          date: selectedDate,
+          time_slot: activeSlot,
+          instructor_id: instructorId,
           tags: selectedTags,
           exercises: selectedExercises,
           description
         });
       }
-
       resetForm();
       fetchData();
     } catch (error) {
@@ -226,8 +258,13 @@ export default function PlansPage() {
   };
 
   const startEdit = (plan: Plan) => {
+    // 원장이 아니면 자기 계획만 수정 가능
+    if (!isOwner && plan.instructor_id !== myInstructorId) {
+      alert('자신의 계획만 수정할 수 있습니다.');
+      return;
+    }
     setEditingId(plan.id);
-    setSelectedTrainer(plan.trainer_id);
+    setSelectedInstructor(plan.instructor_id);
     setSelectedTags(plan.tags || []);
     setSelectedExercises(plan.exercises || []);
     setDescription(plan.description || '');
@@ -238,46 +275,64 @@ export default function PlansPage() {
     return exercises.find(e => e.id === exerciseId)?.name || '알 수 없는 운동';
   };
 
-  // 계획이 없는 트레이너 목록
-  const trainersWithoutPlan = trainers.filter(
-    t => !plans.some(p => p.trainer_id === t.id)
-  );
-
-  // 현재 사용자가 계획 추가 가능한지 확인
-  const canAddPlan = isAdmin
-    ? trainersWithoutPlan.length > 0
-    : (myTrainerId && !plans.some(p => p.trainer_id === myTrainerId));
-
-  // 내 계획 이미 있는지 확인
-  const myPlanExists = myTrainerId && plans.some(p => p.trainer_id === myTrainerId);
+  const getSlotStats = (slot: TimeSlot) => {
+    const scheduled = slotsData[slot].length;
+    const planned = plans.filter(p => p.time_slot === slot).length;
+    return { scheduled, planned };
+  };
 
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">훈련 계획</h1>
-          <p className="text-slate-500 mt-1">{today}</p>
+          <h1 className="text-2xl font-bold text-slate-800">수업 계획</h1>
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={() => changeDate(-1)}
+              className="p-1 text-slate-400 hover:text-slate-600"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-slate-400" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-2 py-1 border border-slate-200 rounded text-sm"
+              />
+            </div>
+            <button
+              onClick={() => changeDate(1)}
+              className="p-1 text-slate-400 hover:text-slate-600"
+            >
+              <ChevronRight size={20} />
+            </button>
+            <span className="text-slate-500 text-sm ml-2">{formatDateDisplay(selectedDate)}</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {canAddPlan && (
             <button
               onClick={() => {
                 resetForm();
-                // 트레이너는 자동으로 자기 ID 선택
-                if (!isAdmin && myTrainerId) {
-                  setSelectedTrainer(myTrainerId);
+                if (!isOwner && myInstructorId) {
+                  setSelectedInstructor(myInstructorId);
                 }
                 setShowAddForm(true);
               }}
               className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
             >
               <Plus size={18} />
-              <span>{isAdmin ? '계획 추가' : '내 계획 작성'}</span>
+              <span>{isOwner ? '계획 추가' : '내 계획 작성'}</span>
             </button>
           )}
-          {!isAdmin && myPlanExists && (
-            <span className="text-sm text-green-600 font-medium">✓ 오늘 계획 작성 완료</span>
+          {!isOwner && myPlanExists && (
+            <span className="text-sm text-green-600 font-medium">작성 완료</span>
+          )}
+          {!isOwner && amIScheduled && !myPlanExists && !showAddForm && (
+            <span className="text-sm text-orange-500 font-medium">계획 미작성</span>
           )}
           <button
             onClick={fetchData}
@@ -285,9 +340,38 @@ export default function PlansPage() {
             className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-            <span>새로고침</span>
           </button>
         </div>
+      </div>
+
+      {/* Time Slot Tabs */}
+      <div className="flex gap-2 mb-6">
+        {(Object.keys(TIME_SLOT_INFO) as TimeSlot[]).map((slot) => {
+          const info = TIME_SLOT_INFO[slot];
+          const Icon = info.icon;
+          const stats = getSlotStats(slot);
+          const isActive = activeSlot === slot;
+
+          return (
+            <button
+              key={slot}
+              onClick={() => setActiveSlot(slot)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-lg transition ${
+                isActive
+                  ? `${info.bgColor} ${info.color} ring-2 ring-offset-2`
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <Icon size={20} />
+              <span className="font-medium">{info.label}</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs ${
+                isActive ? 'bg-white/50' : 'bg-slate-100'
+              }`}>
+                {stats.planned}/{stats.scheduled}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Add/Edit Form */}
@@ -295,36 +379,31 @@ export default function PlansPage() {
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-slate-800">
-              {editingId ? '계획 수정' : '새 계획 작성'}
+              {editingId ? '계획 수정' : `${TIME_SLOT_INFO[activeSlot].label} 수업 계획 작성`}
             </h2>
-            <button
-              onClick={resetForm}
-              className="p-2 text-slate-400 hover:text-slate-600"
-            >
+            <button onClick={resetForm} className="p-2 text-slate-400 hover:text-slate-600">
               <X size={20} />
             </button>
           </div>
 
-          {/* Trainer Select */}
+          {/* Instructor Select */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              트레이너
-            </label>
-            {isAdmin ? (
+            <label className="block text-sm font-medium text-slate-700 mb-2">코치</label>
+            {isOwner ? (
               <select
-                value={selectedTrainer || ''}
-                onChange={e => setSelectedTrainer(Number(e.target.value))}
+                value={selectedInstructor || ''}
+                onChange={e => setSelectedInstructor(Number(e.target.value))}
                 disabled={!!editingId}
                 className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-slate-100"
               >
                 <option value="">선택하세요</option>
-                {(editingId ? trainers : trainersWithoutPlan).map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+                {(editingId ? currentInstructors : instructorsWithoutPlan).map(i => (
+                  <option key={i.id} value={i.id}>{i.name}</option>
                 ))}
               </select>
             ) : (
               <div className="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-700">
-                {trainers.find(t => t.id === selectedTrainer)?.name || currentUser?.name}
+                {currentInstructors.find(i => i.id === selectedInstructor)?.name || currentUser?.name}
               </div>
             )}
           </div>
@@ -369,9 +448,7 @@ export default function PlansPage() {
                     <div
                       key={ex.id}
                       className={`p-3 cursor-pointer transition ${
-                        isExerciseSelected(ex.id)
-                          ? 'bg-orange-50'
-                          : 'hover:bg-slate-50'
+                        isExerciseSelected(ex.id) ? 'bg-orange-50' : 'hover:bg-slate-50'
                       }`}
                       onClick={() => toggleExercise(ex.id)}
                     >
@@ -387,9 +464,7 @@ export default function PlansPage() {
                           <span className="font-medium text-slate-800">{ex.name}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          {ex.tags.map(t => (
-                            <TagBadge key={t} tagId={t} small />
-                          ))}
+                          {ex.tags.map(t => <TagBadge key={t} tagId={t} small />)}
                         </div>
                       </div>
                       {ex.description && (
@@ -406,7 +481,7 @@ export default function PlansPage() {
           {selectedExercises.length > 0 && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                선택된 운동 ({selectedExercises.length}개) - 세부사항 입력
+                선택된 운동 ({selectedExercises.length}개)
               </label>
               <div className="space-y-2">
                 {selectedExercises.map(sel => {
@@ -426,8 +501,8 @@ export default function PlansPage() {
                         value={sel.note}
                         onChange={e => updateExerciseNote(sel.exercise_id, e.target.value)}
                         onClick={e => e.stopPropagation()}
-                        placeholder={ex.default_sets && ex.default_reps ? `예: ${ex.default_reps}회 ${ex.default_sets}세트` : '세부사항 입력...'}
-                        className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-orange-500 focus:border-transparent"
+                        placeholder="세부사항..."
+                        className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-orange-500"
                       />
                     </div>
                   );
@@ -438,15 +513,13 @@ export default function PlansPage() {
 
           {/* Description */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              추가 메모 (선택)
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">추가 메모</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={2}
-              placeholder="전체적인 훈련 방향이나 주의사항..."
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+              placeholder="수업 방향이나 주의사항..."
+              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 resize-none"
             />
           </div>
 
@@ -454,13 +527,13 @@ export default function PlansPage() {
           <div className="flex justify-end gap-2">
             <button
               onClick={resetForm}
-              className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition"
+              className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
             >
               취소
             </button>
             <button
               onClick={handleSubmit}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
             >
               <Check size={18} />
               <span>{editingId ? '수정' : '저장'}</span>
@@ -470,62 +543,69 @@ export default function PlansPage() {
       )}
 
       {/* Plans List */}
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw size={32} className="animate-spin text-slate-400" />
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100">
+          <h2 className="font-semibold text-slate-800">
+            {TIME_SLOT_INFO[activeSlot].label} 수업 계획 ({currentPlans.length}/{currentInstructors.length}명)
+          </h2>
         </div>
-      ) : plans.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-          <ClipboardList size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500">오늘의 훈련 계획이 없습니다.</p>
-          <p className="text-slate-400 text-sm mt-1">계획 추가 버튼을 눌러 작성하세요.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {plans.map(plan => (
-            <div
-              key={plan.id}
-              className="bg-white rounded-2xl shadow-sm overflow-hidden"
-            >
-              {/* Plan Header */}
-              <div className="bg-orange-50 px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-medium">
-                    {plan.trainer_name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-800">{plan.trainer_name}</p>
-                    <p className="text-sm text-slate-500">{plan.exercises?.length || 0}개 운동</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id)}
-                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-lg transition"
-                  >
-                    {expandedPlanId === plan.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                  </button>
-                  <button
-                    onClick={() => startEdit(plan)}
-                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-lg transition"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                </div>
-              </div>
 
-              {/* Plan Content */}
-              <div className="px-6 py-4">
+        {loading ? (
+          <div className="p-12 text-center text-slate-400">
+            <RefreshCw size={32} className="animate-spin mx-auto mb-2" />
+            <p>로딩 중...</p>
+          </div>
+        ) : currentInstructors.length === 0 ? (
+          <div className="p-12 text-center text-slate-400">
+            <p>{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 코치가 없습니다.</p>
+            <p className="text-sm mt-2">P-ACA에서 강사 스케줄을 등록하세요.</p>
+          </div>
+        ) : currentPlans.length === 0 ? (
+          <div className="p-12 text-center text-slate-400">
+            <ClipboardList size={48} className="mx-auto mb-4" />
+            <p>아직 작성된 수업 계획이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {currentPlans.map(plan => (
+              <div key={plan.id} className="p-5">
+                {/* Plan Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-medium">
+                      {plan.instructor_name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800">{plan.instructor_name}</p>
+                      <p className="text-sm text-slate-500">{plan.exercises?.length || 0}개 운동</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id)}
+                      className="p-2 text-slate-400 hover:text-slate-600"
+                    >
+                      {expandedPlanId === plan.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </button>
+                    {(isOwner || plan.instructor_id === myInstructorId) && (
+                      <button
+                        onClick={() => startEdit(plan)}
+                        className="p-2 text-slate-400 hover:text-slate-600"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Tags */}
                 {plan.tags && plan.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {plan.tags.map(tagId => (
-                      <TagBadge key={tagId} tagId={tagId} />
-                    ))}
+                    {plan.tags.map(tagId => <TagBadge key={tagId} tagId={tagId} />)}
                   </div>
                 )}
 
-                {/* Exercises Summary */}
+                {/* Exercises */}
                 {plan.exercises && plan.exercises.length > 0 && (
                   <div className={expandedPlanId === plan.id ? '' : 'line-clamp-2'}>
                     <div className="space-y-1">
@@ -547,25 +627,19 @@ export default function PlansPage() {
                   </p>
                 )}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Summary */}
-      <div className="mt-6 bg-slate-50 rounded-xl p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-slate-600">계획 작성 현황</span>
-          <span className="font-medium text-slate-800">
-            {plans.length}/{trainers.length}명 완료
-          </span>
-        </div>
-        {trainersWithoutPlan.length > 0 && (
-          <p className="text-sm text-slate-500 mt-2">
-            미작성: {trainersWithoutPlan.map(t => t.name).join(', ')}
-          </p>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Summary */}
+      {currentInstructors.length > 0 && instructorsWithoutPlan.length > 0 && (
+        <div className="mt-6 bg-slate-50 rounded-xl p-4">
+          <p className="text-sm text-slate-500">
+            미작성: {instructorsWithoutPlan.map(i => i.name).join(', ')}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
