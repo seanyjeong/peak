@@ -30,12 +30,13 @@ router.post('/sync', async (req, res) => {
             return res.status(400).json({ error: '학원 ID가 필요합니다.' });
         }
 
-        // P-ACA에서 해당 학원의 학생 목록 가져오기 (체험생 포함)
+        // P-ACA에서 해당 학원의 학생 목록 가져오기 (재원생, 휴원생, 체험생)
+        // pending(미등록관리), withdrawn(퇴원), graduated(졸업) 제외
         const [pacaStudents] = await pacaPool.query(`
             SELECT id, name, gender, phone, school, grade, enrollment_date, status,
-                   class_days, is_trial, trial_remaining
+                   class_days, trial_remaining
             FROM students
-            WHERE academy_id = ? AND status IN ('active', 'trial')
+            WHERE academy_id = ? AND status IN ('active', 'paused', 'trial')
             ORDER BY name
         `, [academyId]);
 
@@ -67,8 +68,15 @@ router.post('/sync', async (req, res) => {
             const gender = student.gender === 'male' ? 'M' : 'F';
 
             // status 변환 (P-ACA -> P-EAK)
+            // P-ACA: active, paused, trial
+            // P-EAK: active, inactive
             let status = 'active';
             if (student.status === 'paused') status = 'inactive';
+
+            // 체험생 상태 처리 - P-ACA status='trial'인 경우에만 체험생
+            const isTrial = student.status === 'trial' ? 1 : 0;
+            const trialTotal = 2; // 체험 총 횟수 (기본 2회)
+            const trialRemaining = student.trial_remaining ?? 2;
 
             // 이미 있는지 확인
             const [existing] = await db.query(
@@ -78,11 +86,6 @@ router.post('/sync', async (req, res) => {
 
             // class_days JSON 처리
             const classDays = student.class_days ? JSON.stringify(student.class_days) : null;
-
-            // 체험생 상태 처리
-            const isTrial = student.is_trial || student.status === 'trial' ? 1 : 0;
-            const trialTotal = 2; // 체험 총 횟수 (기본 2회)
-            const trialRemaining = student.trial_remaining ?? 2;
 
             if (existing.length > 0) {
                 // 업데이트

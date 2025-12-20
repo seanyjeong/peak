@@ -81,6 +81,15 @@ export default function StudentsPage() {
   const [savingRecord, setSavingRecord] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
+  // 탭별 인원수 계산
+  const statusCounts = {
+    all: students.length,
+    active: students.filter(s => s.status === 'active' && !s.is_trial).length,
+    inactive: students.filter(s => s.status === 'inactive').length,
+    injury: students.filter(s => s.status === 'injury').length,
+    trial: students.filter(s => s.is_trial).length,
+  };
+
   // P-ACA 학생 동기화
   const syncStudents = async () => {
     const user = authAPI.getCurrentUser();
@@ -229,11 +238,23 @@ export default function StudentsPage() {
   // 필터링
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all'
-      || statusFilter === 'trial' ? student.is_trial
-      : student.status === statusFilter;
-    const matchesTrial = statusFilter === 'trial' ? student.is_trial : true;
-    return matchesSearch && (statusFilter === 'trial' ? matchesTrial : (statusFilter === 'all' || student.status === statusFilter));
+
+    let matchesFilter = false;
+    switch (statusFilter) {
+      case 'all':
+        matchesFilter = true;
+        break;
+      case 'trial':
+        matchesFilter = student.is_trial;
+        break;
+      case 'active':
+        matchesFilter = student.status === 'active' && !student.is_trial;
+        break;
+      default:
+        matchesFilter = student.status === statusFilter;
+    }
+
+    return matchesSearch && matchesFilter;
   });
 
   // 종목별 최신 기록 및 변화 계산
@@ -332,7 +353,7 @@ export default function StudentsPage() {
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              전체
+              전체 <span className="ml-1 opacity-80">{statusCounts.all}</span>
             </button>
             {Object.entries(STATUS_MAP).map(([key, value]) => (
               <button
@@ -344,7 +365,7 @@ export default function StudentsPage() {
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                {value.label}
+                {value.label} <span className="ml-1 opacity-80">{statusCounts[key as keyof typeof statusCounts] ?? 0}</span>
               </button>
             ))}
             <button
@@ -355,7 +376,7 @@ export default function StudentsPage() {
                   : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
               }`}
             >
-              체험생
+              체험생 <span className="ml-1 opacity-80">{statusCounts.trial}</span>
             </button>
           </div>
         </div>
