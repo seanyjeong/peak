@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check } from 'lucide-react';
+import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check, Dumbbell } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 
 interface RecordType {
@@ -12,6 +12,25 @@ interface RecordType {
   is_active: boolean;
   display_order: number;
 }
+
+interface Exercise {
+  id: number;
+  name: string;
+  tags: string[];
+  default_sets: number | null;
+  default_reps: number | null;
+  description: string | null;
+}
+
+// 수업 태그 목록 (plans 페이지와 동일)
+const TRAINING_TAGS = [
+  { id: 'lower-power', label: '하체 파워', color: 'bg-red-100 text-red-700' },
+  { id: 'upper-power', label: '상체 파워', color: 'bg-orange-100 text-orange-700' },
+  { id: 'agility', label: '민첩성', color: 'bg-yellow-100 text-yellow-700' },
+  { id: 'flexibility', label: '유연성', color: 'bg-green-100 text-green-700' },
+  { id: 'technique', label: '기술/자세', color: 'bg-blue-100 text-blue-700' },
+  { id: 'conditioning', label: '컨디셔닝', color: 'bg-purple-100 text-purple-700' },
+];
 
 interface ScoreTable {
   id: number;
@@ -40,15 +59,23 @@ interface ScoreRange {
 }
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'types' | 'scores'>('types');
+  const [activeTab, setActiveTab] = useState<'types' | 'scores' | 'exercises'>('types');
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
   const [scoreTables, setScoreTables] = useState<ScoreTable[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 종목 관리 상태
   const [showTypeForm, setShowTypeForm] = useState(false);
   const [editingType, setEditingType] = useState<RecordType | null>(null);
   const [typeForm, setTypeForm] = useState<{ name: string; unit: string; direction: 'higher' | 'lower' }>({ name: '', unit: '', direction: 'higher' });
+
+  // 운동 관리 상태
+  const [showExerciseForm, setShowExerciseForm] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+  const [exerciseForm, setExerciseForm] = useState<{ name: string; tags: string[]; default_sets: string; default_reps: string; description: string }>({
+    name: '', tags: [], default_sets: '', default_reps: '', description: ''
+  });
 
   // 배점표 관리 상태
   const [showScoreForm, setShowScoreForm] = useState(false);
@@ -72,12 +99,14 @@ export default function SettingsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [typesRes, tablesRes] = await Promise.all([
+      const [typesRes, tablesRes, exercisesRes] = await Promise.all([
         apiClient.get('/record-types'),
-        apiClient.get('/score-tables')
+        apiClient.get('/score-tables'),
+        apiClient.get('/exercises')
       ]);
       setRecordTypes(typesRes.data.recordTypes || []);
       setScoreTables(tablesRes.data.scoreTables || []);
+      setExercises(exercisesRes.data.exercises || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -125,6 +154,63 @@ export default function SettingsPage() {
     setEditingType(type);
     setTypeForm({ name: type.name, unit: type.unit, direction: type.direction });
     setShowTypeForm(true);
+  };
+
+  // 운동 저장
+  const saveExercise = async () => {
+    try {
+      const payload = {
+        name: exerciseForm.name,
+        tags: exerciseForm.tags,
+        default_sets: exerciseForm.default_sets ? parseInt(exerciseForm.default_sets) : null,
+        default_reps: exerciseForm.default_reps ? parseInt(exerciseForm.default_reps) : null,
+        description: exerciseForm.description || null
+      };
+
+      if (editingExercise) {
+        await apiClient.put(`/exercises/${editingExercise.id}`, payload);
+      } else {
+        await apiClient.post('/exercises', payload);
+      }
+      setShowExerciseForm(false);
+      setEditingExercise(null);
+      setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '' });
+      fetchData();
+    } catch (error) {
+      console.error('Failed to save exercise:', error);
+      alert('저장에 실패했습니다.');
+    }
+  };
+
+  const deleteExercise = async (id: number) => {
+    if (!confirm('이 운동을 삭제하시겠습니까?')) return;
+    try {
+      await apiClient.delete(`/exercises/${id}`);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete exercise:', error);
+    }
+  };
+
+  const startEditExercise = (exercise: Exercise) => {
+    setEditingExercise(exercise);
+    setExerciseForm({
+      name: exercise.name,
+      tags: exercise.tags,
+      default_sets: exercise.default_sets?.toString() || '',
+      default_reps: exercise.default_reps?.toString() || '',
+      description: exercise.description || ''
+    });
+    setShowExerciseForm(true);
+  };
+
+  const toggleExerciseTag = (tagId: string) => {
+    setExerciseForm(prev => ({
+      ...prev,
+      tags: prev.tags.includes(tagId)
+        ? prev.tags.filter(t => t !== tagId)
+        : [...prev.tags, tagId]
+    }));
   };
 
   // 배점표 생성
@@ -276,6 +362,17 @@ export default function SettingsPage() {
         >
           배점표
         </button>
+        <button
+          onClick={() => setActiveTab('exercises')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${
+            activeTab === 'exercises'
+              ? 'bg-orange-500 text-white'
+              : 'bg-white text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <Dumbbell size={18} />
+          운동 관리
+        </button>
       </div>
 
       {loading ? (
@@ -415,7 +512,7 @@ export default function SettingsPage() {
             </table>
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'scores' ? (
         /* 배점표 관리 탭 */
         <div className="space-y-4">
           {/* Add Button */}
@@ -775,6 +872,185 @@ export default function SettingsPage() {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* 운동 관리 탭 */
+        <div className="space-y-4">
+          {/* Add Button */}
+          <button
+            onClick={() => {
+              setEditingExercise(null);
+              setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '' });
+              setShowExerciseForm(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+          >
+            <Plus size={18} />
+            <span>운동 추가</span>
+          </button>
+
+          {/* Exercise Form */}
+          {showExerciseForm && (
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-slate-800">
+                  {editingExercise ? '운동 수정' : '새 운동 추가'}
+                </h3>
+                <button onClick={() => setShowExerciseForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 md:col-span-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">운동명</label>
+                    <input
+                      type="text"
+                      value={exerciseForm.name}
+                      onChange={e => setExerciseForm({ ...exerciseForm, name: e.target.value })}
+                      placeholder="박스점프, 메디신볼 던지기..."
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">기본 세트</label>
+                      <input
+                        type="number"
+                        value={exerciseForm.default_sets}
+                        onChange={e => setExerciseForm({ ...exerciseForm, default_sets: e.target.value })}
+                        placeholder="3"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">기본 횟수</label>
+                      <input
+                        type="number"
+                        value={exerciseForm.default_reps}
+                        onChange={e => setExerciseForm({ ...exerciseForm, default_reps: e.target.value })}
+                        placeholder="10"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">태그 선택</label>
+                  <div className="flex flex-wrap gap-2">
+                    {TRAINING_TAGS.map(tag => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleExerciseTag(tag.id)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                          exerciseForm.tags.includes(tag.id)
+                            ? tag.color
+                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                        }`}
+                      >
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">설명 (선택)</label>
+                  <textarea
+                    value={exerciseForm.description}
+                    onChange={e => setExerciseForm({ ...exerciseForm, description: e.target.value })}
+                    placeholder="운동 방법이나 주의사항..."
+                    rows={2}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => setShowExerciseForm(false)}
+                  className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={saveExercise}
+                  disabled={!exerciseForm.name.trim()}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save size={16} />
+                  저장
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Exercises List */}
+          {exercises.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+              <Dumbbell size={48} className="mx-auto text-slate-300 mb-4" />
+              <p className="text-slate-500">등록된 운동이 없습니다.</p>
+              <p className="text-slate-400 text-sm mt-1">운동 추가 버튼을 눌러 만들어보세요.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="divide-y divide-slate-100">
+                {exercises.map(exercise => (
+                  <div key={exercise.id} className="p-4 hover:bg-slate-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="font-medium text-slate-800">{exercise.name}</h4>
+                          {(exercise.default_sets || exercise.default_reps) && (
+                            <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">
+                              {exercise.default_sets && `${exercise.default_sets}세트`}
+                              {exercise.default_sets && exercise.default_reps && ' × '}
+                              {exercise.default_reps && `${exercise.default_reps}회`}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mb-1">
+                          {exercise.tags.map(tagId => {
+                            const tag = TRAINING_TAGS.find(t => t.id === tagId);
+                            return tag ? (
+                              <span
+                                key={tagId}
+                                className={`px-2 py-0.5 rounded-full text-xs font-medium ${tag.color}`}
+                              >
+                                {tag.label}
+                              </span>
+                            ) : null;
+                          })}
+                          {exercise.tags.length === 0 && (
+                            <span className="text-xs text-slate-400">태그 없음</span>
+                          )}
+                        </div>
+                        {exercise.description && (
+                          <p className="text-sm text-slate-500 mt-1">{exercise.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEditExercise(exercise)}
+                          className="p-2 text-slate-400 hover:text-orange-500"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => deleteExercise(exercise.id)}
+                          className="p-2 text-slate-400 hover:text-red-500"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
