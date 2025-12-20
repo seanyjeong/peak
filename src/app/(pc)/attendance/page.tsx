@@ -1,27 +1,50 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { UserCheck, Clock, RefreshCw } from 'lucide-react';
+import { UserCheck, Clock, RefreshCw, Sunrise, Sun, Moon, Download } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 
-interface Trainer {
+type TimeSlot = 'morning' | 'afternoon' | 'evening';
+
+interface Instructor {
   id: number;
   name: string;
-  phone: string;
+  time_slot: TimeSlot;
+  attendance_status: 'scheduled' | 'present' | 'absent' | 'late';
+  check_in_time: string | null;
+  check_out_time: string | null;
 }
 
-interface AttendanceRecord {
-  id: number;
-  trainer_id: number;
-  trainer_name: string;
-  check_in_time: string;
+interface SlotsData {
+  morning: Instructor[];
+  afternoon: Instructor[];
+  evening: Instructor[];
 }
+
+interface Stats {
+  total: number;
+  checkedIn: number;
+  uniqueInstructors: number;
+}
+
+const TIME_SLOT_INFO: Record<TimeSlot, { label: string; icon: typeof Sun; color: string; bgColor: string }> = {
+  morning: { label: '오전', icon: Sunrise, color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  afternoon: { label: '오후', icon: Sun, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  evening: { label: '저녁', icon: Moon, color: 'text-purple-600', bgColor: 'bg-purple-100' },
+};
+
+const STATUS_INFO: Record<string, { label: string; color: string; bgColor: string }> = {
+  present: { label: '출근', color: 'text-green-700', bgColor: 'bg-green-100' },
+  scheduled: { label: '예정', color: 'text-slate-600', bgColor: 'bg-slate-100' },
+  absent: { label: '결근', color: 'text-red-700', bgColor: 'bg-red-100' },
+  late: { label: '지각', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
+};
 
 export default function AttendancePage() {
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [slotsData, setSlotsData] = useState<SlotsData>({ morning: [], afternoon: [], evening: [] });
+  const [stats, setStats] = useState<Stats>({ total: 0, checkedIn: 0, uniqueInstructors: 0 });
   const [loading, setLoading] = useState(true);
-  const [checkingIn, setCheckingIn] = useState<number | null>(null);
+  const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
 
   const today = new Date().toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -30,15 +53,25 @@ export default function AttendancePage() {
     weekday: 'long'
   });
 
+  const getLocalDateString = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [trainersRes, attendanceRes] = await Promise.all([
-        apiClient.get('/trainers'),
-        apiClient.get('/attendance')
-      ]);
-      setTrainers(trainersRes.data.trainers || []);
-      setAttendance(attendanceRes.data.attendance || []);
+      const dateStr = getLocalDateString();
+      const res = await apiClient.get(`/attendance?date=${dateStr}`);
+
+      setSlotsData(res.data.slots || { morning: [], afternoon: [], evening: [] });
+      setStats(res.data.stats || { total: 0, checkedIn: 0, uniqueInstructors: 0 });
+
+      // 강사가 있는 첫 슬롯 선택
+      const slots = res.data.slots;
+      if (slots.evening?.length > 0) setActiveSlot('evening');
+      else if (slots.afternoon?.length > 0) setActiveSlot('afternoon');
+      else if (slots.morning?.length > 0) setActiveSlot('morning');
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -50,29 +83,10 @@ export default function AttendancePage() {
     fetchData();
   }, []);
 
-  const handleCheckIn = async (trainerId: number) => {
-    try {
-      setCheckingIn(trainerId);
-      await apiClient.post('/attendance/checkin', { trainer_id: trainerId });
-      await fetchData();
-    } catch (error: any) {
-      alert(error.response?.data?.message || '출근 체크에 실패했습니다.');
-    } finally {
-      setCheckingIn(null);
-    }
-  };
+  const getSlotCount = (slot: TimeSlot) => slotsData[slot].length;
+  const getSlotCheckedIn = (slot: TimeSlot) => slotsData[slot].filter(i => i.attendance_status === 'present').length;
 
-  const isCheckedIn = (trainerId: number) => {
-    return attendance.some(a => a.trainer_id === trainerId);
-  };
-
-  const getCheckInTime = (trainerId: number) => {
-    const record = attendance.find(a => a.trainer_id === trainerId);
-    return record?.check_in_time?.slice(0, 5) || null;
-  };
-
-  const checkedInCount = attendance.length;
-  const totalCount = trainers.length;
+  const currentInstructors = slotsData[activeSlot];
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -100,24 +114,57 @@ export default function AttendancePage() {
           </div>
           <div>
             <p className="text-4xl font-bold text-slate-800">
-              {checkedInCount}
-              <span className="text-slate-400 text-2xl">/{totalCount}</span>
+              {stats.checkedIn}
+              <span className="text-slate-400 text-2xl">/{stats.uniqueInstructors}</span>
             </p>
-            <p className="text-slate-500 mt-1">트레이너 출근</p>
+            <p className="text-slate-500 mt-1">코치 출근</p>
           </div>
           <div className="ml-auto text-right">
             <p className="text-sm text-slate-500">출근률</p>
             <p className="text-2xl font-bold text-orange-500">
-              {totalCount > 0 ? Math.round((checkedInCount / totalCount) * 100) : 0}%
+              {stats.uniqueInstructors > 0 ? Math.round((stats.checkedIn / stats.uniqueInstructors) * 100) : 0}%
             </p>
           </div>
         </div>
       </div>
 
-      {/* Trainer List */}
+      {/* Time Slot Tabs */}
+      <div className="flex gap-2 mb-6">
+        {(Object.keys(TIME_SLOT_INFO) as TimeSlot[]).map((slot) => {
+          const info = TIME_SLOT_INFO[slot];
+          const Icon = info.icon;
+          const count = getSlotCount(slot);
+          const checkedIn = getSlotCheckedIn(slot);
+          const isActive = activeSlot === slot;
+
+          return (
+            <button
+              key={slot}
+              onClick={() => setActiveSlot(slot)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-lg transition ${
+                isActive
+                  ? `${info.bgColor} ${info.color} ring-2 ring-offset-2`
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <Icon size={20} />
+              <span className="font-medium">{info.label}</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs ${
+                isActive ? 'bg-white/50' : 'bg-slate-100'
+              }`}>
+                {checkedIn}/{count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Instructor List */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800">트레이너 목록</h2>
+          <h2 className="font-semibold text-slate-800">
+            {TIME_SLOT_INFO[activeSlot].label} 코치 ({currentInstructors.length}명)
+          </h2>
         </div>
 
         {loading ? (
@@ -125,59 +172,61 @@ export default function AttendancePage() {
             <RefreshCw size={32} className="animate-spin mx-auto mb-2" />
             <p>로딩 중...</p>
           </div>
-        ) : trainers.length === 0 ? (
+        ) : currentInstructors.length === 0 ? (
           <div className="p-12 text-center text-slate-400">
-            <p>등록된 트레이너가 없습니다.</p>
+            <p>{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 코치가 없습니다.</p>
+            <p className="text-sm mt-2">P-ACA에서 강사 스케줄을 등록하세요.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {trainers.map((trainer) => {
-              const checked = isCheckedIn(trainer.id);
-              const checkInTime = getCheckInTime(trainer.id);
+            {currentInstructors.map((instructor) => {
+              const status = STATUS_INFO[instructor.attendance_status] || STATUS_INFO.scheduled;
+              const isPresent = instructor.attendance_status === 'present';
 
               return (
                 <div
-                  key={trainer.id}
+                  key={`${instructor.id}-${instructor.time_slot}`}
                   className={`flex items-center justify-between p-5 transition ${
-                    checked ? 'bg-green-50' : 'hover:bg-slate-50'
+                    isPresent ? 'bg-green-50' : 'hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center gap-4">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-medium ${
-                        checked ? 'bg-green-500' : 'bg-slate-300'
+                        isPresent ? 'bg-green-500' : 'bg-slate-300'
                       }`}
                     >
-                      {trainer.name.charAt(0)}
+                      {instructor.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">{trainer.name}</p>
-                      <p className="text-sm text-slate-500">{trainer.phone}</p>
+                      <p className="font-medium text-slate-800">{instructor.name}</p>
+                      <p className="text-sm text-slate-500">
+                        {TIME_SLOT_INFO[instructor.time_slot].label} 근무
+                      </p>
                     </div>
                   </div>
 
-                  {checked ? (
-                    <div className="flex items-center gap-3 text-green-600">
-                      <Clock size={18} />
-                      <span className="font-medium">{checkInTime} 출근</span>
-                      <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-                        출근완료
-                      </span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleCheckIn(trainer.id)}
-                      disabled={checkingIn === trainer.id}
-                      className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {checkingIn === trainer.id ? '처리중...' : '출근 체크'}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {instructor.check_in_time && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Clock size={16} />
+                        <span className="text-sm">{instructor.check_in_time.slice(0, 5)}</span>
+                      </div>
+                    )}
+                    <span className={`px-3 py-1 text-sm rounded-full ${status.bgColor} ${status.color}`}>
+                      {status.label}
+                    </span>
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
+      </div>
+
+      {/* Info Banner */}
+      <div className="mt-6 bg-slate-100 rounded-xl p-4 text-sm text-slate-600">
+        <p>출근 체크는 P-ACA에서 관리됩니다. 출근 상태 변경은 P-ACA에서 진행해주세요.</p>
       </div>
     </div>
   );

@@ -1,26 +1,67 @@
 /**
- * Trainer Attendance Routes (출근 체크)
+ * Trainer Attendance Routes (출근 체크 - P-ACA 연동)
+ * P-ACA의 instructor_schedules에서 출근 현황 가져오기
  */
 
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const pacaPool = require('../config/paca-database');
+const { decrypt } = require('../utils/encryption');
 
-// GET /peak/attendance - 오늘 출근 현황
+const ACADEMY_ID = 2; // 일산맥스체대입시
+
+// GET /peak/attendance - P-ACA에서 오늘 강사 출근 현황
 router.get('/', async (req, res) => {
     try {
         const { date } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
 
-        const [attendance] = await db.query(`
-            SELECT a.*, t.name as trainer_name
-            FROM daily_attendance a
-            JOIN trainers t ON a.trainer_id = t.id
-            WHERE a.date = ?
-            ORDER BY a.check_in_time
-        `, [targetDate]);
+        // P-ACA에서 강사 스케줄 + 출결 조회
+        const [instructors] = await pacaPool.query(`
+            SELECT
+                i.id,
+                i.name,
+                ins.time_slot,
+                ins.attendance_status,
+                ins.check_in_time,
+                ins.check_out_time
+            FROM instructor_schedules ins
+            JOIN instructors i ON ins.instructor_id = i.id
+            WHERE ins.academy_id = ? AND ins.work_date = ?
+            ORDER BY ins.time_slot, i.name
+        `, [ACADEMY_ID, targetDate]);
 
-        res.json({ success: true, date: targetDate, attendance });
+        // 이름 복호화 및 시간대별 그룹화
+        const bySlot = { morning: [], afternoon: [], evening: [] };
+        instructors.forEach(inst => {
+            const decryptedName = inst.name ? decrypt(inst.name) : inst.name;
+            if (bySlot[inst.time_slot]) {
+                bySlot[inst.time_slot].push({
+                    id: inst.id,
+                    name: decryptedName,
+                    time_slot: inst.time_slot,
+                    attendance_status: inst.attendance_status || 'scheduled',
+                    check_in_time: inst.check_in_time,
+                    check_out_time: inst.check_out_time
+                });
+            }
+        });
+
+        // 전체 통계
+        const allInstructors = [...bySlot.morning, ...bySlot.afternoon, ...bySlot.evening];
+        const checkedIn = allInstructors.filter(i => i.attendance_status === 'present').length;
+
+        res.json({
+            success: true,
+            date: targetDate,
+            slots: bySlot,
+            stats: {
+                total: allInstructors.length,
+                checkedIn,
+                uniqueInstructors: new Set(allInstructors.map(i => i.id)).size
+            }
+        });
     } catch (error) {
         console.error('Get attendance error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
