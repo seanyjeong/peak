@@ -13,7 +13,7 @@
 
 ### Peak (피크) 의미
 - **정점, 최고점** - 기록의 정점을 향해
-- **산봉우리** - 목표를 향한 도전1
+- **산봉우리** - 목표를 향한 도전
 - "피크 컨디션" - 최상의 상태
 - "피크를 찍다" - 최고 기록 달성
 
@@ -27,121 +27,121 @@
 
 ---
 
-체대입시 전문 트레이닝 관리 시스템
-- FM2025처럼 데이터 기반 훈련 최적화
-- P-ACA 연동
-
-## 문서
-
-| 문서 | 설명 |
-|------|------|
-| SPEC.md | 상세 기획서 (전체 명세) |
-| PLAN.md | 개발 로드맵 |
+## 현재 버전: v0.5.0
 
 ## 기술 스택
 
-- **프론트**: Next.js 15 + TailwindCSS + dnd-kit
+- **프론트**: Next.js 16 + TailwindCSS + dnd-kit
 - **백엔드**: Express.js + MySQL
 - **배포**: Vercel + 로컬서버 (P-ACA와 동일)
 
-## 핵심 기능
-
-1. **트레이너 출근 체크**
-2. **훈련 계획 작성** (태그 + 자유 텍스트)
-3. **반 배치** (드래그앤드롭)
-4. **기록 측정** (4대 종목)
-5. **훈련 기록 저장** (컨디션, 메모)
-6. **학생 프로필** (기록 변화 그래프)
-7. **P-ACA 연동** (로그인, 학생정보, 출결)
-
-## 4대 종목
-
-| 종목 | 남 시작 | 남 만점 | 여 시작 | 여 만점 |
-|------|--------|--------|--------|--------|
-| 제멀 | 250cm | 300cm | 180cm | 250cm |
-| 메디신 | 8.5m | 12m | 6m | 9m |
-| 20m왕복 | 16.5초 | 14.5초 | 19초 | 16.5초 |
-| 좌전굴 | 개인차 | - | 개인차 | - |
-
-## 훈련 태그
-
-- 하체 파워 (제멀)
-- 상체 파워 (메디신)
-- 민첩성 (20m왕복)
-- 유연성 (좌전굴)
-- 기술/자세
-- 컨디셔닝
-
-## P-ACA 연동
-
-- 로그인: P-ACA 계정 사용
-- 학생: P-ACA에서 가져오기 (일산맥스)
-- 출결: 양방향 동기화
-
-## 개발 순서
-
-1. 프로젝트 셋업 & DB
-2. P-ACA 인증 연동
-3. 학생/트레이너 기본
-4. **반 배치 (드래그앤드롭)** ← 핵심
-5. 훈련 계획 & 기록
-6. 기록 측정 & 그래프
-7. 부상 관리, 알림
-8. 통계/분석
-
-## 현재 버전: v0.5.0
+---
 
 ## 완료된 기능 (2025-12-20)
 
-### Phase 1 완료
-- [x] /dashboard - 대시보드 (P-ACA 실시간 연동)
-- [x] /attendance - 코치 출근 체크 (P-ACA 연동, 시간대별 탭)
-- [x] /assignments - 반 배치 (드래그앤드롭, 시간대별)
-- [x] /plans - 수업 계획 (P-ACA 연동, 날짜/시간대 선택, 권한별 관리)
-- [x] /training - 훈련 기록 입력 (컨디션/메모)
-- [x] /students - 학생 관리 (목록, 기록 조회)
-- [x] /settings - 설정 페이지 (종목/배점표 관리)
+### 페이지
+| 페이지 | 기능 |
+|--------|------|
+| /dashboard | 대시보드 (오늘 현황, 코치/학생 수) |
+| /attendance | 코치 출근 체크 (P-ACA 연동, 시간대별 탭) |
+| /assignments | 반 배치 (드래그앤드롭, 시간대별) |
+| /plans | 수업 계획 (P-ACA 연동, 날짜/시간대, 권한별) |
+| /training | 수업 기록 (컨디션/메모) |
+| /records | 기록 측정 입력 |
+| /students | 학생 관리 (전체/체험생 필터) |
+| /settings | 설정 (종목/배점표/운동/태그/팩 관리) |
 
 ### 핵심 시스템
 - [x] P-ACA 인증 연동 (JWT)
-- [x] 동적 종목 시스템 (학원별 커스텀 종목)
+- [x] P-ACA 스케줄 연동 (instructor_schedules)
+- [x] 동적 종목 시스템 (학원별 커스텀)
 - [x] 자동 배점표 생성 (만점/최소/급간/감점단위)
-- [x] 남/여 별도 배점 지원
-- [x] higher/lower 방향 지원
-- [x] **P-ACA 스케줄 연동 (v0.3.0)**
-- [x] **수업 계획 권한 관리 (v0.4.0)** - 강사: 자기 계획만, 원장: 전체
-  - P-ACA의 class_schedules + attendance 테이블 연동
-  - 오전/오후/저녁 시간대별 분리
-  - 학생 자동 동기화
+- [x] 남/여 별도 배점, higher/lower 방향 지원
 
-### DB 테이블
-- record_types: 종목 정의 (name, unit, direction)
-- score_tables: 배점표 설정
-- score_ranges: 생성된 배점 구간
-- student_records: 학생 기록 (record_type_id, value)
-- training_logs: 훈련 기록 (condition_score, notes)
-- daily_assignments: 반 배치 (date, time_slot, student_id, trainer_id)
+### v0.5.0 신규 기능 (2025-12-20)
+- [x] **태그 동적 관리** - DB 기반 태그 CRUD (시스템 admin 전용)
+- [x] **운동 팩 시스템** - 운동 묶음 생성/내보내기/가져오기
+  - JSON 형식으로 다른 학원과 공유 가능
+  - 가져오기 시 태그 + 운동 자동 등록
+- [x] **메뉴 네이밍 변경** - 훈련 → 수업
+- [x] **체험생 필터** - 학생 관리 페이지
 
-### P-ACA 연동 구조
+### 권한 체계
+| 기능 | staff (코치) | owner (원장) | admin (시스템) |
+|------|-------------|--------------|----------------|
+| 설정 메뉴 | ❌ | ✅ | ✅ |
+| 운동 목록 관리 | - | ✅ | ✅ |
+| 운동 팩 관리 | - | ✅ | ✅ |
+| **태그 관리** | - | ❌ | ✅ |
+| 수업 계획 (자기 것) | ✅ | ✅ | ✅ |
+| 수업 계획 (전체) | ❌ | ✅ | ✅ |
+
+---
+
+## DB 테이블
+
+### peak DB
+```sql
+-- 종목 관리
+record_types (id, name, unit, direction, is_active, display_order)
+
+-- 배점표
+score_tables (id, record_type_id, max_score, min_score, score_step, value_step, male_perfect, female_perfect)
+score_ranges (id, score_table_id, score, male_min, male_max, female_min, female_max)
+
+-- 학생 기록
+student_records (id, student_id, record_type_id, value, measured_at)
+training_logs (id, date, student_id, trainer_id, condition_score, notes)
+
+-- 반 배치
+daily_assignments (id, date, time_slot, student_id, trainer_id)
+
+-- 운동 관리 (v0.5.0)
+exercises (id, name, tags JSON, default_sets, default_reps, description)
+exercise_tags (id, tag_id, label, color, display_order, is_active)
+exercise_packs (id, name, description, version, author)
+exercise_pack_items (id, pack_id, exercise_id, display_order)
+
+-- 수업 계획
+daily_plans (id, date, time_slot, instructor_id, trainer_id, focus_areas, exercises, notes)
 ```
-P-ACA (paca DB)                    P-EAK (peak DB)
-─────────────────                  ─────────────────
-class_schedules  ─────────────────> daily_assignments
-  - class_date                        - date
-  - time_slot (morning/afternoon/evening)  - time_slot
-  - instructor_id                     - trainer_id
 
-attendance ───────────────────────> students
-  - student_id                        - paca_student_id
-  - class_schedule_id                 - name (복호화됨)
+### P-ACA 연동 테이블 (paca DB)
+```sql
+instructor_schedules (instructor_id, work_date, time_slot, academy_id)
+instructor_attendance (instructor_id, check_in_time, work_date, academy_id)
+instructors (id, name, user_id, academy_id)
 ```
 
-## TODO
+---
 
-### 다음 작업
-- [x] /records 페이지 (기록 측정 입력 UI) ✓ v0.2.3
-- [x] P-ACA 학생 동기화 (이름/전화번호 복호화) ✓ v0.2.5
-- [x] P-ACA 스케줄 연동 (시간대별) ✓ v0.3.0
+## API 엔드포인트
+
+### 인증
+- POST `/peak/auth/login` - P-ACA 로그인
+
+### 운동 관리 (v0.5.0)
+- GET/POST `/peak/exercises` - 운동 목록/추가
+- PUT/DELETE `/peak/exercises/:id` - 수정/삭제
+- GET/POST `/peak/exercise-tags` - 태그 관리 (admin 전용)
+- GET/POST `/peak/exercise-packs` - 팩 관리
+- GET `/peak/exercise-packs/:id/export` - 팩 내보내기 (JSON)
+- POST `/peak/exercise-packs/import` - 팩 가져오기
+
+### 기타
+- GET/POST `/peak/record-types` - 종목 관리
+- GET/POST `/peak/score-tables` - 배점표 관리
+- GET/POST `/peak/assignments` - 반 배치
+- GET/POST `/peak/plans` - 수업 계획
+- GET/POST `/peak/training` - 수업 기록
+- GET `/peak/students` - 학생 목록
+
+---
+
+## TODO (다음 작업)
+
+### 우선순위 높음
+- [ ] /records 페이지 개선 (기록 입력 UX)
 - [ ] 학생 기록에 점수 자동 계산 연동
 - [ ] 기록 변화 그래프 (학생 프로필)
 
@@ -149,13 +149,7 @@ attendance ───────────────────────
 - [ ] 부상 관리
 - [ ] 알림 시스템
 - [ ] 통계/분석 대시보드
-
----
-
-## 로그인 정보
-
-- **이메일**: sean8320@naver.com
-- **비밀번호**: q141171616!
+- [ ] 모바일 PWA 최적화
 
 ---
 
@@ -170,4 +164,15 @@ sudo systemctl restart peak
 
 # DB 접속
 mysql -u paca -p peak
+
+# 빌드
+npm run build
 ```
+
+---
+
+## 로그인 정보
+
+- **이메일**: sean8320@naver.com
+- **비밀번호**: q141171616!
+- **역할**: admin (시스템 관리자)
