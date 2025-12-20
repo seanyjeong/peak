@@ -1,18 +1,48 @@
 /**
- * Daily Assignments Routes (반 배치 - 핵심 기능!)
+ * Daily Assignments Routes (반 배치 - P-ACA 연동)
+ * P-ACA의 class_schedules + attendance에서 학생 가져오기
+ * P-ACA의 instructor_schedules에서 강사 가져오기
  */
 
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const pacaPool = require('../config/paca-database');
+const { decrypt } = require('../utils/encryption');
 
-// GET /peak/assignments - 오늘 반 배치 현황
+const ACADEMY_ID = 2; // 일산맥스체대입시
+
+// GET /peak/assignments - 오늘 반 배치 현황 (시간대별)
 router.get('/', async (req, res) => {
     try {
         const { date } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
 
-        // 트레이너별 배치된 학생 목록
+        // P-ACA에서 오늘 출근 강사 조회 (시간대별)
+        const [pacaInstructors] = await pacaPool.query(`
+            SELECT DISTINCT
+                i.id,
+                i.name,
+                ins.time_slot
+            FROM instructor_schedules ins
+            JOIN instructors i ON ins.instructor_id = i.id
+            WHERE ins.academy_id = ? AND ins.work_date = ?
+            ORDER BY ins.time_slot, i.id
+        `, [ACADEMY_ID, targetDate]);
+
+        // 강사 이름 복호화 및 시간대별 그룹화
+        const instructorsBySlot = { morning: [], afternoon: [], evening: [] };
+        pacaInstructors.forEach(i => {
+            const decryptedName = i.name ? decrypt(i.name) : i.name;
+            if (instructorsBySlot[i.time_slot]) {
+                instructorsBySlot[i.time_slot].push({
+                    id: i.id,
+                    name: decryptedName
+                });
+            }
+        });
+
+        // 배치된 학생 목록 조회
         const [assignments] = await db.query(`
             SELECT
                 a.*,
@@ -22,45 +52,75 @@ router.get('/', async (req, res) => {
                 s.grade,
                 s.is_trial,
                 s.trial_total,
-                s.trial_remaining,
-                t.name as trainer_name
+                s.trial_remaining
             FROM daily_assignments a
             JOIN students s ON a.student_id = s.id
-            LEFT JOIN trainers t ON a.trainer_id = t.id
             WHERE a.date = ?
-            ORDER BY a.trainer_id, a.order_num
+            ORDER BY a.time_slot, a.trainer_id, a.order_num
         `, [targetDate]);
 
-        // 트레이너별로 그룹화
-        const grouped = {};
-        assignments.forEach(a => {
-            const key = a.trainer_id || 'unassigned';
-            if (!grouped[key]) {
-                grouped[key] = {
-                    trainer_id: a.trainer_id,
-                    trainer_name: a.trainer_name || '미배정',
-                    students: []
+        // 시간대별 결과 구성
+        const result = {
+            morning: { instructors: [], trainers: [] },
+            afternoon: { instructors: [], trainers: [] },
+            evening: { instructors: [], trainers: [] }
+        };
+
+        // 각 시간대별로 강사 컬럼 + 미배정 컬럼 구성
+        ['morning', 'afternoon', 'evening'].forEach(slot => {
+            const slotInstructors = instructorsBySlot[slot] || [];
+            result[slot].instructors = slotInstructors;
+
+            // 미배정 컬럼
+            const unassigned = {
+                trainer_id: null,
+                trainer_name: '미배정',
+                students: []
+            };
+
+            // 강사별 컬럼
+            const trainerColumns = slotInstructors.map(inst => ({
+                trainer_id: inst.id,
+                trainer_name: inst.name,
+                students: []
+            }));
+
+            // 해당 시간대 학생들 배치
+            assignments.filter(a => a.time_slot === slot).forEach(a => {
+                const student = {
+                    id: a.id,
+                    student_id: a.student_id,
+                    student_name: a.student_name,
+                    gender: a.gender,
+                    school: a.school,
+                    grade: a.grade,
+                    is_trial: a.is_trial,
+                    trial_total: a.trial_total,
+                    trial_remaining: a.trial_remaining,
+                    status: a.status,
+                    order_num: a.order_num
                 };
-            }
-            grouped[key].students.push({
-                id: a.id,
-                student_id: a.student_id,
-                student_name: a.student_name,
-                gender: a.gender,
-                school: a.school,
-                grade: a.grade,
-                is_trial: a.is_trial,
-                trial_total: a.trial_total,
-                trial_remaining: a.trial_remaining,
-                status: a.status,
-                order_num: a.order_num
+
+                if (a.trainer_id === null) {
+                    unassigned.students.push(student);
+                } else {
+                    const col = trainerColumns.find(c => c.trainer_id === a.trainer_id);
+                    if (col) {
+                        col.students.push(student);
+                    } else {
+                        // 배정된 강사가 오늘 스케줄에 없으면 미배정으로
+                        unassigned.students.push(student);
+                    }
+                }
             });
+
+            result[slot].trainers = [unassigned, ...trainerColumns];
         });
 
         res.json({
             success: true,
             date: targetDate,
-            assignments: Object.values(grouped)
+            slots: result
         });
     } catch (error) {
         console.error('Get assignments error:', error);
@@ -68,13 +128,168 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST /peak/assignments/init - 오늘 날짜로 학생 배치 초기화
+// GET /peak/assignments/instructors - 오늘 출근 강사 목록
+router.get('/instructors', async (req, res) => {
+    try {
+        const { date } = req.query;
+        const targetDate = date || new Date().toISOString().split('T')[0];
+
+        const [instructors] = await pacaPool.query(`
+            SELECT DISTINCT
+                i.id,
+                i.name,
+                ins.time_slot,
+                ins.attendance_status,
+                ins.check_in_time,
+                ins.check_out_time
+            FROM instructor_schedules ins
+            JOIN instructors i ON ins.instructor_id = i.id
+            WHERE ins.academy_id = ? AND ins.work_date = ?
+            ORDER BY ins.time_slot
+        `, [ACADEMY_ID, targetDate]);
+
+        const decrypted = instructors.map(i => ({
+            ...i,
+            name: i.name ? decrypt(i.name) : i.name
+        }));
+
+        const bySlot = { morning: [], afternoon: [], evening: [] };
+        decrypted.forEach(i => {
+            if (bySlot[i.time_slot]) {
+                bySlot[i.time_slot].push(i);
+            }
+        });
+
+        res.json({
+            success: true,
+            date: targetDate,
+            instructors: bySlot
+        });
+    } catch (error) {
+        console.error('Get instructors error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// POST /peak/assignments/sync - P-ACA에서 오늘 스케줄 동기화
+router.post('/sync', async (req, res) => {
+    try {
+        const { date } = req.body;
+        const targetDate = date || new Date().toISOString().split('T')[0];
+
+        // 기존 배치 삭제 (해당 날짜)
+        await db.query('DELETE FROM daily_assignments WHERE date = ?', [targetDate]);
+
+        // P-ACA에서 오늘 수업에 배정된 학생들 조회
+        const [pacaStudents] = await pacaPool.query(`
+            SELECT
+                a.id as attendance_id,
+                a.student_id as paca_student_id,
+                s.name as student_name,
+                s.gender,
+                s.school,
+                s.grade,
+                s.is_trial,
+                s.trial_remaining,
+                s.status as student_status,
+                cs.time_slot,
+                a.attendance_status,
+                a.is_makeup
+            FROM attendance a
+            JOIN class_schedules cs ON a.class_schedule_id = cs.id
+            JOIN students s ON a.student_id = s.id AND s.deleted_at IS NULL
+            WHERE cs.academy_id = ? AND cs.class_date = ?
+            ORDER BY cs.time_slot, s.name
+        `, [ACADEMY_ID, targetDate]);
+
+        if (pacaStudents.length === 0) {
+            return res.json({
+                success: true,
+                message: '오늘 스케줄에 배정된 학생이 없습니다.',
+                synced: 0
+            });
+        }
+
+        // P-ACA gender 변환 함수 (male/female → M/F)
+        const convertGender = (g) => {
+            if (g === 'male' || g === 'M') return 'M';
+            if (g === 'female' || g === 'F') return 'F';
+            return 'M'; // 기본값
+        };
+
+        let syncedCount = 0;
+
+        for (const ps of pacaStudents) {
+            const decryptedName = ps.student_name ? decrypt(ps.student_name) : ps.student_name;
+            const gender = convertGender(ps.gender);
+            const trialTotal = ps.is_trial ? (ps.trial_remaining || 2) : 0;
+
+            let [peakStudents] = await db.query(
+                'SELECT id FROM students WHERE paca_student_id = ?',
+                [ps.paca_student_id]
+            );
+
+            let peakStudentId;
+
+            if (peakStudents.length === 0) {
+                const [insertResult] = await db.query(`
+                    INSERT INTO students (paca_student_id, name, gender, school, grade, is_trial, trial_total, trial_remaining, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
+                `, [
+                    ps.paca_student_id,
+                    decryptedName,
+                    gender,
+                    ps.school,
+                    ps.grade,
+                    ps.is_trial ? 1 : 0,
+                    trialTotal,
+                    ps.trial_remaining || 0
+                ]);
+                peakStudentId = insertResult.insertId;
+            } else {
+                peakStudentId = peakStudents[0].id;
+                await db.query(`
+                    UPDATE students SET name = ?, gender = ?, school = ?, grade = ?,
+                           is_trial = ?, trial_total = ?, trial_remaining = ?
+                    WHERE id = ?
+                `, [
+                    decryptedName,
+                    gender,
+                    ps.school,
+                    ps.grade,
+                    ps.is_trial ? 1 : 0,
+                    trialTotal,
+                    ps.trial_remaining || 0,
+                    peakStudentId
+                ]);
+            }
+
+            // 반 배치 생성 (재원중 상태로)
+            await db.query(`
+                INSERT INTO daily_assignments (date, time_slot, student_id, paca_attendance_id, trainer_id, status, order_num)
+                VALUES (?, ?, ?, ?, NULL, 'enrolled', 0)
+            `, [targetDate, ps.time_slot, peakStudentId, ps.attendance_id]);
+
+            syncedCount++;
+        }
+
+        res.json({
+            success: true,
+            message: `${syncedCount}명 학생 동기화 완료`,
+            synced: syncedCount
+        });
+    } catch (error) {
+        console.error('Sync assignments error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// POST /peak/assignments/init - 레거시 호환
 router.post('/init', async (req, res) => {
     try {
         const { date } = req.body;
         const targetDate = date || new Date().toISOString().split('T')[0];
 
-        // 이미 초기화되었는지 확인
         const [existing] = await db.query(
             'SELECT COUNT(*) as count FROM daily_assignments WHERE date = ?',
             [targetDate]
@@ -88,31 +303,78 @@ router.post('/init', async (req, res) => {
             });
         }
 
-        // 해당 날짜의 요일 계산 (0=일요일, 1=월요일, ... 6=토요일)
-        const dayOfWeek = new Date(targetDate).getDay();
+        // sync와 동일한 로직
+        const [pacaStudents] = await pacaPool.query(`
+            SELECT
+                a.id as attendance_id,
+                a.student_id as paca_student_id,
+                s.name as student_name,
+                s.gender,
+                s.school,
+                s.grade,
+                s.is_trial,
+                s.trial_remaining,
+                cs.time_slot
+            FROM attendance a
+            JOIN class_schedules cs ON a.class_schedule_id = cs.id
+            JOIN students s ON a.student_id = s.id AND s.deleted_at IS NULL
+            WHERE cs.academy_id = ? AND cs.class_date = ?
+            ORDER BY cs.time_slot, s.name
+        `, [ACADEMY_ID, targetDate]);
 
-        // 해당 요일에 수업 있는 학생 + 체험생만 초기화
-        const [students] = await db.query(`
-            SELECT id FROM students
-            WHERE status = 'active'
-              AND (
-                (class_days IS NOT NULL AND JSON_CONTAINS(class_days, ?))
-                OR is_trial = 1
-              )
-        `, [dayOfWeek.toString()]);
+        // P-ACA gender 변환 함수 (male/female → M/F)
+        const convertGender = (g) => {
+            if (g === 'male' || g === 'M') return 'M';
+            if (g === 'female' || g === 'F') return 'F';
+            return 'M'; // 기본값
+        };
 
-        for (const s of students) {
-            await db.query(
-                'INSERT INTO daily_assignments (date, student_id, trainer_id, status, order_num) VALUES (?, ?, NULL, "training", 0)',
-                [targetDate, s.id]
+        let syncedCount = 0;
+
+        for (const ps of pacaStudents) {
+            const decryptedName = ps.student_name ? decrypt(ps.student_name) : ps.student_name;
+            const gender = convertGender(ps.gender);
+            const trialTotal = ps.is_trial ? (ps.trial_remaining || 2) : 0;
+
+            let [peakStudents] = await db.query(
+                'SELECT id FROM students WHERE paca_student_id = ?',
+                [ps.paca_student_id]
             );
+
+            let peakStudentId;
+
+            if (peakStudents.length === 0) {
+                const [insertResult] = await db.query(`
+                    INSERT INTO students (paca_student_id, name, gender, school, grade, is_trial, trial_total, trial_remaining, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
+                `, [
+                    ps.paca_student_id,
+                    decryptedName,
+                    gender,
+                    ps.school,
+                    ps.grade,
+                    ps.is_trial ? 1 : 0,
+                    trialTotal,
+                    ps.trial_remaining || 0
+                ]);
+                peakStudentId = insertResult.insertId;
+            } else {
+                peakStudentId = peakStudents[0].id;
+            }
+
+            await db.query(`
+                INSERT INTO daily_assignments (date, time_slot, student_id, paca_attendance_id, trainer_id, status, order_num)
+                VALUES (?, ?, ?, ?, NULL, 'enrolled', 0)
+            `, [targetDate, ps.time_slot, peakStudentId, ps.attendance_id]);
+
+            syncedCount++;
         }
 
         res.json({
             success: true,
-            message: `${students.length}명 학생 초기화 완료`,
+            message: `${syncedCount}명 학생 초기화 완료`,
             initialized: true,
-            count: students.length
+            count: syncedCount
         });
     } catch (error) {
         console.error('Init assignments error:', error);
@@ -123,12 +385,20 @@ router.post('/init', async (req, res) => {
 // PUT /peak/assignments/:id - 반 배치 변경 (드래그앤드롭)
 router.put('/:id', async (req, res) => {
     try {
-        const { trainer_id, status, order_num } = req.body;
+        const { trainer_id, status, order_num, time_slot } = req.body;
 
-        await db.query(
-            'UPDATE daily_assignments SET trainer_id = ?, status = ?, order_num = ? WHERE id = ?',
-            [trainer_id, status, order_num, req.params.id]
-        );
+        let query = 'UPDATE daily_assignments SET trainer_id = ?, status = ?, order_num = ?';
+        const params = [trainer_id, status, order_num];
+
+        if (time_slot) {
+            query += ', time_slot = ?';
+            params.push(time_slot);
+        }
+
+        query += ' WHERE id = ?';
+        params.push(req.params.id);
+
+        await db.query(query, params);
 
         res.json({ success: true });
     } catch (error) {
@@ -137,11 +407,10 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// PUT /peak/assignments/batch - 일괄 업데이트 (드래그앤드롭 후)
+// PUT /peak/assignments/batch - 일괄 업데이트
 router.put('/batch', async (req, res) => {
     try {
         const { assignments } = req.body;
-        // assignments: [{ id, trainer_id, order_num }, ...]
 
         const connection = await db.getConnection();
         await connection.beginTransaction();
@@ -149,8 +418,8 @@ router.put('/batch', async (req, res) => {
         try {
             for (const a of assignments) {
                 await connection.query(
-                    'UPDATE daily_assignments SET trainer_id = ?, order_num = ? WHERE id = ?',
-                    [a.trainer_id, a.order_num, a.id]
+                    'UPDATE daily_assignments SET trainer_id = ?, order_num = ?, time_slot = ? WHERE id = ?',
+                    [a.trainer_id, a.order_num, a.time_slot || 'evening', a.id]
                 );
             }
             await connection.commit();

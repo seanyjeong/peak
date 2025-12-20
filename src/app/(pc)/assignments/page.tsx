@@ -19,8 +19,10 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Users, RefreshCw, UserPlus, AlertCircle, Coffee } from 'lucide-react';
+import { Users, RefreshCw, AlertCircle, Coffee, Sunrise, Sun, Moon, Download } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+
+type TimeSlot = 'morning' | 'afternoon' | 'evening';
 
 interface Student {
   id: number;
@@ -32,7 +34,7 @@ interface Student {
   is_trial: boolean;
   trial_total: number;
   trial_remaining: number;
-  status: 'training' | 'rest' | 'injury';
+  status: 'enrolled' | 'trial' | 'rest' | 'injury';
 }
 
 interface TrainerColumn {
@@ -41,10 +43,22 @@ interface TrainerColumn {
   students: Student[];
 }
 
-interface Trainer {
-  id: number;
-  name: string;
+interface SlotData {
+  instructors: { id: number; name: string }[];
+  trainers: TrainerColumn[];
 }
+
+interface SlotsData {
+  morning: SlotData;
+  afternoon: SlotData;
+  evening: SlotData;
+}
+
+const TIME_SLOT_INFO: Record<TimeSlot, { label: string; icon: typeof Sun; color: string; bgColor: string }> = {
+  morning: { label: '오전', icon: Sunrise, color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  afternoon: { label: '오후', icon: Sun, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  evening: { label: '저녁', icon: Moon, color: 'text-purple-600', bgColor: 'bg-purple-100' },
+};
 
 // 학생 카드 컴포넌트
 function StudentCard({ student, isDragging }: { student: Student; isDragging?: boolean }) {
@@ -122,7 +136,6 @@ function TrainerColumnComponent({
         isOver ? 'ring-2 ring-orange-400 ring-offset-2' : ''
       }`}
     >
-      {/* Header */}
       <div className={`${headerColor} text-white px-4 py-3`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -135,8 +148,7 @@ function TrainerColumnComponent({
         </div>
       </div>
 
-      {/* Students */}
-      <div className="flex-1 p-3 min-h-[300px]">
+      <div className="flex-1 p-3 min-h-[200px]">
         <SortableContext
           items={column.students.map(s => `student-${s.id}`)}
           strategy={verticalListSortingStrategy}
@@ -159,12 +171,16 @@ function TrainerColumnComponent({
 }
 
 export default function AssignmentsPage() {
-  const [columns, setColumns] = useState<TrainerColumn[]>([]);
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [slotsData, setSlotsData] = useState<SlotsData>({
+    morning: { instructors: [], trainers: [] },
+    afternoon: { instructors: [], trainers: [] },
+    evening: { instructors: [], trainers: [] }
+  });
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [activeStudent, setActiveStudent] = useState<Student | null>(null);
+  const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
 
-  // 로컬 날짜 (KST) - API 호출용
   const getLocalDateString = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -192,41 +208,25 @@ export default function AssignmentsPage() {
       setLoading(true);
       const dateStr = getLocalDateString();
 
-      // 트레이너 목록 & 오늘 배치 현황 조회
-      const [trainersRes, assignmentsRes] = await Promise.all([
-        apiClient.get('/trainers'),
-        apiClient.get(`/assignments?date=${dateStr}`)
-      ]);
+      const assignmentsRes = await apiClient.get(`/assignments?date=${dateStr}`);
 
-      const trainerList = trainersRes.data.trainers || [];
-      setTrainers(trainerList);
-
-      let assignmentData = assignmentsRes.data.assignments || [];
-
-      // 배치 데이터가 없으면 초기화
-      if (assignmentData.length === 0) {
-        await apiClient.post('/assignments/init', { date: dateStr });
-        const refreshRes = await apiClient.get(`/assignments?date=${dateStr}`);
-        assignmentData = refreshRes.data.assignments || [];
-      }
-
-      // 미배정 컬럼 + 트레이너별 컬럼 구성
-      const unassigned = assignmentData.find((c: TrainerColumn) => !c.trainer_id) || {
-        trainer_id: null,
-        trainer_name: '미배정',
-        students: []
+      const slots = assignmentsRes.data.slots || {
+        morning: { instructors: [], trainers: [] },
+        afternoon: { instructors: [], trainers: [] },
+        evening: { instructors: [], trainers: [] }
       };
 
-      const trainerColumns = trainerList.map((t: Trainer) => {
-        const existing = assignmentData.find((c: TrainerColumn) => c.trainer_id === t.id);
-        return existing || {
-          trainer_id: t.id,
-          trainer_name: t.name,
-          students: []
-        };
+      setSlotsData({
+        morning: { instructors: slots.morning.instructors || [], trainers: slots.morning.trainers || [] },
+        afternoon: { instructors: slots.afternoon.instructors || [], trainers: slots.afternoon.trainers || [] },
+        evening: { instructors: slots.evening.instructors || [], trainers: slots.evening.trainers || [] }
       });
 
-      setColumns([unassigned, ...trainerColumns]);
+      // 학생이 있는 첫 슬롯 선택
+      const hasStudents = (slot: SlotData) => slot.trainers.some(t => t.students.length > 0);
+      if (hasStudents(slots.evening)) setActiveSlot('evening');
+      else if (hasStudents(slots.afternoon)) setActiveSlot('afternoon');
+      else if (hasStudents(slots.morning)) setActiveSlot('morning');
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -234,13 +234,28 @@ export default function AssignmentsPage() {
     }
   };
 
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const dateStr = getLocalDateString();
+      await apiClient.post('/assignments/sync', { date: dateStr });
+      await fetchData();
+    } catch (error) {
+      console.error('Failed to sync:', error);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
 
+  const currentColumns = slotsData[activeSlot].trainers;
+
   const findStudent = (id: string): Student | null => {
     const studentId = parseInt(id.replace('student-', ''));
-    for (const col of columns) {
+    for (const col of currentColumns) {
       const found = col.students.find(s => s.id === studentId);
       if (found) return found;
     }
@@ -249,7 +264,7 @@ export default function AssignmentsPage() {
 
   const findColumn = (studentId: string): TrainerColumn | null => {
     const id = parseInt(studentId.replace('student-', ''));
-    for (const col of columns) {
+    for (const col of currentColumns) {
       if (col.students.some(s => s.id === id)) return col;
     }
     return null;
@@ -272,15 +287,13 @@ export default function AssignmentsPage() {
     const sourceColumn = findColumn(activeId);
     if (!sourceColumn) return;
 
-    // 타겟 컬럼 찾기
     let targetColumn: TrainerColumn | null = null;
     let targetTrainerId: number | null = null;
 
     if (overId.startsWith('student-')) {
       targetColumn = findColumn(overId);
     } else {
-      // 컬럼 자체에 드롭
-      targetColumn = columns.find(c =>
+      targetColumn = currentColumns.find(c =>
         (c.trainer_id === null && overId === 'unassigned') ||
         c.trainer_id?.toString() === overId
       ) || null;
@@ -293,18 +306,20 @@ export default function AssignmentsPage() {
     if (!student) return;
 
     // UI 즉시 업데이트
-    setColumns(prev => {
-      const newColumns = prev.map(col => ({
+    setSlotsData(prev => {
+      const newSlots = { ...prev };
+      const newTrainers = newSlots[activeSlot].trainers.map(col => ({
         ...col,
         students: col.students.filter(s => s.id !== student.id)
       }));
 
-      const targetIdx = newColumns.findIndex(c => c.trainer_id === targetTrainerId);
+      const targetIdx = newTrainers.findIndex(c => c.trainer_id === targetTrainerId);
       if (targetIdx !== -1) {
-        newColumns[targetIdx].students.push(student);
+        newTrainers[targetIdx].students.push(student);
       }
 
-      return newColumns;
+      newSlots[activeSlot] = { trainers: newTrainers };
+      return newSlots;
     });
 
     // API 호출
@@ -312,16 +327,22 @@ export default function AssignmentsPage() {
       await apiClient.put(`/assignments/${student.id}`, {
         trainer_id: targetTrainerId,
         status: student.status,
-        order_num: 0
+        order_num: 0,
+        time_slot: activeSlot
       });
     } catch (error) {
       console.error('Failed to update assignment:', error);
-      fetchData(); // 실패시 데이터 다시 로드
+      fetchData();
     }
   };
 
-  const totalStudents = columns.reduce((sum, col) => sum + col.students.length, 0);
-  const assignedStudents = columns
+  // 현재 슬롯 학생 수 계산
+  const getSlotStudentCount = (slot: TimeSlot) => {
+    return slotsData[slot].trainers.reduce((sum, col) => sum + col.students.length, 0);
+  };
+
+  const totalStudents = currentColumns.reduce((sum, col) => sum + col.students.length, 0);
+  const assignedStudents = currentColumns
     .filter(col => col.trainer_id !== null)
     .reduce((sum, col) => sum + col.students.length, 0);
 
@@ -339,6 +360,14 @@ export default function AssignmentsPage() {
             <span className="ml-2 font-bold text-orange-500">{assignedStudents}/{totalStudents}명</span>
           </div>
           <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
+          >
+            <Download size={18} className={syncing ? 'animate-bounce' : ''} />
+            <span>P-ACA 동기화</span>
+          </button>
+          <button
             onClick={fetchData}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
@@ -349,9 +378,51 @@ export default function AssignmentsPage() {
         </div>
       </div>
 
+      {/* 시간대 탭 */}
+      <div className="flex gap-2 mb-6">
+        {(Object.keys(TIME_SLOT_INFO) as TimeSlot[]).map((slot) => {
+          const info = TIME_SLOT_INFO[slot];
+          const Icon = info.icon;
+          const count = getSlotStudentCount(slot);
+          const isActive = activeSlot === slot;
+
+          return (
+            <button
+              key={slot}
+              onClick={() => setActiveSlot(slot)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-lg transition ${
+                isActive
+                  ? `${info.bgColor} ${info.color} ring-2 ring-offset-2 ring-${info.color.replace('text-', '')}`
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <Icon size={20} />
+              <span className="font-medium">{info.label}</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs ${
+                isActive ? 'bg-white/50' : 'bg-slate-100'
+              }`}>
+                {count}명
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center h-96">
           <RefreshCw size={32} className="animate-spin text-slate-400" />
+        </div>
+      ) : totalStudents === 0 ? (
+        <div className="flex flex-col items-center justify-center h-96 text-slate-400">
+          <p className="text-lg mb-4">오늘 {TIME_SLOT_INFO[activeSlot].label} 수업에 배정된 학생이 없습니다.</p>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-2 px-6 py-3 text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition"
+          >
+            <Download size={20} />
+            <span>P-ACA에서 스케줄 가져오기</span>
+          </button>
         </div>
       ) : (
         <DndContext
@@ -361,7 +432,7 @@ export default function AssignmentsPage() {
           onDragEnd={handleDragEnd}
         >
           <div className="flex gap-4 overflow-x-auto pb-4">
-            {columns.map((column) => (
+            {currentColumns.map((column) => (
               <TrainerColumnComponent
                 key={column.trainer_id ?? 'unassigned'}
                 column={column}
@@ -385,6 +456,10 @@ export default function AssignmentsPage() {
         <div className="flex items-center gap-2">
           <span className="px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-xs">여</span>
           <span>여학생</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">체험</span>
+          <span>체험생</span>
         </div>
         <div className="flex items-center gap-2">
           <Coffee size={14} />

@@ -89,14 +89,14 @@
 7. 부상 관리, 알림
 8. 통계/분석
 
-## 현재 버전: v0.2.6
+## 현재 버전: v0.3.0
 
 ## 완료된 기능 (2025-12-20)
 
 ### Phase 1 완료
 - [x] /dashboard - 대시보드
 - [x] /attendance - 트레이너 출근 체크
-- [x] /assignments - 반 배치 (드래그앤드롭)
+- [x] /assignments - 반 배치 (드래그앤드롭, 시간대별)
 - [x] /plans - 훈련 계획 작성
 - [x] /training - 훈련 기록 입력 (컨디션/메모)
 - [x] /students - 학생 관리 (목록, 기록 조회)
@@ -108,6 +108,10 @@
 - [x] 자동 배점표 생성 (만점/최소/급간/감점단위)
 - [x] 남/여 별도 배점 지원
 - [x] higher/lower 방향 지원
+- [x] **P-ACA 스케줄 연동 (v0.3.0)**
+  - P-ACA의 class_schedules + attendance 테이블 연동
+  - 오전/오후/저녁 시간대별 분리
+  - 학생 자동 동기화
 
 ### DB 테이블
 - record_types: 종목 정의 (name, unit, direction)
@@ -115,12 +119,28 @@
 - score_ranges: 생성된 배점 구간
 - student_records: 학생 기록 (record_type_id, value)
 - training_logs: 훈련 기록 (condition_score, notes)
+- daily_assignments: 반 배치 (date, time_slot, student_id, trainer_id)
+
+### P-ACA 연동 구조
+```
+P-ACA (paca DB)                    P-EAK (peak DB)
+─────────────────                  ─────────────────
+class_schedules  ─────────────────> daily_assignments
+  - class_date                        - date
+  - time_slot (morning/afternoon/evening)  - time_slot
+  - instructor_id                     - trainer_id
+
+attendance ───────────────────────> students
+  - student_id                        - paca_student_id
+  - class_schedule_id                 - name (복호화됨)
+```
 
 ## TODO
 
 ### 다음 작업
 - [x] /records 페이지 (기록 측정 입력 UI) ✓ v0.2.3
 - [x] P-ACA 학생 동기화 (이름/전화번호 복호화) ✓ v0.2.5
+- [x] P-ACA 스케줄 연동 (시간대별) ✓ v0.3.0
 - [ ] 학생 기록에 점수 자동 계산 연동
 - [ ] 기록 변화 그래프 (학생 프로필)
 
