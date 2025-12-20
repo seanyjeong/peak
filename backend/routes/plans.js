@@ -63,7 +63,9 @@ router.get('/', async (req, res) => {
                 ...p,
                 instructor_name: instructor?.name || '알 수 없음',
                 tags: typeof p.tags === 'string' ? JSON.parse(p.tags) : (p.tags || []),
-                exercises: typeof p.exercises === 'string' ? JSON.parse(p.exercises) : (p.exercises || [])
+                exercises: typeof p.exercises === 'string' ? JSON.parse(p.exercises) : (p.exercises || []),
+                completed_exercises: typeof p.completed_exercises === 'string' ? JSON.parse(p.completed_exercises) : (p.completed_exercises || []),
+                extra_exercises: typeof p.extra_exercises === 'string' ? JSON.parse(p.extra_exercises) : (p.extra_exercises || [])
             };
         });
 
@@ -125,6 +127,109 @@ router.post('/', async (req, res) => {
         });
     } catch (error) {
         console.error('Create plan error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// PUT /peak/plans/:id/toggle-exercise - 운동 완료 토글
+router.put('/:id/toggle-exercise', async (req, res) => {
+    try {
+        const { exercise_id } = req.body;
+        const planId = req.params.id;
+
+        // 현재 completed_exercises 조회
+        const [plans] = await db.query('SELECT completed_exercises FROM daily_plans WHERE id = ?', [planId]);
+        if (plans.length === 0) {
+            return res.status(404).json({ error: 'Plan not found' });
+        }
+
+        let completed = plans[0].completed_exercises || [];
+        if (typeof completed === 'string') completed = JSON.parse(completed);
+
+        // 토글
+        const idx = completed.indexOf(exercise_id);
+        if (idx > -1) {
+            completed.splice(idx, 1); // 이미 있으면 제거
+        } else {
+            completed.push(exercise_id); // 없으면 추가
+        }
+
+        await db.query('UPDATE daily_plans SET completed_exercises = ? WHERE id = ?', [JSON.stringify(completed), planId]);
+
+        res.json({ success: true, completed_exercises: completed });
+    } catch (error) {
+        console.error('Toggle exercise error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// POST /peak/plans/:id/extra-exercise - 추가 운동 등록
+router.post('/:id/extra-exercise', async (req, res) => {
+    try {
+        const { exercise_id, name, note } = req.body;
+        const planId = req.params.id;
+
+        const [plans] = await db.query('SELECT extra_exercises FROM daily_plans WHERE id = ?', [planId]);
+        if (plans.length === 0) {
+            return res.status(404).json({ error: 'Plan not found' });
+        }
+
+        let extras = plans[0].extra_exercises || [];
+        if (typeof extras === 'string') extras = JSON.parse(extras);
+
+        // 추가 (completed: false로 시작)
+        extras.push({ exercise_id, name, note: note || '', completed: false });
+
+        await db.query('UPDATE daily_plans SET extra_exercises = ? WHERE id = ?', [JSON.stringify(extras), planId]);
+
+        res.json({ success: true, extra_exercises: extras });
+    } catch (error) {
+        console.error('Add extra exercise error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// PUT /peak/plans/:id/toggle-extra - 추가 운동 완료 토글
+router.put('/:id/toggle-extra', async (req, res) => {
+    try {
+        const { index } = req.body; // 배열 인덱스
+        const planId = req.params.id;
+
+        const [plans] = await db.query('SELECT extra_exercises FROM daily_plans WHERE id = ?', [planId]);
+        if (plans.length === 0) {
+            return res.status(404).json({ error: 'Plan not found' });
+        }
+
+        let extras = plans[0].extra_exercises || [];
+        if (typeof extras === 'string') extras = JSON.parse(extras);
+
+        if (extras[index]) {
+            extras[index].completed = !extras[index].completed;
+        }
+
+        await db.query('UPDATE daily_plans SET extra_exercises = ? WHERE id = ?', [JSON.stringify(extras), planId]);
+
+        res.json({ success: true, extra_exercises: extras });
+    } catch (error) {
+        console.error('Toggle extra exercise error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// PUT /peak/plans/:id/conditions - 온습도 저장
+router.put('/:id/conditions', async (req, res) => {
+    try {
+        const { temperature, humidity, checked } = req.body;
+        const planId = req.params.id;
+
+        await db.query(
+            'UPDATE daily_plans SET temperature = ?, humidity = ?, conditions_checked = ? WHERE id = ?',
+            [temperature ?? null, humidity ?? null, checked ? 1 : 0, planId]
+        );
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Update conditions error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
