@@ -12,15 +12,14 @@ router.get('/', async (req, res) => {
         const { date, trainer_id, student_id } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
 
+        // trainer_id는 P-ACA instructor_id 직접 사용 (trainers 테이블 사용 안함)
         let query = `
             SELECT
                 l.*,
                 s.name as student_name,
-                t.name as trainer_name,
                 p.tags, p.description as plan_description
             FROM training_logs l
             JOIN students s ON l.student_id = s.id
-            JOIN trainers t ON l.trainer_id = t.id
             LEFT JOIN daily_plans p ON l.plan_id = p.id
             WHERE l.date = ?
         `;

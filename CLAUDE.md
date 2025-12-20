@@ -27,7 +27,7 @@
 
 ---
 
-## 현재 버전: v1.2.0
+## 현재 버전: v1.4.1
 
 ## 버전 정책
 
@@ -50,6 +50,49 @@ v1.1.0 → v2.0.0 (대규모 기능 추가)
 - **프론트**: Next.js 16 + TailwindCSS + dnd-kit
 - **백엔드**: Express.js + MySQL
 - **배포**: Vercel + 로컬서버 (P-ACA와 동일)
+
+---
+
+## 백엔드 인프라
+
+### 서비스 구조
+```
+chejump.com/peak/* → Caddy → localhost:8330 (peak.service)
+```
+
+### Caddy 설정 (/etc/caddy/Caddyfile)
+```
+chejump.com {
+    handle /peak/* {
+        reverse_proxy localhost:8330
+    }
+    handle {
+        reverse_proxy localhost:8320  # P-ACA
+    }
+}
+```
+
+### systemd 서비스
+- **서비스 파일**: `/etc/systemd/system/peak.service`
+- **백엔드 코드**: `/home/sean/ilsanmaxtraining/backend/peak.js`
+- **포트**: 8330
+
+### 자주 쓰는 명령어
+```bash
+# 백엔드 재시작 (코드 수정 후 필수!)
+sudo systemctl restart peak
+
+# 상태 확인
+systemctl status peak
+
+# 로그 보기
+journalctl -u peak -f
+
+# Caddy 재시작 (설정 변경 시)
+sudo systemctl restart caddy
+```
+
+**⚠️ 주의**: 백엔드 코드 수정 후 반드시 `sudo systemctl restart peak` 실행!
 
 ---
 
