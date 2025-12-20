@@ -17,17 +17,21 @@ router.get('/', async (req, res) => {
         const { date } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
 
-        // P-ACA에서 강사 스케줄 + 출결 조회
+        // P-ACA에서 강사 스케줄 + 출결 조회 (instructor_schedules + instructor_attendance JOIN)
         const [instructors] = await pacaPool.query(`
             SELECT
                 i.id,
                 i.name,
                 ins.time_slot,
-                ins.attendance_status,
-                ins.check_in_time,
-                ins.check_out_time
+                COALESCE(ia.attendance_status, 'scheduled') as attendance_status,
+                ia.check_in_time,
+                ia.check_out_time
             FROM instructor_schedules ins
             JOIN instructors i ON ins.instructor_id = i.id
+            LEFT JOIN instructor_attendance ia
+                ON ia.instructor_id = ins.instructor_id
+                AND ia.work_date = ins.work_date
+                AND ia.time_slot = ins.time_slot
             WHERE ins.academy_id = ? AND ins.work_date = ?
             ORDER BY ins.time_slot, i.name
         `, [ACADEMY_ID, targetDate]);
