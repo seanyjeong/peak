@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, RefreshCw, Search, User, TrendingUp, TrendingDown, Minus, X, ChevronRight, Activity } from 'lucide-react';
+import { Users, RefreshCw, Search, User, TrendingUp, TrendingDown, Minus, X, ChevronRight, Activity, Plus, Save, Trophy, Calendar } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 
 interface Student {
@@ -37,6 +37,19 @@ interface StudentRecord {
   records: RecordItem[];
 }
 
+interface ScoreRange {
+  score: number;
+  male_min: number;
+  male_max: number;
+  female_min: number;
+  female_max: number;
+}
+
+interface ScoreTableData {
+  scoreTable: { id: number; decimal_places: number } | null;
+  ranges: ScoreRange[];
+}
+
 const STATUS_MAP = {
   active: { label: '훈련 중', color: 'bg-green-100 text-green-700' },
   inactive: { label: '휴원', color: 'bg-slate-100 text-slate-600' },
@@ -53,6 +66,13 @@ export default function StudentsPage() {
   const [studentRecords, setStudentRecords] = useState<StudentRecord[]>([]);
   const [loadingRecords, setLoadingRecords] = useState(false);
 
+  // 기록 추가 폼 상태
+  const [showAddRecord, setShowAddRecord] = useState(false);
+  const [recordDate, setRecordDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [recordInputs, setRecordInputs] = useState<{ [key: number]: { value: string; score: number | null } }>({});
+  const [scoreTables, setScoreTables] = useState<{ [key: number]: ScoreTableData }>({});
+  const [savingRecord, setSavingRecord] = useState(false);
+
   const fetchStudents = async () => {
     try {
       setLoading(true);
@@ -61,12 +81,98 @@ export default function StudentsPage() {
         apiClient.get('/record-types?active=true')
       ]);
       setStudents(studentsRes.data.students || []);
-      setRecordTypes(typesRes.data.recordTypes || []);
+      const types = typesRes.data.recordTypes || [];
+      setRecordTypes(types);
+
+      // 배점표 로드
+      const tables: { [key: number]: ScoreTableData } = {};
+      for (const type of types) {
+        try {
+          const res = await apiClient.get(`/score-tables/by-type/${type.id}`);
+          tables[type.id] = res.data;
+        } catch {
+          tables[type.id] = { scoreTable: null, ranges: [] };
+        }
+      }
+      setScoreTables(tables);
     } catch (error) {
       console.error('Failed to fetch students:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // 점수 계산
+  const calculateScore = (value: number, gender: 'M' | 'F', recordTypeId: number): number | null => {
+    const tableData = scoreTables[recordTypeId];
+    if (!tableData || !tableData.scoreTable || tableData.ranges.length === 0) {
+      return null;
+    }
+
+    for (const range of tableData.ranges) {
+      const min = gender === 'M' ? range.male_min : range.female_min;
+      const max = gender === 'M' ? range.male_max : range.female_max;
+
+      if (value >= min && value <= max) {
+        return range.score;
+      }
+    }
+    return null;
+  };
+
+  // 기록 입력 변경
+  const handleRecordInput = (typeId: number, value: string) => {
+    const numValue = parseFloat(value);
+    const score = !isNaN(numValue) && selectedStudent
+      ? calculateScore(numValue, selectedStudent.gender, typeId)
+      : null;
+
+    setRecordInputs(prev => ({
+      ...prev,
+      [typeId]: { value, score }
+    }));
+  };
+
+  // 기록 저장
+  const saveStudentRecord = async () => {
+    if (!selectedStudent) return;
+
+    const records = Object.entries(recordInputs)
+      .filter(([, data]) => data.value && data.value.trim() !== '')
+      .map(([typeId, data]) => ({
+        record_type_id: parseInt(typeId),
+        value: parseFloat(data.value),
+        notes: null
+      }));
+
+    if (records.length === 0) {
+      alert('입력된 기록이 없습니다.');
+      return;
+    }
+
+    try {
+      setSavingRecord(true);
+      await apiClient.post('/records/batch', {
+        student_id: selectedStudent.id,
+        measured_at: recordDate,
+        records
+      });
+
+      alert('기록이 저장되었습니다.');
+      setShowAddRecord(false);
+      setRecordInputs({});
+      fetchStudentRecords(selectedStudent.id);
+    } catch (error) {
+      console.error('Failed to save record:', error);
+      alert('저장에 실패했습니다.');
+    } finally {
+      setSavingRecord(false);
+    }
+  };
+
+  // 소수점 자리수
+  const getDecimalPlaces = (typeId: number): number => {
+    return scoreTables[typeId]?.scoreTable?.decimal_places || 0;
   };
 
   const fetchStudentRecords = async (studentId: number) => {
@@ -287,10 +393,76 @@ export default function StudentsPage() {
 
               {/* Records */}
               <div className="p-6">
-                <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                  <Activity size={18} />
-                  측정 종목 기록
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                    <Activity size={18} />
+                    측정 종목 기록
+                  </h3>
+                  <button
+                    onClick={() => { setShowAddRecord(!showAddRecord); setRecordInputs({}); }}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                      showAddRecord
+                        ? 'bg-slate-200 text-slate-600'
+                        : 'bg-orange-500 text-white hover:bg-orange-600'
+                    }`}
+                  >
+                    {showAddRecord ? <X size={16} /> : <Plus size={16} />}
+                    {showAddRecord ? '취소' : '기록 추가'}
+                  </button>
+                </div>
+
+                {/* 기록 추가 폼 */}
+                {showAddRecord && (
+                  <div className="bg-orange-50 rounded-xl p-4 mb-4 border border-orange-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calendar size={16} className="text-orange-500" />
+                      <input
+                        type="date"
+                        value={recordDate}
+                        onChange={e => setRecordDate(e.target.value)}
+                        className="px-2 py-1 border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      {recordTypes.map(type => {
+                        const inputData = recordInputs[type.id] || { value: '', score: null };
+                        const decimalPlaces = getDecimalPlaces(type.id);
+
+                        return (
+                          <div key={type.id}>
+                            <label className="block text-xs text-slate-600 mb-1">
+                              {type.name} ({type.unit})
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                step={Math.pow(10, -decimalPlaces)}
+                                value={inputData.value}
+                                onChange={e => handleRecordInput(type.id, e.target.value)}
+                                placeholder="0"
+                                className="w-full px-3 py-2 pr-14 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                              />
+                              {inputData.score !== null && (
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                  <Trophy size={12} className="text-orange-500" />
+                                  <span className="text-xs font-bold text-orange-600">{inputData.score}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={saveStudentRecord}
+                      disabled={savingRecord}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition"
+                    >
+                      {savingRecord ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+                      저장
+                    </button>
+                  </div>
+                )}
 
                 {loadingRecords ? (
                   <div className="flex items-center justify-center h-32">
