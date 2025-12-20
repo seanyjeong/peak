@@ -87,6 +87,8 @@ app.use('/peak/training', verifyToken, require('./routes/training'));
 app.use('/peak/records', verifyToken, require('./routes/records'));
 app.use('/peak/attendance', verifyToken, require('./routes/attendance'));
 app.use('/peak/exercises', verifyToken, require('./routes/exercises'));
+app.use('/peak/exercise-tags', verifyToken, require('./routes/exercise-tags'));
+app.use('/peak/exercise-packs', verifyToken, require('./routes/exercise-packs'));
 app.use('/peak/record-types', verifyToken, require('./routes/recordTypes'));
 app.use('/peak/score-tables', verifyToken, require('./routes/scoreTable'));
 

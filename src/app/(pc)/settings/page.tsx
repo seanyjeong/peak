@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check, Dumbbell } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check, Dumbbell, Tag, Package, Download, Upload } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 
 interface RecordType {
@@ -22,14 +22,35 @@ interface Exercise {
   description: string | null;
 }
 
-// 수업 태그 목록 (plans 페이지와 동일)
-const TRAINING_TAGS = [
-  { id: 'lower-power', label: '하체 파워', color: 'bg-red-100 text-red-700' },
-  { id: 'upper-power', label: '상체 파워', color: 'bg-orange-100 text-orange-700' },
-  { id: 'agility', label: '민첩성', color: 'bg-yellow-100 text-yellow-700' },
-  { id: 'flexibility', label: '유연성', color: 'bg-green-100 text-green-700' },
-  { id: 'technique', label: '기술/자세', color: 'bg-blue-100 text-blue-700' },
-  { id: 'conditioning', label: '컨디셔닝', color: 'bg-purple-100 text-purple-700' },
+interface ExerciseTag {
+  id: number;
+  tag_id: string;
+  label: string;
+  color: string;
+  display_order: number;
+  is_active: boolean;
+}
+
+interface ExercisePack {
+  id: number;
+  name: string;
+  description: string | null;
+  version: string;
+  author: string;
+  exercise_count: number;
+  created_at: string;
+}
+
+// 태그 색상 옵션
+const TAG_COLORS = [
+  { value: 'bg-red-100 text-red-700', label: '빨강' },
+  { value: 'bg-orange-100 text-orange-700', label: '주황' },
+  { value: 'bg-yellow-100 text-yellow-700', label: '노랑' },
+  { value: 'bg-green-100 text-green-700', label: '초록' },
+  { value: 'bg-blue-100 text-blue-700', label: '파랑' },
+  { value: 'bg-purple-100 text-purple-700', label: '보라' },
+  { value: 'bg-pink-100 text-pink-700', label: '분홍' },
+  { value: 'bg-slate-100 text-slate-700', label: '회색' },
 ];
 
 interface ScoreTable {
@@ -60,10 +81,14 @@ interface ScoreRange {
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'types' | 'scores' | 'exercises'>('types');
+  const [exerciseSubTab, setExerciseSubTab] = useState<'list' | 'tags' | 'packs'>('list');
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
   const [scoreTables, setScoreTables] = useState<ScoreTable[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exerciseTags, setExerciseTags] = useState<ExerciseTag[]>([]);
+  const [exercisePacks, setExercisePacks] = useState<ExercisePack[]>([]);
   const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 종목 관리 상태
   const [showTypeForm, setShowTypeForm] = useState(false);
@@ -75,6 +100,19 @@ export default function SettingsPage() {
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [exerciseForm, setExerciseForm] = useState<{ name: string; tags: string[]; default_sets: string; default_reps: string; description: string }>({
     name: '', tags: [], default_sets: '', default_reps: '', description: ''
+  });
+
+  // 태그 관리 상태
+  const [showTagForm, setShowTagForm] = useState(false);
+  const [editingTag, setEditingTag] = useState<ExerciseTag | null>(null);
+  const [tagForm, setTagForm] = useState<{ tag_id: string; label: string; color: string }>({
+    tag_id: '', label: '', color: 'bg-slate-100 text-slate-700'
+  });
+
+  // 팩 관리 상태
+  const [showPackForm, setShowPackForm] = useState(false);
+  const [packForm, setPackForm] = useState<{ name: string; description: string; exercise_ids: number[] }>({
+    name: '', description: '', exercise_ids: []
   });
 
   // 배점표 관리 상태
@@ -99,14 +137,18 @@ export default function SettingsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [typesRes, tablesRes, exercisesRes] = await Promise.all([
+      const [typesRes, tablesRes, exercisesRes, tagsRes, packsRes] = await Promise.all([
         apiClient.get('/record-types'),
         apiClient.get('/score-tables'),
-        apiClient.get('/exercises')
+        apiClient.get('/exercises'),
+        apiClient.get('/exercise-tags'),
+        apiClient.get('/exercise-packs')
       ]);
       setRecordTypes(typesRes.data.recordTypes || []);
       setScoreTables(tablesRes.data.scoreTables || []);
       setExercises(exercisesRes.data.exercises || []);
+      setExerciseTags(tagsRes.data.tags || []);
+      setExercisePacks(packsRes.data.packs || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -210,6 +252,122 @@ export default function SettingsPage() {
       tags: prev.tags.includes(tagId)
         ? prev.tags.filter(t => t !== tagId)
         : [...prev.tags, tagId]
+    }));
+  };
+
+  // 태그 CRUD
+  const saveTag = async () => {
+    try {
+      if (editingTag) {
+        await apiClient.put(`/exercise-tags/${editingTag.id}`, {
+          label: tagForm.label,
+          color: tagForm.color
+        });
+      } else {
+        await apiClient.post('/exercise-tags', tagForm);
+      }
+      setShowTagForm(false);
+      setEditingTag(null);
+      setTagForm({ tag_id: '', label: '', color: 'bg-slate-100 text-slate-700' });
+      fetchData();
+    } catch (error) {
+      console.error('Failed to save tag:', error);
+      alert('저장에 실패했습니다.');
+    }
+  };
+
+  const deleteTag = async (id: number) => {
+    if (!confirm('이 태그를 비활성화하시겠습니까?')) return;
+    try {
+      await apiClient.delete(`/exercise-tags/${id}`);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete tag:', error);
+    }
+  };
+
+  const startEditTag = (tag: ExerciseTag) => {
+    setEditingTag(tag);
+    setTagForm({ tag_id: tag.tag_id, label: tag.label, color: tag.color });
+    setShowTagForm(true);
+  };
+
+  // 팩 CRUD
+  const savePack = async () => {
+    try {
+      await apiClient.post('/exercise-packs', {
+        name: packForm.name,
+        description: packForm.description || null,
+        exercise_ids: packForm.exercise_ids
+      });
+      setShowPackForm(false);
+      setPackForm({ name: '', description: '', exercise_ids: [] });
+      fetchData();
+    } catch (error) {
+      console.error('Failed to save pack:', error);
+      alert('저장에 실패했습니다.');
+    }
+  };
+
+  const deletePack = async (id: number) => {
+    if (!confirm('이 팩을 삭제하시겠습니까?')) return;
+    try {
+      await apiClient.delete(`/exercise-packs/${id}`);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete pack:', error);
+    }
+  };
+
+  const exportPack = async (id: number, name: string) => {
+    try {
+      const res = await apiClient.get(`/exercise-packs/${id}/export`);
+      const dataStr = JSON.stringify(res.data, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `peak-pack-${name.replace(/\s+/g, '-')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export pack:', error);
+      alert('내보내기에 실패했습니다.');
+    }
+  };
+
+  const importPack = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (data.format !== 'peak-exercise-pack') {
+        alert('올바른 P-EAK 팩 파일이 아닙니다.');
+        return;
+      }
+
+      const res = await apiClient.post('/exercise-packs/import', data);
+      alert(res.data.message);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to import pack:', error);
+      alert('가져오기에 실패했습니다.');
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const togglePackExercise = (exerciseId: number) => {
+    setPackForm(prev => ({
+      ...prev,
+      exercise_ids: prev.exercise_ids.includes(exerciseId)
+        ? prev.exercise_ids.filter(id => id !== exerciseId)
+        : [...prev.exercise_ids, exerciseId]
     }));
   };
 
@@ -878,18 +1036,58 @@ export default function SettingsPage() {
       ) : (
         /* 운동 관리 탭 */
         <div className="space-y-4">
-          {/* Add Button */}
-          <button
-            onClick={() => {
-              setEditingExercise(null);
-              setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '' });
-              setShowExerciseForm(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-          >
-            <Plus size={18} />
-            <span>운동 추가</span>
-          </button>
+          {/* 서브 탭 */}
+          <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm">
+            <button
+              onClick={() => setExerciseSubTab('list')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                exerciseSubTab === 'list'
+                  ? 'bg-orange-100 text-orange-700'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <Dumbbell size={16} />
+              운동 목록
+            </button>
+            <button
+              onClick={() => setExerciseSubTab('tags')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                exerciseSubTab === 'tags'
+                  ? 'bg-orange-100 text-orange-700'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <Tag size={16} />
+              태그 관리
+            </button>
+            <button
+              onClick={() => setExerciseSubTab('packs')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                exerciseSubTab === 'packs'
+                  ? 'bg-orange-100 text-orange-700'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <Package size={16} />
+              운동 팩
+            </button>
+          </div>
+
+          {/* 운동 목록 서브탭 */}
+          {exerciseSubTab === 'list' && (
+            <>
+              {/* Add Button */}
+              <button
+                onClick={() => {
+                  setEditingExercise(null);
+                  setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '' });
+                  setShowExerciseForm(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+              >
+                <Plus size={18} />
+                <span>운동 추가</span>
+              </button>
 
           {/* Exercise Form */}
           {showExerciseForm && (
@@ -941,13 +1139,13 @@ export default function SettingsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">태그 선택</label>
                   <div className="flex flex-wrap gap-2">
-                    {TRAINING_TAGS.map(tag => (
+                    {exerciseTags.map(tag => (
                       <button
-                        key={tag.id}
+                        key={tag.tag_id}
                         type="button"
-                        onClick={() => toggleExerciseTag(tag.id)}
+                        onClick={() => toggleExerciseTag(tag.tag_id)}
                         className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                          exerciseForm.tags.includes(tag.id)
+                          exerciseForm.tags.includes(tag.tag_id)
                             ? tag.color
                             : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                         }`}
@@ -1015,7 +1213,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="flex flex-wrap gap-1.5 mb-1">
                           {exercise.tags.map(tagId => {
-                            const tag = TRAINING_TAGS.find(t => t.id === tagId);
+                            const tag = exerciseTags.find(t => t.tag_id === tagId);
                             return tag ? (
                               <span
                                 key={tagId}
@@ -1052,6 +1250,273 @@ export default function SettingsPage() {
                 ))}
               </div>
             </div>
+          )}
+            </>
+          )}
+
+          {/* 태그 관리 서브탭 */}
+          {exerciseSubTab === 'tags' && (
+            <>
+              <button
+                onClick={() => {
+                  setEditingTag(null);
+                  setTagForm({ tag_id: '', label: '', color: 'bg-slate-100 text-slate-700' });
+                  setShowTagForm(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+              >
+                <Plus size={18} />
+                <span>태그 추가</span>
+              </button>
+
+              {/* Tag Form */}
+              {showTagForm && (
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-slate-800">
+                      {editingTag ? '태그 수정' : '새 태그 추가'}
+                    </h3>
+                    <button onClick={() => setShowTagForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">태그 ID</label>
+                      <input
+                        type="text"
+                        value={tagForm.tag_id}
+                        onChange={e => setTagForm({ ...tagForm, tag_id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                        placeholder="lower-power"
+                        disabled={!!editingTag}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 disabled:bg-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">표시 이름</label>
+                      <input
+                        type="text"
+                        value={tagForm.label}
+                        onChange={e => setTagForm({ ...tagForm, label: e.target.value })}
+                        placeholder="하체 파워"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">색상</label>
+                      <select
+                        value={tagForm.color}
+                        onChange={e => setTagForm({ ...tagForm, color: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      >
+                        {TAG_COLORS.map(c => (
+                          <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 mt-4">
+                    <span className="text-sm text-slate-500">미리보기:</span>
+                    <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${tagForm.color}`}>
+                      {tagForm.label || '태그'}
+                    </span>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button
+                      onClick={() => setShowTagForm(false)}
+                      className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={saveTag}
+                      disabled={!tagForm.label.trim() || (!editingTag && !tagForm.tag_id.trim())}
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50"
+                    >
+                      <Save size={16} />
+                      저장
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Tags List */}
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {exerciseTags.map(tag => (
+                    <div key={tag.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                      <div className="flex items-center gap-4">
+                        <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${tag.color}`}>
+                          {tag.label}
+                        </span>
+                        <span className="text-xs text-slate-400">{tag.tag_id}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEditTag(tag)}
+                          className="p-2 text-slate-400 hover:text-orange-500"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => deleteTag(tag.id)}
+                          className="p-2 text-slate-400 hover:text-red-500"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* 팩 관리 서브탭 */}
+          {exerciseSubTab === 'packs' && (
+            <>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setPackForm({ name: '', description: '', exercise_ids: [] });
+                    setShowPackForm(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                >
+                  <Plus size={18} />
+                  <span>팩 만들기</span>
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition"
+                >
+                  <Upload size={18} />
+                  <span>팩 가져오기</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={importPack}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Pack Form */}
+              {showPackForm && (
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-slate-800">새 운동 팩 만들기</h3>
+                    <button onClick={() => setShowPackForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">팩 이름</label>
+                        <input
+                          type="text"
+                          value={packForm.name}
+                          onChange={e => setPackForm({ ...packForm, name: e.target.value })}
+                          placeholder="하체 훈련 팩"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">설명</label>
+                        <input
+                          type="text"
+                          value={packForm.description}
+                          onChange={e => setPackForm({ ...packForm, description: e.target.value })}
+                          placeholder="제멀, 스쿼트 관련 운동들"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        포함할 운동 선택 ({packForm.exercise_ids.length}개)
+                      </label>
+                      <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg divide-y">
+                        {exercises.map(ex => (
+                          <label
+                            key={ex.id}
+                            className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={packForm.exercise_ids.includes(ex.id)}
+                              onChange={() => togglePackExercise(ex.id)}
+                              className="rounded text-orange-500 focus:ring-orange-500"
+                            />
+                            <span className="text-slate-700">{ex.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button
+                      onClick={() => setShowPackForm(false)}
+                      className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={savePack}
+                      disabled={!packForm.name.trim() || packForm.exercise_ids.length === 0}
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50"
+                    >
+                      <Save size={16} />
+                      저장
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Packs List */}
+              {exercisePacks.length === 0 ? (
+                <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                  <Package size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-slate-500">생성된 운동 팩이 없습니다.</p>
+                  <p className="text-slate-400 text-sm mt-1">팩을 만들어 다른 학원과 공유해보세요!</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div className="divide-y divide-slate-100">
+                    {exercisePacks.map(pack => (
+                      <div key={pack.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                        <div>
+                          <h4 className="font-medium text-slate-800">{pack.name}</h4>
+                          <p className="text-sm text-slate-500">
+                            {pack.exercise_count}개 운동 · {pack.author} · v{pack.version}
+                          </p>
+                          {pack.description && (
+                            <p className="text-xs text-slate-400 mt-1">{pack.description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => exportPack(pack.id, pack.name)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                          >
+                            <Download size={14} />
+                            내보내기
+                          </button>
+                          <button
+                            onClick={() => deletePack(pack.id)}
+                            className="p-2 text-slate-400 hover:text-red-500"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
