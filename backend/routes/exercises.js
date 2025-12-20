@@ -62,10 +62,10 @@ router.get('/:id', async (req, res) => {
 // POST /peak/exercises - 운동 추가
 router.post('/', async (req, res) => {
     try {
-        const { name, tags, default_sets, default_reps, description } = req.body;
+        const { name, tags = [], default_sets, default_reps, description } = req.body;
 
-        if (!name || !tags) {
-            return res.status(400).json({ error: 'Name and tags are required' });
+        if (!name) {
+            return res.status(400).json({ error: 'Name is required' });
         }
 
         const [result] = await db.query(
