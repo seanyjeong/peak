@@ -5,6 +5,7 @@
 
 const jwt = require('jsonwebtoken');
 const mysql = require('mysql2/promise');
+const { decrypt } = require('../utils/encryption');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'jeong-paca-secret';
 const N8N_API_KEY = process.env.N8N_API_KEY || 'paca-n8n-api-key-2024';
@@ -73,10 +74,20 @@ const verifyToken = async (req, res, next) => {
             });
         }
 
+        // 이름 복호화 (P-ACA 암호화된 이름)
+        let decryptedName = user.name;
+        try {
+            if (user.name && user.name.startsWith('ENC:')) {
+                decryptedName = decrypt(user.name);
+            }
+        } catch (e) {
+            console.error('Name decryption error:', e);
+        }
+
         req.user = {
             id: user.id,
             email: user.email,
-            name: user.name,
+            name: decryptedName,
             role: user.role,
             academyId: user.academy_id,
             position: user.position,
