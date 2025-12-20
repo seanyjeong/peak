@@ -13,16 +13,15 @@ interface Student {
   status: string;
 }
 
-interface Assignment {
+interface SlotTrainer {
   trainer_id: number | null;
   trainer_name: string;
   students: Student[];
 }
 
-interface Trainer {
-  id: number;
-  name: string;
-  paca_user_id?: number;
+interface SlotData {
+  instructors: { id: number; name: string }[];
+  trainers: SlotTrainer[];
 }
 
 interface TrainingLog {
@@ -48,13 +47,18 @@ const CONDITION_OPTIONS = [
   { score: 5, icon: ThumbsUp, label: '최상', color: 'text-blue-500 bg-blue-50 border-blue-200 hover:bg-blue-100' },
 ];
 
+const SLOT_LABELS: Record<string, string> = {
+  morning: '오전반',
+  afternoon: '오후반',
+  evening: '저녁반'
+};
+
 export default function TrainingPage() {
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [slots, setSlots] = useState<Record<string, SlotData>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [myTrainerId, setMyTrainerId] = useState<number | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
   const [logs, setLogs] = useState<Record<number, TrainingLog>>({});
   const [existingLogs, setExistingLogs] = useState<ExistingLog[]>([]);
@@ -84,55 +88,61 @@ export default function TrainingPage() {
       const user = authAPI.getCurrentUser();
       setCurrentUser(user);
 
-      const [assignmentsRes, trainersRes, trainingRes] = await Promise.all([
+      const [assignmentsRes, trainingRes] = await Promise.all([
         apiClient.get(`/assignments?date=${dateStr}`),
-        apiClient.get('/trainers'),
         apiClient.get(`/training?date=${dateStr}`)
       ]);
 
-      // slots에서 모든 시간대의 trainers를 합쳐서 평면 배열로 변환
-      const slots = assignmentsRes.data.slots || {};
-      const allTrainers: Assignment[] = [];
-      const seenTrainerIds = new Set<number | null>();
-
-      ['morning', 'afternoon', 'evening'].forEach(slot => {
-        const slotTrainers = slots[slot]?.trainers || [];
-        slotTrainers.forEach((t: Assignment) => {
-          // trainer_id가 있고, 아직 추가하지 않은 경우에만 추가
-          if (t.trainer_id && !seenTrainerIds.has(t.trainer_id)) {
-            seenTrainerIds.add(t.trainer_id);
-            // 같은 trainer의 모든 학생을 합침
-            const existingTrainer = allTrainers.find(a => a.trainer_id === t.trainer_id);
-            if (existingTrainer) {
-              t.students.forEach(s => {
-                if (!existingTrainer.students.some(es => es.student_id === s.student_id)) {
-                  existingTrainer.students.push(s);
-                }
-              });
-            } else {
-              allTrainers.push({ ...t });
-            }
-          }
-        });
-      });
-
-      const assignmentList = allTrainers;
-      const trainerList = trainersRes.data.trainers || [];
+      const slotsData = assignmentsRes.data.slots || {};
       const existingLogList = trainingRes.data.logs || [];
 
-      setAssignments(assignmentList);
-      setTrainers(trainerList);
+      setSlots(slotsData);
       setExistingLogs(existingLogList);
 
-      // 현재 사용자의 trainer_id 찾기
-      if (user) {
-        const myTrainer = trainerList.find((t: Trainer) => t.paca_user_id === user.id);
-        if (myTrainer) {
-          setMyTrainerId(myTrainer.id);
-          if (!isAdmin) {
-            setSelectedTrainerId(myTrainer.id);
+      // 현재 사용자의 instructor_id 찾기 (P-ACA instructorId)
+      const myInstructorId = user?.instructorId;
+
+      // 스케줄이 있는 시간대 찾기
+      const availableSlots: string[] = [];
+      let mySlot: string | null = null;
+      let myTrainerIdInSlot: number | null = null;
+
+      ['morning', 'afternoon', 'evening'].forEach(slot => {
+        const slotData = slotsData[slot] as SlotData;
+        if (!slotData) return;
+
+        // 해당 시간대에 출근 스케줄이 있는 강사가 있는지
+        const hasInstructors = slotData.instructors && slotData.instructors.length > 0;
+        // 배정된 학생이 있는 trainer가 있는지
+        const hasAssignments = slotData.trainers?.some(t => t.trainer_id && t.students.length > 0);
+
+        if (hasInstructors || hasAssignments) {
+          availableSlots.push(slot);
+
+          // 현재 사용자가 이 시간대에 스케줄이 있는지 확인
+          if (myInstructorId) {
+            const mySchedule = slotData.instructors?.find(i => i.id === myInstructorId);
+            if (mySchedule) {
+              mySlot = slot;
+              // trainers에서 내 trainer_id 찾기
+              const myTrainer = slotData.trainers?.find(t => t.trainer_id === myInstructorId);
+              if (myTrainer) {
+                myTrainerIdInSlot = myTrainer.trainer_id;
+              }
+            }
           }
         }
+      });
+
+      // 시간대 자동 선택
+      if (!isAdmin && mySlot) {
+        // 강사: 자기 스케줄 시간대
+        setSelectedSlot(mySlot);
+        setSelectedTrainerId(myTrainerIdInSlot);
+      } else if (availableSlots.length > 0) {
+        // 관리자 또는 스케줄 없는 경우: 첫 번째 시간대
+        setSelectedSlot(availableSlots[0]);
+        setSelectedTrainerId(null);
       }
 
       // 기존 기록을 logs 상태로 변환
@@ -158,9 +168,28 @@ export default function TrainingPage() {
     fetchData();
   }, []);
 
-  // 선택된 트레이너의 학생 목록
-  const currentAssignment = assignments.find(a => a.trainer_id === selectedTrainerId);
-  const myStudents = currentAssignment?.students || [];
+  // 스케줄이 있는 시간대 목록
+  const availableSlots = ['morning', 'afternoon', 'evening'].filter(slot => {
+    const slotData = slots[slot] as SlotData;
+    if (!slotData) return false;
+    const hasInstructors = slotData.instructors && slotData.instructors.length > 0;
+    const hasAssignments = slotData.trainers?.some(t => t.trainer_id && t.students.length > 0);
+    return hasInstructors || hasAssignments;
+  });
+
+  // 선택된 시간대의 강사 목록 (출근 스케줄 있는 강사만)
+  const currentSlotData = slots[selectedSlot] as SlotData | undefined;
+  const currentInstructors = currentSlotData?.instructors || [];
+  const currentTrainers = currentSlotData?.trainers?.filter(t => t.trainer_id) || [];
+
+  // 선택된 강사의 학생 목록
+  const getMyStudents = () => {
+    if (!selectedTrainerId) return [];
+    const trainer = currentTrainers.find(t => t.trainer_id === selectedTrainerId);
+    return trainer?.students || [];
+  };
+
+  const myStudents = getMyStudents();
 
   const updateLog = (studentId: number, field: 'condition_score' | 'notes', value: number | string | null) => {
     setLogs(prev => ({
@@ -226,19 +255,6 @@ export default function TrainingPage() {
     }
   };
 
-  const getConditionBadge = (score: number | null | undefined) => {
-    if (!score) return null;
-    const option = CONDITION_OPTIONS.find(o => o.score === score);
-    if (!option) return null;
-    const Icon = option.icon;
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${option.color.split(' ').slice(0, 3).join(' ')}`}>
-        <Icon size={12} />
-        {option.label}
-      </span>
-    );
-  };
-
   const hasUnsavedChanges = myStudents.some(s => logs[s.student_id] && !logs[s.student_id].saved);
 
   return (
@@ -271,149 +287,181 @@ export default function TrainingPage() {
         </div>
       </div>
 
-      {/* Trainer Select (관리자용) */}
-      {isAdmin && (
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <label className="block text-sm font-medium text-slate-700 mb-2">강사 선택</label>
-          <select
-            value={selectedTrainerId || ''}
-            onChange={e => setSelectedTrainerId(Number(e.target.value) || null)}
-            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          >
-            <option value="">선택하세요</option>
-            {assignments.filter(a => a.trainer_id).map(a => (
-              <option key={a.trainer_id} value={a.trainer_id!}>
-                {a.trainer_name} ({a.students.length}명)
-              </option>
-            ))}
-            {/* 배정이 없어도 trainers 목록에서 선택 가능 */}
-            {trainers.filter(t => !assignments.some(a => a.trainer_id === t.id)).map(t => (
-              <option key={t.id} value={t.id}>
-                {t.name} (배정 없음)
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <RefreshCw size={32} className="animate-spin text-slate-400" />
         </div>
-      ) : !selectedTrainerId ? (
+      ) : availableSlots.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
           <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500">트레이너를 선택하세요.</p>
-        </div>
-      ) : myStudents.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-          <Activity size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500">오늘 배정된 학생이 없습니다.</p>
-          <p className="text-slate-400 text-sm mt-1">반 배치 페이지에서 학생을 배정하세요.</p>
+          <p className="text-slate-500">오늘 수업 스케줄이 없습니다.</p>
+          <p className="text-slate-400 text-sm mt-1">출근 체크 페이지에서 스케줄을 확인하세요.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {/* Summary Card */}
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-6 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100 text-sm">내 반 학생</p>
-                <p className="text-3xl font-bold">{myStudents.length}명</p>
-              </div>
-              <div className="text-right">
-                <p className="text-orange-100 text-sm">기록 완료</p>
-                <p className="text-3xl font-bold">
-                  {myStudents.filter(s => logs[s.student_id]?.saved).length}명
-                </p>
-              </div>
-            </div>
+        <>
+          {/* 시간대 탭 */}
+          <div className="flex gap-2 mb-4">
+            {availableSlots.map(slot => (
+              <button
+                key={slot}
+                onClick={() => {
+                  setSelectedSlot(slot);
+                  // 시간대 변경 시 강사 선택 초기화 (관리자만)
+                  if (isAdmin) {
+                    setSelectedTrainerId(null);
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  selectedSlot === slot
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                {SLOT_LABELS[slot]}
+                {currentSlotData && slot === selectedSlot && (
+                  <span className="ml-2 text-sm opacity-80">
+                    ({currentInstructors.length}명)
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
 
-          {/* Student List */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="divide-y divide-slate-100">
-              {myStudents.map(student => {
-                const log = logs[student.student_id] || { condition_score: null, notes: '', saved: false };
-                const isSaved = log.saved;
+          {/* 강사 선택 (관리자용) */}
+          {isAdmin && selectedSlot && (
+            <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">강사 선택</label>
+              <select
+                value={selectedTrainerId || ''}
+                onChange={e => setSelectedTrainerId(Number(e.target.value) || null)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              >
+                <option value="">선택하세요</option>
+                {currentTrainers.map(t => (
+                  <option key={t.trainer_id} value={t.trainer_id!}>
+                    {t.trainer_name} ({t.students.length}명)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-                return (
-                  <div key={student.id} className="p-4">
-                    {/* Student Header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
-                        }`}>
-                          <User size={20} />
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-800">{student.student_name}</p>
-                          <p className="text-xs text-slate-400">{student.gender === 'M' ? '남' : '여'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {isSaved && (
-                          <span className="flex items-center gap-1 text-green-600 text-sm">
-                            <Check size={14} />
-                            저장됨
-                          </span>
-                        )}
-                        {!isSaved && log.condition_score && (
-                          <button
-                            onClick={() => saveLog(student.student_id)}
-                            disabled={saving}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 transition disabled:opacity-50"
-                          >
-                            <Save size={14} />
-                            저장
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Condition Score */}
-                    <div className="mb-3">
-                      <label className="block text-xs font-medium text-slate-500 mb-2">컨디션</label>
-                      <div className="flex gap-2">
-                        {CONDITION_OPTIONS.map(option => {
-                          const Icon = option.icon;
-                          const isSelected = log.condition_score === option.score;
-                          return (
-                            <button
-                              key={option.score}
-                              onClick={() => updateLog(student.student_id, 'condition_score', isSelected ? null : option.score)}
-                              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg border transition ${
-                                isSelected
-                                  ? option.color.replace('hover:', '')
-                                  : 'border-slate-200 text-slate-400 hover:border-slate-300'
-                              }`}
-                            >
-                              <Icon size={20} />
-                              <span className="text-xs">{option.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-2">메모</label>
-                      <input
-                        type="text"
-                        value={log.notes}
-                        onChange={e => updateLog(student.student_id, 'notes', e.target.value)}
-                        placeholder="오늘의 수업 특이사항..."
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      />
-                    </div>
+          {/* Content */}
+          {!selectedTrainerId ? (
+            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+              <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
+              <p className="text-slate-500">강사를 선택하세요.</p>
+            </div>
+          ) : myStudents.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+              <Activity size={48} className="mx-auto text-slate-300 mb-4" />
+              <p className="text-slate-500">배정된 학생이 없습니다.</p>
+              <p className="text-slate-400 text-sm mt-1">반 배치 페이지에서 학생을 배정하세요.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Summary Card */}
+              <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-100 text-sm">내 반 학생</p>
+                    <p className="text-3xl font-bold">{myStudents.length}명</p>
                   </div>
-                );
-              })}
+                  <div className="text-right">
+                    <p className="text-orange-100 text-sm">기록 완료</p>
+                    <p className="text-3xl font-bold">
+                      {myStudents.filter(s => logs[s.student_id]?.saved).length}명
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Student List */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {myStudents.map(student => {
+                    const log = logs[student.student_id] || { condition_score: null, notes: '', saved: false };
+                    const isSaved = log.saved;
+
+                    return (
+                      <div key={student.id} className="p-4">
+                        {/* Student Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+                            }`}>
+                              <User size={20} />
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-800">{student.student_name}</p>
+                              <p className="text-xs text-slate-400">{student.gender === 'M' ? '남' : '여'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isSaved && (
+                              <span className="flex items-center gap-1 text-green-600 text-sm">
+                                <Check size={14} />
+                                저장됨
+                              </span>
+                            )}
+                            {!isSaved && log.condition_score && (
+                              <button
+                                onClick={() => saveLog(student.student_id)}
+                                disabled={saving}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 transition disabled:opacity-50"
+                              >
+                                <Save size={14} />
+                                저장
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Condition Score */}
+                        <div className="mb-3">
+                          <label className="block text-xs font-medium text-slate-500 mb-2">컨디션</label>
+                          <div className="flex gap-2">
+                            {CONDITION_OPTIONS.map(option => {
+                              const Icon = option.icon;
+                              const isSelected = log.condition_score === option.score;
+                              return (
+                                <button
+                                  key={option.score}
+                                  onClick={() => updateLog(student.student_id, 'condition_score', isSelected ? null : option.score)}
+                                  className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg border transition ${
+                                    isSelected
+                                      ? option.color.replace('hover:', '')
+                                      : 'border-slate-200 text-slate-400 hover:border-slate-300'
+                                  }`}
+                                >
+                                  <Icon size={20} />
+                                  <span className="text-xs">{option.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Notes */}
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-2">메모</label>
+                          <input
+                            type="text"
+                            value={log.notes}
+                            onChange={e => updateLog(student.student_id, 'notes', e.target.value)}
+                            placeholder="오늘의 수업 특이사항..."
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
