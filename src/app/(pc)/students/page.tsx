@@ -210,9 +210,23 @@ export default function StudentsPage() {
     }
   };
 
-  // 소수점 자리수
+  // 소수점 자리수 (배점표 설정 또는 실제 데이터에서 자동 감지)
   const getDecimalPlaces = (typeId: number): number => {
     return scoreTables[typeId]?.scoreTable?.decimal_places || 0;
+  };
+
+  // 실제 데이터에서 소수점 자리수 감지
+  const detectDecimalPlaces = (values: number[]): number => {
+    let maxDecimals = 0;
+    for (const val of values) {
+      const str = val.toString();
+      const decimalIndex = str.indexOf('.');
+      if (decimalIndex !== -1) {
+        const decimals = str.length - decimalIndex - 1;
+        if (decimals > maxDecimals) maxDecimals = decimals;
+      }
+    }
+    return maxDecimals;
   };
 
   const fetchStudentRecords = async (studentId: number) => {
@@ -641,13 +655,42 @@ export default function StudentsPage() {
                           const minVal = Math.min(...values);
                           const maxVal = Math.max(...values);
                           const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                          // 배점표 설정 vs 실제 데이터에서 더 큰 값 사용
+                          const scoreTableDecimals = getDecimalPlaces(type.id);
+                          const actualDecimals = detectDecimalPlaces(values);
+                          const decimalPlaces = Math.max(scoreTableDecimals, actualDecimals);
+                          const isLowerBetter = type.direction === 'lower';
+
+                          // 향상 여부 계산 (첫 기록 대비 최근 기록)
+                          let improvement = null;
+                          if (chartData.length >= 2) {
+                            const first = chartData[0].value;
+                            const last = chartData[chartData.length - 1].value;
+                            const diff = last - first;
+                            improvement = isLowerBetter ? -diff : diff; // 양수면 향상
+                          }
 
                           return (
                             <>
                               <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-medium text-slate-800">{type.name} 변화</h4>
-                                <div className="text-xs text-slate-500">
-                                  평균: {avg.toFixed(1)}{type.unit}
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-medium text-slate-800">{type.name}</h4>
+                                  <span className={`text-xs px-2 py-0.5 rounded ${
+                                    isLowerBetter ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
+                                  }`}>
+                                    {isLowerBetter ? '↓ 낮을수록 좋음' : '↑ 높을수록 좋음'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <span className="text-slate-500">
+                                    평균: {avg.toFixed(decimalPlaces)}{type.unit}
+                                  </span>
+                                  {improvement !== null && (
+                                    <span className={`font-medium ${improvement > 0 ? 'text-green-600' : improvement < 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                                      {improvement > 0 ? '▲' : improvement < 0 ? '▼' : '−'}
+                                      {Math.abs(improvement).toFixed(decimalPlaces)} 변화
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               <div className="h-48">
@@ -661,11 +704,16 @@ export default function StudentsPage() {
                                       axisLine={{ stroke: '#e2e8f0' }}
                                     />
                                     <YAxis
-                                      domain={[minVal * 0.95, maxVal * 1.05]}
+                                      domain={[
+                                        Math.floor(minVal * (minVal > 0 ? 0.95 : 1.05) * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces),
+                                        Math.ceil(maxVal * (maxVal > 0 ? 1.05 : 0.95) * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces)
+                                      ]}
+                                      reversed={isLowerBetter}
                                       tick={{ fontSize: 11, fill: '#64748b' }}
                                       tickLine={false}
                                       axisLine={{ stroke: '#e2e8f0' }}
-                                      width={40}
+                                      width={45}
+                                      tickFormatter={(val) => val.toFixed(decimalPlaces)}
                                     />
                                     <Tooltip
                                       contentStyle={{
@@ -674,16 +722,16 @@ export default function StudentsPage() {
                                         borderRadius: '8px',
                                         fontSize: '12px'
                                       }}
-                                      formatter={(value) => [`${value}${type.unit}`, type.name]}
+                                      formatter={(value) => [`${Number(value).toFixed(decimalPlaces)}${type.unit}`, type.name]}
                                     />
                                     <ReferenceLine y={avg} stroke="#f97316" strokeDasharray="5 5" />
                                     <Line
                                       type="monotone"
                                       dataKey="value"
-                                      stroke="#f97316"
+                                      stroke={isLowerBetter ? '#3b82f6' : '#22c55e'}
                                       strokeWidth={2}
-                                      dot={{ fill: '#f97316', strokeWidth: 2, r: 4 }}
-                                      activeDot={{ r: 6, fill: '#ea580c' }}
+                                      dot={{ fill: isLowerBetter ? '#3b82f6' : '#22c55e', strokeWidth: 2, r: 4 }}
+                                      activeDot={{ r: 6, fill: isLowerBetter ? '#2563eb' : '#16a34a' }}
                                     />
                                   </LineChart>
                                 </ResponsiveContainer>
@@ -699,7 +747,7 @@ export default function StudentsPage() {
                                         : 'bg-slate-200 text-slate-600'
                                     }`}
                                   >
-                                    {d.label}: {d.value}{type.unit}
+                                    {d.label}: {d.value.toFixed(decimalPlaces)}{type.unit}
                                   </span>
                                 ))}
                               </div>
