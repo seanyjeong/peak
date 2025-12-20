@@ -60,7 +60,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// POST /peak/exercise-packs - 팩 생성
+// POST /peak/exercise-packs - 팩 생성 (스냅샷 저장)
 router.post('/', async (req, res) => {
     try {
         const { name, description, exercise_ids = [] } = req.body;
@@ -69,15 +69,43 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Name is required' });
         }
 
+        // 운동 데이터 조회해서 스냅샷 생성
+        let snapshotData = null;
+        if (exercise_ids.length > 0) {
+            const [exercises] = await db.query(
+                `SELECT id, name, tags, default_sets, default_reps, description
+                 FROM exercises WHERE id IN (?)`,
+                [exercise_ids]
+            );
+
+            // 태그 정보도 함께 저장
+            const [tags] = await db.query('SELECT tag_id, label, color FROM exercise_tags WHERE is_active = TRUE');
+
+            snapshotData = {
+                format: 'peak-exercise-pack',
+                version: '1.0',
+                created_at: new Date().toISOString(),
+                tags: tags,
+                exercises: exercises.map((ex, idx) => ({
+                    name: ex.name,
+                    tags: typeof ex.tags === 'string' ? JSON.parse(ex.tags) : (ex.tags || []),
+                    default_sets: ex.default_sets,
+                    default_reps: ex.default_reps,
+                    description: ex.description,
+                    order: idx
+                }))
+            };
+        }
+
         const [result] = await db.query(
-            `INSERT INTO exercise_packs (name, description, author)
-             VALUES (?, ?, ?)`,
-            [name, description || null, req.user?.name || 'Unknown']
+            `INSERT INTO exercise_packs (name, description, author, snapshot_data)
+             VALUES (?, ?, ?, ?)`,
+            [name, description || null, req.user?.name || 'Unknown', JSON.stringify(snapshotData)]
         );
 
         const packId = result.insertId;
 
-        // 운동 연결
+        // 운동 연결 (기존 참조 방식도 유지)
         if (exercise_ids.length > 0) {
             const values = exercise_ids.map((exId, idx) => [packId, exId, idx]);
             await db.query(
@@ -302,6 +330,101 @@ router.post('/import', async (req, res) => {
         await connection.rollback();
         console.error('Import pack error:', error);
         res.status(500).json({ error: 'Import failed: ' + error.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// POST /peak/exercise-packs/:id/apply - 팩 불러오기 (운동 목록 대체)
+router.post('/:id/apply', async (req, res) => {
+    const connection = await db.getConnection();
+
+    try {
+        const packId = req.params.id;
+
+        // 팩 조회
+        const [packs] = await connection.query(
+            'SELECT * FROM exercise_packs WHERE id = ?',
+            [packId]
+        );
+
+        if (packs.length === 0) {
+            return res.status(404).json({ error: 'Pack not found' });
+        }
+
+        const pack = packs[0];
+        let snapshotData = pack.snapshot_data;
+
+        // snapshot_data가 없으면 현재 연결된 운동으로 생성
+        if (!snapshotData) {
+            const [exercises] = await connection.query(`
+                SELECT e.name, e.tags, e.default_sets, e.default_reps, e.description, pi.display_order
+                FROM exercises e
+                JOIN exercise_pack_items pi ON e.id = pi.exercise_id
+                WHERE pi.pack_id = ?
+                ORDER BY pi.display_order
+            `, [packId]);
+
+            const [tags] = await connection.query('SELECT tag_id, label, color FROM exercise_tags WHERE is_active = TRUE');
+
+            snapshotData = {
+                format: 'peak-exercise-pack',
+                version: '1.0',
+                tags: tags,
+                exercises: exercises.map((ex, idx) => ({
+                    name: ex.name,
+                    tags: typeof ex.tags === 'string' ? JSON.parse(ex.tags) : (ex.tags || []),
+                    default_sets: ex.default_sets,
+                    default_reps: ex.default_reps,
+                    description: ex.description,
+                    order: idx
+                }))
+            };
+        } else if (typeof snapshotData === 'string') {
+            snapshotData = JSON.parse(snapshotData);
+        }
+
+        await connection.beginTransaction();
+
+        // 1. 태그 삽입/업데이트
+        if (snapshotData.tags && snapshotData.tags.length > 0) {
+            for (const tag of snapshotData.tags) {
+                await connection.query(`
+                    INSERT INTO exercise_tags (tag_id, label, color)
+                    VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE label = VALUES(label), color = VALUES(color)
+                `, [tag.tag_id, tag.label, tag.color]);
+            }
+        }
+
+        // 2. 기존 운동 삭제
+        await connection.query('DELETE FROM exercises');
+
+        // 3. 팩의 운동으로 대체
+        for (const ex of snapshotData.exercises) {
+            await connection.query(`
+                INSERT INTO exercises (name, tags, default_sets, default_reps, description)
+                VALUES (?, ?, ?, ?, ?)
+            `, [
+                ex.name,
+                JSON.stringify(ex.tags || []),
+                ex.default_sets,
+                ex.default_reps,
+                ex.description
+            ]);
+        }
+
+        await connection.commit();
+
+        res.json({
+            success: true,
+            message: `"${pack.name}" 팩으로 운동 목록이 대체되었습니다.`,
+            exerciseCount: snapshotData.exercises?.length || 0
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Apply pack error:', error);
+        res.status(500).json({ error: 'Apply failed: ' + error.message });
     } finally {
         connection.release();
     }

@@ -119,6 +119,8 @@ export default function SettingsPage() {
   const [packForm, setPackForm] = useState<{ name: string; description: string; exercise_ids: number[] }>({
     name: '', description: '', exercise_ids: []
   });
+  const [showPackApplyModal, setShowPackApplyModal] = useState(false);
+  const [applyingPack, setApplyingPack] = useState(false);
 
   // 배점표 관리 상태
   const [showScoreForm, setShowScoreForm] = useState(false);
@@ -376,6 +378,26 @@ export default function SettingsPage() {
     }));
   };
 
+  // 팩 불러오기 (운동 목록 대체)
+  const applyPack = async (packId: number, packName: string) => {
+    if (!confirm(`"${packName}" 팩을 불러오면 현재 운동 목록이 모두 대체됩니다.\n\n정말 진행하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      setApplyingPack(true);
+      const res = await apiClient.post(`/exercise-packs/${packId}/apply`);
+      alert(res.data.message);
+      setShowPackApplyModal(false);
+      fetchData();
+    } catch (error) {
+      console.error('Apply pack error:', error);
+      alert('팩 불러오기에 실패했습니다.');
+    } finally {
+      setApplyingPack(false);
+    }
+  };
+
   // 배점표 생성
   const createScoreTable = async () => {
     if (!selectedTypeForScore) {
@@ -479,10 +501,13 @@ export default function SettingsPage() {
   );
 
   // 숫자 포맷팅 (소수점 자리수에 따라)
-  const formatValue = (value: number, decimalPlaces: number = 0) => {
-    if (value >= 9999) return '이상';
-    if (value <= 0) return '이하';
-    return value.toFixed(decimalPlaces);
+  const formatValue = (value: number | string | null | undefined, decimalPlaces: number = 0) => {
+    if (value == null || value === '') return '-';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) return '-';
+    if (numValue >= 9999) return '이상';
+    if (numValue <= 0) return '이하';
+    return numValue.toFixed(decimalPlaces);
   };
 
   return (
@@ -1083,18 +1108,80 @@ export default function SettingsPage() {
           {/* 운동 목록 서브탭 */}
           {exerciseSubTab === 'list' && (
             <>
-              {/* Add Button */}
-              <button
-                onClick={() => {
-                  setEditingExercise(null);
-                  setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '' });
-                  setShowExerciseForm(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-              >
-                <Plus size={18} />
-                <span>운동 추가</span>
-              </button>
+              {/* Add Button & Pack Apply Button */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setEditingExercise(null);
+                    setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '' });
+                    setShowExerciseForm(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                >
+                  <Plus size={18} />
+                  <span>운동 추가</span>
+                </button>
+                {exercisePacks.length > 0 && (
+                  <button
+                    onClick={() => setShowPackApplyModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
+                  >
+                    <Package size={18} />
+                    <span>팩 불러오기</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Pack Apply Modal */}
+              {showPackApplyModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-slate-800">팩 불러오기</h3>
+                      <button
+                        onClick={() => setShowPackApplyModal(false)}
+                        className="p-2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+                    <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg mb-4">
+                      ⚠️ 팩을 불러오면 현재 운동 목록이 모두 삭제되고 선택한 팩의 운동으로 대체됩니다.
+                    </p>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {exercisePacks.map(pack => (
+                        <button
+                          key={pack.id}
+                          onClick={() => applyPack(pack.id, pack.name)}
+                          disabled={applyingPack}
+                          className="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-purple-300 transition disabled:opacity-50"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium text-slate-800">{pack.name}</h4>
+                              <p className="text-sm text-slate-500">
+                                {pack.exercise_count}개 운동 · {pack.author}
+                              </p>
+                              {pack.description && (
+                                <p className="text-xs text-slate-400 mt-1">{pack.description}</p>
+                              )}
+                            </div>
+                            <Package size={20} className="text-purple-400" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex justify-end mt-4">
+                      <button
+                        onClick={() => setShowPackApplyModal(false)}
+                        className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
           {/* Exercise Form */}
           {showExerciseForm && (
