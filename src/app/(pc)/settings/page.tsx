@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check, Dumbbell, Tag, Package, Download, Upload } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { authAPI } from '@/lib/api/auth';
 
 interface RecordType {
   id: number;
@@ -89,6 +90,10 @@ export default function SettingsPage() {
   const [exercisePacks, setExercisePacks] = useState<ExercisePack[]>([]);
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 현재 사용자가 시스템 admin인지 확인 (태그 관리 권한)
+  const currentUser = authAPI.getCurrentUser();
+  const isSystemAdmin = currentUser?.role === 'admin';
 
   // 종목 관리 상태
   const [showTypeForm, setShowTypeForm] = useState(false);
@@ -1049,17 +1054,19 @@ export default function SettingsPage() {
               <Dumbbell size={16} />
               운동 목록
             </button>
-            <button
-              onClick={() => setExerciseSubTab('tags')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                exerciseSubTab === 'tags'
-                  ? 'bg-orange-100 text-orange-700'
-                  : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              <Tag size={16} />
-              태그 관리
-            </button>
+            {isSystemAdmin && (
+              <button
+                onClick={() => setExerciseSubTab('tags')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  exerciseSubTab === 'tags'
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                <Tag size={16} />
+                태그 관리
+              </button>
+            )}
             <button
               onClick={() => setExerciseSubTab('packs')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
@@ -1254,8 +1261,8 @@ export default function SettingsPage() {
             </>
           )}
 
-          {/* 태그 관리 서브탭 */}
-          {exerciseSubTab === 'tags' && (
+          {/* 태그 관리 서브탭 (시스템 admin 전용) */}
+          {exerciseSubTab === 'tags' && isSystemAdmin && (
             <>
               <button
                 onClick={() => {
