@@ -1,17 +1,55 @@
 /**
- * Trainers Routes
+ * Trainers Routes (P-ACA 강사 연동)
  */
 
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const mysql = require('mysql2/promise');
+const { decrypt } = require('../utils/encryption');
 
-// GET /peak/trainers - 트레이너 목록
+// P-ACA DB 연결
+const pacaPool = mysql.createPool({
+    host: process.env.PACA_DB_HOST || 'localhost',
+    port: parseInt(process.env.PACA_DB_PORT) || 3306,
+    user: process.env.PACA_DB_USER || 'paca',
+    password: process.env.PACA_DB_PASSWORD || 'q141171616!',
+    database: 'paca',
+    waitForConnections: true,
+    connectionLimit: 5,
+    timezone: '+09:00'
+});
+
+// GET /peak/trainers - P-ACA 강사 목록
 router.get('/', async (req, res) => {
     try {
-        const [trainers] = await db.query(
-            'SELECT * FROM trainers WHERE active = 1 ORDER BY name'
-        );
+        // P-ACA 강사 조회 (일산맥스: academy_id = 2)
+        const [instructors] = await pacaPool.query(`
+            SELECT i.id, i.user_id as paca_user_id, i.name, u.email
+            FROM instructors i
+            LEFT JOIN users u ON i.user_id = u.id
+            WHERE i.academy_id = 2 AND i.status = 'active' AND i.deleted_at IS NULL
+            ORDER BY i.name
+        `);
+
+        // 이름 복호화
+        const trainers = instructors.map(i => {
+            let name = i.name;
+            try {
+                if (name && name.startsWith('ENC:')) {
+                    name = decrypt(name);
+                }
+            } catch (e) {
+                console.error('Name decryption error:', e);
+            }
+            return {
+                id: i.id,
+                paca_user_id: i.paca_user_id,
+                name: name,
+                email: i.email
+            };
+        });
+
         res.json({ success: true, trainers });
     } catch (error) {
         console.error('Get trainers error:', error);

@@ -248,7 +248,7 @@ export default function TrainingPage() {
       {/* Trainer Select (관리자용) */}
       {isAdmin && (
         <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <label className="block text-sm font-medium text-slate-700 mb-2">트레이너 선택</label>
+          <label className="block text-sm font-medium text-slate-700 mb-2">강사 선택</label>
           <select
             value={selectedTrainerId || ''}
             onChange={e => setSelectedTrainerId(Number(e.target.value) || null)}
@@ -258,6 +258,12 @@ export default function TrainingPage() {
             {assignments.filter(a => a.trainer_id).map(a => (
               <option key={a.trainer_id} value={a.trainer_id!}>
                 {a.trainer_name} ({a.students.length}명)
+              </option>
+            ))}
+            {/* 배정이 없어도 trainers 목록에서 선택 가능 */}
+            {trainers.filter(t => !assignments.some(a => a.trainer_id === t.id)).map(t => (
+              <option key={t.id} value={t.id}>
+                {t.name} (배정 없음)
               </option>
             ))}
           </select>
