@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, RefreshCw, Search, User, TrendingUp, TrendingDown, Minus, X, ChevronRight, Activity, Plus, Save, Trophy, Calendar } from 'lucide-react';
+import { Users, RefreshCw, Search, User, TrendingUp, TrendingDown, Minus, X, ChevronRight, Activity, Plus, Save, Trophy, Calendar, Download } from 'lucide-react';
+import { authAPI } from '@/lib/api/auth';
 import apiClient from '@/lib/api/client';
 
 interface Student {
@@ -10,6 +11,8 @@ interface Student {
   name: string;
   gender: 'M' | 'F';
   phone: string | null;
+  school: string | null;
+  grade: string | null;
   join_date: string | null;
   status: 'active' | 'inactive' | 'injury';
 }
@@ -72,6 +75,28 @@ export default function StudentsPage() {
   const [recordInputs, setRecordInputs] = useState<{ [key: number]: { value: string; score: number | null } }>({});
   const [scoreTables, setScoreTables] = useState<{ [key: number]: ScoreTableData }>({});
   const [savingRecord, setSavingRecord] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  // P-ACA 학생 동기화
+  const syncStudents = async () => {
+    const user = authAPI.getCurrentUser();
+    if (!user?.academyId) {
+      alert('학원 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      setSyncing(true);
+      const response = await apiClient.post('/students/sync', { academyId: user.academyId });
+      alert(response.data.message);
+      fetchStudents();
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('동기화에 실패했습니다.');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -257,14 +282,23 @@ export default function StudentsPage() {
           <h1 className="text-2xl font-bold text-slate-800">학생 관리</h1>
           <p className="text-slate-500 mt-1">총 {students.length}명</p>
         </div>
-        <button
-          onClick={fetchStudents}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
-        >
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          <span>새로고침</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={syncStudents}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
+          >
+            <Download size={18} className={syncing ? 'animate-spin' : ''} />
+            <span>{syncing ? '동기화 중...' : 'P-ACA 동기화'}</span>
+          </button>
+          <button
+            onClick={fetchStudents}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -346,7 +380,8 @@ export default function StudentsPage() {
                         <p className="font-medium text-slate-800">{student.name}</p>
                         <p className="text-xs text-slate-400">
                           {student.gender === 'M' ? '남' : '여'}
-                          {student.phone && ` · ${student.phone}`}
+                          {student.school && ` · ${student.school}`}
+                          {student.grade && ` ${student.grade}`}
                         </p>
                       </div>
                     </div>
