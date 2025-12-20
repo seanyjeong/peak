@@ -102,12 +102,16 @@ router.post('/', async (req, res) => {
             });
         }
 
+        // trainer_id는 요청한 사용자의 instructor_id 사용
+        const trainer_id = req.user?.instructorId || instructor_id;
+
         const [result] = await db.query(
-            `INSERT INTO daily_plans (date, time_slot, instructor_id, tags, exercises, description)
-             VALUES (?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO daily_plans (date, time_slot, trainer_id, instructor_id, tags, exercises, description)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [
                 date,
                 time_slot,
+                trainer_id,
                 instructor_id,
                 JSON.stringify(tags || []),
                 JSON.stringify(exercises || []),
