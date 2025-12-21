@@ -15,8 +15,9 @@ import {
   Edit
 } from 'lucide-react';
 import {
-  RadialBarChart,
-  RadialBar,
+  PieChart,
+  Pie,
+  Cell,
   LineChart,
   Line,
   XAxis,
@@ -105,6 +106,15 @@ export default function StudentProfilePage() {
   const [selectedTrendType, setSelectedTrendType] = useState<number | null>(null);
   // 레이더 차트용 선택된 종목들 (5개)
   const [selectedRadarTypes, setSelectedRadarTypes] = useState<number[]>([]);
+
+  // 게이지 종목 토글
+  const toggleGaugeType = (typeId: number) => {
+    if (selectedGaugeTypes.includes(typeId)) {
+      setSelectedGaugeTypes(selectedGaugeTypes.filter(id => id !== typeId));
+    } else if (selectedGaugeTypes.length < 4) {
+      setSelectedGaugeTypes([...selectedGaugeTypes, typeId]);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -326,25 +336,31 @@ export default function StudentProfilePage() {
                   ? (student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect)
                   : null;
 
+                const gaugeData = [
+                  { value: percentage, color: getScoreColor(percentage) },
+                  { value: 100 - percentage, color: '#e5e7eb' }
+                ];
+
                 return (
                   <div key={typeId} className="relative">
                     <ResponsiveContainer width="100%" height={120}>
-                      <RadialBarChart
-                        cx="50%"
-                        cy="50%"
-                        innerRadius="65%"
-                        outerRadius="85%"
-                        data={[{ value: percentage, fill: getScoreColor(percentage) }]}
-                        startAngle={90}
-                        endAngle={-270}
-                        barSize={10}
-                      >
-                        <RadialBar
+                      <PieChart>
+                        <Pie
+                          data={gaugeData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius="60%"
+                          outerRadius="80%"
+                          startAngle={90}
+                          endAngle={-270}
                           dataKey="value"
-                          cornerRadius={5}
-                          background={{ fill: '#e5e7eb' }}
-                        />
-                      </RadialBarChart>
+                          stroke="none"
+                        >
+                          {gaugeData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <span className="text-lg font-bold">
@@ -363,25 +379,24 @@ export default function StudentProfilePage() {
               })}
             </div>
 
-            {/* 종목 변경 드롭다운들 */}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {[0, 1, 2, 3].map(idx => (
-                <select
-                  key={idx}
-                  className="text-xs border rounded px-2 py-1 w-full"
-                  value={selectedGaugeTypes[idx] || ''}
-                  onChange={(e) => {
-                    const newTypes = [...selectedGaugeTypes];
-                    newTypes[idx] = parseInt(e.target.value);
-                    setSelectedGaugeTypes(newTypes);
-                  }}
+            {/* 종목 선택 버튼들 */}
+            <div className="mt-4 flex flex-wrap gap-1">
+              {recordTypes.map(type => (
+                <button
+                  key={type.id}
+                  onClick={() => toggleGaugeType(type.id)}
+                  className={`text-xs px-2 py-1 rounded transition ${
+                    selectedGaugeTypes.includes(type.id)
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  } ${selectedGaugeTypes.length >= 4 && !selectedGaugeTypes.includes(type.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={selectedGaugeTypes.length >= 4 && !selectedGaugeTypes.includes(type.id)}
                 >
-                  {recordTypes.map(t => (
-                    <option key={t.id} value={t.id}>{t.short_name || t.name}</option>
-                  ))}
-                </select>
+                  {type.short_name || type.name}
+                </button>
               ))}
             </div>
+            <p className="text-xs text-gray-400 mt-1">최대 4개 선택</p>
           </div>
         </div>
 
