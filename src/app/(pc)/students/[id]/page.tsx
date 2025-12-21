@@ -78,6 +78,14 @@ interface RecordHistory {
   }[];
 }
 
+interface ScoreTable {
+  id: number;
+  record_type_id: number;
+  male_perfect: number;
+  female_perfect: number;
+  max_score: number;
+}
+
 export default function StudentProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -88,6 +96,7 @@ export default function StudentProfilePage() {
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
   const [recordHistory, setRecordHistory] = useState<RecordHistory[]>([]);
   const [academyAverages, setAcademyAverages] = useState<Record<number, number>>({});
+  const [scoreTables, setScoreTables] = useState<Record<number, ScoreTable>>({});
   const [loading, setLoading] = useState(true);
 
   // 선택된 종목들 (원형 게이지용 4개)
@@ -104,11 +113,12 @@ export default function StudentProfilePage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [statsRes, historyRes, typesRes, academyRes] = await Promise.all([
+      const [statsRes, historyRes, typesRes, academyRes, scoreTablesRes] = await Promise.all([
         apiClient.get(`/students/${studentId}/stats`),
         apiClient.get(`/students/${studentId}/records`),
         apiClient.get('/record-types?active=true'),
-        apiClient.get('/stats/academy-average')
+        apiClient.get('/stats/academy-average'),
+        apiClient.get('/score-tables')
       ]);
 
       setStudent(statsRes.data.student);
@@ -117,18 +127,25 @@ export default function StudentProfilePage() {
       setRecordTypes(typesRes.data.recordTypes || []);
       setAcademyAverages(academyRes.data.averages || {});
 
+      // 배점표 데이터를 종목ID별로 매핑
+      const tables: Record<number, ScoreTable> = {};
+      (scoreTablesRes.data.scoreTables || []).forEach((st: ScoreTable) => {
+        tables[st.record_type_id] = st;
+      });
+      setScoreTables(tables);
+
       // 초기 선택 설정
       const types = typesRes.data.recordTypes || [];
-      const typesWithScores = types.filter((t: RecordType) =>
-        statsRes.data.stats?.scores?.[t.id] !== undefined
+      const typesWithRecords = types.filter((t: RecordType) =>
+        statsRes.data.stats?.latests?.[t.id] !== undefined
       );
 
       // 첫 4개 종목 선택 (게이지용)
-      setSelectedGaugeTypes(typesWithScores.slice(0, 4).map((t: RecordType) => t.id));
+      setSelectedGaugeTypes(typesWithRecords.slice(0, 4).map((t: RecordType) => t.id));
       // 첫 번째 종목 선택 (트렌드용)
-      setSelectedTrendType(typesWithScores[0]?.id || null);
+      setSelectedTrendType(typesWithRecords[0]?.id || null);
       // 첫 5개 종목 선택 (레이더용)
-      setSelectedRadarTypes(typesWithScores.slice(0, 5).map((t: RecordType) => t.id));
+      setSelectedRadarTypes(typesWithRecords.slice(0, 5).map((t: RecordType) => t.id));
     } catch (error) {
       console.error('Failed to load profile data:', error);
     } finally {
@@ -189,11 +206,32 @@ export default function StudentProfilePage() {
       }));
   }, [stats, recordTypes, academyAverages]);
 
-  // 점수 색상 결정
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return '#22c55e'; // green
-    if (score >= 70) return '#3b82f6'; // blue
-    if (score >= 50) return '#eab308'; // yellow
+  // 기록 달성률 계산 (만점 대비)
+  const getRecordPercentage = (typeId: number, value: number): number => {
+    const type = recordTypes.find(t => t.id === typeId);
+    const scoreTable = scoreTables[typeId];
+    if (!type || !scoreTable || !student) return 0;
+
+    const perfectValue = student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect;
+    if (!perfectValue) return 0;
+
+    // direction이 lower면 낮을수록 좋음 (예: 달리기 시간)
+    if (type.direction === 'lower') {
+      // 만점보다 기록이 좋으면(낮으면) 100%, 만점의 2배면 0%
+      const percentage = Math.max(0, Math.min(100, (2 - value / perfectValue) * 100));
+      return percentage;
+    } else {
+      // higher: 높을수록 좋음 (예: 멀리뛰기)
+      const percentage = Math.min(100, (value / perfectValue) * 100);
+      return percentage;
+    }
+  };
+
+  // 달성률 기준 색상 결정
+  const getScoreColor = (percentage: number) => {
+    if (percentage >= 90) return '#22c55e'; // green
+    if (percentage >= 70) return '#3b82f6'; // blue
+    if (percentage >= 50) return '#eab308'; // yellow
     return '#ef4444'; // red
   };
 
@@ -271,31 +309,22 @@ export default function StudentProfilePage() {
 
       {/* 3 Column Layout */}
       <div className="grid grid-cols-12 gap-6">
-        {/* Left Column - Score Gauges */}
+        {/* Left Column - Record Gauges */}
         <div className="col-span-3 space-y-4">
           <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-800">종목별 점수</h3>
-              <select
-                className="text-xs border rounded px-2 py-1"
-                onChange={(e) => {
-                  const newTypes = [...selectedGaugeTypes];
-                  newTypes[0] = parseInt(e.target.value);
-                  setSelectedGaugeTypes(newTypes);
-                }}
-                value={selectedGaugeTypes[0] || ''}
-              >
-                {recordTypes.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
+            <h3 className="font-semibold text-gray-800 mb-4">종목별 기록</h3>
 
             <div className="grid grid-cols-2 gap-4">
-              {selectedGaugeTypes.slice(0, 4).map((typeId, idx) => {
+              {selectedGaugeTypes.slice(0, 4).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
-                const score = stats.scores[typeId] || 0;
+                const latestRecord = stats.latests[typeId];
+                const value = latestRecord?.value || 0;
+                const percentage = getRecordPercentage(typeId, value);
                 const trend = stats.trends[typeId];
+                const scoreTable = scoreTables[typeId];
+                const perfectValue = student && scoreTable
+                  ? (student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect)
+                  : null;
 
                 return (
                   <div key={typeId} className="relative">
@@ -305,7 +334,7 @@ export default function StudentProfilePage() {
                         cy="50%"
                         innerRadius="60%"
                         outerRadius="80%"
-                        data={[{ value: score, fill: getScoreColor(score) }]}
+                        data={[{ value: percentage, fill: getScoreColor(percentage) }]}
                         startAngle={180}
                         endAngle={0}
                       >
@@ -317,8 +346,13 @@ export default function StudentProfilePage() {
                       </RadialBarChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-xl font-bold">{score}</span>
+                      <span className="text-lg font-bold">
+                        {value}{type?.unit && <span className="text-xs font-normal text-gray-400">{type.unit}</span>}
+                      </span>
                       <span className="text-[10px] text-gray-500">{type?.short_name || type?.name}</span>
+                      {perfectValue && (
+                        <span className="text-[9px] text-gray-400">만점: {perfectValue}</span>
+                      )}
                     </div>
                     <div className="flex justify-center mt-1">
                       <TrendIcon trend={trend || 'stable'} />
@@ -426,7 +460,7 @@ export default function StudentProfilePage() {
         <div className="col-span-4 space-y-4">
           {/* Bar Chart Comparison */}
           <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="font-semibold text-gray-800 mb-4">학원평균 vs 나</h3>
+            <h3 className="font-semibold text-gray-800 mb-4">학원평균 vs {student.name}</h3>
             <ResponsiveContainer width="100%" height={150}>
               <BarChart data={compareBarData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
@@ -434,7 +468,7 @@ export default function StudentProfilePage() {
                 <YAxis dataKey="name" type="category" width={60} tick={{ fontSize: 10 }} />
                 <Tooltip />
                 <Bar dataKey="academy" fill="#94a3b8" name="학원평균" />
-                <Bar dataKey="student" fill="#f97316" name="나" />
+                <Bar dataKey="student" fill="#f97316" name={student.name} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -455,7 +489,7 @@ export default function StudentProfilePage() {
                   fillOpacity={0.3}
                 />
                 <Radar
-                  name="나"
+                  name={student.name}
                   dataKey="student"
                   stroke="#f97316"
                   fill="#f97316"
