@@ -148,13 +148,8 @@ export default function PlansPage() {
     fetchData();
   }, [selectedDate]);
 
-  // 현재 로그인한 강사의 instructor_id 찾기
-  const myInstructorId = useMemo(() => {
-    if (!currentUser || isOwner) return null;
-    const allInstructors = [...slotsData.morning, ...slotsData.afternoon, ...slotsData.evening];
-    const myInstructor = allInstructors.find(i => i.user_id === currentUser.id);
-    return myInstructor?.id || null;
-  }, [currentUser, slotsData, isOwner]);
+  // 현재 로그인한 강사의 instructor_id
+  const myInstructorId = currentUser?.instructorId || null;
 
   // 현재 시간대의 강사들
   const currentInstructors = slotsData[activeSlot];

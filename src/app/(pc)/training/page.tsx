@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Activity, RefreshCw, Check, User, Smile, Meh, Frown, AlertCircle, ThumbsUp, Thermometer, Droplets, Plus, ClipboardList, X } from 'lucide-react';
+import { Activity, RefreshCw, Check, User, Smile, Meh, Frown, AlertCircle, ThumbsUp, Thermometer, Droplets, Plus, ClipboardList, X, Calendar } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { authAPI, User as AuthUser } from '@/lib/api/auth';
 
@@ -87,6 +87,12 @@ export default function TrainingPage() {
   const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
   const [existingLogs, setExistingLogs] = useState<ExistingLog[]>([]);
 
+  // 날짜 선택
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
+
   // 온습도
   const [temperature, setTemperature] = useState<string>('');
   const [humidity, setHumidity] = useState<string>('');
@@ -97,22 +103,21 @@ export default function TrainingPage() {
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
-  const getLocalDateString = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // 선택된 날짜를 한글로 표시
+  const formatDateKorean = (dateStr: string) => {
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    });
   };
-
-  const today = new Date().toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long'
-  });
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const dateStr = getLocalDateString();
+      const dateStr = selectedDate;
       const user = authAPI.getCurrentUser();
       setCurrentUser(user);
 
@@ -165,7 +170,7 @@ export default function TrainingPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [selectedDate]);
 
   // 현재 시간대/강사의 플랜 찾기
   const currentPlan = plans.find(p =>
@@ -267,7 +272,7 @@ export default function TrainingPage() {
   // 컨디션 즉시 저장
   const saveCondition = async (studentId: number, score: number | null) => {
     const existing = existingLogs.find(l => l.student_id === studentId);
-    const dateStr = getLocalDateString();
+    const dateStr = selectedDate;
 
     try {
       if (existing) {
@@ -314,15 +319,27 @@ export default function TrainingPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">수업 기록</h1>
-          <p className="text-slate-500 mt-1">{today}</p>
+          <p className="text-slate-500 mt-1">{formatDateKorean(selectedDate)}</p>
         </div>
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
-        >
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-        </button>
+        <div className="flex items-center gap-3">
+          {/* 날짜 선택 */}
+          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-200">
+            <Calendar size={18} className="text-slate-400" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+              className="border-none focus:ring-0 text-slate-700"
+            />
+          </div>
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {loading ? (
