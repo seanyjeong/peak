@@ -102,6 +102,7 @@ export default function TrainingPage() {
   // 추가 운동 모달
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
+  const [newExerciseNote, setNewExerciseNote] = useState('');
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
@@ -288,7 +289,10 @@ export default function TrainingPage() {
   const addExtraExercise = async () => {
     if (!currentPlan || !newExerciseName.trim()) return;
     try {
-      const res = await apiClient.post(`/plans/${currentPlan.id}/extra-exercise`, { name: newExerciseName.trim() });
+      const res = await apiClient.post(`/plans/${currentPlan.id}/extra-exercise`, {
+        name: newExerciseName.trim(),
+        note: newExerciseNote.trim() || undefined
+      });
       // 로컬 상태 업데이트 (스크롤 유지)
       setPlans(prev => prev.map(p =>
         p.id === currentPlan.id
@@ -296,6 +300,7 @@ export default function TrainingPage() {
           : p
       ));
       setNewExerciseName('');
+      setNewExerciseNote('');
       setShowAddExercise(false);
     } catch (error) {
       console.error('Failed to add exercise:', error);
@@ -571,28 +576,39 @@ export default function TrainingPage() {
                   {/* 운동 추가 버튼 */}
                   <div className="p-4">
                     {showAddExercise ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={newExerciseName}
-                          onChange={e => setNewExerciseName(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && addExtraExercise()}
-                          placeholder="운동 이름 입력..."
-                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                          autoFocus
-                        />
-                        <button
-                          onClick={addExtraExercise}
-                          className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
-                        >
-                          추가
-                        </button>
-                        <button
-                          onClick={() => { setShowAddExercise(false); setNewExerciseName(''); }}
-                          className="p-2 text-slate-400 hover:text-slate-600"
-                        >
-                          <X size={18} />
-                        </button>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newExerciseName}
+                            onChange={e => setNewExerciseName(e.target.value)}
+                            placeholder="운동 이름"
+                            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => { setShowAddExercise(false); setNewExerciseName(''); setNewExerciseNote(''); }}
+                            className="p-2 text-slate-400 hover:text-slate-600"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newExerciseNote}
+                            onChange={e => setNewExerciseNote(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && addExtraExercise()}
+                            placeholder="메모 (선택)"
+                            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                          />
+                          <button
+                            onClick={addExtraExercise}
+                            className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
+                          >
+                            추가
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <button
