@@ -52,14 +52,14 @@ type LayoutItem = {
   minH?: number;
 };
 
-// 기본 레이아웃 설정
+// 기본 레이아웃 설정 (화면에 맞게 크기 조정)
 const DEFAULT_LAYOUT: LayoutItem[] = [
-  { i: 'gauges', x: 0, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
-  { i: 'trend', x: 3, y: 0, w: 5, h: 2, minW: 3, minH: 2 },
-  { i: 'grade', x: 3, y: 2, w: 5, h: 2, minW: 3, minH: 2 },
-  { i: 'compare', x: 8, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
-  { i: 'radar', x: 8, y: 2, w: 4, h: 2, minW: 3, minH: 2 },
-  { i: 'history', x: 0, y: 4, w: 12, h: 2, minW: 6, minH: 2 },
+  { i: 'gauges', x: 0, y: 0, w: 3, h: 5, minW: 3, minH: 4 },
+  { i: 'trend', x: 3, y: 0, w: 5, h: 3, minW: 4, minH: 2 },
+  { i: 'grade', x: 3, y: 3, w: 5, h: 2, minW: 4, minH: 2 },
+  { i: 'compare', x: 8, y: 0, w: 4, h: 3, minW: 3, minH: 2 },
+  { i: 'radar', x: 8, y: 3, w: 4, h: 3, minW: 3, minH: 3 },
+  { i: 'history', x: 0, y: 5, w: 8, h: 2, minW: 6, minH: 2 },
 ];
 
 interface RecordType {
@@ -421,7 +421,7 @@ export default function StudentProfilePage() {
           <ReactGridLayout
             layout={layout}
             width={width}
-            gridConfig={{ cols: 12, rowHeight: 80 }}
+            gridConfig={{ cols: 12, rowHeight: 100 }}
             dragConfig={{ handle: '.drag-handle' }}
             onLayoutChange={handleLayoutChange}
           >
@@ -452,14 +452,14 @@ export default function StudentProfilePage() {
 
                     return (
                       <div key={typeId} className="relative">
-                        <ResponsiveContainer width="100%" height={100}>
+                        <ResponsiveContainer width="100%" height={120}>
                           <PieChart>
                             <Pie
                               data={gaugeData}
                               cx="50%"
                               cy="50%"
                               innerRadius="55%"
-                              outerRadius="75%"
+                              outerRadius="80%"
                               startAngle={90}
                               endAngle={-270}
                               dataKey="value"
@@ -472,12 +472,12 @@ export default function StudentProfilePage() {
                           </PieChart>
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-base font-bold">
-                            {hasRecord ? value : '-'}<span className="text-xs font-normal text-gray-400">{type?.unit}</span>
+                          <span className="text-lg font-bold">
+                            {hasRecord ? value : '-'}<span className="text-sm font-normal text-gray-400">{type?.unit}</span>
                           </span>
-                          <span className="text-[10px] text-gray-500">{type?.short_name || type?.name}</span>
+                          <span className="text-xs text-gray-500">{type?.short_name || type?.name}</span>
                         </div>
-                        <div className="absolute bottom-1 left-0 right-0 flex justify-center">
+                        <div className="absolute bottom-2 left-0 right-0 flex justify-center">
                           <TrendIcon trend={trend || 'stable'} />
                         </div>
                       </div>
@@ -539,31 +539,31 @@ export default function StudentProfilePage() {
                 <GripVertical size={16} className="text-gray-400" />
                 <h3 className="font-semibold text-gray-800">종합평가</h3>
               </div>
-              <div className="p-4">
+              <div className="p-5 h-[calc(100%-52px)] flex flex-col justify-center">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${getGradeColor(stats.grade)}`}>
-                      <span className="text-2xl font-bold">{stats.grade}</span>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getGradeColor(stats.grade)}`}>
+                      <span className="text-3xl font-bold">{stats.grade}</span>
                     </div>
                     <div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xl font-bold">{stats.totalScore}</span>
-                        <span className="text-gray-400 text-sm">/ {stats.maxPossibleScore}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold">{stats.totalScore}</span>
+                        <span className="text-gray-400">/ {stats.maxPossibleScore}</span>
                       </div>
-                      <p className="text-xs text-gray-500">달성률 {stats.percentage}%</p>
+                      <p className="text-sm text-gray-500">달성률 {stats.percentage}%</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <TrendIcon trend={stats.overallTrend} />
-                    <span className="text-xs text-gray-500">
-                      {stats.overallTrend === 'up' ? '상승' : stats.overallTrend === 'down' ? '하락' : '유지'}
+                    <span className="text-sm text-gray-500">
+                      {stats.overallTrend === 'up' ? '상승세' : stats.overallTrend === 'down' ? '하락세' : '유지'}
                     </span>
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-2 text-xs">
+                <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">기록된 종목</span>
-                    <span className="font-medium">{stats.typesWithRecords}개</span>
+                    <span className="font-medium">{stats.typesWithRecords}개 / {recordTypes.length}개</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">총 기록 수</span>
@@ -606,7 +606,7 @@ export default function StudentProfilePage() {
                 <h3 className="font-semibold text-gray-800">능력치 비교</h3>
               </div>
               <div className="p-3">
-                <ResponsiveContainer width="100%" height={160}>
+                <ResponsiveContainer width="100%" height={200}>
                   <RadarChart data={radarChartData}>
                     <PolarGrid />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
