@@ -201,20 +201,48 @@ export default function StudentProfilePage() {
     });
   }, [stats, selectedRadarTypes, recordTypes, academyAverages]);
 
-  // 비교 막대 차트 데이터
+  // 비교 막대 차트 데이터 (만점 대비 퍼센트로 정규화)
   const compareBarData = useMemo(() => {
-    if (!stats || !recordTypes.length) return [];
+    if (!stats || !recordTypes.length || !student) return [];
 
     return recordTypes
       .filter(t => stats.latests[t.id] !== undefined)
       .slice(0, 5)
-      .map(type => ({
-        name: type.short_name || type.name,
-        student: stats.latests[type.id]?.value || 0,
-        academy: Math.round((academyAverages[type.id] || 0) * 100) / 100, // 소수점 둘째자리
-        unit: type.unit
-      }));
-  }, [stats, recordTypes, academyAverages]);
+      .map(type => {
+        const scoreTable = scoreTables[type.id];
+        const perfectValue = scoreTable
+          ? (student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect)
+          : 0;
+
+        const studentValue = stats.latests[type.id]?.value || 0;
+        const academyValue = academyAverages[type.id] || 0;
+
+        // 만점 대비 달성률로 정규화 (direction 고려)
+        let studentPercent = 0;
+        let academyPercent = 0;
+
+        if (perfectValue > 0) {
+          if (type.direction === 'lower') {
+            // 낮을수록 좋은 종목 (예: 달리기 시간)
+            studentPercent = Math.max(0, Math.min(100, (2 - studentValue / perfectValue) * 100));
+            academyPercent = Math.max(0, Math.min(100, (2 - academyValue / perfectValue) * 100));
+          } else {
+            // 높을수록 좋은 종목 (예: 멀리뛰기)
+            studentPercent = Math.min(100, (studentValue / perfectValue) * 100);
+            academyPercent = Math.min(100, (academyValue / perfectValue) * 100);
+          }
+        }
+
+        return {
+          name: type.short_name || type.name,
+          student: Math.round(studentPercent),
+          academy: Math.round(academyPercent),
+          studentRaw: studentValue,
+          academyRaw: Math.round(academyValue * 100) / 100,
+          unit: type.unit
+        };
+      });
+  }, [stats, recordTypes, academyAverages, scoreTables, student]);
 
   // 기록 달성률 계산 (만점 대비)
   const getRecordPercentage = (typeId: number, value: number): number => {
@@ -477,12 +505,19 @@ export default function StudentProfilePage() {
           {/* Bar Chart Comparison */}
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h3 className="font-semibold text-gray-800 mb-4">학원평균 vs {student.name}</h3>
+            <p className="text-xs text-gray-400 mb-2">만점 대비 달성률 (%)</p>
             <ResponsiveContainer width="100%" height={150}>
               <BarChart data={compareBarData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" tick={{ fontSize: 10 }} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
                 <YAxis dataKey="name" type="category" width={60} tick={{ fontSize: 10 }} />
-                <Tooltip />
+                <Tooltip
+                  formatter={(value, name, props) => {
+                    const data = props.payload;
+                    if (name === '학원평균') return [`${data.academyRaw}${data.unit} (${value}%)`, name];
+                    return [`${data.studentRaw}${data.unit} (${value}%)`, name];
+                  }}
+                />
                 <Bar dataKey="academy" fill="#94a3b8" name="학원평균" />
                 <Bar dataKey="student" fill="#f97316" name={student.name} />
               </BarChart>
