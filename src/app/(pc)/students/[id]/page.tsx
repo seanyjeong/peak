@@ -111,7 +111,7 @@ export default function StudentProfilePage() {
   const toggleGaugeType = (typeId: number) => {
     if (selectedGaugeTypes.includes(typeId)) {
       setSelectedGaugeTypes(selectedGaugeTypes.filter(id => id !== typeId));
-    } else if (selectedGaugeTypes.length < 4) {
+    } else if (selectedGaugeTypes.length < 6) {
       setSelectedGaugeTypes([...selectedGaugeTypes, typeId]);
     }
   };
@@ -150,8 +150,8 @@ export default function StudentProfilePage() {
         statsRes.data.stats?.latests?.[t.id] !== undefined
       );
 
-      // 첫 4개 종목 선택 (게이지용)
-      setSelectedGaugeTypes(typesWithRecords.slice(0, 4).map((t: RecordType) => t.id));
+      // 첫 6개 종목 선택 (게이지용)
+      setSelectedGaugeTypes(typesWithRecords.slice(0, 6).map((t: RecordType) => t.id));
       // 첫 번째 종목 선택 (트렌드용)
       setSelectedTrendType(typesWithRecords[0]?.id || null);
       // 첫 5개 종목 선택 (레이더용)
@@ -355,8 +355,8 @@ export default function StudentProfilePage() {
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h3 className="font-semibold text-gray-800 mb-4">종목별 기록</h3>
 
-            <div className="grid grid-cols-2 gap-4">
-              {selectedGaugeTypes.slice(0, 4).map((typeId) => {
+            <div className="grid grid-cols-3 gap-3">
+              {selectedGaugeTypes.slice(0, 6).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
                 const hasRecord = latestRecord !== undefined && latestRecord !== null;
@@ -421,14 +421,14 @@ export default function StudentProfilePage() {
                     selectedGaugeTypes.includes(type.id)
                       ? 'bg-orange-500 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  } ${selectedGaugeTypes.length >= 4 && !selectedGaugeTypes.includes(type.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={selectedGaugeTypes.length >= 4 && !selectedGaugeTypes.includes(type.id)}
+                  } ${selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id)}
                 >
                   {type.short_name || type.name}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mt-1">최대 4개 선택</p>
+            <p className="text-xs text-gray-400 mt-1">최대 6개 선택</p>
           </div>
         </div>
 
@@ -454,7 +454,7 @@ export default function StudentProfilePage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
+                <Tooltip formatter={(value) => [value, '기록']} />
                 <Line
                   type="monotone"
                   dataKey="value"
