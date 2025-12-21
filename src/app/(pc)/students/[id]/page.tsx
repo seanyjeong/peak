@@ -201,7 +201,7 @@ export default function StudentProfilePage() {
       .map(type => ({
         name: type.short_name || type.name,
         student: stats.latests[type.id]?.value || 0,
-        academy: academyAverages[type.id] || 0,
+        academy: Math.round((academyAverages[type.id] || 0) * 100) / 100, // 소수점 둘째자리
         unit: type.unit
       }));
   }, [stats, recordTypes, academyAverages]);
