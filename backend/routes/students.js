@@ -372,28 +372,93 @@ router.get('/:id/stats', async (req, res) => {
             const scoreTable = scoreTablesByType[rt.id];
             if (scoreTable) {
                 const latestValue = parseFloat(typeRecords[0].value);
-                const ranges = scoreTable.ranges;
+                const ranges = scoreTable.ranges; // 점수 내림차순 정렬됨 (100, 95, 90, ...)
+                let foundScore = null;
+
+                // 1. 정확히 범위에 맞는 점수 찾기
                 for (const range of ranges) {
                     const min = student.gender === 'M' ? range.male_min : range.female_min;
                     const max = student.gender === 'M' ? range.male_max : range.female_max;
                     if (latestValue >= min && latestValue <= max) {
-                        scores[rt.id] = range.score;
+                        foundScore = range.score;
                         break;
                     }
                 }
+
+                // 2. 못 찾았으면 방향에 따라 적절한 점수 찾기
+                if (foundScore === null) {
+                    if (isLowerBetter) {
+                        // 낮을수록 좋음: 기록이 max 이하인 가장 높은 점수 찾기
+                        for (const range of ranges) {
+                            const max = student.gender === 'M' ? range.male_max : range.female_max;
+                            if (latestValue <= max) {
+                                foundScore = range.score;
+                                break;
+                            }
+                        }
+                        // 그래도 못 찾으면 (모든 범위보다 나쁨) 최저점
+                        if (foundScore === null) {
+                            foundScore = ranges[ranges.length - 1]?.score || 50;
+                        }
+                    } else {
+                        // 높을수록 좋음: 기록이 min 이상인 가장 높은 점수 찾기
+                        for (const range of ranges) {
+                            const min = student.gender === 'M' ? range.male_min : range.female_min;
+                            if (latestValue >= min) {
+                                foundScore = range.score;
+                                break;
+                            }
+                        }
+                        // 그래도 못 찾으면 (모든 범위보다 나쁨) 최저점
+                        if (foundScore === null) {
+                            foundScore = ranges[ranges.length - 1]?.score || 50;
+                        }
+                    }
+                }
+
+                scores[rt.id] = foundScore;
             }
 
-            // 추세 계산 (최근 3개 기록 비교)
-            if (typeRecords.length >= 2) {
-                const recent = parseFloat(typeRecords[0].value);
-                const previous = parseFloat(typeRecords[1].value);
-                if (isLowerBetter) {
-                    trends[rt.id] = recent < previous ? 'up' : recent > previous ? 'down' : 'stable';
-                } else {
-                    trends[rt.id] = recent > previous ? 'up' : recent < previous ? 'down' : 'stable';
+            // 추세 계산 (최근 5개 기록의 연속 변화 + 처음↔마지막 비교)
+            if (typeRecords.length >= 5) {
+                // 최근 5개 기록: [0]=최신, [1], [2], [3], [4]=가장 오래됨
+                const vals = typeRecords.slice(0, 5).map(r => parseFloat(r.value));
+
+                // 연속 비교: 개선 횟수 vs 하락 횟수 (4번 비교)
+                let improvements = 0;
+                let declines = 0;
+
+                for (let i = 0; i < 4; i++) {
+                    const newer = vals[i];
+                    const older = vals[i + 1];
+
+                    if (isLowerBetter) {
+                        if (newer < older) improvements++;
+                        else if (newer > older) declines++;
+                    } else {
+                        if (newer > older) improvements++;
+                        else if (newer < older) declines++;
+                    }
                 }
+
+                // 처음 vs 마지막 비교 추가 (가중치 적용)
+                const newest = vals[0];
+                const oldest = vals[4];
+                if (isLowerBetter) {
+                    if (newest < oldest) improvements += 2;  // 가중치 2
+                    else if (newest > oldest) declines += 2;
+                } else {
+                    if (newest > oldest) improvements += 2;
+                    else if (newest < oldest) declines += 2;
+                }
+
+                // 최종 판정
+                if (improvements > declines) trends[rt.id] = 'up';
+                else if (declines > improvements) trends[rt.id] = 'down';
+                else trends[rt.id] = 'stable';
             } else {
-                trends[rt.id] = 'stable';
+                // 기록이 5개 미만이면 추세 판단 불가
+                trends[rt.id] = 'need_more';
             }
         });
 

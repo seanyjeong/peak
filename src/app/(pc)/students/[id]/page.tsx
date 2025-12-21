@@ -353,9 +353,14 @@ export default function StudentProfilePage() {
   };
 
   // 트렌드 아이콘
-  const TrendIcon = ({ trend }: { trend: string }) => {
+  const TrendIcon = ({ trend, showLabel = false }: { trend: string; showLabel?: boolean }) => {
     if (trend === 'up') return <TrendingUp className="text-green-500" size={16} />;
     if (trend === 'down') return <TrendingDown className="text-red-500" size={16} />;
+    if (trend === 'need_more') {
+      return showLabel
+        ? <span className="text-[9px] text-gray-400">기록 부족</span>
+        : <span className="text-[10px] text-gray-400">···</span>;
+    }
     return <Minus className="text-gray-400" size={16} />;
   };
 
@@ -469,7 +474,7 @@ export default function StudentProfilePage() {
                       )}
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 flex justify-center">
-                      <TrendIcon trend={trend || 'stable'} />
+                      <TrendIcon trend={trend || 'need_more'} showLabel={true} />
                     </div>
                   </div>
                 );
@@ -522,6 +527,7 @@ export default function StudentProfilePage() {
                   tick={{ fontSize: 11 }}
                   domain={trendYDomain as [number, number]}
                   reversed={isTrendTypeLower}
+                  tickFormatter={(value) => Number(value).toFixed(2)}
                 />
                 <Tooltip
                   formatter={(value) => {
@@ -553,11 +559,11 @@ export default function StudentProfilePage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">{selectedStats.totalScore}</span>
-                    <span className="text-gray-400">/ {selectedStats.maxScore}</span>
+                    <span className="text-2xl font-bold">{selectedStats.totalScore}<span className="text-base font-normal">점</span></span>
+                    <span className="text-gray-400">/ {selectedStats.maxScore}점</span>
                   </div>
                   <p className="text-sm text-gray-500">
-                    달성률 {selectedStats.percentage}%
+                    ({selectedStats.percentage}% 달성)
                   </p>
                 </div>
               </div>
@@ -589,11 +595,16 @@ export default function StudentProfilePage() {
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h3 className="font-semibold text-gray-800 mb-4">학원평균 vs {student.name}</h3>
             <p className="text-xs text-gray-400 mb-2">만점 대비 달성률 (%)</p>
-            <ResponsiveContainer width="100%" height={150}>
+            <ResponsiveContainer width="100%" height={Math.max(150, compareBarData.length * 28)}>
               <BarChart data={compareBarData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
-                <YAxis dataKey="name" type="category" width={60} tick={{ fontSize: 10 }} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={70}
+                  tick={{ fontSize: compareBarData.length > 5 ? 8 : 10 }}
+                />
                 <Tooltip
                   formatter={(value, name, props) => {
                     const data = props.payload;
