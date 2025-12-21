@@ -19,7 +19,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Users, RefreshCw, AlertCircle, Coffee, Sunrise, Sun, Moon, Download, Calendar } from 'lucide-react';
+import { Users, RefreshCw, AlertCircle, Coffee, Sunrise, Sun, Moon, Download, Calendar, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening';
@@ -77,6 +78,15 @@ function StudentCard({ student, isDragging }: { student: Student; isDragging?: b
           {student.gender === 'M' ? '남' : '여'}
         </span>
         <span className="font-medium text-slate-800">{student.student_name}</span>
+        <Link
+          href={`/students/${student.student_id}`}
+          className="p-1 hover:bg-orange-100 rounded transition"
+          title="프로필 보기"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <ExternalLink size={12} className="text-orange-500" />
+        </Link>
         {!!student.is_trial && (
           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">
             체험 {student.trial_total - student.trial_remaining + 1}/{student.trial_total}
@@ -205,7 +215,7 @@ export default function AssignmentsPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
+      activationConstraint: { distance: 10 }, // 클릭과 드래그 구분을 위해 거리 증가
     }),
     useSensor(KeyboardSensor)
   );

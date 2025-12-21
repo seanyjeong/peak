@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Activity, RefreshCw, Check, User, Smile, Meh, Frown, AlertCircle, ThumbsUp, Thermometer, Droplets, Plus, ClipboardList, X, Calendar } from 'lucide-react';
+import Link from 'next/link';
+import { Activity, RefreshCw, Check, User, Smile, Meh, Frown, AlertCircle, ThumbsUp, Thermometer, Droplets, Plus, ClipboardList, X, Calendar, ExternalLink } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { authAPI, User as AuthUser } from '@/lib/api/auth';
 
@@ -648,7 +649,16 @@ export default function TrainingPage() {
                             }`}>
                               <User size={16} />
                             </div>
-                            <span className="font-medium text-slate-800">{student.student_name}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-slate-800">{student.student_name}</span>
+                              <Link
+                                href={`/students/${student.student_id}`}
+                                className="p-1 hover:bg-orange-100 rounded transition"
+                                title="프로필 보기"
+                              >
+                                <ExternalLink size={12} className="text-orange-500" />
+                              </Link>
+                            </div>
                             {log?.condition_score && (
                               <span className="ml-auto flex items-center gap-1 text-green-600 text-sm">
                                 <Check size={14} /> 저장됨

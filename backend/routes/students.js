@@ -283,4 +283,160 @@ router.get('/:id/records', async (req, res) => {
     }
 });
 
+/**
+ * GET /peak/students/:id/stats - 학생 종합 통계
+ * 프로필 페이지용 데이터
+ */
+router.get('/:id/stats', async (req, res) => {
+    try {
+        const studentId = req.params.id;
+
+        // 1. 학생 정보 조회
+        const [students] = await db.query('SELECT * FROM students WHERE id = ?', [studentId]);
+        if (students.length === 0) {
+            return res.status(404).json({ error: 'Student not found' });
+        }
+        const student = students[0];
+
+        // 2. 활성 종목 목록
+        const [recordTypes] = await db.query(
+            'SELECT * FROM record_types WHERE is_active = 1 ORDER BY display_order'
+        );
+
+        // 3. 학생의 모든 기록 조회
+        const [allRecords] = await db.query(`
+            SELECT r.*, rt.direction
+            FROM student_records r
+            JOIN record_types rt ON r.record_type_id = rt.id
+            WHERE r.student_id = ?
+            ORDER BY r.measured_at DESC
+        `, [studentId]);
+
+        // 4. 종목별 배점표 조회
+        const [scoreTables] = await db.query(`
+            SELECT st.*, sr.score, sr.male_min, sr.male_max, sr.female_min, sr.female_max
+            FROM score_tables st
+            JOIN score_ranges sr ON sr.score_table_id = st.id
+            ORDER BY st.record_type_id, sr.score DESC
+        `);
+
+        // 배점표를 종목별로 그룹화
+        const scoreTablesByType = {};
+        scoreTables.forEach(row => {
+            if (!scoreTablesByType[row.record_type_id]) {
+                scoreTablesByType[row.record_type_id] = {
+                    maxScore: row.max_score,
+                    ranges: []
+                };
+            }
+            scoreTablesByType[row.record_type_id].ranges.push({
+                score: row.score,
+                male_min: parseFloat(row.male_min),
+                male_max: parseFloat(row.male_max),
+                female_min: parseFloat(row.female_min),
+                female_max: parseFloat(row.female_max)
+            });
+        });
+
+        // 5. 종목별 통계 계산
+        const averages = {};
+        const bests = {};
+        const latests = {};
+        const scores = {};
+        const trends = {};
+
+        recordTypes.forEach(rt => {
+            const typeRecords = allRecords.filter(r => r.record_type_id === rt.id);
+            if (typeRecords.length === 0) return;
+
+            // 평균
+            const values = typeRecords.map(r => parseFloat(r.value));
+            averages[rt.id] = values.reduce((a, b) => a + b, 0) / values.length;
+
+            // 최고 기록 (direction 고려)
+            const isLowerBetter = rt.direction === 'lower';
+            const bestValue = isLowerBetter ? Math.min(...values) : Math.max(...values);
+            const bestRecord = typeRecords.find(r => parseFloat(r.value) === bestValue);
+            bests[rt.id] = {
+                value: bestValue,
+                date: bestRecord?.measured_at
+            };
+
+            // 최신 기록
+            latests[rt.id] = {
+                value: parseFloat(typeRecords[0].value),
+                date: typeRecords[0].measured_at
+            };
+
+            // 점수 계산 (최신 기록 기준)
+            const scoreTable = scoreTablesByType[rt.id];
+            if (scoreTable) {
+                const latestValue = parseFloat(typeRecords[0].value);
+                const ranges = scoreTable.ranges;
+                for (const range of ranges) {
+                    const min = student.gender === 'M' ? range.male_min : range.female_min;
+                    const max = student.gender === 'M' ? range.male_max : range.female_max;
+                    if (latestValue >= min && latestValue <= max) {
+                        scores[rt.id] = range.score;
+                        break;
+                    }
+                }
+            }
+
+            // 추세 계산 (최근 3개 기록 비교)
+            if (typeRecords.length >= 2) {
+                const recent = parseFloat(typeRecords[0].value);
+                const previous = parseFloat(typeRecords[1].value);
+                if (isLowerBetter) {
+                    trends[rt.id] = recent < previous ? 'up' : recent > previous ? 'down' : 'stable';
+                } else {
+                    trends[rt.id] = recent > previous ? 'up' : recent < previous ? 'down' : 'stable';
+                }
+            } else {
+                trends[rt.id] = 'stable';
+            }
+        });
+
+        // 6. 총점 및 등급 계산
+        const scoreValues = Object.values(scores);
+        const totalScore = scoreValues.reduce((a, b) => a + b, 0);
+        const maxPossibleScore = scoreValues.length * 100; // 각 종목 만점 100점 가정
+        const percentage = maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0;
+
+        let grade = 'F';
+        if (percentage >= 90) grade = 'A';
+        else if (percentage >= 80) grade = 'B';
+        else if (percentage >= 70) grade = 'C';
+        else if (percentage >= 60) grade = 'D';
+
+        // 7. 전체 추세 (점수가 있는 종목들의 추세 종합)
+        const trendValues = Object.values(trends);
+        const upCount = trendValues.filter(t => t === 'up').length;
+        const downCount = trendValues.filter(t => t === 'down').length;
+        const overallTrend = upCount > downCount ? 'up' : downCount > upCount ? 'down' : 'stable';
+
+        res.json({
+            success: true,
+            student,
+            stats: {
+                averages,
+                bests,
+                latests,
+                scores,
+                trends,
+                totalScore,
+                maxPossibleScore,
+                percentage: Math.round(percentage * 10) / 10,
+                grade,
+                overallTrend,
+                recordCount: allRecords.length,
+                typesWithRecords: Object.keys(averages).length
+            }
+        });
+    } catch (error) {
+        console.error('Get student stats error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 module.exports = router;

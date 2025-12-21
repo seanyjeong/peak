@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, RefreshCw, Search, User, TrendingUp, TrendingDown, Minus, X, ChevronRight, Activity, Plus, Save, Trophy, Calendar, Download, BarChart3 } from 'lucide-react';
+import Link from 'next/link';
+import { Users, RefreshCw, Search, User, TrendingUp, TrendingDown, Minus, X, ChevronRight, Activity, Plus, Save, Trophy, Calendar, Download, BarChart3, ExternalLink } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { authAPI } from '@/lib/api/auth';
 import apiClient from '@/lib/api/client';
@@ -449,7 +450,17 @@ export default function StudentsPage() {
                         <User size={20} />
                       </div>
                       <div>
-                        <p className="font-medium text-slate-800">{student.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-slate-800">{student.name}</p>
+                          <Link
+                            href={`/students/${student.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 hover:bg-orange-100 rounded transition"
+                            title="프로필 보기"
+                          >
+                            <ExternalLink size={14} className="text-orange-500" />
+                          </Link>
+                        </div>
                         <p className="text-xs text-slate-400">
                           {student.gender === 'M' ? '남' : '여'}
                           {student.school && ` · ${student.school}`}
@@ -494,7 +505,16 @@ export default function StudentsPage() {
                     <User size={32} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">{selectedStudent.name}</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-2xl font-bold">{selectedStudent.name}</h2>
+                      <Link
+                        href={`/students/${selectedStudent.id}`}
+                        className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition"
+                        title="프로필 보기"
+                      >
+                        <ExternalLink size={16} />
+                      </Link>
+                    </div>
                     <p className="text-orange-100">
                       {selectedStudent.gender === 'M' ? '남' : '여'}
                       {selectedStudent.join_date && ` · ${new Date(selectedStudent.join_date).toLocaleDateString('ko-KR')} 등록`}

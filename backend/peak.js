@@ -91,6 +91,7 @@ app.use('/peak/exercise-tags', verifyToken, require('./routes/exercise-tags'));
 app.use('/peak/exercise-packs', verifyToken, require('./routes/exercise-packs'));
 app.use('/peak/record-types', verifyToken, require('./routes/recordTypes'));
 app.use('/peak/score-tables', verifyToken, require('./routes/scoreTable'));
+app.use('/peak/stats', verifyToken, require('./routes/stats'));
 
 // ==========================================
 // Error Handler
