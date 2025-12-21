@@ -244,6 +244,39 @@ export default function StudentProfilePage() {
       });
   }, [stats, recordTypes, academyAverages, scoreTables, student]);
 
+  // 선택된 종목 기준 종합평가 계산
+  const selectedStats = useMemo(() => {
+    if (!stats || !selectedGaugeTypes.length) {
+      return { totalScore: 0, maxScore: 0, percentage: 0, grade: 'F', recordedCount: 0 };
+    }
+
+    let totalScore = 0;
+    let maxScore = 0;
+    let recordedCount = 0;
+
+    selectedGaugeTypes.forEach(typeId => {
+      const scoreTable = scoreTables[typeId];
+      if (scoreTable) {
+        maxScore += scoreTable.max_score || 100;
+        if (stats.scores[typeId] !== undefined) {
+          totalScore += stats.scores[typeId];
+          recordedCount++;
+        }
+      }
+    });
+
+    const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+
+    // 등급 계산
+    let grade = 'F';
+    if (percentage >= 90) grade = 'A';
+    else if (percentage >= 80) grade = 'B';
+    else if (percentage >= 70) grade = 'C';
+    else if (percentage >= 60) grade = 'D';
+
+    return { totalScore, maxScore, percentage, grade, recordedCount };
+  }, [stats, selectedGaugeTypes, scoreTables]);
+
   // 기록 달성률 계산 (만점 대비)
   const getRecordPercentage = (typeId: number, value: number, hasRecord: boolean): number => {
     // 기록이 없으면 0%
@@ -466,21 +499,21 @@ export default function StudentProfilePage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Overall Grade */}
+          {/* Overall Grade - 선택된 종목 기준 */}
           <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="font-semibold text-gray-800 mb-4">종합평가</h3>
+            <h3 className="font-semibold text-gray-800 mb-4">종합평가 <span className="text-xs text-gray-400 font-normal">(선택 종목 기준)</span></h3>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getGradeColor(stats.grade)}`}>
-                  <span className="text-3xl font-bold">{stats.grade}</span>
+                <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getGradeColor(selectedStats.grade)}`}>
+                  <span className="text-3xl font-bold">{selectedStats.grade}</span>
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">{stats.totalScore}</span>
-                    <span className="text-gray-400">/ {stats.maxPossibleScore}</span>
+                    <span className="text-2xl font-bold">{selectedStats.totalScore}</span>
+                    <span className="text-gray-400">/ {selectedStats.maxScore}</span>
                   </div>
                   <p className="text-sm text-gray-500">
-                    상위 {100 - stats.percentage}% (달성률 {stats.percentage}%)
+                    달성률 {selectedStats.percentage}%
                   </p>
                 </div>
               </div>
@@ -494,12 +527,8 @@ export default function StudentProfilePage() {
 
             {/* 종목 수 */}
             <div className="mt-4 pt-4 border-t flex justify-between text-sm">
-              <span className="text-gray-500">기록된 종목</span>
-              <span className="font-medium">{stats.typesWithRecords}개 / {recordTypes.length}개</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">총 기록 수</span>
-              <span className="font-medium">{stats.recordCount}회</span>
+              <span className="text-gray-500">선택 종목</span>
+              <span className="font-medium">{selectedStats.recordedCount}개 / {selectedGaugeTypes.length}개</span>
             </div>
           </div>
         </div>
