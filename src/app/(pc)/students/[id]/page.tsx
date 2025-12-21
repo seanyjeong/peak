@@ -328,33 +328,34 @@ export default function StudentProfilePage() {
 
                 return (
                   <div key={typeId} className="relative">
-                    <ResponsiveContainer width="100%" height={100}>
+                    <ResponsiveContainer width="100%" height={120}>
                       <RadialBarChart
                         cx="50%"
                         cy="50%"
-                        innerRadius="60%"
-                        outerRadius="80%"
+                        innerRadius="65%"
+                        outerRadius="85%"
                         data={[{ value: percentage, fill: getScoreColor(percentage) }]}
-                        startAngle={180}
-                        endAngle={0}
+                        startAngle={90}
+                        endAngle={-270}
+                        barSize={10}
                       >
                         <RadialBar
                           dataKey="value"
-                          cornerRadius={10}
+                          cornerRadius={5}
                           background={{ fill: '#e5e7eb' }}
                         />
                       </RadialBarChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <span className="text-lg font-bold">
-                        {value}{type?.unit && <span className="text-xs font-normal text-gray-400">{type.unit}</span>}
+                        {value}<span className="text-xs font-normal text-gray-400">{type?.unit}</span>
                       </span>
                       <span className="text-[10px] text-gray-500">{type?.short_name || type?.name}</span>
                       {perfectValue && (
                         <span className="text-[9px] text-gray-400">만점: {perfectValue}</span>
                       )}
                     </div>
-                    <div className="flex justify-center mt-1">
+                    <div className="absolute bottom-0 left-0 right-0 flex justify-center">
                       <TrendIcon trend={trend || 'stable'} />
                     </div>
                   </div>
