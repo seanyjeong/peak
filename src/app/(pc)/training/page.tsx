@@ -51,6 +51,7 @@ interface Plan {
   exercises: PlanExercise[];
   completed_exercises: number[];
   extra_exercises: ExtraExercise[];
+  exercise_times: Record<string, string>;
   conditions_checked: boolean | number;
   conditions_checked_at: string | null;
   temperature: number | null;
@@ -226,15 +227,26 @@ export default function TrainingPage() {
     }
   };
 
-  // 온습도 값 저장 (blur시)
+  // 온습도 값 저장 (blur시) - 값 있으면 자동 체크
   const saveConditions = async () => {
     if (!currentPlan) return;
+    const hasValues = temperature || humidity;
+    const shouldCheck = hasValues ? true : currentPlan.conditions_checked ? true : false;
+
     try {
-      await apiClient.put(`/plans/${currentPlan.id}/conditions`, {
+      const res = await apiClient.put(`/plans/${currentPlan.id}/conditions`, {
         temperature: temperature ? parseFloat(temperature) : null,
         humidity: humidity ? parseInt(humidity) : null,
-        checked: currentPlan.conditions_checked ? true : false
+        checked: shouldCheck
       });
+      // 로컬 상태 업데이트 (자동 체크 반영)
+      if (hasValues && !currentPlan.conditions_checked) {
+        setPlans(prev => prev.map(p =>
+          p.id === currentPlan.id
+            ? { ...p, conditions_checked: 1, conditions_checked_at: res.data.checked_at }
+            : p
+        ));
+      }
     } catch (error) {
       console.error('Failed to save conditions:', error);
     }
@@ -248,7 +260,7 @@ export default function TrainingPage() {
       // 로컬 상태 업데이트 (스크롤 유지)
       setPlans(prev => prev.map(p =>
         p.id === currentPlan.id
-          ? { ...p, completed_exercises: res.data.completed_exercises }
+          ? { ...p, completed_exercises: res.data.completed_exercises, exercise_times: res.data.exercise_times || {} }
           : p
       ));
     } catch (error) {
@@ -314,10 +326,10 @@ export default function TrainingPage() {
           condition_score: score,
           notes: ''
         });
-        // 새 로그 추가 (스크롤 유지)
-        if (res.data.id) {
+        // 새 로그 추가 (스크롤 유지) - API는 logId 반환
+        if (res.data.logId) {
           setExistingLogs(prev => [...prev, {
-            id: res.data.id,
+            id: res.data.logId,
             student_id: studentId,
             condition_score: score,
             notes: ''
@@ -495,6 +507,7 @@ export default function TrainingPage() {
                   {/* 계획된 운동들 */}
                   {currentPlan.exercises.map((ex) => {
                     const isCompleted = currentPlan.completed_exercises.includes(ex.exercise_id);
+                    const completedTime = currentPlan.exercise_times?.[ex.exercise_id];
                     return (
                       <div
                         key={ex.exercise_id}
@@ -514,6 +527,11 @@ export default function TrainingPage() {
                             {ex.note && (
                               <span className={`ml-2 text-sm ${isCompleted ? 'text-slate-300' : 'text-slate-500'}`}>
                                 ({ex.note})
+                              </span>
+                            )}
+                            {isCompleted && completedTime && (
+                              <span className="ml-2 text-xs text-green-600">
+                                ✓ {new Date(completedTime).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             )}
                           </div>

@@ -132,12 +132,12 @@ function TrainerColumnComponent({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col w-72 rounded-xl ${bgColor} ${
+      className={`flex flex-col w-72 max-h-[calc(100vh-280px)] rounded-xl ${bgColor} ${
         isOver ? 'ring-2 ring-orange-400 ring-offset-2' : ''
       }`}
     >
-      {/* Sticky 헤더 - 스크롤해도 보이도록 */}
-      <div className={`${headerColor} text-white px-4 py-3 rounded-t-xl sticky top-0 z-10`}>
+      {/* 헤더 - 항상 고정 */}
+      <div className={`${headerColor} text-white px-4 py-3 rounded-t-xl flex-shrink-0`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users size={18} />
@@ -149,7 +149,8 @@ function TrainerColumnComponent({
         </div>
       </div>
 
-      <div className="flex-1 p-3 min-h-[200px]">
+      {/* 학생 목록 - 스크롤 가능 */}
+      <div className="flex-1 p-3 overflow-y-auto min-h-[200px]">
         <SortableContext
           items={column.students.map(s => `student-${s.id}`)}
           strategy={verticalListSortingStrategy}

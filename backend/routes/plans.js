@@ -65,7 +65,8 @@ router.get('/', async (req, res) => {
                 tags: typeof p.tags === 'string' ? JSON.parse(p.tags) : (p.tags || []),
                 exercises: typeof p.exercises === 'string' ? JSON.parse(p.exercises) : (p.exercises || []),
                 completed_exercises: typeof p.completed_exercises === 'string' ? JSON.parse(p.completed_exercises) : (p.completed_exercises || []),
-                extra_exercises: typeof p.extra_exercises === 'string' ? JSON.parse(p.extra_exercises) : (p.extra_exercises || [])
+                extra_exercises: typeof p.extra_exercises === 'string' ? JSON.parse(p.extra_exercises) : (p.extra_exercises || []),
+                exercise_times: typeof p.exercise_times === 'string' ? JSON.parse(p.exercise_times) : (p.exercise_times || {})
             };
         });
 
@@ -137,8 +138,8 @@ router.put('/:id/toggle-exercise', async (req, res) => {
         const { exercise_id } = req.body;
         const planId = req.params.id;
 
-        // 현재 completed_exercises 조회
-        const [plans] = await db.query('SELECT completed_exercises FROM daily_plans WHERE id = ?', [planId]);
+        // 현재 completed_exercises, exercise_times 조회
+        const [plans] = await db.query('SELECT completed_exercises, exercise_times FROM daily_plans WHERE id = ?', [planId]);
         if (plans.length === 0) {
             return res.status(404).json({ error: 'Plan not found' });
         }
@@ -146,17 +147,23 @@ router.put('/:id/toggle-exercise', async (req, res) => {
         let completed = plans[0].completed_exercises || [];
         if (typeof completed === 'string') completed = JSON.parse(completed);
 
+        let times = plans[0].exercise_times || {};
+        if (typeof times === 'string') times = JSON.parse(times);
+
         // 토글
         const idx = completed.indexOf(exercise_id);
         if (idx > -1) {
             completed.splice(idx, 1); // 이미 있으면 제거
+            delete times[exercise_id]; // 시간도 제거
         } else {
             completed.push(exercise_id); // 없으면 추가
+            times[exercise_id] = new Date(); // 완료 시간 기록
         }
 
-        await db.query('UPDATE daily_plans SET completed_exercises = ? WHERE id = ?', [JSON.stringify(completed), planId]);
+        await db.query('UPDATE daily_plans SET completed_exercises = ?, exercise_times = ? WHERE id = ?',
+            [JSON.stringify(completed), JSON.stringify(times), planId]);
 
-        res.json({ success: true, completed_exercises: completed });
+        res.json({ success: true, completed_exercises: completed, exercise_times: times });
     } catch (error) {
         console.error('Toggle exercise error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
