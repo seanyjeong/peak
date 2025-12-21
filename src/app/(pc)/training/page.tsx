@@ -52,6 +52,7 @@ interface Plan {
   completed_exercises: number[];
   extra_exercises: ExtraExercise[];
   conditions_checked: boolean | number;
+  conditions_checked_at: string | null;
   temperature: number | null;
   humidity: number | null;
 }
@@ -209,12 +210,17 @@ export default function TrainingPage() {
   const toggleConditions = async (checked: boolean) => {
     if (!currentPlan) return;
     try {
-      await apiClient.put(`/plans/${currentPlan.id}/conditions`, {
+      const res = await apiClient.put(`/plans/${currentPlan.id}/conditions`, {
         temperature: temperature ? parseFloat(temperature) : null,
         humidity: humidity ? parseInt(humidity) : null,
         checked
       });
-      await fetchData();
+      // 로컬 상태 업데이트 (스크롤 유지)
+      setPlans(prev => prev.map(p =>
+        p.id === currentPlan.id
+          ? { ...p, conditions_checked: checked ? 1 : 0, conditions_checked_at: res.data.checked_at }
+          : p
+      ));
     } catch (error) {
       console.error('Failed to save conditions:', error);
     }
@@ -238,8 +244,13 @@ export default function TrainingPage() {
   const toggleExercise = async (exerciseId: number) => {
     if (!currentPlan) return;
     try {
-      await apiClient.put(`/plans/${currentPlan.id}/toggle-exercise`, { exercise_id: exerciseId });
-      await fetchData();
+      const res = await apiClient.put(`/plans/${currentPlan.id}/toggle-exercise`, { exercise_id: exerciseId });
+      // 로컬 상태 업데이트 (스크롤 유지)
+      setPlans(prev => prev.map(p =>
+        p.id === currentPlan.id
+          ? { ...p, completed_exercises: res.data.completed_exercises }
+          : p
+      ));
     } catch (error) {
       console.error('Failed to toggle exercise:', error);
     }
@@ -249,8 +260,13 @@ export default function TrainingPage() {
   const toggleExtraExercise = async (index: number) => {
     if (!currentPlan) return;
     try {
-      await apiClient.put(`/plans/${currentPlan.id}/toggle-extra`, { index });
-      await fetchData();
+      const res = await apiClient.put(`/plans/${currentPlan.id}/toggle-extra`, { index });
+      // 로컬 상태 업데이트 (스크롤 유지)
+      setPlans(prev => prev.map(p =>
+        p.id === currentPlan.id
+          ? { ...p, extra_exercises: res.data.extra_exercises }
+          : p
+      ));
     } catch (error) {
       console.error('Failed to toggle extra exercise:', error);
     }
@@ -260,16 +276,21 @@ export default function TrainingPage() {
   const addExtraExercise = async () => {
     if (!currentPlan || !newExerciseName.trim()) return;
     try {
-      await apiClient.post(`/plans/${currentPlan.id}/extra-exercise`, { name: newExerciseName.trim() });
+      const res = await apiClient.post(`/plans/${currentPlan.id}/extra-exercise`, { name: newExerciseName.trim() });
+      // 로컬 상태 업데이트 (스크롤 유지)
+      setPlans(prev => prev.map(p =>
+        p.id === currentPlan.id
+          ? { ...p, extra_exercises: res.data.extra_exercises }
+          : p
+      ));
       setNewExerciseName('');
       setShowAddExercise(false);
-      await fetchData();
     } catch (error) {
       console.error('Failed to add exercise:', error);
     }
   };
 
-  // 컨디션 즉시 저장
+  // 컨디션 즉시 저장 (스크롤 유지를 위해 로컬 state 업데이트)
   const saveCondition = async (studentId: number, score: number | null) => {
     const existing = existingLogs.find(l => l.student_id === studentId);
     const dateStr = selectedDate;
@@ -280,8 +301,12 @@ export default function TrainingPage() {
           condition_score: score,
           notes: existing.notes || ''
         });
+        // 로컬 state 업데이트 (스크롤 유지)
+        setExistingLogs(prev => prev.map(l =>
+          l.student_id === studentId ? { ...l, condition_score: score } : l
+        ));
       } else {
-        await apiClient.post('/training', {
+        const res = await apiClient.post('/training', {
           date: dateStr,
           student_id: studentId,
           trainer_id: selectedTrainerId,
@@ -289,8 +314,16 @@ export default function TrainingPage() {
           condition_score: score,
           notes: ''
         });
+        // 새 로그 추가 (스크롤 유지)
+        if (res.data.id) {
+          setExistingLogs(prev => [...prev, {
+            id: res.data.id,
+            student_id: studentId,
+            condition_score: score,
+            notes: ''
+          }]);
+        }
       }
-      await fetchData();
     } catch (error) {
       console.error('Failed to save condition:', error);
     }
@@ -422,6 +455,11 @@ export default function TrainingPage() {
                         <span className={`font-medium ${currentPlan.conditions_checked ? 'line-through text-slate-400' : 'text-slate-800'}`}>
                           체육관 환경 체크
                         </span>
+                        {currentPlan.conditions_checked && currentPlan.conditions_checked_at && (
+                          <span className="ml-2 text-xs text-green-600">
+                            ✓ {new Date(currentPlan.conditions_checked_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
                       </div>
                     </div>
                     {/* 온습도 입력 */}

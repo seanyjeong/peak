@@ -132,11 +132,12 @@ function TrainerColumnComponent({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col w-72 rounded-xl overflow-hidden ${bgColor} ${
+      className={`flex flex-col w-72 rounded-xl ${bgColor} ${
         isOver ? 'ring-2 ring-orange-400 ring-offset-2' : ''
       }`}
     >
-      <div className={`${headerColor} text-white px-4 py-3`}>
+      {/* Sticky 헤더 - 스크롤해도 보이도록 */}
+      <div className={`${headerColor} text-white px-4 py-3 rounded-t-xl sticky top-0 z-10`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users size={18} />

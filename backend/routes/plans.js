@@ -222,12 +222,15 @@ router.put('/:id/conditions', async (req, res) => {
         const { temperature, humidity, checked } = req.body;
         const planId = req.params.id;
 
+        // checked가 true면 현재 시간(KST) 저장, false면 null
+        const checkedAt = checked ? new Date() : null;
+
         await db.query(
-            'UPDATE daily_plans SET temperature = ?, humidity = ?, conditions_checked = ? WHERE id = ?',
-            [temperature ?? null, humidity ?? null, checked ? 1 : 0, planId]
+            'UPDATE daily_plans SET temperature = ?, humidity = ?, conditions_checked = ?, conditions_checked_at = ? WHERE id = ?',
+            [temperature ?? null, humidity ?? null, checked ? 1 : 0, checkedAt, planId]
         );
 
-        res.json({ success: true });
+        res.json({ success: true, checked_at: checkedAt });
     } catch (error) {
         console.error('Update conditions error:', error);
         res.status(500).json({ error: 'Internal Server Error' });

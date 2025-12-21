@@ -52,9 +52,12 @@ router.get('/', async (req, res) => {
             }
         });
 
-        // 전체 통계
+        // 전체 통계 (고유 강사 기준)
         const allInstructors = [...bySlot.morning, ...bySlot.afternoon, ...bySlot.evening];
-        const checkedIn = allInstructors.filter(i => i.attendance_status === 'present').length;
+        const uniqueIds = new Set(allInstructors.map(i => i.id));
+        const presentIds = new Set(
+            allInstructors.filter(i => i.attendance_status === 'present').map(i => i.id)
+        );
 
         res.json({
             success: true,
@@ -62,8 +65,8 @@ router.get('/', async (req, res) => {
             slots: bySlot,
             stats: {
                 total: allInstructors.length,
-                checkedIn,
-                uniqueInstructors: new Set(allInstructors.map(i => i.id)).size
+                checkedIn: presentIds.size,  // 고유 강사 중 출근한 수
+                uniqueInstructors: uniqueIds.size
             }
         });
     } catch (error) {
