@@ -135,7 +135,13 @@ export default function StudentProfilePage() {
       setStats(statsRes.data.stats);
       setRecordHistory(historyRes.data.records || []);
       setRecordTypes(typesRes.data.recordTypes || []);
-      setAcademyAverages(academyRes.data.averages || {});
+      // 성별에 맞는 학원 평균 선택
+      const gender = statsRes.data.student?.gender;
+      if (gender === 'M') {
+        setAcademyAverages(academyRes.data.maleAverages || {});
+      } else {
+        setAcademyAverages(academyRes.data.femaleAverages || {});
+      }
 
       // 배점표 데이터를 종목ID별로 매핑
       const tables: Record<number, ScoreTable> = {};
@@ -167,7 +173,7 @@ export default function StudentProfilePage() {
   const trendChartData = useMemo(() => {
     if (!selectedTrendType || !recordHistory.length) return [];
 
-    return recordHistory
+    const data = recordHistory
       .filter(h => h.records.some(r => r.record_type_id === selectedTrendType))
       .map(h => {
         const record = h.records.find(r => r.record_type_id === selectedTrendType);
@@ -177,7 +183,25 @@ export default function StudentProfilePage() {
         };
       })
       .reverse();
+
+    return data;
   }, [selectedTrendType, recordHistory]);
+
+  // 선 그래프 Y축 도메인 계산 (자동 범위 + 패딩)
+  const trendYDomain = useMemo(() => {
+    if (!trendChartData.length) return [0, 100];
+    const values = trendChartData.map(d => d.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const padding = (max - min) * 0.2 || max * 0.1;
+    return [Math.max(0, min - padding), max + padding];
+  }, [trendChartData]);
+
+  // 현재 선택된 트렌드 종목이 lower인지
+  const isTrendTypeLower = useMemo(() => {
+    const type = recordTypes.find(t => t.id === selectedTrendType);
+    return type?.direction === 'lower';
+  }, [selectedTrendType, recordTypes]);
 
   // 레이더 차트 데이터 생성
   const radarChartData = useMemo(() => {
@@ -201,13 +225,13 @@ export default function StudentProfilePage() {
     });
   }, [stats, selectedRadarTypes, recordTypes, academyAverages]);
 
-  // 비교 막대 차트 데이터 (만점 대비 퍼센트로 정규화)
+  // 비교 막대 차트 데이터 (선택된 게이지 종목 기준)
   const compareBarData = useMemo(() => {
-    if (!stats || !recordTypes.length || !student) return [];
+    if (!stats || !recordTypes.length || !student || !selectedGaugeTypes.length) return [];
 
-    return recordTypes
-      .filter(t => stats.latests[t.id] !== undefined)
-      .slice(0, 5)
+    return selectedGaugeTypes
+      .map(typeId => recordTypes.find(t => t.id === typeId))
+      .filter((type): type is RecordType => type !== undefined)
       .map(type => {
         const scoreTable = scoreTables[type.id];
         const perfectValue = scoreTable
@@ -242,12 +266,12 @@ export default function StudentProfilePage() {
           unit: type.unit
         };
       });
-  }, [stats, recordTypes, academyAverages, scoreTables, student]);
+  }, [stats, recordTypes, academyAverages, scoreTables, student, selectedGaugeTypes]);
 
-  // 선택된 종목 기준 종합평가 계산
+  // 선택된 종목 기준 종합평가 계산 (기록이 있는 종목만 평가에 포함)
   const selectedStats = useMemo(() => {
     if (!stats || !selectedGaugeTypes.length) {
-      return { totalScore: 0, maxScore: 0, percentage: 0, grade: 'F', recordedCount: 0 };
+      return { totalScore: 0, maxScore: 0, percentage: 0, grade: 'F', recordedCount: 0, selectedCount: 0 };
     }
 
     let totalScore = 0;
@@ -256,11 +280,17 @@ export default function StudentProfilePage() {
 
     selectedGaugeTypes.forEach(typeId => {
       const scoreTable = scoreTables[typeId];
-      if (scoreTable) {
-        maxScore += scoreTable.max_score || 100;
-        if (stats.scores[typeId] !== undefined) {
-          totalScore += stats.scores[typeId];
-          recordedCount++;
+      // 기록이 있는지 확인 (latests 기준)
+      const hasRecord = stats.latests[typeId] !== undefined;
+
+      // 기록이 있는 경우에만 점수 계산에 포함
+      if (hasRecord) {
+        recordedCount++;
+        if (scoreTable) {
+          maxScore += scoreTable.max_score || 100;
+          if (stats.scores[typeId] !== undefined) {
+            totalScore += stats.scores[typeId];
+          }
         }
       }
     });
@@ -269,12 +299,14 @@ export default function StudentProfilePage() {
 
     // 등급 계산
     let grade = 'F';
-    if (percentage >= 90) grade = 'A';
+    if (recordedCount === 0) {
+      grade = '-'; // 기록이 없으면 등급 없음
+    } else if (percentage >= 90) grade = 'A';
     else if (percentage >= 80) grade = 'B';
     else if (percentage >= 70) grade = 'C';
     else if (percentage >= 60) grade = 'D';
 
-    return { totalScore, maxScore, percentage, grade, recordedCount };
+    return { totalScore, maxScore, percentage, grade, recordedCount, selectedCount: selectedGaugeTypes.length };
   }, [stats, selectedGaugeTypes, scoreTables]);
 
   // 기록 달성률 계산 (만점 대비)
@@ -388,7 +420,7 @@ export default function StudentProfilePage() {
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h3 className="font-semibold text-gray-800 mb-4">종목별 기록</h3>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {selectedGaugeTypes.slice(0, 6).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
@@ -486,8 +518,17 @@ export default function StudentProfilePage() {
               <LineChart data={trendChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(value) => [value, '기록']} />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  domain={trendYDomain as [number, number]}
+                  reversed={isTrendTypeLower}
+                />
+                <Tooltip
+                  formatter={(value) => {
+                    const type = recordTypes.find(t => t.id === selectedTrendType);
+                    return [`${value}${type?.unit || ''}`, '기록'];
+                  }}
+                />
                 <Line
                   type="monotone"
                   dataKey="value"
@@ -497,6 +538,9 @@ export default function StudentProfilePage() {
                 />
               </LineChart>
             </ResponsiveContainer>
+            {isTrendTypeLower && (
+              <p className="text-xs text-gray-400 text-center mt-1">* 낮을수록 좋은 종목 (Y축 반전)</p>
+            )}
           </div>
 
           {/* Overall Grade - 선택된 종목 기준 */}
@@ -527,9 +571,15 @@ export default function StudentProfilePage() {
 
             {/* 종목 수 */}
             <div className="mt-4 pt-4 border-t flex justify-between text-sm">
-              <span className="text-gray-500">선택 종목</span>
-              <span className="font-medium">{selectedStats.recordedCount}개 / {selectedGaugeTypes.length}개</span>
+              <span className="text-gray-500">평가 대상</span>
+              <span className="font-medium">
+                {selectedStats.recordedCount}개
+                <span className="text-gray-400"> / {selectedStats.selectedCount}개 선택</span>
+              </span>
             </div>
+            {selectedStats.recordedCount < selectedStats.selectedCount && (
+              <p className="text-xs text-gray-400 mt-1">* 기록이 없는 종목은 평가에서 제외됩니다</p>
+            )}
           </div>
         </div>
 

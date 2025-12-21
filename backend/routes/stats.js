@@ -18,9 +18,9 @@ router.get('/academy-average', async (req, res) => {
             'SELECT * FROM record_types WHERE is_active = 1 ORDER BY display_order'
         );
 
-        // 2. 모든 학생의 최신 기록만 조회 (종목별 최신 1개씩)
+        // 2. 모든 학생의 최신 기록만 조회 (종목별 최신 1개씩) + 성별 정보 포함
         const [latestRecords] = await db.query(`
-            SELECT r1.*
+            SELECT r1.*, s.gender
             FROM student_records r1
             INNER JOIN (
                 SELECT student_id, record_type_id, MAX(measured_at) as max_date
@@ -29,31 +29,52 @@ router.get('/academy-average', async (req, res) => {
             ) r2 ON r1.student_id = r2.student_id
                 AND r1.record_type_id = r2.record_type_id
                 AND r1.measured_at = r2.max_date
+            JOIN students s ON r1.student_id = s.id
+            WHERE s.status = 'active'
         `);
 
-        // 3. 종목별 평균 계산
-        const averages = {};
-        const counts = {};
+        // 3. 종목별 남/녀 분리 평균 계산
+        const maleAverages = {};
+        const femaleAverages = {};
+        const maleCounts = {};
+        const femaleCounts = {};
 
         recordTypes.forEach(rt => {
-            const typeRecords = latestRecords.filter(r => r.record_type_id === rt.id);
-            if (typeRecords.length > 0) {
-                const values = typeRecords.map(r => parseFloat(r.value));
-                averages[rt.id] = values.reduce((a, b) => a + b, 0) / values.length;
-                counts[rt.id] = values.length;
+            const maleRecords = latestRecords.filter(r => r.record_type_id === rt.id && r.gender === 'M');
+            const femaleRecords = latestRecords.filter(r => r.record_type_id === rt.id && r.gender === 'F');
+
+            if (maleRecords.length > 0) {
+                const values = maleRecords.map(r => parseFloat(r.value));
+                maleAverages[rt.id] = values.reduce((a, b) => a + b, 0) / values.length;
+                maleCounts[rt.id] = values.length;
+            }
+            if (femaleRecords.length > 0) {
+                const values = femaleRecords.map(r => parseFloat(r.value));
+                femaleAverages[rt.id] = values.reduce((a, b) => a + b, 0) / values.length;
+                femaleCounts[rt.id] = values.length;
             }
         });
 
-        // 4. 전체 학생 수
+        // 4. 전체 학생 수 (성별별)
         const [studentCount] = await db.query(
-            "SELECT COUNT(*) as count FROM students WHERE status = 'active'"
+            "SELECT gender, COUNT(*) as count FROM students WHERE status = 'active' GROUP BY gender"
         );
+
+        const genderCounts = {};
+        studentCount.forEach(row => {
+            genderCounts[row.gender] = row.count;
+        });
 
         res.json({
             success: true,
-            averages,
-            counts, // 종목별 기록 보유 학생 수
-            totalStudents: studentCount[0].count,
+            maleAverages,
+            femaleAverages,
+            maleCounts,
+            femaleCounts,
+            totalStudents: {
+                male: genderCounts['M'] || 0,
+                female: genderCounts['F'] || 0
+            },
             recordTypes: recordTypes.map(rt => ({
                 id: rt.id,
                 name: rt.name,
