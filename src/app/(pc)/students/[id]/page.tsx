@@ -245,7 +245,10 @@ export default function StudentProfilePage() {
   }, [stats, recordTypes, academyAverages, scoreTables, student]);
 
   // 기록 달성률 계산 (만점 대비)
-  const getRecordPercentage = (typeId: number, value: number): number => {
+  const getRecordPercentage = (typeId: number, value: number, hasRecord: boolean): number => {
+    // 기록이 없으면 0%
+    if (!hasRecord) return 0;
+
     const type = recordTypes.find(t => t.id === typeId);
     const scoreTable = scoreTables[typeId];
     if (!type || !scoreTable || !student) return 0;
@@ -356,8 +359,9 @@ export default function StudentProfilePage() {
               {selectedGaugeTypes.slice(0, 4).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
+                const hasRecord = latestRecord !== undefined && latestRecord !== null;
                 const value = latestRecord?.value || 0;
-                const percentage = getRecordPercentage(typeId, value);
+                const percentage = getRecordPercentage(typeId, value, hasRecord);
                 const trend = stats.trends[typeId];
                 const scoreTable = scoreTables[typeId];
                 const perfectValue = student && scoreTable
@@ -392,7 +396,7 @@ export default function StudentProfilePage() {
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <span className="text-lg font-bold">
-                        {value}<span className="text-xs font-normal text-gray-400">{type?.unit}</span>
+                        {hasRecord ? value : '-'}<span className="text-xs font-normal text-gray-400">{type?.unit}</span>
                       </span>
                       <span className="text-[10px] text-gray-500">{type?.short_name || type?.name}</span>
                       {perfectValue && (
