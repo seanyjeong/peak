@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const APP_VERSION = 'v1.7.7';
+const APP_VERSION = 'v1.8.0';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,

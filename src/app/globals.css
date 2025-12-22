@@ -52,3 +52,43 @@ body {
   background: rgba(249, 115, 22, 0.15);
   border-left: 3px solid var(--peak-orange);
 }
+
+/* Tablet Touch Optimization */
+@media (pointer: coarse) {
+  /* 터치 디바이스에서 버튼/터치 요소 최소 크기 */
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+
+  /* 스크롤 최적화 */
+  .tablet-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
+/* Safe Area for bottom navigation */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Tablet Portrait Mode */
+@media (max-width: 1199px) and (orientation: portrait) {
+  .tablet-portrait-hidden {
+    display: none;
+  }
+}
+
+/* Tablet Landscape Mode */
+@media (min-width: 1200px) and (orientation: landscape) {
+  .tablet-landscape-hidden {
+    display: none;
+  }
+}
+
+/* Drag & Drop for touch */
+.touch-draggable {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

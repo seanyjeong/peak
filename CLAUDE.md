@@ -27,7 +27,7 @@
 
 ---
 
-## 현재 버전: v1.7.7
+## 현재 버전: v1.8.0
 
 ## 버전 정책
 
@@ -42,6 +42,7 @@
 **버전 업데이트 위치**:
 - `package.json` → `"version": "x.x.x"`
 - `src/app/(pc)/layout.tsx` → `const APP_VERSION = 'vx.x.x'`
+- `src/app/tablet/layout.tsx` → `const APP_VERSION = 'vx.x.x'` (태블릿)
 
 ---
 
@@ -317,6 +318,14 @@ academy_settings (
 
 ## 버전 히스토리
 
+### v1.8.0 (2025-12-22)
+- **태블릿 버전 전면 구현** (아이뮤즈 L11, 11인치)
+  - 10개 페이지 모두 태블릿 최적화
+  - 세로/가로 모드 완전 지원 (OrientationContext)
+  - 터치 친화적 UI (min-h-12, 큰 버튼, 풀스크린 모달)
+  - 드래그앤드롭 터치 최적화 (TouchSensor, delay: 150ms)
+  - middleware.ts로 디바이스 자동 감지 및 리다이렉트
+
 ### v1.7.x (2025-12-22)
 - **v1.7.7**: 메뉴 구조 개선
   - 설정 → 실기측정설정 (측정종목 + 배점표만)
@@ -406,18 +415,104 @@ echo 'q141171616!' | sudo -S journalctl -u peak -f
 
 ---
 
+## 태블릿 버전 (v1.8.0)
+
+### 타겟 디바이스
+- **아이뮤즈 L11** (11인치)
+- 해상도: 2000×1200 (가로) / 1200×2000 (세로)
+- 대상: 강사용 (PC와 동일 기능)
+
+### 라우팅 구조
+```
+/src/app/
+├── (pc)/                    # PC 버전 (기존, 루트 경로)
+└── tablet/                  # 태블릿 버전 (/tablet/...)
+    ├── layout.tsx           # 세로/가로 반응형 레이아웃
+    ├── dashboard/page.tsx
+    ├── attendance/page.tsx
+    ├── assignments/page.tsx
+    ├── plans/page.tsx
+    ├── training/page.tsx
+    ├── records/page.tsx
+    ├── students/page.tsx
+    ├── students/[id]/page.tsx
+    ├── exercises/page.tsx
+    └── settings/page.tsx
+```
+
+### 디바이스 감지 (middleware.ts)
+```javascript
+// User-Agent 기반 감지
+// iPad, Android tablet, IMUZ → /tablet/...
+// 그 외 → / (PC)
+```
+
+### 레이아웃 설계
+
+**세로 모드 (1200×2000)**
+- 상단 헤더 (h-16): 로고, 타이틀, 프로필
+- 메인 콘텐츠: 스크롤
+- 하단 탭바 (h-20): 대시보드, 반배치, 수업기록, 기록측정, 더보기
+
+**가로 모드 (2000×1200)**
+- 좌측 사이드바 (w-20): 축소형 네비게이션
+- 상단 헤더 (h-14): 페이지 제목, 프로필
+- 메인 콘텐츠: 넓은 영역
+
+### 핵심 구현
+
+**1. Orientation Context**
+```javascript
+// layout.tsx
+const OrientationContext = createContext<'portrait' | 'landscape'>('portrait');
+export const useOrientation = () => useContext(OrientationContext);
+```
+
+**2. 드래그앤드롭 터치 최적화**
+```javascript
+// TouchSensor with activation constraints
+const sensors = useSensors(
+  useSensor(TouchSensor, {
+    activationConstraint: { delay: 150, tolerance: 5 }
+  }),
+  useSensor(PointerSensor, {
+    activationConstraint: { distance: 5 }
+  })
+);
+```
+
+**3. 터치 친화적 UI 가이드**
+- 모든 버튼/터치 요소: `min-h-12` (48px)
+- 입력 필드: `text-lg` 이상
+- 모달: 풀스크린 (`inset-0`)
+- 드래그 요소: `touch-action: none`
+
+### 페이지별 특징
+
+| 페이지 | 세로 모드 | 가로 모드 |
+|--------|-----------|-----------|
+| 대시보드 | 1컬럼 카드 | 2컬럼 그리드 |
+| 반 배치 | 2컬럼 그리드 | 가로 스크롤 |
+| 수업 기록 | 1컬럼 카드 | 2컬럼 그리드 |
+| 기록 측정 | 1컬럼 카드 | 테이블형 |
+| 학생 프로필 | 세로 스크롤 | 2컬럼 (정보+차트) |
+
+---
+
 ## TODO
 
 ### 완료
 - [x] 학생 프로필 페이지 (FM 스타일 대시보드)
 - [x] 학생 기록에 점수 자동 계산 연동
+- [x] 태블릿 버전 (v1.8.0) - 10개 페이지 전체
 
 ### 우선순위 높음
+- [ ] **모바일 버전 (강사용)** - 기록측정, 수업계획, 수업기록
 - [ ] 학생 이름 클릭 → 프로필 페이지 연동 (각 페이지에서)
 - [ ] 수업 기록 체크리스트 UI (계획된 운동 체크)
 
 ### 추가 기능
+- [ ] 학생용 모바일 앱
 - [ ] 부상 관리
 - [ ] 알림 시스템
 - [ ] 통계/분석 대시보드
-- [ ] 모바일 PWA 최적화
