@@ -26,6 +26,9 @@ interface Student {
   gender: 'male' | 'female';
   condition_score?: number;
   notes?: string;
+  is_trial?: boolean;
+  trial_total?: number;
+  trial_remaining?: number;
 }
 
 interface PlannedExercise {
@@ -93,15 +96,18 @@ export default function MobileTrainingPage() {
       const trainingData = await trainingRes.json();
 
       // 시간대별 학생 필터링
-      const slotData = (trainingData.training || [])
+      const slotData = (trainingData.training || trainingData.logs || [])
         .filter((t: { time_slot: string }) => t.time_slot === selectedTimeSlot)
-        .map((t: { student_id: number; student_name: string; student_gender: string; id: number; condition_score?: number; notes?: string }) => ({
+        .map((t: { student_id: number; student_name: string; student_gender: string; id: number; condition_score?: number; notes?: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => ({
           id: t.student_id,
           training_log_id: t.id,
           name: t.student_name,
           gender: t.student_gender as 'male' | 'female',
           condition_score: t.condition_score,
           notes: t.notes,
+          is_trial: t.is_trial,
+          trial_total: t.trial_total,
+          trial_remaining: t.trial_remaining,
         }));
 
       setStudents(slotData);
@@ -369,6 +375,11 @@ export default function MobileTrainingPage() {
                       {student.name.charAt(0)}
                     </div>
                     <p className="font-medium text-slate-800">{student.name}</p>
+                    {!!student.is_trial && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">
+                        {(student.trial_total || 0) - (student.trial_remaining || 0)}/{student.trial_total || 0}
+                      </span>
+                    )}
                     {isSavingCondition && (
                       <Check size={16} className="text-green-500 ml-auto" />
                     )}

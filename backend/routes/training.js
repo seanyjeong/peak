@@ -17,6 +17,10 @@ router.get('/', async (req, res) => {
             SELECT
                 l.*,
                 s.name as student_name,
+                s.gender as student_gender,
+                s.is_trial,
+                s.trial_total,
+                s.trial_remaining,
                 p.tags, p.description as plan_description
             FROM training_logs l
             JOIN students s ON l.student_id = s.id

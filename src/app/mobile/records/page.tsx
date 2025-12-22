@@ -24,6 +24,9 @@ interface Student {
   gender: 'male' | 'female';
   school?: string;
   grade?: string;
+  is_trial?: boolean;
+  trial_total?: number;
+  trial_remaining?: number;
 }
 
 interface RecordType {
@@ -78,11 +81,14 @@ export default function MobileRecordsPage() {
       // 시간대별 학생 필터링
       const slotStudents = (assignData.assignments || [])
         .filter((a: { time_slot: string }) => a.time_slot === selectedTimeSlot)
-        .map((a: { student_id: number; student_name: string; student_gender: string; id: number }) => ({
+        .map((a: { student_id: number; student_name: string; student_gender: string; id: number; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => ({
           id: a.student_id,
           assignment_id: a.id,
           name: a.student_name,
           gender: a.student_gender as 'male' | 'female',
+          is_trial: a.is_trial,
+          trial_total: a.trial_total,
+          trial_remaining: a.trial_remaining,
         }));
 
       setStudents(slotStudents);
@@ -302,7 +308,14 @@ export default function MobileRecordsPage() {
                       {student.name.charAt(0)}
                     </div>
                     <div className="text-left">
-                      <p className="font-medium text-slate-800 text-sm">{student.name}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="font-medium text-slate-800 text-sm">{student.name}</p>
+                        {!!student.is_trial && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">
+                            {(student.trial_total || 0) - (student.trial_remaining || 0)}/{student.trial_total || 0}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-slate-500">
                         {student.gender === 'male' ? '남' : '여'}
                       </p>
@@ -393,7 +406,14 @@ export default function MobileRecordsPage() {
                     {student.name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-800 text-sm truncate">{student.name}</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-medium text-slate-800 text-sm truncate">{student.name}</p>
+                      {!!student.is_trial && (
+                        <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-100 text-purple-700 flex-shrink-0">
+                          {(student.trial_total || 0) - (student.trial_remaining || 0)}/{student.trial_total || 0}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="relative flex items-center gap-2">
                     <input
