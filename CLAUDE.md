@@ -27,7 +27,7 @@
 
 ---
 
-## 현재 버전: v1.8.1
+## 현재 버전: v1.9.0
 
 ## 버전 정책
 
@@ -189,6 +189,58 @@ const getRoleDisplayName = (role, position) => {
 };
 ```
 
+### 6. 원장 반배치 상시 표시 (v1.9.0)
+**파일**: `backend/routes/assignments.js`
+
+```javascript
+// P-ACA에서 원장 조회 (users 테이블, role='owner')
+const [owners] = await pacaPool.query(`
+  SELECT id, name FROM users
+  WHERE academy_id = ? AND role = 'owner' AND deleted_at IS NULL
+`, [ACADEMY_ID]);
+
+// 원장을 모든 시간대에 추가 (음수 ID로 구분)
+owners.forEach(owner => {
+  ['morning', 'afternoon', 'evening'].forEach(slot => {
+    instructorsBySlot[slot].push({
+      id: -owner.id,  // user_id 2 → -2 (강사와 구분)
+      name: decrypt(owner.name),
+      isOwner: true
+    });
+  });
+});
+```
+
+**왜 음수 ID?**
+- 원장은 P-ACA `instructors` 테이블에 없음 (월급 계산 대상 아님)
+- `users` 테이블의 `id`를 음수로 변환해 강사와 구분
+- 프론트에서 `trainer_id < 0`이면 원장으로 처리 가능
+
+### 7. 체험수업 trial_dates 연동 (v1.9.0)
+**파일**: `backend/routes/assignments.js`
+
+```javascript
+// P-ACA에서 trial_dates 조회
+SELECT s.*, ps.trial_dates
+FROM students s
+JOIN paca.students ps ON s.paca_student_id = ps.id
+
+// trial_total 계산: trial_dates 배열 길이 사용
+let trialTotal = 0;
+if (ps.is_trial) {
+  const trialDates = JSON.parse(ps.trial_dates || '[]');
+  trialTotal = trialDates.length || 2;  // 기본값 2
+}
+
+// INSERT 시에만 trial_total 설정, UPDATE 시에는 trial_remaining만
+INSERT ... trial_total = ?, trial_remaining = ?
+UPDATE ... trial_remaining = ?  // trial_total 유지
+```
+
+**표기 방식**:
+- `trial_total - trial_remaining` = 완료 횟수
+- 예: trial_total=2, trial_remaining=1 → "체험 1/2"
+
 ---
 
 ## DB 스키마
@@ -318,6 +370,19 @@ academy_settings (
 ---
 
 ## 버전 히스토리
+
+### v1.9.0 (2025-12-23)
+- **체험수업 연동 개선**
+  - P-ACA `trial_dates` 배열 기반 총 횟수 계산
+  - 표기: "체험 1/2" (완료/전체)
+  - 모바일 페이지에 체험수업 배지 추가
+- **원장 반배치 상시 표시**
+  - 스케줄 등록 없이도 모든 시간대에 표시
+  - 음수 ID 방식 (user_id 2 → trainer_id -2)
+  - 강사와 구분하여 월급 계산 영향 없음
+- **모바일 버그 수정**
+  - API URL 중복 수정 (`/peak/peak` → `/peak`)
+  - middleware 재활성화 (디바이스 자동 감지)
 
 ### v1.8.1 (2025-12-22)
 - **모바일 버전 (강사용)** 구현
@@ -514,9 +579,11 @@ const sensors = useSensors(
 - [x] 학생 프로필 페이지 (FM 스타일 대시보드)
 - [x] 학생 기록에 점수 자동 계산 연동
 - [x] 태블릿 버전 (v1.8.0) - 10개 페이지 전체
+- [x] **모바일 버전 (강사용)** - 기록측정, 수업계획, 수업기록 (v1.8.1)
+- [x] 체험수업 P-ACA 연동 (trial_dates 기반) (v1.9.0)
+- [x] 원장 반배치 상시 표시 (v1.9.0)
 
 ### 우선순위 높음
-- [x] **모바일 버전 (강사용)** - 기록측정, 수업계획, 수업기록 (v1.8.1)
 - [ ] 학생 이름 클릭 → 프로필 페이지 연동 (각 페이지에서)
 - [ ] 수업 기록 체크리스트 UI (계획된 운동 체크)
 
