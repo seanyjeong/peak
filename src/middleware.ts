@@ -2,11 +2,6 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // 임시: 디바이스 감지 비활성화 (테스트용)
-  // PC에서도 /mobile/*, /tablet/* 직접 접근 가능
-  return NextResponse.next();
-
-  /* 원래 코드 - 테스트 후 복구
   const ua = request.headers.get('user-agent') || '';
   const pathname = request.nextUrl.pathname;
 
@@ -73,20 +68,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(tabletPath, request.url));
   }
 
-  // PC 사용자가 태블릿/모바일 경로에 접근하면 PC 버전으로 리다이렉트
-  if (!isTablet && !isMobile) {
-    if (pathname.startsWith('/tablet')) {
-      const pcPath = pathname.replace('/tablet', '') || '/dashboard';
-      return NextResponse.redirect(new URL(pcPath, request.url));
-    }
-    if (pathname.startsWith('/mobile')) {
-      const pcPath = pathname.replace('/mobile', '') || '/dashboard';
-      return NextResponse.redirect(new URL(pcPath, request.url));
-    }
-  }
-
   return NextResponse.next();
-  */
 }
 
 export const config = {
