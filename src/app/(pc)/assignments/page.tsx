@@ -89,7 +89,7 @@ function StudentCard({ student, isDragging }: { student: Student; isDragging?: b
         </Link>
         {!!student.is_trial && (
           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">
-            체험 {student.trial_total - student.trial_remaining + 1}/{student.trial_total}
+            체험 {student.trial_total - student.trial_remaining}/{student.trial_total}
           </span>
         )}
         {statusIcon && <span className="ml-auto text-slate-400">{statusIcon}</span>}

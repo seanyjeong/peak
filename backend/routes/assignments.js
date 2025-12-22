@@ -218,6 +218,7 @@ router.post('/sync', async (req, res) => {
                 s.grade,
                 s.is_trial,
                 s.trial_remaining,
+                s.trial_dates,
                 s.status as student_status,
                 cs.time_slot,
                 a.attendance_status,
@@ -243,7 +244,19 @@ router.post('/sync', async (req, res) => {
         for (const ps of pacaStudents) {
             const decryptedName = ps.student_name ? decrypt(ps.student_name) : ps.student_name;
             const gender = convertGender(ps.gender);
-            const trialTotal = ps.is_trial ? (ps.trial_remaining || 2) : 0;
+
+            // trial_total 계산: trial_dates 배열 길이 사용
+            let trialTotal = 0;
+            if (ps.is_trial) {
+                try {
+                    const trialDates = typeof ps.trial_dates === 'string'
+                        ? JSON.parse(ps.trial_dates || '[]')
+                        : (ps.trial_dates || []);
+                    trialTotal = trialDates.length || 2; // 기본값 2
+                } catch (e) {
+                    trialTotal = 2; // 파싱 실패 시 기본값
+                }
+            }
 
             // Peak 학생 조회/생성
             let [peakStudents] = await db.query(
@@ -270,10 +283,10 @@ router.post('/sync', async (req, res) => {
                 peakStudentId = insertResult.insertId;
             } else {
                 peakStudentId = peakStudents[0].id;
-                // 학생 정보 업데이트
+                // 학생 정보 업데이트 (trial_total은 유지, trial_remaining만 업데이트)
                 await db.query(`
                     UPDATE students SET name = ?, gender = ?, school = ?, grade = ?,
-                           is_trial = ?, trial_total = ?, trial_remaining = ?
+                           is_trial = ?, trial_remaining = ?
                     WHERE id = ?
                 `, [
                     decryptedName,
@@ -281,7 +294,6 @@ router.post('/sync', async (req, res) => {
                     ps.school,
                     ps.grade,
                     ps.is_trial ? 1 : 0,
-                    trialTotal,
                     ps.trial_remaining || 0,
                     peakStudentId
                 ]);
@@ -362,6 +374,7 @@ router.post('/init', async (req, res) => {
                 s.grade,
                 s.is_trial,
                 s.trial_remaining,
+                s.trial_dates,
                 cs.time_slot
             FROM attendance a
             JOIN class_schedules cs ON a.class_schedule_id = cs.id
@@ -382,7 +395,19 @@ router.post('/init', async (req, res) => {
         for (const ps of pacaStudents) {
             const decryptedName = ps.student_name ? decrypt(ps.student_name) : ps.student_name;
             const gender = convertGender(ps.gender);
-            const trialTotal = ps.is_trial ? (ps.trial_remaining || 2) : 0;
+
+            // trial_total 계산: trial_dates 배열 길이 사용
+            let trialTotal = 0;
+            if (ps.is_trial) {
+                try {
+                    const trialDates = typeof ps.trial_dates === 'string'
+                        ? JSON.parse(ps.trial_dates || '[]')
+                        : (ps.trial_dates || []);
+                    trialTotal = trialDates.length || 2;
+                } catch (e) {
+                    trialTotal = 2;
+                }
+            }
 
             let [peakStudents] = await db.query(
                 'SELECT id FROM students WHERE paca_student_id = ?',

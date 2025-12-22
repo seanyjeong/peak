@@ -229,7 +229,7 @@ export default function TabletStudentsPage() {
                 <div className="flex items-center gap-2">
                   {!!student.is_trial && (
                     <span className="px-2 py-1 rounded-lg text-xs font-medium bg-purple-100 text-purple-700">
-                      체험 {student.trial_total - student.trial_remaining + 1}/{student.trial_total}
+                      체험 {student.trial_total - student.trial_remaining}/{student.trial_total}
                     </span>
                   )}
                   <span className={`px-3 py-1 rounded-lg text-sm font-medium ${STATUS_MAP[student.status].color}`}>
