@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { authAPI } from '@/lib/api/auth';
 import { Medal, ClipboardList, Activity, Mountain, LogOut } from 'lucide-react';
 
-const APP_VERSION = 'v1.8.1';
+const APP_VERSION = 'v1.9.0';
 
 // Bottom tab items (3개)
 const bottomTabs = [
