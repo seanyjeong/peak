@@ -46,7 +46,7 @@ interface DailyPlan {
   notes: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
 
 const timeSlotConfig = [
   { key: 'morning', label: '오전', icon: Sunrise },
@@ -88,19 +88,19 @@ export default function MobilePlansPage() {
 
       // 계획 로드
       const planRes = await fetch(
-        `${API_BASE}/peak/daily-plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
+        `${API_BASE}/daily-plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
         { headers }
       );
       const planData = await planRes.json();
       setPlans(planData.plans || []);
 
       // 태그 로드
-      const tagRes = await fetch(`${API_BASE}/peak/exercise-tags`, { headers });
+      const tagRes = await fetch(`${API_BASE}/exercise-tags`, { headers });
       const tagData = await tagRes.json();
       setTags((tagData.tags || []).filter((t: ExerciseTag) => t.tag_id));
 
       // 운동 로드
-      const exRes = await fetch(`${API_BASE}/peak/exercises`, { headers });
+      const exRes = await fetch(`${API_BASE}/exercises`, { headers });
       const exData = await exRes.json();
       setExercises(exData.exercises || []);
     } catch (error) {
@@ -199,8 +199,8 @@ export default function MobilePlansPage() {
       };
 
       const url = editingPlan
-        ? `${API_BASE}/peak/daily-plans/${editingPlan.id}`
-        : `${API_BASE}/peak/daily-plans`;
+        ? `${API_BASE}/daily-plans/${editingPlan.id}`
+        : `${API_BASE}/daily-plans`;
 
       const response = await fetch(url, {
         method: editingPlan ? 'PUT' : 'POST',
@@ -228,7 +228,7 @@ export default function MobilePlansPage() {
 
     try {
       const token = authAPI.getToken();
-      await fetch(`${API_BASE}/peak/daily-plans/${planId}`, {
+      await fetch(`${API_BASE}/daily-plans/${planId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

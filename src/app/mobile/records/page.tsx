@@ -41,7 +41,7 @@ interface StudentRecord {
   score?: number | null;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
 
 const timeSlotConfig = [
   { key: 'morning', label: '오전', icon: Sunrise },
@@ -70,7 +70,7 @@ export default function MobileRecordsPage() {
 
       // 반 배치 데이터 로드
       const assignRes = await fetch(
-        `${API_BASE}/peak/assignments?date=${selectedDate}`,
+        `${API_BASE}/assignments?date=${selectedDate}`,
         { headers }
       );
       const assignData = await assignRes.json();
@@ -88,7 +88,7 @@ export default function MobileRecordsPage() {
       setStudents(slotStudents);
 
       // 종목 로드
-      const typeRes = await fetch(`${API_BASE}/peak/record-types`, { headers });
+      const typeRes = await fetch(`${API_BASE}/record-types`, { headers });
       const typeData = await typeRes.json();
       const activeTypes = (typeData.recordTypes || []).filter((t: { is_active: boolean }) => t.is_active);
       setRecordTypes(activeTypes);
@@ -101,7 +101,7 @@ export default function MobileRecordsPage() {
       if (slotStudents.length > 0) {
         const studentIds = slotStudents.map((s: Student) => s.id).join(',');
         const recRes = await fetch(
-          `${API_BASE}/peak/records/by-date?date=${selectedDate}&student_ids=${studentIds}`,
+          `${API_BASE}/records/by-date?date=${selectedDate}&student_ids=${studentIds}`,
           { headers }
         );
         const recData = await recRes.json();
@@ -135,7 +135,7 @@ export default function MobileRecordsPage() {
       const token = authAPI.getToken();
       const numValue = value === '' ? null : parseFloat(value);
 
-      const response = await fetch(`${API_BASE}/peak/records/batch`, {
+      const response = await fetch(`${API_BASE}/records/batch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

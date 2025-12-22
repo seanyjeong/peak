@@ -42,7 +42,7 @@ interface DailyPlan {
   exercises: PlannedExercise[];
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
 
 const timeSlotConfig = [
   { key: 'morning', label: '오전', icon: Sunrise },
@@ -87,7 +87,7 @@ export default function MobileTrainingPage() {
 
       // 수업 기록 로드
       const trainingRes = await fetch(
-        `${API_BASE}/peak/training?date=${selectedDate}`,
+        `${API_BASE}/training?date=${selectedDate}`,
         { headers }
       );
       const trainingData = await trainingRes.json();
@@ -108,7 +108,7 @@ export default function MobileTrainingPage() {
 
       // 수업 계획 로드
       const planRes = await fetch(
-        `${API_BASE}/peak/daily-plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
+        `${API_BASE}/daily-plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
         { headers }
       );
       const planData = await planRes.json();
@@ -131,7 +131,7 @@ export default function MobileTrainingPage() {
 
     try {
       const token = authAPI.getToken();
-      await fetch(`${API_BASE}/peak/training/${trainingLogId}`, {
+      await fetch(`${API_BASE}/training/${trainingLogId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -161,7 +161,7 @@ export default function MobileTrainingPage() {
 
     try {
       const token = authAPI.getToken();
-      await fetch(`${API_BASE}/peak/training/${trainingLogId}`, {
+      await fetch(`${API_BASE}/training/${trainingLogId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
