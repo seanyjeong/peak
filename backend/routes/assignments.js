@@ -47,8 +47,28 @@ router.get('/', async (req, res) => {
             ORDER BY ins.time_slot, i.id
         `, [ACADEMY_ID, targetDate]);
 
+        // P-ACA에서 원장 조회 (항상 모든 시간대에 포함)
+        const [owners] = await pacaPool.query(`
+            SELECT id, name FROM users
+            WHERE academy_id = ? AND role = 'owner' AND deleted_at IS NULL
+        `, [ACADEMY_ID]);
+
         // 강사 이름 복호화 및 시간대별 그룹화
         const instructorsBySlot = { morning: [], afternoon: [], evening: [] };
+
+        // 원장을 모든 시간대에 먼저 추가 (음수 ID로 구분: user_id 2 → -2)
+        owners.forEach(owner => {
+            const decryptedName = owner.name ? decrypt(owner.name) : owner.name;
+            ['morning', 'afternoon', 'evening'].forEach(slot => {
+                instructorsBySlot[slot].push({
+                    id: -owner.id,  // 음수 ID로 원장 구분
+                    name: decryptedName,
+                    isOwner: true
+                });
+            });
+        });
+
+        // 일반 강사 추가
         pacaInstructors.forEach(i => {
             const decryptedName = i.name ? decrypt(i.name) : i.name;
             if (instructorsBySlot[i.time_slot]) {
