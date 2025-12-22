@@ -264,45 +264,41 @@ export default function MobileTrainingPage() {
       ) : activeTab === 'checklist' ? (
         /* 체크리스트 탭 */
         <div className="space-y-3">
-          {/* 환경 체크 */}
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-slate-800">환경 체크</h3>
+          {/* 환경 체크 - 한 줄로 컴팩트하게 */}
+          <div className="bg-white rounded-xl p-3 shadow-sm">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setEnvCheck(prev => ({ ...prev, checked: !prev.checked }))}
-                className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition ${
+                className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition ${
                   envCheck.checked
                     ? 'bg-green-500 border-green-500'
                     : 'border-slate-300'
                 }`}
               >
-                {envCheck.checked && <Check size={14} className="text-white" />}
+                {envCheck.checked && <Check size={12} className="text-white" />}
               </button>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 bg-slate-50 rounded-lg p-3">
-                <Thermometer size={18} className="text-red-500 flex-shrink-0" />
-                <span className="text-xs text-slate-500 w-8">온도</span>
+              <span className="text-sm font-medium text-slate-800 flex-shrink-0">환경</span>
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <Thermometer size={14} className="text-red-500 flex-shrink-0" />
                 <input
                   type="number"
                   placeholder="25"
                   value={envCheck.temperature}
                   onChange={(e) => setEnvCheck(prev => ({ ...prev, temperature: e.target.value }))}
-                  className="flex-1 bg-transparent text-sm outline-none min-w-0"
+                  className="w-10 bg-slate-100 rounded px-1 py-0.5 text-sm text-center outline-none"
                 />
-                <span className="text-xs text-slate-500">°C</span>
+                <span className="text-xs text-slate-400">°C</span>
               </div>
-              <div className="flex items-center gap-2 bg-slate-50 rounded-lg p-3">
-                <Droplets size={18} className="text-blue-500 flex-shrink-0" />
-                <span className="text-xs text-slate-500 w-8">습도</span>
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <Droplets size={14} className="text-blue-500 flex-shrink-0" />
                 <input
                   type="number"
                   placeholder="50"
                   value={envCheck.humidity}
                   onChange={(e) => setEnvCheck(prev => ({ ...prev, humidity: e.target.value }))}
-                  className="flex-1 bg-transparent text-sm outline-none min-w-0"
+                  className="w-10 bg-slate-100 rounded px-1 py-0.5 text-sm text-center outline-none"
                 />
-                <span className="text-xs text-slate-500">%</span>
+                <span className="text-xs text-slate-400">%</span>
               </div>
             </div>
           </div>
