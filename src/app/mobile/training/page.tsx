@@ -309,36 +309,36 @@ export default function MobileTrainingPage() {
               <h3 className="font-medium text-slate-800">계획된 운동</h3>
             </div>
             {allExercises.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-slate-500">
+              <div className="px-4 py-4 text-center text-sm text-slate-500">
                 계획된 운동이 없습니다
               </div>
             ) : (
               allExercises.map((ex, idx) => (
-                <div key={idx} className="flex items-center gap-3 px-4 py-3">
+                <div key={idx} className="flex items-center gap-2 px-3 py-2">
                   <button
                     onClick={() => {
                       // TODO: 운동 완료 토글 API 연동
                     }}
-                    className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition ${
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition ${
                       ex.completed
                         ? 'bg-green-500 border-green-500'
                         : 'border-slate-300'
                     }`}
                   >
-                    {ex.completed && <Check size={14} className="text-white" />}
+                    {ex.completed && <Check size={12} className="text-white" />}
                   </button>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-800">{ex.name}</p>
-                    {(ex.sets || ex.reps) && (
-                      <p className="text-xs text-slate-500">
-                        {ex.sets && `${ex.sets}세트`}
-                        {ex.sets && ex.reps && ' / '}
-                        {ex.reps && `${ex.reps}회`}
-                      </p>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-800 truncate">
+                      {ex.name}
+                      {(ex.sets || ex.reps) && (
+                        <span className="text-slate-400 ml-1">
+                          {ex.sets && `${ex.sets}세트`}{ex.sets && ex.reps && '/'}{ex.reps && `${ex.reps}회`}
+                        </span>
+                      )}
+                    </p>
                   </div>
                   {ex.completed_at && (
-                    <span className="text-xs text-green-600">
+                    <span className="text-xs text-green-600 flex-shrink-0">
                       {format(new Date(ex.completed_at), 'HH:mm')}
                     </span>
                   )}
