@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
+  // 임시: 디바이스 감지 비활성화 (테스트용)
+  // PC에서도 /mobile/*, /tablet/* 직접 접근 가능
+  return NextResponse.next();
+
+  /* 원래 코드 - 테스트 후 복구
   const ua = request.headers.get('user-agent') || '';
   const pathname = request.nextUrl.pathname;
 
@@ -81,6 +86,7 @@ export function middleware(request: NextRequest) {
   }
 
   return NextResponse.next();
+  */
 }
 
 export const config = {
