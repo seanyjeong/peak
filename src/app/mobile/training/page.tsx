@@ -279,26 +279,28 @@ export default function MobileTrainingPage() {
                 {envCheck.checked && <Check size={14} className="text-white" />}
               </button>
             </div>
-            <div className="flex gap-3">
-              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-lg p-3">
-                <Thermometer size={18} className="text-red-500" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 bg-slate-50 rounded-lg p-3">
+                <Thermometer size={18} className="text-red-500 flex-shrink-0" />
+                <span className="text-xs text-slate-500 w-8">온도</span>
                 <input
                   type="number"
-                  placeholder="온도"
+                  placeholder="25"
                   value={envCheck.temperature}
                   onChange={(e) => setEnvCheck(prev => ({ ...prev, temperature: e.target.value }))}
-                  className="flex-1 bg-transparent text-sm outline-none"
+                  className="flex-1 bg-transparent text-sm outline-none min-w-0"
                 />
                 <span className="text-xs text-slate-500">°C</span>
               </div>
-              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-lg p-3">
-                <Droplets size={18} className="text-blue-500" />
+              <div className="flex items-center gap-2 bg-slate-50 rounded-lg p-3">
+                <Droplets size={18} className="text-blue-500 flex-shrink-0" />
+                <span className="text-xs text-slate-500 w-8">습도</span>
                 <input
                   type="number"
-                  placeholder="습도"
+                  placeholder="50"
                   value={envCheck.humidity}
                   onChange={(e) => setEnvCheck(prev => ({ ...prev, humidity: e.target.value }))}
-                  className="flex-1 bg-transparent text-sm outline-none"
+                  className="flex-1 bg-transparent text-sm outline-none min-w-0"
                 />
                 <span className="text-xs text-slate-500">%</span>
               </div>
