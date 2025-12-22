@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
+import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 import { authAPI, User } from '@/lib/api/auth';
 
@@ -329,6 +330,13 @@ export default function PlansPage() {
           {!isOwner && amIScheduled && !myPlanExists && !showAddForm && (
             <span className="text-sm text-orange-500 font-medium">계획 미작성</span>
           )}
+          <Link
+            href="/exercises"
+            className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+          >
+            <Settings2 size={18} />
+            <span>운동 관리</span>
+          </Link>
           <button
             onClick={fetchData}
             disabled={loading}
