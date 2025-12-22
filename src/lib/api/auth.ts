@@ -61,6 +61,14 @@ export const authAPI = {
   },
 
   /**
+   * 토큰 가져오기
+   */
+  getToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('peak_token');
+  },
+
+  /**
    * 로그인 여부 확인
    */
   isAuthenticated(): boolean {

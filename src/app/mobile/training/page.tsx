@@ -1,0 +1,429 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
+import {
+  Calendar,
+  Sunrise,
+  Sun,
+  Moon,
+  RefreshCw,
+  Check,
+  Thermometer,
+  Droplets,
+  ClipboardList,
+  Users,
+  MessageSquare
+} from 'lucide-react';
+import { authAPI } from '@/lib/api/auth';
+
+interface Student {
+  id: number;
+  assignment_id: number;
+  training_log_id?: number;
+  name: string;
+  gender: 'male' | 'female';
+  condition_score?: number;
+  notes?: string;
+}
+
+interface PlannedExercise {
+  id: number;
+  name: string;
+  sets?: number;
+  reps?: number;
+  completed?: boolean;
+  completed_at?: string;
+}
+
+interface DailyPlan {
+  id: number;
+  exercises: PlannedExercise[];
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com';
+
+const timeSlotConfig = [
+  { key: 'morning', label: '오전', icon: Sunrise },
+  { key: 'afternoon', label: '오후', icon: Sun },
+  { key: 'evening', label: '저녁', icon: Moon },
+];
+
+const conditionEmojis = [
+  { score: 1, emoji: '😞', label: '나쁨' },
+  { score: 2, emoji: '😐', label: '보통' },
+  { score: 3, emoji: '🙂', label: '좋음' },
+  { score: 4, emoji: '😃', label: '매우좋음' },
+  { score: 5, emoji: '👍', label: '최상' },
+];
+
+export default function MobileTrainingPage() {
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('morning');
+  const [activeTab, setActiveTab] = useState<'checklist' | 'condition'>('checklist');
+  const [students, setStudents] = useState<Student[]>([]);
+  const [plans, setPlans] = useState<DailyPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+
+  // 환경 체크
+  const [envCheck, setEnvCheck] = useState({ checked: false, temperature: '', humidity: '' });
+
+  // 유저 정보
+  const [user, setUser] = useState<{ id: number; name: string } | null>(null);
+
+  useEffect(() => {
+    const currentUser = authAPI.getCurrentUser();
+    setUser(currentUser);
+  }, []);
+
+  // 데이터 로드
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = authAPI.getToken();
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // 수업 기록 로드
+      const trainingRes = await fetch(
+        `${API_BASE}/peak/training?date=${selectedDate}`,
+        { headers }
+      );
+      const trainingData = await trainingRes.json();
+
+      // 시간대별 학생 필터링
+      const slotData = (trainingData.training || [])
+        .filter((t: { time_slot: string }) => t.time_slot === selectedTimeSlot)
+        .map((t: { student_id: number; student_name: string; student_gender: string; id: number; condition_score?: number; notes?: string }) => ({
+          id: t.student_id,
+          training_log_id: t.id,
+          name: t.student_name,
+          gender: t.student_gender as 'male' | 'female',
+          condition_score: t.condition_score,
+          notes: t.notes,
+        }));
+
+      setStudents(slotData);
+
+      // 수업 계획 로드
+      const planRes = await fetch(
+        `${API_BASE}/peak/daily-plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
+        { headers }
+      );
+      const planData = await planRes.json();
+      setPlans(planData.plans || []);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedDate, selectedTimeSlot]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // 컨디션 저장
+  const saveCondition = async (trainingLogId: number, conditionScore: number) => {
+    const key = `condition-${trainingLogId}`;
+    setSaving(key);
+
+    try {
+      const token = authAPI.getToken();
+      await fetch(`${API_BASE}/peak/training/${trainingLogId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ condition_score: conditionScore }),
+      });
+
+      setStudents(prev =>
+        prev.map(s =>
+          s.training_log_id === trainingLogId
+            ? { ...s, condition_score: conditionScore }
+            : s
+        )
+      );
+    } catch (error) {
+      console.error('Failed to save condition:', error);
+    } finally {
+      setTimeout(() => setSaving(null), 500);
+    }
+  };
+
+  // 메모 저장
+  const saveNotes = async (trainingLogId: number, notes: string) => {
+    const key = `notes-${trainingLogId}`;
+    setSaving(key);
+
+    try {
+      const token = authAPI.getToken();
+      await fetch(`${API_BASE}/peak/training/${trainingLogId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ notes }),
+      });
+
+      setStudents(prev =>
+        prev.map(s =>
+          s.training_log_id === trainingLogId
+            ? { ...s, notes }
+            : s
+        )
+      );
+    } catch (error) {
+      console.error('Failed to save notes:', error);
+    } finally {
+      setTimeout(() => setSaving(null), 500);
+    }
+  };
+
+  const koreanDate = format(new Date(selectedDate), 'M월 d일 (E)', { locale: ko });
+
+  // 모든 계획의 운동 합치기
+  const allExercises = plans.flatMap(p => p.exercises || []);
+
+  return (
+    <div className="space-y-3">
+      {/* 날짜 선택 */}
+      <div className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Calendar size={18} className="text-slate-500" />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="text-sm font-medium text-slate-800 bg-transparent border-none outline-none"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500">{koreanDate}</span>
+          <button
+            onClick={loadData}
+            className="p-2 hover:bg-slate-100 rounded-lg transition"
+          >
+            <RefreshCw size={18} className={loading ? 'animate-spin text-orange-500' : 'text-slate-500'} />
+          </button>
+        </div>
+      </div>
+
+      {/* 시간대 탭 */}
+      <div className="flex gap-2">
+        {timeSlotConfig.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setSelectedTimeSlot(key)}
+            className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl font-medium text-sm transition ${
+              selectedTimeSlot === key
+                ? 'bg-orange-500 text-white shadow-md'
+                : 'bg-white text-slate-600 shadow-sm'
+            }`}
+          >
+            <Icon size={16} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* 내부 탭 */}
+      <div className="flex gap-2 bg-white rounded-xl p-1 shadow-sm">
+        <button
+          onClick={() => setActiveTab('checklist')}
+          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
+            activeTab === 'checklist'
+              ? 'bg-slate-800 text-white'
+              : 'text-slate-600'
+          }`}
+        >
+          <ClipboardList size={16} />
+          <span>체크리스트</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('condition')}
+          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
+            activeTab === 'condition'
+              ? 'bg-slate-800 text-white'
+              : 'text-slate-600'
+          }`}
+        >
+          <Users size={16} />
+          <span>학생 컨디션</span>
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw size={24} className="animate-spin text-orange-500" />
+        </div>
+      ) : activeTab === 'checklist' ? (
+        /* 체크리스트 탭 */
+        <div className="space-y-3">
+          {/* 환경 체크 */}
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium text-slate-800">환경 체크</h3>
+              <button
+                onClick={() => setEnvCheck(prev => ({ ...prev, checked: !prev.checked }))}
+                className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition ${
+                  envCheck.checked
+                    ? 'bg-green-500 border-green-500'
+                    : 'border-slate-300'
+                }`}
+              >
+                {envCheck.checked && <Check size={14} className="text-white" />}
+              </button>
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-lg p-3">
+                <Thermometer size={18} className="text-red-500" />
+                <input
+                  type="number"
+                  placeholder="온도"
+                  value={envCheck.temperature}
+                  onChange={(e) => setEnvCheck(prev => ({ ...prev, temperature: e.target.value }))}
+                  className="flex-1 bg-transparent text-sm outline-none"
+                />
+                <span className="text-xs text-slate-500">°C</span>
+              </div>
+              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-lg p-3">
+                <Droplets size={18} className="text-blue-500" />
+                <input
+                  type="number"
+                  placeholder="습도"
+                  value={envCheck.humidity}
+                  onChange={(e) => setEnvCheck(prev => ({ ...prev, humidity: e.target.value }))}
+                  className="flex-1 bg-transparent text-sm outline-none"
+                />
+                <span className="text-xs text-slate-500">%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 계획된 운동 */}
+          <div className="bg-white rounded-xl shadow-sm divide-y divide-slate-100">
+            <div className="px-4 py-3">
+              <h3 className="font-medium text-slate-800">계획된 운동</h3>
+            </div>
+            {allExercises.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-slate-500">
+                계획된 운동이 없습니다
+              </div>
+            ) : (
+              allExercises.map((ex, idx) => (
+                <div key={idx} className="flex items-center gap-3 px-4 py-3">
+                  <button
+                    onClick={() => {
+                      // TODO: 운동 완료 토글 API 연동
+                    }}
+                    className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition ${
+                      ex.completed
+                        ? 'bg-green-500 border-green-500'
+                        : 'border-slate-300'
+                    }`}
+                  >
+                    {ex.completed && <Check size={14} className="text-white" />}
+                  </button>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-800">{ex.name}</p>
+                    {(ex.sets || ex.reps) && (
+                      <p className="text-xs text-slate-500">
+                        {ex.sets && `${ex.sets}세트`}
+                        {ex.sets && ex.reps && ' / '}
+                        {ex.reps && `${ex.reps}회`}
+                      </p>
+                    )}
+                  </div>
+                  {ex.completed_at && (
+                    <span className="text-xs text-green-600">
+                      {format(new Date(ex.completed_at), 'HH:mm')}
+                    </span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ) : (
+        /* 학생 컨디션 탭 */
+        <div className="space-y-2">
+          {students.length === 0 ? (
+            <div className="bg-white rounded-xl p-8 text-center shadow-sm">
+              <p className="text-slate-500 text-sm">등록된 학생이 없습니다</p>
+            </div>
+          ) : (
+            students.map((student) => {
+              const isSavingCondition = saving === `condition-${student.training_log_id}`;
+              const isSavingNotes = saving === `notes-${student.training_log_id}`;
+
+              return (
+                <div key={student.id} className="bg-white rounded-xl p-4 shadow-sm">
+                  {/* 학생 이름 */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
+                      student.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500'
+                    }`}>
+                      {student.name.charAt(0)}
+                    </div>
+                    <p className="font-medium text-slate-800">{student.name}</p>
+                    {isSavingCondition && (
+                      <Check size={16} className="text-green-500 ml-auto" />
+                    )}
+                  </div>
+
+                  {/* 컨디션 버튼 */}
+                  <div className="flex gap-2 mb-3">
+                    {conditionEmojis.map(({ score, emoji, label }) => (
+                      <button
+                        key={score}
+                        onClick={() => {
+                          if (student.training_log_id) {
+                            saveCondition(student.training_log_id, score);
+                          }
+                        }}
+                        className={`flex-1 flex flex-col items-center py-2 rounded-xl transition ${
+                          student.condition_score === score
+                            ? 'bg-orange-100 border-2 border-orange-500'
+                            : 'bg-slate-50 border-2 border-transparent'
+                        }`}
+                      >
+                        <span className="text-xl">{emoji}</span>
+                        <span className="text-[10px] text-slate-500 mt-1">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* 메모 */}
+                  <div className="relative">
+                    <div className="absolute left-3 top-3">
+                      <MessageSquare size={16} className="text-slate-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="메모..."
+                      defaultValue={student.notes || ''}
+                      onBlur={(e) => {
+                        if (student.training_log_id) {
+                          saveNotes(student.training_log_id, e.target.value);
+                        }
+                      }}
+                      className="w-full h-10 pl-10 pr-8 text-sm bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                    />
+                    {isSavingNotes && (
+                      <Check size={14} className="absolute right-3 top-3 text-green-500" />
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
