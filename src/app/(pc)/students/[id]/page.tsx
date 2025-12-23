@@ -419,13 +419,13 @@ export default function StudentProfilePage() {
       </div>
 
       {/* 3 Column Layout */}
-      <div className="grid grid-cols-12 gap-4 lg:gap-6 auto-rows-[minmax(0,1fr)] items-start">
+      <div className="grid grid-cols-12 gap-6 auto-rows-[minmax(0,1fr)] items-stretch">
         {/* Left Column - Record Gauges */}
         <div className="col-span-3 row-span-2">
-          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4 h-full flex flex-col min-h-[280px]">
-            <h3 className="font-semibold text-gray-800 mb-3">종목별 기록</h3>
+          <div className="bg-white rounded-xl shadow-sm p-4 h-full flex flex-col">
+            <h3 className="font-semibold text-gray-800 mb-4">종목별 기록</h3>
 
-            <div className="grid grid-cols-2 gap-2 sm:gap-3 flex-1">
+            <div className="grid grid-cols-2 gap-3 flex-1">
               {selectedGaugeTypes.slice(0, 6).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
@@ -445,7 +445,7 @@ export default function StudentProfilePage() {
 
                 return (
                   <div key={typeId} className="relative">
-                    <ResponsiveContainer width="100%" height={100}>
+                    <ResponsiveContainer width="100%" height={120}>
                       <PieChart>
                         <Pie
                           data={gaugeData}
@@ -482,7 +482,7 @@ export default function StudentProfilePage() {
             </div>
 
             {/* 종목 선택 버튼들 */}
-            <div className="mt-3 flex flex-wrap gap-1">
+            <div className="mt-4 flex flex-wrap gap-1">
               {recordTypes.map(type => (
                 <button
                   key={type.id}
@@ -498,14 +498,14 @@ export default function StudentProfilePage() {
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">최대 6개 선택</p>
+            <p className="text-xs text-gray-400 mt-1">최대 6개 선택</p>
           </div>
         </div>
 
         {/* Middle Column - Trend Chart */}
         <div className="col-span-5">
-          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4 h-full flex flex-col min-h-[220px]">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800">기록 추이</h3>
               <select
                 className="text-sm border rounded px-3 py-1"
@@ -518,7 +518,7 @@ export default function StudentProfilePage() {
               </select>
             </div>
 
-            <div className="flex-1 min-h-[180px]">
+            <div className="flex-1 min-h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -553,10 +553,10 @@ export default function StudentProfilePage() {
 
         {/* Right Column - Comparison */}
         <div className="col-span-4">
-          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4 h-full flex flex-col min-h-[220px]">
-            <h3 className="font-semibold text-gray-800 mb-3">학원평균 vs {student.name}</h3>
+          <div className="bg-white rounded-xl shadow-sm p-4 h-full flex flex-col">
+            <h3 className="font-semibold text-gray-800 mb-4">학원평균 vs {student.name}</h3>
             <p className="text-xs text-gray-400 mb-2">만점 대비 달성률 (%)</p>
-            <div className="flex-1 min-h-[180px]">
+            <div className="flex-1 min-h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={compareBarData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
@@ -584,8 +584,8 @@ export default function StudentProfilePage() {
 
         {/* Middle Column - Overall Grade */}
         <div className="col-span-5">
-          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4 h-full flex flex-col min-h-[190px]">
-            <h3 className="font-semibold text-gray-800 mb-3">종합평가 <span className="text-xs text-gray-400 font-normal">(선택 종목 기준)</span></h3>
+          <div className="bg-white rounded-xl shadow-sm p-4 h-full flex flex-col min-h-[240px]">
+            <h3 className="font-semibold text-gray-800 mb-4">종합평가 <span className="text-xs text-gray-400 font-normal">(선택 종목 기준)</span></h3>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getGradeColor(selectedStats.grade)}`}>
@@ -625,9 +625,9 @@ export default function StudentProfilePage() {
 
         {/* Right Column - Radar Chart */}
         <div className="col-span-4">
-          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4 h-full flex flex-col min-h-[190px]">
-            <h3 className="font-semibold text-gray-800 mb-3">능력치 비교</h3>
-            <div className="flex-1 min-h-[180px]">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-full flex flex-col min-h-[240px]">
+            <h3 className="font-semibold text-gray-800 mb-4">능력치 비교</h3>
+            <div className="flex-1 min-h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={radarChartData}>
                   <PolarGrid />
