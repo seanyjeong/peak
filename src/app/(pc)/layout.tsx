@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
-const APP_VERSION = 'v2.0.3';
+const APP_VERSION = 'v2.0.4';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -15,7 +16,6 @@ import {
   LogOut,
   Menu,
   ChevronLeft,
-  Mountain,
   UserCheck,
   Settings
 } from 'lucide-react';
@@ -77,9 +77,13 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Mountain size={24} className="text-white" />
-                </div>
+                <Image
+                  src="/peak-192x192.png"
+                  alt="P-EAK"
+                  width={40}
+                  height={40}
+                  className="rounded-lg flex-shrink-0"
+                />
                 <div>
                   <h1 className="text-lg font-bold tracking-wide">P-EAK</h1>
                   <p className="text-[10px] text-slate-400 -mt-1">Physical Excellence</p>
@@ -95,9 +99,15 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
           ) : (
             <button
               onClick={() => setSidebarOpen(true)}
-              className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center hover:bg-orange-600 transition"
+              className="p-1 rounded-lg hover:bg-[#243a5e] transition"
             >
-              <Mountain size={24} className="text-white" />
+              <Image
+                src="/peak-192x192.png"
+                alt="P-EAK"
+                width={44}
+                height={44}
+                className="rounded-lg"
+              />
             </button>
           )}
         </div>

@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { authAPI } from '@/lib/api/auth';
-import { Medal, ClipboardList, Activity, Mountain, LogOut } from 'lucide-react';
+import Image from 'next/image';
+import { Medal, ClipboardList, Activity, LogOut } from 'lucide-react';
 
-const APP_VERSION = 'v2.0.3';
+const APP_VERSION = 'v2.0.4';
 
 // Bottom tab items (3개)
 const bottomTabs = [
@@ -51,9 +52,13 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
       {/* 헤더 */}
       <header className="h-14 bg-[#1a2b4a] flex items-center justify-between px-4 sticky top-0 z-20">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-            <Mountain size={18} className="text-white" />
-          </div>
+          <Image
+            src="/peak-192x192.png"
+            alt="P-EAK"
+            width={32}
+            height={32}
+            className="rounded-lg"
+          />
           <div>
             <h1 className="text-white font-bold text-sm">{currentPage}</h1>
             <p className="text-[8px] text-slate-400">{APP_VERSION}</p>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { authAPI } from '@/lib/api/auth';
 import {
@@ -13,14 +14,13 @@ import {
   UserCheck,
   Settings,
   Calendar,
-  Mountain,
   LogOut,
   Menu,
   X,
   Dumbbell
 } from 'lucide-react';
 
-const APP_VERSION = 'v2.0.3';
+const APP_VERSION = 'v2.0.4';
 
 // Orientation Context
 const OrientationContext = createContext<'portrait' | 'landscape'>('portrait');
@@ -102,9 +102,13 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
           <aside className="w-20 bg-[#1a2b4a] text-white flex flex-col fixed h-full z-20">
             {/* 로고 */}
             <div className="h-16 flex items-center justify-center border-b border-[#243a5e]">
-              <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
-                <Mountain size={28} className="text-white" />
-              </div>
+              <Image
+                src="/peak-192x192.png"
+                alt="P-EAK"
+                width={48}
+                height={48}
+                className="rounded-lg"
+              />
             </div>
 
             {/* 네비게이션 */}
@@ -184,9 +188,13 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
         {/* 헤더 */}
         <header className="h-16 bg-[#1a2b4a] flex items-center justify-between px-4 sticky top-0 z-20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-              <Mountain size={24} className="text-white" />
-            </div>
+            <Image
+              src="/peak-192x192.png"
+              alt="P-EAK"
+              width={40}
+              height={40}
+              className="rounded-lg"
+            />
             <div>
               <h1 className="text-white font-bold">P-EAK</h1>
               <p className="text-[10px] text-slate-400">{APP_VERSION}</p>
