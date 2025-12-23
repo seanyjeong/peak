@@ -240,9 +240,9 @@ function ClassColumn({ classData, orientation }: { classData: ClassData; orienta
     <div className={`flex flex-col ${columnWidth} bg-white rounded-xl shadow-sm border overflow-hidden`}>
       {/* 헤더 */}
       <div className="bg-orange-500 text-white px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="font-bold text-lg">{className}</span>
-          <span className="text-sm bg-white/20 px-2 py-0.5 rounded">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-bold text-lg truncate">{className}</span>
+          <span className="text-sm bg-white/20 px-2 py-0.5 rounded shrink-0">
             {classData.students.length}명
           </span>
         </div>

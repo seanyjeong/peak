@@ -235,9 +235,9 @@ function ClassColumn({ classData }: { classData: ClassData }) {
     <div className="flex flex-col w-48 bg-white rounded-xl shadow-sm border overflow-hidden">
       {/* 헤더: 반 이름 */}
       <div className="bg-orange-500 text-white px-3 py-2">
-        <div className="flex items-center justify-between">
-          <span className="font-bold">{className}</span>
-          <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-bold truncate">{className}</span>
+          <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded shrink-0">
             {classData.students.length}명
           </span>
         </div>
