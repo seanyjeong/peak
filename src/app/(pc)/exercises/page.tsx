@@ -28,7 +28,8 @@ export default function ExercisesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentUser = authAPI.getCurrentUser();
-  const isSystemAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
+  const isSystemAdmin = currentUser?.role === 'admin'; // 태그 관리는 시스템 관리자만
 
   // 운동 관리 상태
   const [showExerciseForm, setShowExerciseForm] = useState(false);
@@ -288,15 +289,17 @@ export default function ExercisesPage() {
             태그 관리
           </button>
         )}
-        <button
-          onClick={() => setActiveTab('packs')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-            activeTab === 'packs' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 hover:bg-slate-100'
-          }`}
-        >
-          <Package size={16} />
-          운동 팩
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab('packs')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+              activeTab === 'packs' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 hover:bg-slate-100'
+            }`}
+          >
+            <Package size={16} />
+            운동 팩
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -314,7 +317,7 @@ export default function ExercisesPage() {
               <Plus size={18} />
               <span>운동 추가</span>
             </button>
-            {exercisePacks.length > 0 && (
+            {isAdmin && exercisePacks.length > 0 && (
               <button
                 onClick={() => setShowPackApplyModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
@@ -364,7 +367,7 @@ export default function ExercisesPage() {
           onSave={saveTag}
           onDelete={deleteTag}
         />
-      ) : (
+      ) : activeTab === 'packs' && isAdmin ? (
         <PackManager
           packs={exercisePacks}
           exercises={exercises}
@@ -379,7 +382,7 @@ export default function ExercisesPage() {
           onExport={exportPack}
           onImport={importPack}
         />
-      )}
+      ) : null}
     </div>
   );
 }

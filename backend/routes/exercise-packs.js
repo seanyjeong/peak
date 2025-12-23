@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { requireRole } = require('../middleware/auth');
 
 // GET /peak/exercise-packs - 팩 목록
 router.get('/', async (req, res) => {
@@ -60,8 +61,8 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// POST /peak/exercise-packs - 팩 생성 (스냅샷 저장)
-router.post('/', async (req, res) => {
+// POST /peak/exercise-packs - 팩 생성 (스냅샷 저장) [관리자 전용]
+router.post('/', requireRole('admin', 'owner'), async (req, res) => {
     try {
         const { name, description, exercise_ids = [] } = req.body;
 
@@ -168,8 +169,8 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// DELETE /peak/exercise-packs/:id - 팩 삭제
-router.delete('/:id', async (req, res) => {
+// DELETE /peak/exercise-packs/:id - 팩 삭제 [관리자 전용]
+router.delete('/:id', requireRole('admin', 'owner'), async (req, res) => {
     try {
         await db.query('DELETE FROM exercise_packs WHERE id = ?', [req.params.id]);
         res.json({ success: true });
@@ -241,8 +242,8 @@ router.get('/:id/export', async (req, res) => {
     }
 });
 
-// POST /peak/exercise-packs/import - 팩 가져오기
-router.post('/import', async (req, res) => {
+// POST /peak/exercise-packs/import - 팩 가져오기 [관리자 전용]
+router.post('/import', requireRole('admin', 'owner'), async (req, res) => {
     const connection = await db.getConnection();
 
     try {
@@ -335,8 +336,8 @@ router.post('/import', async (req, res) => {
     }
 });
 
-// POST /peak/exercise-packs/:id/apply - 팩 불러오기 (운동 목록 대체)
-router.post('/:id/apply', async (req, res) => {
+// POST /peak/exercise-packs/:id/apply - 팩 불러오기 (운동 목록 대체) [관리자 전용]
+router.post('/:id/apply', requireRole('admin', 'owner'), async (req, res) => {
     const connection = await db.getConnection();
 
     try {

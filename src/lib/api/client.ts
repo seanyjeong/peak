@@ -42,7 +42,7 @@ apiClient.interceptors.response.use(
     if (!error.response) {
       if (error.code === 'ECONNABORTED') {
         error.message = NETWORK_ERRORS.TIMEOUT;
-      } else if (!navigator.onLine) {
+      } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
         error.message = NETWORK_ERRORS.OFFLINE;
       } else {
         error.message = NETWORK_ERRORS.CONNECTION_FAILED;
