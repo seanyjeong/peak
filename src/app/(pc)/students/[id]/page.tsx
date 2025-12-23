@@ -427,10 +427,10 @@ export default function StudentProfilePage() {
       <div className="grid grid-cols-12 gap-6">
         {/* Left Column - Record Gauges */}
         <div className="col-span-3">
-          <div className="bg-white rounded-xl shadow-sm p-4 h-[500px]">
-            <h3 className="font-semibold text-gray-800 mb-4">종목별 기록</h3>
+          <div className="bg-white rounded-xl shadow-sm p-4 h-[500px] overflow-hidden flex flex-col">
+            <h3 className="font-semibold text-gray-800 mb-3">종목별 기록</h3>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 flex-1">
               {selectedGaugeTypes.slice(0, 6).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
@@ -449,7 +449,7 @@ export default function StudentProfilePage() {
                 ];
 
                 return (
-                  <div key={typeId} className="relative h-[120px]">
+                  <div key={typeId} className="relative h-[105px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -487,12 +487,12 @@ export default function StudentProfilePage() {
             </div>
 
             {/* 종목 선택 버튼들 */}
-            <div className="mt-4 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1">
               {recordTypes.map(type => (
                 <button
                   key={type.id}
                   onClick={() => toggleGaugeType(type.id)}
-                  className={`text-xs px-2 py-1 rounded transition ${
+                  className={`text-xs px-2 py-0.5 rounded transition ${
                     selectedGaugeTypes.includes(type.id)
                       ? 'bg-orange-500 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -510,7 +510,7 @@ export default function StudentProfilePage() {
         {/* Middle Column - Trend Chart & Overall Grade */}
         <div className="col-span-5 space-y-4">
           {/* Trend Chart */}
-          <div className="bg-white rounded-xl shadow-sm p-4 h-[300px]">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-[300px] overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800">기록 추이</h3>
               <select
@@ -555,7 +555,7 @@ export default function StudentProfilePage() {
           </div>
 
           {/* Overall Grade */}
-          <div className="bg-white rounded-xl shadow-sm p-4 h-[184px]">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-[184px] overflow-hidden">
             <h3 className="font-semibold text-gray-800 mb-4">종합평가 <span className="text-xs text-gray-400 font-normal">(선택 종목 기준)</span></h3>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -594,7 +594,7 @@ export default function StudentProfilePage() {
         {/* Right Column - Comparison */}
         <div className="col-span-4 space-y-4">
           {/* Bar Chart Comparison */}
-          <div className="bg-white rounded-xl shadow-sm p-4 h-[240px]">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-[240px] overflow-hidden">
             <h3 className="font-semibold text-gray-800 mb-2">학원평균 vs {student.name}</h3>
             <p className="text-xs text-gray-400 mb-2">만점 대비 달성률 (%)</p>
             <ResponsiveContainer width="100%" height={160}>
@@ -621,37 +621,44 @@ export default function StudentProfilePage() {
           </div>
 
           {/* Radar Chart */}
-          <div className="bg-white rounded-xl shadow-sm p-4 h-[244px]">
-            <h3 className="font-semibold text-gray-800 mb-2">능력치 비교</h3>
-            <ResponsiveContainer width="100%" height={160}>
-              <RadarChart data={radarChartData}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
-                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 9 }} />
-                <Radar
-                  name="학원평균"
-                  dataKey="academy"
-                  stroke="#94a3b8"
-                  fill="#94a3b8"
-                  fillOpacity={0.3}
-                />
-                <Radar
-                  name={student.name}
-                  dataKey="student"
-                  stroke="#f97316"
-                  fill="#f97316"
-                  fillOpacity={0.5}
-                />
-                <Legend />
-              </RadarChart>
-            </ResponsiveContainer>
+          <div className="bg-white rounded-xl shadow-sm p-4 h-[244px] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-semibold text-gray-800">능력치 비교</h3>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-slate-400 rounded-sm"></span>학원평균</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-orange-500 rounded-sm"></span>{student.name}</span>
+              </div>
+            </div>
+            <div className="flex-1">
+              <ResponsiveContainer width="100%" height={145}>
+                <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 8 }} />
+                  <Radar
+                    name="학원평균"
+                    dataKey="academy"
+                    stroke="#94a3b8"
+                    fill="#94a3b8"
+                    fillOpacity={0.3}
+                  />
+                  <Radar
+                    name={student.name}
+                    dataKey="student"
+                    stroke="#f97316"
+                    fill="#f97316"
+                    fillOpacity={0.5}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
 
             {/* 레이더 종목 선택 */}
             <div className="flex flex-wrap gap-1">
               {recordTypes.slice(0, 8).map(type => (
                 <button
                   key={type.id}
-                  className={`text-xs px-2 py-1 rounded ${
+                  className={`text-xs px-2 py-0.5 rounded ${
                     selectedRadarTypes.includes(type.id)
                       ? 'bg-orange-500 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
