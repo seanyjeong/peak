@@ -439,12 +439,12 @@ export default function TabletStudentProfilePage() {
                   );
                 })}
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-1">
                 {recordTypes.slice(0, 6).map(type => (
                   <button
                     key={type.id}
                     onClick={() => toggleGaugeType(type.id)}
-                    className={`text-sm px-3 py-1.5 rounded-lg ${
+                    className={`text-xs px-2 py-1 rounded ${
                       selectedGaugeTypes.includes(type.id)
                         ? 'bg-orange-500 text-white'
                         : 'bg-gray-100 text-gray-600'
@@ -588,29 +588,29 @@ export default function TabletStudentProfilePage() {
 
             {/* Radar Chart */}
             <div className="bg-white rounded-2xl shadow-sm p-5 h-[340px] overflow-hidden flex flex-col">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1">
                 <h3 className="text-lg font-semibold text-gray-800">능력치 비교</h3>
-                <div className="flex items-center gap-3 text-sm">
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-slate-400 rounded-sm"></span>학원평균</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-orange-500 rounded-sm"></span>{student.name}</span>
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-slate-400 rounded-sm"></span>학원평균</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-orange-500 rounded-sm"></span>{student.name}</span>
                 </div>
               </div>
               <div className="flex-1">
-                <ResponsiveContainer width="100%" height={220}>
-                  <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
+                <ResponsiveContainer width="100%" height={260}>
+                  <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="80%">
                     <PolarGrid />
-                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 13 }} />
                     <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
                     <Radar name="학원평균" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.3} />
                     <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.5} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1">
                 {recordTypes.slice(0, 6).map(type => (
                   <button
                     key={type.id}
-                    className={`text-sm px-3 py-1.5 rounded-lg ${
+                    className={`text-xs px-2 py-1 rounded ${
                       selectedRadarTypes.includes(type.id)
                         ? 'bg-orange-500 text-white'
                         : 'bg-gray-100 text-gray-600'
