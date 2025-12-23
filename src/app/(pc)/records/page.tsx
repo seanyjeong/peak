@@ -696,92 +696,61 @@ export default function RecordsPage() {
                   })}
                 </div>
               ) : (
-                /* 종목별 입력 모드 */
-                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                /* 종목별 입력 모드 - 2열 그리드 */
+                <div>
                   {currentRecordType && (
                     <>
-                      <div className="p-4 bg-slate-50 border-b border-slate-200">
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg font-bold text-slate-800">{currentRecordType.name}</span>
-                          <span className="text-slate-500">({currentRecordType.unit})</span>
-                          <span className={`text-xs px-2 py-1 rounded ${
+                      <div className="bg-white rounded-lg shadow-sm p-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-800">{currentRecordType.name}</span>
+                          <span className="text-sm text-slate-500">({currentRecordType.unit})</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
                             currentRecordType.direction === 'higher' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
                           }`}>
-                            {currentRecordType.direction === 'higher' ? '높을수록 좋음 ↑' : '낮을수록 좋음 ↓'}
+                            {currentRecordType.direction === 'higher' ? '↑' : '↓'}
                           </span>
                         </div>
                       </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-slate-100">
-                            <tr>
-                              <th className="py-3 px-4 text-left font-medium text-slate-600 w-16">#</th>
-                              <th className="py-3 px-4 text-left font-medium text-slate-600">이름</th>
-                              <th className="py-3 px-4 text-left font-medium text-slate-600 w-24">성별</th>
-                              <th className="py-3 px-4 text-center font-medium text-slate-600 w-40">
-                                기록 ({currentRecordType.unit})
-                              </th>
-                              <th className="py-3 px-4 text-center font-medium text-slate-600 w-24">점수</th>
-                              <th className="py-3 px-4 text-center font-medium text-slate-600 w-24">상태</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {myStudents.map((student, idx) => {
-                              const inputData = inputs[student.student_id]?.[currentRecordType.id] || { value: '', score: null };
-                              const decimalPlaces = getDecimalPlaces(currentRecordType.id);
-                              const isSaved = savedStudents.has(student.student_id);
+                      <div className="grid grid-cols-2 gap-2">
+                        {myStudents.map((student) => {
+                          const inputData = inputs[student.student_id]?.[currentRecordType.id] || { value: '', score: null };
+                          const decimalPlaces = getDecimalPlaces(currentRecordType.id);
+                          const isSaved = savedStudents.has(student.student_id);
 
-                              return (
-                                <tr key={student.student_id} className={isSaved ? 'bg-green-50' : 'hover:bg-slate-50'}>
-                                  <td className="py-3 px-4 text-slate-500">{idx + 1}</td>
-                                  <td className="py-3 px-4">
-                                    <span className="font-medium text-slate-800">{student.student_name}</span>
-                                  </td>
-                                  <td className="py-3 px-4">
-                                    <span className={`text-xs px-2 py-1 rounded ${
-                                      student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
-                                    }`}>
-                                      {student.gender === 'M' ? '남' : '여'}
-                                    </span>
-                                  </td>
-                                  <td className="py-3 px-4 text-center">
-                                    <input
-                                      type="number"
-                                      step={Math.pow(10, -decimalPlaces)}
-                                      value={inputData.value}
-                                      onChange={e => handleInputChange(student.student_id, currentRecordType.id, e.target.value, student.gender)}
-                                      onBlur={() => handleInputBlur(student.student_id, currentRecordType.id)}
-                                      placeholder={`0${decimalPlaces > 0 ? '.' + '0'.repeat(decimalPlaces) : ''}`}
-                                      className="w-28 px-3 py-2 border border-slate-200 rounded-lg text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                    />
-                                  </td>
-                                  <td className="py-3 px-4 text-center">
-                                    {inputData.score !== null ? (
-                                      <span className="inline-flex items-center gap-1 text-orange-600 font-bold">
-                                        <Trophy size={14} />
-                                        {inputData.score}
-                                      </span>
-                                    ) : (
-                                      <span className="text-slate-300">-</span>
-                                    )}
-                                  </td>
-                                  <td className="py-3 px-4 text-center">
-                                    {saving ? (
-                                      <RefreshCw size={14} className="animate-spin text-orange-500 mx-auto" />
-                                    ) : isSaved ? (
-                                      <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-                                        <Check size={12} />
-                                        저장됨
-                                      </span>
-                                    ) : (
-                                      <span className="text-slate-300">-</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                          return (
+                            <div
+                              key={student.student_id}
+                              className={`bg-white rounded-lg shadow-sm px-3 py-2 flex items-center gap-2 ${
+                                isSaved ? 'ring-2 ring-green-400' : ''
+                              }`}
+                            >
+                              <span className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${
+                                student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+                              }`}>
+                                {student.gender === 'M' ? '남' : '여'}
+                              </span>
+                              <span className="font-medium text-slate-800 truncate min-w-0 flex-shrink">{student.student_name}</span>
+                              <input
+                                type="number"
+                                step={Math.pow(10, -decimalPlaces)}
+                                value={inputData.value}
+                                onChange={e => handleInputChange(student.student_id, currentRecordType.id, e.target.value, student.gender)}
+                                onBlur={() => handleInputBlur(student.student_id, currentRecordType.id)}
+                                placeholder="0"
+                                className="w-20 px-2 py-1 text-sm border border-slate-200 rounded text-center focus:ring-1 focus:ring-orange-500 flex-shrink-0"
+                              />
+                              {inputData.score !== null ? (
+                                <span className="flex items-center gap-0.5 text-xs text-orange-600 font-bold flex-shrink-0">
+                                  <Trophy size={12} />
+                                  {inputData.score}
+                                </span>
+                              ) : (
+                                <span className="w-8 flex-shrink-0"></span>
+                              )}
+                              {isSaved && <Check size={14} className="text-green-500 flex-shrink-0" />}
+                            </div>
+                          );
+                        })}
                       </div>
                     </>
                   )}
