@@ -419,13 +419,13 @@ export default function StudentProfilePage() {
       </div>
 
       {/* 3 Column Layout */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-6 auto-rows-[minmax(0,1fr)] items-stretch">
         {/* Left Column - Record Gauges */}
-        <div className="col-span-3 space-y-4">
-          <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="col-span-3 row-span-2">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-full flex flex-col">
             <h3 className="font-semibold text-gray-800 mb-4">종목별 기록</h3>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 flex-1">
               {selectedGaugeTypes.slice(0, 6).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
@@ -502,10 +502,9 @@ export default function StudentProfilePage() {
           </div>
         </div>
 
-        {/* Middle Column - Trend Chart & Overall Grade */}
-        <div className="col-span-5 space-y-4">
-          {/* Trend Chart */}
-          <div className="bg-white rounded-xl shadow-sm p-4">
+        {/* Middle Column - Trend Chart */}
+        <div className="col-span-5">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800">기록 추이</h3>
               <select
@@ -519,38 +518,73 @@ export default function StudentProfilePage() {
               </select>
             </div>
 
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={trendChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis
-                  tick={{ fontSize: 11 }}
-                  domain={trendYDomain as [number, number]}
-                  reversed={isTrendTypeLower}
-                  tickFormatter={(value) => Number(value).toFixed(2)}
-                />
-                <Tooltip
-                  formatter={(value) => {
-                    const type = recordTypes.find(t => t.id === selectedTrendType);
-                    return [`${value}${type?.unit || ''}`, '기록'];
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#f97316"
-                  strokeWidth={2}
-                  dot={{ fill: '#f97316' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="flex-1 min-h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    domain={trendYDomain as [number, number]}
+                    reversed={isTrendTypeLower}
+                    tickFormatter={(value) => Number(value).toFixed(2)}
+                  />
+                  <Tooltip
+                    formatter={(value) => {
+                      const type = recordTypes.find(t => t.id === selectedTrendType);
+                      return [`${value}${type?.unit || ''}`, '기록'];
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#f97316"
+                    strokeWidth={2}
+                    dot={{ fill: '#f97316' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
             {isTrendTypeLower && (
               <p className="text-xs text-gray-400 text-center mt-1">* 낮을수록 좋은 종목 (Y축 반전)</p>
             )}
           </div>
+        </div>
 
-          {/* Overall Grade - 선택된 종목 기준 */}
-          <div className="bg-white rounded-xl shadow-sm p-4">
+        {/* Right Column - Comparison */}
+        <div className="col-span-4">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-full flex flex-col">
+            <h3 className="font-semibold text-gray-800 mb-4">학원평균 vs {student.name}</h3>
+            <p className="text-xs text-gray-400 mb-2">만점 대비 달성률 (%)</p>
+            <div className="flex-1 min-h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={compareBarData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    width={70}
+                    tick={{ fontSize: compareBarData.length > 5 ? 8 : 10 }}
+                  />
+                  <Tooltip
+                    formatter={(value, name, props) => {
+                      const data = props.payload;
+                      if (name === '학원평균') return [`${data.academyRaw}${data.unit} (${value}%)`, name];
+                      return [`${data.studentRaw}${data.unit} (${value}%)`, name];
+                    }}
+                  />
+                  <Bar dataKey="academy" fill="#94a3b8" name="학원평균" />
+                  <Bar dataKey="student" fill="#f97316" name={student.name} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Column - Overall Grade */}
+        <div className="col-span-5">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-full flex flex-col min-h-[240px]">
             <h3 className="font-semibold text-gray-800 mb-4">종합평가 <span className="text-xs text-gray-400 font-normal">(선택 종목 기준)</span></h3>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -576,7 +610,7 @@ export default function StudentProfilePage() {
             </div>
 
             {/* 종목 수 */}
-            <div className="mt-4 pt-4 border-t flex justify-between text-sm">
+            <div className="mt-auto pt-4 border-t flex justify-between text-sm">
               <span className="text-gray-500">평가 대상</span>
               <span className="font-medium">
                 {selectedStats.recordedCount}개
@@ -589,60 +623,34 @@ export default function StudentProfilePage() {
           </div>
         </div>
 
-        {/* Right Column - Comparison */}
-        <div className="col-span-4 space-y-4">
-          {/* Bar Chart Comparison */}
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="font-semibold text-gray-800 mb-4">학원평균 vs {student.name}</h3>
-            <p className="text-xs text-gray-400 mb-2">만점 대비 달성률 (%)</p>
-            <ResponsiveContainer width="100%" height={Math.max(150, compareBarData.length * 28)}>
-              <BarChart data={compareBarData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  width={70}
-                  tick={{ fontSize: compareBarData.length > 5 ? 8 : 10 }}
-                />
-                <Tooltip
-                  formatter={(value, name, props) => {
-                    const data = props.payload;
-                    if (name === '학원평균') return [`${data.academyRaw}${data.unit} (${value}%)`, name];
-                    return [`${data.studentRaw}${data.unit} (${value}%)`, name];
-                  }}
-                />
-                <Bar dataKey="academy" fill="#94a3b8" name="학원평균" />
-                <Bar dataKey="student" fill="#f97316" name={student.name} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Radar Chart */}
-          <div className="bg-white rounded-xl shadow-sm p-4">
+        {/* Right Column - Radar Chart */}
+        <div className="col-span-4">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-full flex flex-col min-h-[240px]">
             <h3 className="font-semibold text-gray-800 mb-4">능력치 비교</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <RadarChart data={radarChartData}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
-                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 9 }} />
-                <Radar
-                  name="학원평균"
-                  dataKey="academy"
-                  stroke="#94a3b8"
-                  fill="#94a3b8"
-                  fillOpacity={0.3}
-                />
-                <Radar
-                  name={student.name}
-                  dataKey="student"
-                  stroke="#f97316"
-                  fill="#f97316"
-                  fillOpacity={0.5}
-                />
-                <Legend />
-              </RadarChart>
-            </ResponsiveContainer>
+            <div className="flex-1 min-h-[240px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={radarChartData}>
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 9 }} />
+                  <Radar
+                    name="학원평균"
+                    dataKey="academy"
+                    stroke="#94a3b8"
+                    fill="#94a3b8"
+                    fillOpacity={0.3}
+                  />
+                  <Radar
+                    name={student.name}
+                    dataKey="student"
+                    stroke="#f97316"
+                    fill="#f97316"
+                    fillOpacity={0.5}
+                  />
+                  <Legend />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
 
             {/* 레이더 종목 선택 */}
             <div className="mt-2 flex flex-wrap gap-1">
