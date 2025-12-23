@@ -78,18 +78,38 @@ export default function MobileRecordsPage() {
       );
       const assignData = await assignRes.json();
 
-      // 시간대별 학생 필터링
-      const slotStudents = (assignData.assignments || [])
-        .filter((a: { time_slot: string }) => a.time_slot === selectedTimeSlot)
-        .map((a: { student_id: number; student_name: string; student_gender: string; id: number; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => ({
-          id: a.student_id,
-          assignment_id: a.id,
-          name: a.student_name,
-          gender: a.student_gender as 'male' | 'female',
-          is_trial: a.is_trial,
-          trial_total: a.trial_total,
-          trial_remaining: a.trial_remaining,
-        }));
+      // 시간대별 학생 필터링 (v2.0.0 새 구조)
+      const slotData = assignData.slots?.[selectedTimeSlot];
+      const slotStudents: Student[] = [];
+
+      if (slotData) {
+        // 반에 배치된 학생들
+        slotData.classes?.forEach((cls: { students: Array<{ id: number; student_id: number; student_name: string; student_gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }> }) => {
+          cls.students?.forEach(s => {
+            slotStudents.push({
+              id: s.student_id,
+              assignment_id: s.id,
+              name: s.student_name,
+              gender: s.student_gender as 'male' | 'female',
+              is_trial: s.is_trial,
+              trial_total: s.trial_total,
+              trial_remaining: s.trial_remaining,
+            });
+          });
+        });
+        // 대기 중인 학생들도 포함
+        slotData.waitingStudents?.forEach((s: { id: number; student_id: number; student_name: string; student_gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
+          slotStudents.push({
+            id: s.student_id,
+            assignment_id: s.id,
+            name: s.student_name,
+            gender: s.student_gender as 'male' | 'female',
+            is_trial: s.is_trial,
+            trial_total: s.trial_total,
+            trial_remaining: s.trial_remaining,
+          });
+        });
+      }
 
       setStudents(slotStudents);
 
