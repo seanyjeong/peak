@@ -67,9 +67,23 @@ function CircularProgress({
 }
 
 
+interface Instructor {
+  id: number;
+  name: string;
+  isOwner: boolean;
+  isMain?: boolean;
+}
+
+interface ClassData {
+  class_num: number;
+  instructors: Instructor[];
+  students: unknown[];
+}
+
 interface SlotData {
-  instructors: { id: number; name: string }[];
-  trainers: { trainer_id: number | null; trainer_name: string; students: unknown[] }[];
+  waitingInstructors: Instructor[];
+  waitingStudents: unknown[];
+  classes: ClassData[];
 }
 
 interface SlotsData {
@@ -145,10 +159,16 @@ export default function DashboardPage() {
     let totalStudents = 0;
 
     (['morning', 'afternoon', 'evening'] as const).forEach(slot => {
-      slotsData[slot].instructors.forEach(i => allInstructors.add(i.id));
-      slotsData[slot].trainers.forEach(t => {
-        totalStudents += t.students.length;
+      const slotData = slotsData[slot];
+      // 대기 중인 강사
+      slotData.waitingInstructors?.forEach(i => allInstructors.add(i.id));
+      // 반에 배치된 강사 + 학생 수
+      slotData.classes?.forEach(cls => {
+        cls.instructors?.forEach(i => allInstructors.add(i.id));
+        totalStudents += cls.students?.length || 0;
       });
+      // 대기 중인 학생도 카운트
+      totalStudents += slotData.waitingStudents?.length || 0;
     });
 
     return {
@@ -168,8 +188,19 @@ export default function DashboardPage() {
 
     return slots.map(slotKey => {
       const data = slotsData[slotKey];
-      const studentCount = data.trainers.reduce((sum, t) => sum + t.students.length, 0);
-      const instructorNames = data.instructors.map(i => i.name).join(', ') || '미정';
+      // 모든 반의 학생 수 합계
+      const studentCount = (data.classes?.reduce((sum, cls) => sum + (cls.students?.length || 0), 0) || 0)
+        + (data.waitingStudents?.length || 0);
+      // 모든 반의 강사 이름 수집
+      const allInstructors: string[] = [];
+      data.classes?.forEach(cls => {
+        cls.instructors?.forEach(i => {
+          if (!allInstructors.includes(i.name)) {
+            allInstructors.push(i.name);
+          }
+        });
+      });
+      const instructorNames = allInstructors.join(', ') || '미정';
       const timeStr = timeSlots[slotKey].replace('-', '~');
 
       return {
@@ -180,7 +211,7 @@ export default function DashboardPage() {
         trainer: instructorNames,
         students: studentCount,
       };
-    }).filter(s => s.students > 0 || slotsData[s.slot as keyof SlotsData].instructors.length > 0);
+    }).filter(s => s.students > 0 || (slotsData[s.slot as keyof SlotsData].classes?.length || 0) > 0);
   };
 
   // 트레이너별 현황
@@ -190,18 +221,22 @@ export default function DashboardPage() {
     const trainerMap = new Map<number, { name: string; students: number }>();
 
     (['morning', 'afternoon', 'evening'] as const).forEach(slot => {
-      slotsData[slot].instructors.forEach(inst => {
-        if (!trainerMap.has(inst.id)) {
-          trainerMap.set(inst.id, { name: inst.name, students: 0 });
-        }
-      });
-      slotsData[slot].trainers.forEach(t => {
-        if (t.trainer_id) {
-          const existing = trainerMap.get(t.trainer_id);
-          if (existing) {
-            existing.students += t.students.length;
+      const slotData = slotsData[slot];
+      // 반에 배치된 강사와 학생 수 계산
+      slotData.classes?.forEach(cls => {
+        const studentCount = cls.students?.length || 0;
+        cls.instructors?.forEach(inst => {
+          if (!trainerMap.has(inst.id)) {
+            trainerMap.set(inst.id, { name: inst.name, students: 0 });
           }
-        }
+          // 주강사에게만 학생 수 할당
+          if (inst.isMain) {
+            const existing = trainerMap.get(inst.id);
+            if (existing) {
+              existing.students += studentCount;
+            }
+          }
+        });
       });
     });
 

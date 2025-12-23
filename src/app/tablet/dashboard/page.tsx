@@ -67,9 +67,23 @@ function CircularProgress({
   );
 }
 
+interface Instructor {
+  id: number;
+  name: string;
+  isOwner: boolean;
+  isMain?: boolean;
+}
+
+interface ClassData {
+  class_num: number;
+  instructors: Instructor[];
+  students: unknown[];
+}
+
 interface SlotData {
-  instructors: { id: number; name: string }[];
-  trainers: { trainer_id: number | null; trainer_name: string; students: unknown[] }[];
+  waitingInstructors: Instructor[];
+  waitingStudents: unknown[];
+  classes: ClassData[];
 }
 
 interface SlotsData {
@@ -147,10 +161,13 @@ export default function TabletDashboardPage() {
     let totalStudents = 0;
 
     (['morning', 'afternoon', 'evening'] as const).forEach(slot => {
-      slotsData[slot].instructors.forEach(i => allInstructors.add(i.id));
-      slotsData[slot].trainers.forEach(t => {
-        totalStudents += t.students.length;
+      const slotData = slotsData[slot];
+      slotData.waitingInstructors?.forEach(i => allInstructors.add(i.id));
+      slotData.classes?.forEach(cls => {
+        cls.instructors?.forEach(i => allInstructors.add(i.id));
+        totalStudents += cls.students?.length || 0;
       });
+      totalStudents += slotData.waitingStudents?.length || 0;
     });
 
     return {
@@ -170,8 +187,17 @@ export default function TabletDashboardPage() {
 
     return slots.map(slotKey => {
       const data = slotsData[slotKey];
-      const studentCount = data.trainers.reduce((sum, t) => sum + t.students.length, 0);
-      const instructorNames = data.instructors.map(i => i.name).join(', ') || '미정';
+      const studentCount = (data.classes?.reduce((sum, cls) => sum + (cls.students?.length || 0), 0) || 0)
+        + (data.waitingStudents?.length || 0);
+      const allInstructors: string[] = [];
+      data.classes?.forEach(cls => {
+        cls.instructors?.forEach(i => {
+          if (!allInstructors.includes(i.name)) {
+            allInstructors.push(i.name);
+          }
+        });
+      });
+      const instructorNames = allInstructors.join(', ') || '미정';
       const timeStr = timeSlots[slotKey].replace('-', '~');
 
       return {
@@ -182,7 +208,7 @@ export default function TabletDashboardPage() {
         trainer: instructorNames,
         students: studentCount,
       };
-    }).filter(s => s.students > 0 || slotsData[s.slot as keyof SlotsData].instructors.length > 0);
+    }).filter(s => s.students > 0 || (slotsData[s.slot as keyof SlotsData].classes?.length || 0) > 0);
   };
 
   // 트레이너별 현황
@@ -192,18 +218,20 @@ export default function TabletDashboardPage() {
     const trainerMap = new Map<number, { name: string; students: number }>();
 
     (['morning', 'afternoon', 'evening'] as const).forEach(slot => {
-      slotsData[slot].instructors.forEach(inst => {
-        if (!trainerMap.has(inst.id)) {
-          trainerMap.set(inst.id, { name: inst.name, students: 0 });
-        }
-      });
-      slotsData[slot].trainers.forEach(t => {
-        if (t.trainer_id) {
-          const existing = trainerMap.get(t.trainer_id);
-          if (existing) {
-            existing.students += t.students.length;
+      const slotData = slotsData[slot];
+      slotData.classes?.forEach(cls => {
+        const studentCount = cls.students?.length || 0;
+        cls.instructors?.forEach(inst => {
+          if (!trainerMap.has(inst.id)) {
+            trainerMap.set(inst.id, { name: inst.name, students: 0 });
           }
-        }
+          if (inst.isMain) {
+            const existing = trainerMap.get(inst.id);
+            if (existing) {
+              existing.students += studentCount;
+            }
+          }
+        });
       });
     });
 
