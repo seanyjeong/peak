@@ -352,25 +352,25 @@ export default function TabletStudentProfilePage() {
     );
   }
 
-  // 가로 모드
+  // 가로 모드 (2000x1200 태블릿 기준)
   if (orientation === 'landscape') {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-xl transition">
-              <ArrowLeft size={24} />
+          <div className="flex items-center gap-4">
+            <button onClick={() => router.back()} className="p-3 hover:bg-gray-100 rounded-xl transition">
+              <ArrowLeft size={28} />
             </button>
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+            <div className="flex items-center gap-4">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
                 student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
               }`}>
-                <User size={24} />
+                <User size={32} />
               </div>
               <div>
-                <h1 className="text-xl font-bold">{student.name}</h1>
-                <p className="text-gray-500 text-sm">
+                <h1 className="text-2xl font-bold">{student.name}</h1>
+                <p className="text-gray-500">
                   {student.gender === 'M' ? '남' : '여'} · {student.school} · {student.grade}
                 </p>
               </div>
@@ -378,20 +378,20 @@ export default function TabletStudentProfilePage() {
           </div>
           <button
             onClick={loadData}
-            className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+            className="p-4 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
           >
-            <RefreshCw size={20} />
+            <RefreshCw size={24} />
           </button>
         </div>
 
         {/* Main Grid - 3 컬럼 */}
-        <div className="grid grid-cols-12 gap-4">
+        <div className="grid grid-cols-12 gap-5">
           {/* Left: 게이지 + 종합평가 */}
-          <div className="col-span-3 space-y-4">
+          <div className="col-span-3 space-y-5">
             {/* Record Gauges */}
-            <div className="bg-white rounded-2xl shadow-sm p-4 h-[320px]">
-              <h3 className="font-semibold text-gray-800 mb-3">종목별 기록</h3>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white rounded-2xl shadow-sm p-5 h-[480px] overflow-hidden flex flex-col">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">종목별 기록</h3>
+              <div className="grid grid-cols-2 gap-3 flex-1">
                 {selectedGaugeTypes.slice(0, 4).map((typeId) => {
                   const type = recordTypes.find(t => t.id === typeId);
                   const latestRecord = stats.latests[typeId];
@@ -406,7 +406,7 @@ export default function TabletStudentProfilePage() {
                   ];
 
                   return (
-                    <div key={typeId} className="relative h-[100px]">
+                    <div key={typeId} className="relative h-[150px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
@@ -427,24 +427,24 @@ export default function TabletStudentProfilePage() {
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-sm font-bold">
-                          {hasRecord ? value : '-'}<span className="text-[10px] font-normal text-gray-400">{type?.unit}</span>
+                        <span className="text-xl font-bold">
+                          {hasRecord ? value : '-'}<span className="text-sm font-normal text-gray-400">{type?.unit}</span>
                         </span>
-                        <span className="text-[9px] text-gray-500">{type?.short_name || type?.name}</span>
+                        <span className="text-sm text-gray-500">{type?.short_name || type?.name}</span>
                       </div>
-                      <div className="absolute bottom-0 left-0 right-0 flex justify-center">
+                      <div className="absolute bottom-1 left-0 right-0 flex justify-center">
                         <TrendIcon trend={trend || 'need_more'} />
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <div className="mt-3 flex flex-wrap gap-1">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {recordTypes.slice(0, 6).map(type => (
                   <button
                     key={type.id}
                     onClick={() => toggleGaugeType(type.id)}
-                    className={`text-xs px-2 py-1 rounded ${
+                    className={`text-sm px-3 py-1.5 rounded-lg ${
                       selectedGaugeTypes.includes(type.id)
                         ? 'bg-orange-500 text-white'
                         : 'bg-gray-100 text-gray-600'
@@ -458,29 +458,29 @@ export default function TabletStudentProfilePage() {
             </div>
 
             {/* Overall Grade */}
-            <div className="bg-white rounded-2xl shadow-sm p-4 h-[140px]">
-              <h3 className="font-semibold text-gray-800 mb-3">종합평가</h3>
-              <div className="flex items-center gap-3">
-                <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${getGradeColor(selectedStats.grade)}`}>
-                  <span className="text-2xl font-bold">{selectedStats.grade}</span>
+            <div className="bg-white rounded-2xl shadow-sm p-5 h-[200px] overflow-hidden">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">종합평가</h3>
+              <div className="flex items-center gap-4">
+                <div className={`w-20 h-20 rounded-xl flex items-center justify-center ${getGradeColor(selectedStats.grade)}`}>
+                  <span className="text-4xl font-bold">{selectedStats.grade}</span>
                 </div>
                 <div>
-                  <span className="text-xl font-bold">{selectedStats.totalScore}<span className="text-sm font-normal">점</span></span>
-                  <span className="text-gray-400 text-sm"> / {selectedStats.maxScore}점</span>
-                  <p className="text-xs text-gray-500">({selectedStats.percentage}%)</p>
+                  <span className="text-3xl font-bold">{selectedStats.totalScore}<span className="text-lg font-normal">점</span></span>
+                  <span className="text-gray-400 text-lg"> / {selectedStats.maxScore}점</span>
+                  <p className="text-base text-gray-500">({selectedStats.percentage}% 달성)</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Middle: 기록추이 + 최근기록 */}
-          <div className="col-span-5 space-y-4">
+          <div className="col-span-5 space-y-5">
             {/* Trend Chart */}
-            <div className="bg-white rounded-2xl shadow-sm p-4 h-[260px]">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-800">기록 추이</h3>
+            <div className="bg-white rounded-2xl shadow-sm p-5 h-[400px] overflow-hidden">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">기록 추이</h3>
                 <select
-                  className="text-sm border rounded-lg px-3 py-2"
+                  className="text-base border rounded-lg px-4 py-2"
                   value={selectedTrendType || ''}
                   onChange={(e) => setSelectedTrendType(parseInt(e.target.value))}
                 >
@@ -489,12 +489,12 @@ export default function TabletStudentProfilePage() {
                   ))}
                 </select>
               </div>
-              <ResponsiveContainer width="100%" height={180}>
+              <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={trendChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                   <YAxis
-                    tick={{ fontSize: 10 }}
+                    tick={{ fontSize: 12 }}
                     domain={trendYDomain as [number, number]}
                     reversed={isTrendTypeLower}
                     tickFormatter={(value) => Number(value).toFixed(1)}
@@ -505,47 +505,47 @@ export default function TabletStudentProfilePage() {
                       return [`${value}${type?.unit || ''}`, '기록'];
                     }}
                   />
-                  <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316' }} />
+                  <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={3} dot={{ fill: '#f97316', r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
             {/* Recent Records */}
-            <div className="bg-white rounded-2xl shadow-sm p-4 h-[200px]">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-800">최근 기록</h3>
-                {recordHistory.length > 6 && (
+            <div className="bg-white rounded-2xl shadow-sm p-5 h-[280px] overflow-hidden">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">최근 기록</h3>
+                {recordHistory.length > 5 && (
                   <button
                     onClick={() => setShowAllRecords(!showAllRecords)}
-                    className="text-xs text-orange-500 flex items-center gap-1"
+                    className="text-sm text-orange-500 flex items-center gap-1"
                   >
                     {showAllRecords ? '접기' : '더보기'}
-                    <ChevronDown size={14} className={showAllRecords ? 'rotate-180' : ''} />
+                    <ChevronDown size={16} className={showAllRecords ? 'rotate-180' : ''} />
                   </button>
                 )}
               </div>
-              <div className={`overflow-x-auto ${showAllRecords ? 'max-h-32 overflow-y-auto' : ''}`}>
-                <table className="w-full text-sm">
+              <div className={`overflow-x-auto ${showAllRecords ? 'max-h-48 overflow-y-auto' : ''}`}>
+                <table className="w-full text-base">
                   <thead className="sticky top-0 bg-white">
                     <tr className="border-b">
-                      <th className="text-left py-2 px-2">날짜</th>
+                      <th className="text-left py-3 px-3">날짜</th>
                       {recordTypes.slice(0, 5).map(type => (
-                        <th key={type.id} className="text-center py-2 px-2">
+                        <th key={type.id} className="text-center py-3 px-3">
                           {type.short_name || type.name}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {visibleRecords.map((history, idx) => (
+                    {(showAllRecords ? recordHistory : recordHistory.slice(0, 5)).map((history, idx) => (
                       <tr key={idx} className="border-b">
-                        <td className="py-2 px-2 font-medium">
+                        <td className="py-3 px-3 font-medium">
                           {new Date(history.measured_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                         </td>
                         {recordTypes.slice(0, 5).map(type => {
                           const record = history.records.find(r => r.record_type_id === type.id);
                           return (
-                            <td key={type.id} className="text-center py-2 px-2">
+                            <td key={type.id} className="text-center py-3 px-3">
                               {record ? (
                                 <span className="font-medium">{record.value}</span>
                               ) : (
@@ -563,16 +563,16 @@ export default function TabletStudentProfilePage() {
           </div>
 
           {/* Right: 학원비교 + 레이더 */}
-          <div className="col-span-4 space-y-4">
+          <div className="col-span-4 space-y-5">
             {/* Bar Chart */}
-            <div className="bg-white rounded-2xl shadow-sm p-4 h-[220px]">
-              <h3 className="font-semibold text-gray-800 mb-2">학원평균 vs {student.name}</h3>
-              <p className="text-xs text-gray-400 mb-2">만점 대비 달성률 (%)</p>
-              <ResponsiveContainer width="100%" height={140}>
+            <div className="bg-white rounded-2xl shadow-sm p-5 h-[340px] overflow-hidden">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">학원평균 vs {student.name}</h3>
+              <p className="text-sm text-gray-400 mb-3">만점 대비 달성률 (%)</p>
+              <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={compareBarData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 9 }} unit="%" />
-                  <YAxis dataKey="name" type="category" width={50} tick={{ fontSize: 9 }} />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12 }} unit="%" />
+                  <YAxis dataKey="name" type="category" width={60} tick={{ fontSize: 12 }} />
                   <Tooltip
                     formatter={(value, name, props) => {
                       const data = props.payload;
@@ -587,23 +587,30 @@ export default function TabletStudentProfilePage() {
             </div>
 
             {/* Radar Chart */}
-            <div className="bg-white rounded-2xl shadow-sm p-4 h-[240px]">
-              <h3 className="font-semibold text-gray-800 mb-2">능력치 비교</h3>
-              <ResponsiveContainer width="100%" height={150}>
-                <RadarChart data={radarChartData}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9 }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 8 }} />
-                  <Radar name="학원평균" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.3} />
-                  <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.5} />
-                  <Legend wrapperStyle={{ fontSize: '10px' }} />
-                </RadarChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap gap-1">
+            <div className="bg-white rounded-2xl shadow-sm p-5 h-[340px] overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-gray-800">능력치 비교</h3>
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-slate-400 rounded-sm"></span>학원평균</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-orange-500 rounded-sm"></span>{student.name}</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <ResponsiveContainer width="100%" height={220}>
+                  <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
+                    <Radar name="학원평균" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.3} />
+                    <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.5} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {recordTypes.slice(0, 6).map(type => (
                   <button
                     key={type.id}
-                    className={`text-xs px-2 py-1 rounded ${
+                    className={`text-sm px-3 py-1.5 rounded-lg ${
                       selectedRadarTypes.includes(type.id)
                         ? 'bg-orange-500 text-white'
                         : 'bg-gray-100 text-gray-600'
