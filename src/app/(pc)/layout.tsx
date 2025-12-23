@@ -78,7 +78,7 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
             <>
               <div className="flex items-center gap-3">
                 <Image
-                  src="/peak-192x192.png"
+                  src="/peak-512x512.png"
                   alt="P-EAK"
                   width={40}
                   height={40}
@@ -102,7 +102,7 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
               className="p-1 rounded-lg hover:bg-[#243a5e] transition"
             >
               <Image
-                src="/peak-192x192.png"
+                src="/peak-512x512.png"
                 alt="P-EAK"
                 width={44}
                 height={44}

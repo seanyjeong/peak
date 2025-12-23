@@ -53,7 +53,7 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
       <header className="h-14 bg-[#1a2b4a] flex items-center justify-between px-4 sticky top-0 z-20">
         <div className="flex items-center gap-2">
           <Image
-            src="/peak-192x192.png"
+            src="/peak-512x512.png"
             alt="P-EAK"
             width={32}
             height={32}

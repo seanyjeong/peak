@@ -103,7 +103,7 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
             {/* 로고 */}
             <div className="h-16 flex items-center justify-center border-b border-[#243a5e]">
               <Image
-                src="/peak-192x192.png"
+                src="/peak-512x512.png"
                 alt="P-EAK"
                 width={48}
                 height={48}
@@ -189,7 +189,7 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
         <header className="h-16 bg-[#1a2b4a] flex items-center justify-between px-4 sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <Image
-              src="/peak-192x192.png"
+              src="/peak-512x512.png"
               alt="P-EAK"
               width={40}
               height={40}
