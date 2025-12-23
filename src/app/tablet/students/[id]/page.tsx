@@ -103,6 +103,9 @@ export default function TabletStudentProfilePage() {
   const [selectedTrendType, setSelectedTrendType] = useState<number | null>(null);
   const [selectedRadarTypes, setSelectedRadarTypes] = useState<number[]>([]);
 
+  // 더보기 상태
+  const [showAllRecords, setShowAllRecords] = useState(false);
+
   const toggleGaugeType = (typeId: number) => {
     if (selectedGaugeTypes.includes(typeId)) {
       setSelectedGaugeTypes(selectedGaugeTypes.filter(id => id !== typeId));
@@ -328,8 +331,6 @@ export default function TabletStudentProfilePage() {
     return <Minus className="text-gray-400" size={16} />;
   };
 
-  // 더보기 상태
-  const [showAllRecords, setShowAllRecords] = useState(false);
   const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 6);
 
   if (loading) {

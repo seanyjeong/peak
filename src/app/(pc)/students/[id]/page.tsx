@@ -107,6 +107,9 @@ export default function StudentProfilePage() {
   // 레이더 차트용 선택된 종목들 (5개)
   const [selectedRadarTypes, setSelectedRadarTypes] = useState<number[]>([]);
 
+  // 최근 기록 더보기 상태
+  const [showAllRecords, setShowAllRecords] = useState(false);
+
   // 게이지 종목 토글
   const toggleGaugeType = (typeId: number) => {
     if (selectedGaugeTypes.includes(typeId)) {
@@ -383,8 +386,6 @@ export default function StudentProfilePage() {
     );
   }
 
-  // 최근 기록 더보기 상태
-  const [showAllRecords, setShowAllRecords] = useState(false);
   const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 6);
 
   return (
