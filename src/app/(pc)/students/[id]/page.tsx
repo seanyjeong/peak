@@ -389,9 +389,9 @@ export default function StudentProfilePage() {
   const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 6);
 
   return (
-    <div className="min-h-[600px] max-h-[800px] h-[calc(100vh-120px)] flex flex-col gap-4">
+    <div className="space-y-4">
       {/* Header - 컴팩트 */}
-      <div className="flex items-center justify-between flex-shrink-0">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
@@ -423,11 +423,11 @@ export default function StudentProfilePage() {
         </div>
       </div>
 
-      {/* 3 Column Layout - 동일 높이 */}
-      <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+      {/* 3 Column Layout - 고정 높이 */}
+      <div className="grid grid-cols-12 gap-4 h-[520px]">
         {/* Left Column - Record Gauges */}
-        <div className="col-span-3 flex flex-col">
-          <div className="bg-white rounded-xl shadow-sm p-3 flex-1 flex flex-col">
+        <div className="col-span-3 flex flex-col overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm p-3 flex-1 flex flex-col overflow-hidden">
             <h3 className="font-semibold text-gray-800 mb-2 text-sm">종목별 기록</h3>
 
             <div className="grid grid-cols-2 gap-2 flex-1">
@@ -507,9 +507,9 @@ export default function StudentProfilePage() {
         </div>
 
         {/* Middle Column - Trend Chart & Overall Grade */}
-        <div className="col-span-5 flex flex-col gap-4">
+        <div className="col-span-5 flex flex-col gap-4 overflow-hidden">
           {/* Trend Chart - 60% */}
-          <div className="bg-white rounded-xl shadow-sm p-3 flex-[6] flex flex-col min-h-0">
+          <div className="bg-white rounded-xl shadow-sm p-3 flex-[6] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-gray-800 text-sm">기록 추이</h3>
               <select
@@ -597,9 +597,9 @@ export default function StudentProfilePage() {
         </div>
 
         {/* Right Column - Comparison */}
-        <div className="col-span-4 flex flex-col gap-4">
+        <div className="col-span-4 flex flex-col gap-4 overflow-hidden">
           {/* Bar Chart Comparison - 50% */}
-          <div className="bg-white rounded-xl shadow-sm p-3 flex-1 flex flex-col min-h-0">
+          <div className="bg-white rounded-xl shadow-sm p-3 flex-1 flex flex-col overflow-hidden">
             <h3 className="font-semibold text-gray-800 mb-1 text-sm">학원평균 vs {student.name}</h3>
             <p className="text-[10px] text-gray-400 mb-1">만점 대비 달성률 (%)</p>
             <div className="flex-1 min-h-0">
@@ -628,7 +628,7 @@ export default function StudentProfilePage() {
           </div>
 
           {/* Radar Chart - 50% */}
-          <div className="bg-white rounded-xl shadow-sm p-3 flex-1 flex flex-col min-h-0">
+          <div className="bg-white rounded-xl shadow-sm p-3 flex-1 flex flex-col overflow-hidden">
             <h3 className="font-semibold text-gray-800 mb-1 text-sm">능력치 비교</h3>
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
@@ -682,7 +682,7 @@ export default function StudentProfilePage() {
       </div>
 
       {/* Recent Records Table - 컴팩트 */}
-      <div className="bg-white rounded-xl shadow-sm p-3 flex-shrink-0">
+      <div className="bg-white rounded-xl shadow-sm p-3">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold text-gray-800 text-sm">최근 기록</h3>
           {recordHistory.length > 6 && (

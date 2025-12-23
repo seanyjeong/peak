@@ -352,10 +352,10 @@ export default function TabletStudentProfilePage() {
     );
   }
 
-  // 가로 모드: 스크롤 없이 한 화면에 맞추기
+  // 가로 모드
   if (orientation === 'landscape') {
     return (
-      <div className="h-[calc(100vh-80px)] flex flex-col gap-3 overflow-hidden">
+      <div className="space-y-3">
         {/* Header - 컴팩트 */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -384,12 +384,12 @@ export default function TabletStudentProfilePage() {
           </button>
         </div>
 
-        {/* Main Grid - 3 컬럼 동일 높이 */}
-        <div className="grid grid-cols-12 gap-3 flex-1 min-h-0">
+        {/* Main Grid - 3 컬럼 고정 높이 */}
+        <div className="grid grid-cols-12 gap-3 h-[480px]">
           {/* Left: 게이지 + 종합평가 */}
-          <div className="col-span-3 flex flex-col gap-3">
+          <div className="col-span-3 flex flex-col gap-3 overflow-hidden">
             {/* Record Gauges */}
-            <div className="bg-white rounded-2xl shadow-sm p-3 flex-[6] flex flex-col min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-[6] flex flex-col overflow-hidden">
               <h3 className="font-semibold text-gray-800 mb-2 text-sm">종목별 기록</h3>
               <div className="grid grid-cols-2 gap-1 flex-1">
                 {selectedGaugeTypes.slice(0, 4).map((typeId) => {
@@ -480,9 +480,9 @@ export default function TabletStudentProfilePage() {
           </div>
 
           {/* Middle: 기록추이 + 최근기록 */}
-          <div className="col-span-5 flex flex-col gap-3">
+          <div className="col-span-5 flex flex-col gap-3 overflow-hidden">
             {/* Trend Chart */}
-            <div className="bg-white rounded-2xl shadow-sm p-3 flex-[6] flex flex-col min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-[6] flex flex-col overflow-hidden">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="font-semibold text-gray-800 text-sm">기록 추이</h3>
                 <select
@@ -520,7 +520,7 @@ export default function TabletStudentProfilePage() {
             </div>
 
             {/* Recent Records - 컴팩트 */}
-            <div className="bg-white rounded-2xl shadow-sm p-3 flex-[4] flex flex-col min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-[4] flex flex-col overflow-hidden">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="font-semibold text-gray-800 text-sm">최근 기록</h3>
                 {recordHistory.length > 6 && (
@@ -572,9 +572,9 @@ export default function TabletStudentProfilePage() {
           </div>
 
           {/* Right: 학원비교 + 레이더 */}
-          <div className="col-span-4 flex flex-col gap-3">
+          <div className="col-span-4 flex flex-col gap-3 overflow-hidden">
             {/* Bar Chart */}
-            <div className="bg-white rounded-2xl shadow-sm p-3 flex-1 flex flex-col min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-1 flex flex-col overflow-hidden">
               <h3 className="font-semibold text-gray-800 mb-1 text-sm">학원평균 vs {student.name}</h3>
               <p className="text-[9px] text-gray-400 mb-1">만점 대비 달성률 (%)</p>
               <div className="flex-1 min-h-0">
@@ -598,9 +598,9 @@ export default function TabletStudentProfilePage() {
             </div>
 
             {/* Radar Chart */}
-            <div className="bg-white rounded-2xl shadow-sm p-3 flex-1 flex flex-col min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-1 flex flex-col overflow-hidden">
               <h3 className="font-semibold text-gray-800 mb-1 text-sm">능력치 비교</h3>
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart data={radarChartData}>
                     <PolarGrid />
