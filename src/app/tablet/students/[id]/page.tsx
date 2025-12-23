@@ -8,7 +8,8 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from 'lucide-react';
 import {
   PieChart,
@@ -327,6 +328,10 @@ export default function TabletStudentProfilePage() {
     return <Minus className="text-gray-400" size={16} />;
   };
 
+  // 더보기 상태
+  const [showAllRecords, setShowAllRecords] = useState(false);
+  const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 6);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -346,215 +351,271 @@ export default function TabletStudentProfilePage() {
     );
   }
 
-  return (
-    <div className="tablet-scroll space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-3 hover:bg-gray-100 rounded-xl transition">
-            <ArrowLeft size={24} />
-          </button>
+  // 가로 모드: 스크롤 없이 한 화면에 맞추기
+  if (orientation === 'landscape') {
+    return (
+      <div className="h-[calc(100vh-80px)] flex flex-col gap-3 overflow-hidden">
+        {/* Header - 컴팩트 */}
+        <div className="flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
-              student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
-            }`}>
-              <User size={28} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">{student.name}</h1>
-              <p className="text-gray-500 text-sm">
-                {student.gender === 'M' ? '남' : '여'} · {student.school} · {student.grade}
-              </p>
+            <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-xl transition">
+              <ArrowLeft size={20} />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+              }`}>
+                <User size={20} />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold">{student.name}</h1>
+                <p className="text-gray-500 text-xs">
+                  {student.gender === 'M' ? '남' : '여'} · {student.school} · {student.grade}
+                </p>
+              </div>
             </div>
           </div>
+          <button
+            onClick={loadData}
+            className="p-2 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+          >
+            <RefreshCw size={16} />
+          </button>
         </div>
-        <button
-          onClick={loadData}
-          className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
-        >
-          <RefreshCw size={18} />
-        </button>
-      </div>
 
-      {/* Layout based on orientation */}
-      <div className={orientation === 'landscape' ? 'grid grid-cols-12 gap-4' : 'space-y-4'}>
-        {/* Gauges & Grade Section */}
-        <div className={`space-y-4 ${orientation === 'landscape' ? 'col-span-4' : ''}`}>
-          {/* Record Gauges */}
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <h3 className="font-semibold text-gray-800 mb-3">종목별 기록</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {selectedGaugeTypes.slice(0, 4).map((typeId) => {
-                const type = recordTypes.find(t => t.id === typeId);
-                const latestRecord = stats.latests[typeId];
-                const hasRecord = latestRecord !== undefined && latestRecord !== null;
-                const value = latestRecord?.value || 0;
-                const percentage = getRecordPercentage(typeId, value, hasRecord);
-                const trend = stats.trends[typeId];
-                const scoreTable = scoreTables[typeId];
-                const perfectValue = student && scoreTable
-                  ? (student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect)
-                  : null;
+        {/* Main Grid - 3 컬럼 동일 높이 */}
+        <div className="grid grid-cols-12 gap-3 flex-1 min-h-0">
+          {/* Left: 게이지 + 종합평가 */}
+          <div className="col-span-3 flex flex-col gap-3">
+            {/* Record Gauges */}
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-[6] flex flex-col min-h-0">
+              <h3 className="font-semibold text-gray-800 mb-2 text-sm">종목별 기록</h3>
+              <div className="grid grid-cols-2 gap-1 flex-1">
+                {selectedGaugeTypes.slice(0, 4).map((typeId) => {
+                  const type = recordTypes.find(t => t.id === typeId);
+                  const latestRecord = stats.latests[typeId];
+                  const hasRecord = latestRecord !== undefined && latestRecord !== null;
+                  const value = latestRecord?.value || 0;
+                  const percentage = getRecordPercentage(typeId, value, hasRecord);
+                  const trend = stats.trends[typeId];
 
-                const gaugeData = [
-                  { value: percentage, color: getScoreColor(percentage) },
-                  { value: 100 - percentage, color: '#e5e7eb' }
-                ];
+                  const gaugeData = [
+                    { value: percentage, color: getScoreColor(percentage) },
+                    { value: 100 - percentage, color: '#e5e7eb' }
+                  ];
 
-                return (
-                  <div key={typeId} className="relative">
-                    <ResponsiveContainer width="100%" height={100}>
-                      <PieChart>
-                        <Pie
-                          data={gaugeData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius="55%"
-                          outerRadius="75%"
-                          startAngle={90}
-                          endAngle={-270}
-                          dataKey="value"
-                          stroke="none"
-                        >
-                          {gaugeData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-sm font-bold">
-                        {hasRecord ? value : '-'}<span className="text-[10px] font-normal text-gray-400">{type?.unit}</span>
-                      </span>
-                      <span className="text-[9px] text-gray-500">{type?.short_name || type?.name}</span>
+                  return (
+                    <div key={typeId} className="relative aspect-square">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={gaugeData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius="50%"
+                            outerRadius="75%"
+                            startAngle={90}
+                            endAngle={-270}
+                            dataKey="value"
+                            stroke="none"
+                          >
+                            {gaugeData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-sm font-bold leading-tight">
+                          {hasRecord ? value : '-'}<span className="text-[9px] font-normal text-gray-400">{type?.unit}</span>
+                        </span>
+                        <span className="text-[8px] text-gray-500">{type?.short_name || type?.name}</span>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 flex justify-center">
+                        <TrendIcon trend={trend || 'need_more'} />
+                      </div>
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-center">
-                      <TrendIcon trend={trend || 'need_more'} />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {recordTypes.slice(0, 6).map(type => (
+                  <button
+                    key={type.id}
+                    onClick={() => toggleGaugeType(type.id)}
+                    className={`text-[9px] px-1.5 py-0.5 rounded ${
+                      selectedGaugeTypes.includes(type.id)
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                    disabled={selectedGaugeTypes.length >= 4 && !selectedGaugeTypes.includes(type.id)}
+                  >
+                    {type.short_name || type.name}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="mt-3 flex flex-wrap gap-1">
-              {recordTypes.slice(0, 8).map(type => (
-                <button
-                  key={type.id}
-                  onClick={() => toggleGaugeType(type.id)}
-                  className={`text-xs px-2 py-1 rounded transition ${
-                    selectedGaugeTypes.includes(type.id)
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 text-gray-600'
-                  } ${selectedGaugeTypes.length >= 4 && !selectedGaugeTypes.includes(type.id) ? 'opacity-50' : ''}`}
-                  disabled={selectedGaugeTypes.length >= 4 && !selectedGaugeTypes.includes(type.id)}
-                >
-                  {type.short_name || type.name}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Overall Grade */}
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <h3 className="font-semibold text-gray-800 mb-3">종합평가</h3>
-            <div className="flex items-center justify-between">
+            {/* Overall Grade */}
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-[4] flex flex-col justify-center">
+              <h3 className="font-semibold text-gray-800 mb-2 text-sm">종합평가</h3>
               <div className="flex items-center gap-3">
-                <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${getGradeColor(selectedStats.grade)}`}>
-                  <span className="text-2xl font-bold">{selectedStats.grade}</span>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getGradeColor(selectedStats.grade)}`}>
+                  <span className="text-xl font-bold">{selectedStats.grade}</span>
                 </div>
                 <div>
-                  <span className="text-xl font-bold">{selectedStats.totalScore}<span className="text-sm font-normal">점</span></span>
-                  <span className="text-gray-400 text-sm"> / {selectedStats.maxScore}점</span>
-                  <p className="text-xs text-gray-500">({selectedStats.percentage}%)</p>
+                  <span className="text-lg font-bold">{selectedStats.totalScore}<span className="text-xs font-normal">점</span></span>
+                  <span className="text-gray-400 text-xs"> / {selectedStats.maxScore}점</span>
+                  <p className="text-[10px] text-gray-500">({selectedStats.percentage}%)</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="mt-2 pt-2 border-t flex items-center gap-1 text-xs">
                 <TrendIcon trend={stats.overallTrend} />
-                <span className="text-xs text-gray-500">
-                  {stats.overallTrend === 'up' ? '상승' : stats.overallTrend === 'down' ? '하락' : '유지'}
+                <span className="text-gray-500">
+                  {stats.overallTrend === 'up' ? '상승세' : stats.overallTrend === 'down' ? '하락세' : '유지'}
                 </span>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Charts Section */}
-        <div className={`space-y-4 ${orientation === 'landscape' ? 'col-span-8' : ''}`}>
-          {/* Trend Chart */}
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-800">기록 추이</h3>
-              <select
-                className="text-sm border rounded-lg px-3 py-2"
-                value={selectedTrendType || ''}
-                onChange={(e) => setSelectedTrendType(parseInt(e.target.value))}
-              >
-                {recordTypes.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+          {/* Middle: 기록추이 + 최근기록 */}
+          <div className="col-span-5 flex flex-col gap-3">
+            {/* Trend Chart */}
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-[6] flex flex-col min-h-0">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-semibold text-gray-800 text-sm">기록 추이</h3>
+                <select
+                  className="text-xs border rounded px-2 py-1"
+                  value={selectedTrendType || ''}
+                  onChange={(e) => setSelectedTrendType(parseInt(e.target.value))}
+                >
+                  {recordTypes.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 9 }} />
+                    <YAxis
+                      tick={{ fontSize: 9 }}
+                      domain={trendYDomain as [number, number]}
+                      reversed={isTrendTypeLower}
+                      tickFormatter={(value) => Number(value).toFixed(1)}
+                      width={40}
+                    />
+                    <Tooltip
+                      formatter={(value) => {
+                        const type = recordTypes.find(t => t.id === selectedTrendType);
+                        return [`${value}${type?.unit || ''}`, '기록'];
+                      }}
+                    />
+                    <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 2 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={trendChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis
-                  tick={{ fontSize: 10 }}
-                  domain={trendYDomain as [number, number]}
-                  reversed={isTrendTypeLower}
-                  tickFormatter={(value) => Number(value).toFixed(1)}
-                />
-                <Tooltip
-                  formatter={(value) => {
-                    const type = recordTypes.find(t => t.id === selectedTrendType);
-                    return [`${value}${type?.unit || ''}`, '기록'];
-                  }}
-                />
-                <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316' }} />
-              </LineChart>
-            </ResponsiveContainer>
+
+            {/* Recent Records - 컴팩트 */}
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-[4] flex flex-col min-h-0">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-semibold text-gray-800 text-sm">최근 기록</h3>
+                {recordHistory.length > 6 && (
+                  <button
+                    onClick={() => setShowAllRecords(!showAllRecords)}
+                    className="text-[10px] text-orange-500 flex items-center gap-0.5"
+                  >
+                    {showAllRecords ? '접기' : '더보기'}
+                    <ChevronDown size={12} className={showAllRecords ? 'rotate-180' : ''} />
+                  </button>
+                )}
+              </div>
+              <div className={`overflow-x-auto flex-1 ${showAllRecords ? 'overflow-y-auto' : ''}`}>
+                <table className="w-full text-[10px]">
+                  <thead className="sticky top-0 bg-white">
+                    <tr className="border-b">
+                      <th className="text-left py-1 px-1.5">날짜</th>
+                      {recordTypes.slice(0, 5).map(type => (
+                        <th key={type.id} className="text-center py-1 px-1">
+                          {type.short_name || type.name}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleRecords.map((history, idx) => (
+                      <tr key={idx} className="border-b">
+                        <td className="py-1 px-1.5 font-medium">
+                          {new Date(history.measured_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+                        </td>
+                        {recordTypes.slice(0, 5).map(type => {
+                          const record = history.records.find(r => r.record_type_id === type.id);
+                          return (
+                            <td key={type.id} className="text-center py-1 px-1">
+                              {record ? (
+                                <span className="font-medium">{record.value}</span>
+                              ) : (
+                                <span className="text-gray-300">-</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          {/* Comparison Charts - Side by side in landscape */}
-          <div className={orientation === 'landscape' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
+          {/* Right: 학원비교 + 레이더 */}
+          <div className="col-span-4 flex flex-col gap-3">
             {/* Bar Chart */}
-            <div className="bg-white rounded-2xl shadow-sm p-4">
-              <h3 className="font-semibold text-gray-800 mb-3">학원평균 vs {student.name}</h3>
-              <ResponsiveContainer width="100%" height={compareBarData.length * 32 + 40}>
-                <BarChart data={compareBarData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 9 }} unit="%" />
-                  <YAxis dataKey="name" type="category" width={50} tick={{ fontSize: 9 }} />
-                  <Tooltip
-                    formatter={(value, name, props) => {
-                      const data = props.payload;
-                      if (name === '학원평균') return [`${data.academyRaw}${data.unit} (${value}%)`, name];
-                      return [`${data.studentRaw}${data.unit} (${value}%)`, name];
-                    }}
-                  />
-                  <Bar dataKey="academy" fill="#94a3b8" name="학원평균" />
-                  <Bar dataKey="student" fill="#f97316" name={student.name} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-1 flex flex-col min-h-0">
+              <h3 className="font-semibold text-gray-800 mb-1 text-sm">학원평균 vs {student.name}</h3>
+              <p className="text-[9px] text-gray-400 mb-1">만점 대비 달성률 (%)</p>
+              <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={compareBarData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 8 }} unit="%" />
+                    <YAxis dataKey="name" type="category" width={45} tick={{ fontSize: 8 }} />
+                    <Tooltip
+                      formatter={(value, name, props) => {
+                        const data = props.payload;
+                        if (name === '학원평균') return [`${data.academyRaw}${data.unit} (${value}%)`, name];
+                        return [`${data.studentRaw}${data.unit} (${value}%)`, name];
+                      }}
+                    />
+                    <Bar dataKey="academy" fill="#94a3b8" name="학원평균" />
+                    <Bar dataKey="student" fill="#f97316" name={student.name} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
             {/* Radar Chart */}
-            <div className="bg-white rounded-2xl shadow-sm p-4">
-              <h3 className="font-semibold text-gray-800 mb-3">능력치 비교</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <RadarChart data={radarChartData}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9 }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 8 }} />
-                  <Radar name="학원평균" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.3} />
-                  <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.5} />
-                  <Legend wrapperStyle={{ fontSize: '10px' }} />
-                </RadarChart>
-              </ResponsiveContainer>
-              <div className="mt-2 flex flex-wrap gap-1">
+            <div className="bg-white rounded-2xl shadow-sm p-3 flex-1 flex flex-col min-h-0">
+              <h3 className="font-semibold text-gray-800 mb-1 text-sm">능력치 비교</h3>
+              <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={radarChartData}>
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 8 }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 7 }} />
+                    <Radar name="학원평균" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.3} />
+                    <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.5} />
+                    <Legend wrapperStyle={{ fontSize: 9 }} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-wrap gap-1">
                 {recordTypes.slice(0, 6).map(type => (
                   <button
                     key={type.id}
-                    className={`text-xs px-2 py-1 rounded ${
+                    className={`text-[9px] px-1.5 py-0.5 rounded ${
                       selectedRadarTypes.includes(type.id)
                         ? 'bg-orange-500 text-white'
                         : 'bg-gray-100 text-gray-600'
@@ -575,16 +636,248 @@ export default function TabletStudentProfilePage() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // 세로 모드: 스크롤 가능
+  return (
+    <div className="space-y-4 pb-20">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.back()} className="p-3 hover:bg-gray-100 rounded-xl transition">
+            <ArrowLeft size={24} />
+          </button>
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+              student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+            }`}>
+              <User size={24} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">{student.name}</h1>
+              <p className="text-gray-500 text-sm">
+                {student.gender === 'M' ? '남' : '여'} · {student.school} · {student.grade}
+              </p>
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={loadData}
+          className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+        >
+          <RefreshCw size={18} />
+        </button>
+      </div>
+
+      {/* 2 Column: 게이지 + 종합평가 */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Record Gauges */}
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <h3 className="font-semibold text-gray-800 mb-3">종목별 기록</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {selectedGaugeTypes.slice(0, 4).map((typeId) => {
+              const type = recordTypes.find(t => t.id === typeId);
+              const latestRecord = stats.latests[typeId];
+              const hasRecord = latestRecord !== undefined && latestRecord !== null;
+              const value = latestRecord?.value || 0;
+              const percentage = getRecordPercentage(typeId, value, hasRecord);
+              const trend = stats.trends[typeId];
+
+              const gaugeData = [
+                { value: percentage, color: getScoreColor(percentage) },
+                { value: 100 - percentage, color: '#e5e7eb' }
+              ];
+
+              return (
+                <div key={typeId} className="relative">
+                  <ResponsiveContainer width="100%" height={100}>
+                    <PieChart>
+                      <Pie
+                        data={gaugeData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="55%"
+                        outerRadius="75%"
+                        startAngle={90}
+                        endAngle={-270}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {gaugeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-sm font-bold">
+                      {hasRecord ? value : '-'}<span className="text-[10px] font-normal text-gray-400">{type?.unit}</span>
+                    </span>
+                    <span className="text-[9px] text-gray-500">{type?.short_name || type?.name}</span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 flex justify-center">
+                    <TrendIcon trend={trend || 'need_more'} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1">
+            {recordTypes.slice(0, 6).map(type => (
+              <button
+                key={type.id}
+                onClick={() => toggleGaugeType(type.id)}
+                className={`text-xs px-2 py-1 rounded ${
+                  selectedGaugeTypes.includes(type.id)
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+                disabled={selectedGaugeTypes.length >= 4 && !selectedGaugeTypes.includes(type.id)}
+              >
+                {type.short_name || type.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Overall Grade */}
+        <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col justify-center">
+          <h3 className="font-semibold text-gray-800 mb-3">종합평가</h3>
+          <div className="flex items-center gap-4">
+            <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getGradeColor(selectedStats.grade)}`}>
+              <span className="text-3xl font-bold">{selectedStats.grade}</span>
+            </div>
+            <div>
+              <span className="text-2xl font-bold">{selectedStats.totalScore}<span className="text-sm font-normal">점</span></span>
+              <span className="text-gray-400 text-sm"> / {selectedStats.maxScore}점</span>
+              <p className="text-sm text-gray-500">({selectedStats.percentage}%)</p>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t flex items-center gap-2">
+            <TrendIcon trend={stats.overallTrend} />
+            <span className="text-sm text-gray-500">
+              {stats.overallTrend === 'up' ? '상승세' : stats.overallTrend === 'down' ? '하락세' : '유지'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Trend Chart */}
+      <div className="bg-white rounded-2xl shadow-sm p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-800">기록 추이</h3>
+          <select
+            className="text-sm border rounded-lg px-3 py-2"
+            value={selectedTrendType || ''}
+            onChange={(e) => setSelectedTrendType(parseInt(e.target.value))}
+          >
+            {recordTypes.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={trendChartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+            <YAxis
+              tick={{ fontSize: 10 }}
+              domain={trendYDomain as [number, number]}
+              reversed={isTrendTypeLower}
+              tickFormatter={(value) => Number(value).toFixed(1)}
+            />
+            <Tooltip
+              formatter={(value) => {
+                const type = recordTypes.find(t => t.id === selectedTrendType);
+                return [`${value}${type?.unit || ''}`, '기록'];
+              }}
+            />
+            <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316' }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 2 Column: 비교 차트들 */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Bar Chart */}
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <h3 className="font-semibold text-gray-800 mb-3">학원평균 vs {student.name}</h3>
+          <ResponsiveContainer width="100%" height={compareBarData.length * 35 + 40}>
+            <BarChart data={compareBarData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 9 }} unit="%" />
+              <YAxis dataKey="name" type="category" width={50} tick={{ fontSize: 9 }} />
+              <Tooltip
+                formatter={(value, name, props) => {
+                  const data = props.payload;
+                  if (name === '학원평균') return [`${data.academyRaw}${data.unit} (${value}%)`, name];
+                  return [`${data.studentRaw}${data.unit} (${value}%)`, name];
+                }}
+              />
+              <Bar dataKey="academy" fill="#94a3b8" name="학원평균" />
+              <Bar dataKey="student" fill="#f97316" name={student.name} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Radar Chart */}
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <h3 className="font-semibold text-gray-800 mb-3">능력치 비교</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <RadarChart data={radarChartData}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9 }} />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 8 }} />
+              <Radar name="학원평균" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.3} />
+              <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.5} />
+              <Legend wrapperStyle={{ fontSize: '10px' }} />
+            </RadarChart>
+          </ResponsiveContainer>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {recordTypes.slice(0, 6).map(type => (
+              <button
+                key={type.id}
+                className={`text-xs px-2 py-1 rounded ${
+                  selectedRadarTypes.includes(type.id)
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+                onClick={() => {
+                  if (selectedRadarTypes.includes(type.id)) {
+                    setSelectedRadarTypes(selectedRadarTypes.filter(id => id !== type.id));
+                  } else if (selectedRadarTypes.length < 5) {
+                    setSelectedRadarTypes([...selectedRadarTypes, type.id]);
+                  }
+                }}
+              >
+                {type.short_name || type.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Recent Records Table */}
       <div className="bg-white rounded-2xl shadow-sm p-4">
-        <h3 className="font-semibold text-gray-800 mb-3">최근 기록</h3>
-        <div className="overflow-x-auto">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-800">최근 기록</h3>
+          {recordHistory.length > 6 && (
+            <button
+              onClick={() => setShowAllRecords(!showAllRecords)}
+              className="text-xs text-orange-500 flex items-center gap-1"
+            >
+              {showAllRecords ? '접기' : `더보기 (${recordHistory.length}개)`}
+              <ChevronDown size={14} className={showAllRecords ? 'rotate-180' : ''} />
+            </button>
+          )}
+        </div>
+        <div className={`overflow-x-auto ${showAllRecords ? 'max-h-60 overflow-y-auto' : ''}`}>
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 bg-white">
               <tr className="border-b">
                 <th className="text-left py-2 px-3">날짜</th>
-                {recordTypes.slice(0, orientation === 'landscape' ? 6 : 4).map(type => (
+                {recordTypes.slice(0, 4).map(type => (
                   <th key={type.id} className="text-center py-2 px-3">
                     {type.short_name || type.name}
                   </th>
@@ -592,12 +885,12 @@ export default function TabletStudentProfilePage() {
               </tr>
             </thead>
             <tbody>
-              {recordHistory.slice(0, 5).map((history, idx) => (
+              {visibleRecords.map((history, idx) => (
                 <tr key={idx} className="border-b hover:bg-gray-50">
                   <td className="py-2 px-3 font-medium">
                     {new Date(history.measured_at).toLocaleDateString('ko-KR')}
                   </td>
-                  {recordTypes.slice(0, orientation === 'landscape' ? 6 : 4).map(type => {
+                  {recordTypes.slice(0, 4).map(type => {
                     const record = history.records.find(r => r.record_type_id === type.id);
                     return (
                       <td key={type.id} className="text-center py-2 px-3">
