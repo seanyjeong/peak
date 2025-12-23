@@ -232,12 +232,16 @@ function ClassColumn({ classData, orientation }: { classData: ClassData; orienta
 
   const columnWidth = orientation === 'landscape' ? 'w-56' : 'w-52';
 
+  // 주강사 이름으로 반 이름 생성
+  const mainInstructor = classData.instructors.find(i => i.isMain);
+  const className = mainInstructor ? `${mainInstructor.name}T` : `${classData.class_num}반`;
+
   return (
     <div className={`flex flex-col ${columnWidth} bg-white rounded-xl shadow-sm border overflow-hidden`}>
       {/* 헤더 */}
       <div className="bg-orange-500 text-white px-4 py-3">
         <div className="flex items-center justify-between">
-          <span className="font-bold text-lg">{classData.class_num}반</span>
+          <span className="font-bold text-lg">{className}</span>
           <span className="text-sm bg-white/20 px-2 py-0.5 rounded">
             {classData.students.length}명
           </span>
