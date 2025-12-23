@@ -119,9 +119,11 @@ export default function MobileRecordsPage() {
       const activeTypes = (typeData.recordTypes || []).filter((t: { is_active: boolean }) => t.is_active);
       setRecordTypes(activeTypes);
 
-      if (activeTypes.length > 0 && !selectedType) {
-        setSelectedType(activeTypes[0].id);
-      }
+      // 기존 선택이 유효하면 유지, 없으면 첫 번째 종목 선택
+      setSelectedType(prev => {
+        if (prev && activeTypes.some((t: RecordType) => t.id === prev)) return prev;
+        return activeTypes.length > 0 ? activeTypes[0].id : null;
+      });
 
       // 기록 로드
       if (slotStudents.length > 0) {
@@ -146,7 +148,7 @@ export default function MobileRecordsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, selectedTimeSlot, selectedType]);
+  }, [selectedDate, selectedTimeSlot]);
 
   useEffect(() => {
     loadData();

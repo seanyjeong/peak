@@ -40,3 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .playwright-mcp/
+backend/logs/
+backend/logs/

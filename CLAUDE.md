@@ -27,7 +27,7 @@
 
 ---
 
-## 현재 버전: v2.0.0
+## 현재 버전: v3.0.0
 
 ## 버전 정책
 
@@ -378,6 +378,33 @@ academy_settings (
 ---
 
 ## 버전 히스토리
+
+### v3.0.0 (2025-12-23)
+- **코드 품질 대규모 개선** (6단계 개선 계획 완료)
+  - Phase 1: 테스트 인프라 구축 (Jest + React Testing Library)
+  - Phase 2: UI 컴포넌트 라이브러리 (`src/components/ui/`)
+  - Phase 3: 페이지 컴포넌트 분리 (exercises, records, students)
+  - Phase 4: 에러 핸들링 시스템 (ErrorBoundary, useToast, Toast)
+  - Phase 5: 백엔드 로깅 시스템 (Winston + Daily Rotate)
+  - Phase 6: 문서화 (README.md, docs/API.md)
+- **새 테스트 인프라**
+  - Jest 설정 (`jest.config.js`, `jest.setup.js`)
+  - 88개 테스트 케이스 작성
+  - 테스트 유틸리티 (`src/test-utils/`)
+- **새 UI 컴포넌트**
+  - Button, Badge, Card, Input, Modal, Select, Spinner, Tabs
+  - ErrorBoundary (에러 경계)
+  - ToasterProvider (react-hot-toast)
+- **에러 핸들링 개선**
+  - `src/lib/constants/errors.ts` (에러 메시지 상수)
+  - API 클라이언트 에러 처리 강화 (타임아웃, 오프라인 감지)
+  - useToast 훅 (성공/에러/로딩 토스트)
+- **백엔드 로깅**
+  - Winston 로거 (`backend/utils/logger.js`)
+  - 요청 로깅 미들웨어 (`backend/middleware/requestLogger.js`)
+  - 일별 로그 파일 로테이션 (combined: 14일, error: 30일)
+- **버그 수정**
+  - 기록 측정 종목 선택 시 시간대 리셋 버그 (PC/태블릿/모바일)
 
 ### v2.0.0 (2025-12-23)
 - **반 배치 시스템 전면 개편**

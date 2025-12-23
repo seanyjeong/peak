@@ -9,7 +9,10 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const morgan = require('morgan');
+
+// Winston Logger 및 Request Logger
+const logger = require('./utils/logger');
+const requestLogger = require('./middleware/requestLogger');
 
 const app = express();
 const PORT = process.env.PORT || 8330;
@@ -36,11 +39,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(compression());
 
-if (process.env.NODE_ENV === 'development') {
-    app.use(morgan('dev'));
-} else {
-    app.use(morgan('combined'));
-}
+// Winston Request Logger
+app.use(requestLogger);
 
 // ==========================================
 // Database Connection
@@ -50,11 +50,11 @@ const db = require('./config/database');
 
 db.getConnection()
     .then(connection => {
-        console.log('✅ P-EAK MySQL Database Connected (peak)');
+        logger.info('Database connected', { database: 'peak' });
         connection.release();
     })
     .catch(err => {
-        console.error('❌ MySQL Connection Error:', err.message);
+        logger.error('Database connection failed', { error: err.message });
         process.exit(1);
     });
 
@@ -102,7 +102,13 @@ app.use('/peak/notifications', verifyToken, require('./routes/notifications'));
 // ==========================================
 
 app.use((err, req, res, next) => {
-    console.error('Server Error:', err);
+    logger.error('Unhandled error', {
+        error: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        userId: req.user?.id,
+    });
     res.status(500).json({
         error: 'Internal Server Error',
         message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
@@ -111,6 +117,10 @@ app.use((err, req, res, next) => {
 
 // 404 Handler
 app.use((req, res) => {
+    logger.warn('Route not found', {
+        method: req.method,
+        path: req.path,
+    });
     res.status(404).json({
         error: 'Not Found',
         message: `Cannot ${req.method} ${req.path}`
@@ -128,6 +138,13 @@ app.use((req, res) => {
 const { initScheduler } = require('./scheduler/pushScheduler');
 
 app.listen(PORT, () => {
+    logger.info('Server started', {
+        port: PORT,
+        database: 'peak',
+        env: process.env.NODE_ENV || 'development',
+    });
+
+    // 콘솔에도 시각적 표시
     console.log(`
 ╔═══════════════════════════════════════════╗
 ║     P-EAK (피크) Server Started!          ║

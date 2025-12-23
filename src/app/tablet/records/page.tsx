@@ -108,7 +108,10 @@ export default function TabletRecordsPage() {
       const typesRes = await apiClient.get('/record-types');
       const activeTypes = (typesRes.data.recordTypes || []).filter((t: RecordType) => t.is_active);
       setRecordTypes(activeTypes);
-      if (activeTypes.length > 0 && !selectedRecordType) setSelectedRecordType(activeTypes[0].id);
+      setSelectedRecordType(prev => {
+        if (prev && activeTypes.some((t: RecordType) => t.id === prev)) return prev;
+        return activeTypes.length > 0 ? activeTypes[0].id : null;
+      });
 
       const assignRes = await apiClient.get(`/assignments?date=${measuredAt}`);
       const slotsData = assignRes.data.slots || {};
@@ -137,13 +140,16 @@ export default function TabletRecordsPage() {
         }
       });
 
-      if (!admin && mySlot) {
-        setSelectedSlot(mySlot);
-        setSelectedTrainerId(myTrainerIdInSlot);
-      } else if (availableSlots.length > 0) {
-        setSelectedSlot(availableSlots[0]);
-        setSelectedTrainerId(null);
-      }
+      // 기존 선택이 유효하면 유지, 없으면 새로 설정
+      setSelectedSlot(prev => {
+        if (prev && availableSlots.includes(prev)) return prev;
+        if (!admin && mySlot) return mySlot;
+        return availableSlots[0] || '';
+      });
+      setSelectedTrainerId(prev => {
+        if (!admin && myTrainerIdInSlot) return myTrainerIdInSlot;
+        return prev;
+      });
 
       const scoreTablesData: { [key: number]: ScoreTableData } = {};
       for (const type of activeTypes) {
@@ -167,7 +173,7 @@ export default function TabletRecordsPage() {
     } finally {
       setLoading(false);
     }
-  }, [measuredAt, selectedRecordType, loadExistingRecords]);
+  }, [measuredAt, loadExistingRecords]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
