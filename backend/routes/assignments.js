@@ -10,21 +10,21 @@ const router = express.Router();
 const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
-
-const ACADEMY_ID = 2; // 일산맥스체대입시
+const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/assignments - 반 배치 현황 (반 중심 구조)
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
         const { date } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
+        const academyId = req.user.academyId;  // 토큰에서 학원 ID 가져오기
 
         // P-ACA에서 시간대 설정 가져오기
         const [settingsRows] = await pacaPool.query(`
             SELECT morning_class_time, afternoon_class_time, evening_class_time
             FROM academy_settings
             WHERE academy_id = ?
-        `, [ACADEMY_ID]);
+        `, [academyId]);
 
         const timeSlots = settingsRows[0] ? {
             morning: settingsRows[0].morning_class_time || '09:00-12:00',
@@ -46,13 +46,13 @@ router.get('/', async (req, res) => {
             JOIN instructors i ON ins.instructor_id = i.id
             WHERE ins.academy_id = ? AND ins.work_date = ?
             ORDER BY ins.time_slot, i.id
-        `, [ACADEMY_ID, targetDate]);
+        `, [academyId, targetDate]);
 
         // P-ACA에서 원장 조회
         const [owners] = await pacaPool.query(`
             SELECT id, name FROM users
             WHERE academy_id = ? AND role = 'owner' AND deleted_at IS NULL
-        `, [ACADEMY_ID]);
+        `, [academyId]);
 
         // 강사 이름 복호화 및 시간대별 그룹화
         const allInstructorsBySlot = { morning: [], afternoon: [], evening: [] };
@@ -323,10 +323,11 @@ router.put('/:id', async (req, res) => {
 });
 
 // POST /peak/assignments/sync - P-ACA에서 오늘 스케줄 동기화
-router.post('/sync', async (req, res) => {
+router.post('/sync', verifyToken, async (req, res) => {
     try {
         const { date } = req.body;
         const targetDate = date || new Date().toISOString().split('T')[0];
+        const academyId = req.user.academyId;  // 토큰에서 학원 ID
 
         // 기존 배치 조회 (class_id 유지를 위해)
         const [existingAssignments] = await db.query(`
@@ -361,7 +362,7 @@ router.post('/sync', async (req, res) => {
             JOIN students s ON a.student_id = s.id AND s.deleted_at IS NULL
             WHERE cs.academy_id = ? AND cs.class_date = ?
             ORDER BY cs.time_slot, s.name
-        `, [ACADEMY_ID, targetDate]);
+        `, [academyId, targetDate]);
 
         const convertGender = (g) => {
             if (g === 'male' || g === 'M') return 'M';
@@ -493,10 +494,11 @@ router.get('/next-class-num', async (req, res) => {
 });
 
 // GET /peak/assignments/instructors - 오늘 출근 강사 목록
-router.get('/instructors', async (req, res) => {
+router.get('/instructors', verifyToken, async (req, res) => {
     try {
         const { date } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
+        const academyId = req.user.academyId;  // 토큰에서 학원 ID
 
         const [instructors] = await pacaPool.query(`
             SELECT DISTINCT
@@ -510,7 +512,7 @@ router.get('/instructors', async (req, res) => {
             JOIN instructors i ON ins.instructor_id = i.id
             WHERE ins.academy_id = ? AND ins.work_date = ?
             ORDER BY ins.time_slot
-        `, [ACADEMY_ID, targetDate]);
+        `, [academyId, targetDate]);
 
         const decrypted = instructors.map(i => ({
             ...i,

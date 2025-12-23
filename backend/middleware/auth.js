@@ -6,16 +6,25 @@
 const jwt = require('jsonwebtoken');
 const mysql = require('mysql2/promise');
 const { decrypt } = require('../utils/encryption');
+require('dotenv').config({ path: __dirname + '/../.env' });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'jeong-paca-secret';
-const N8N_API_KEY = process.env.N8N_API_KEY || 'paca-n8n-api-key-2024';
+// 필수 환경변수 검증
+if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+}
+if (!process.env.PACA_DB_PASSWORD) {
+    throw new Error('PACA_DB_PASSWORD environment variable is required');
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
+const N8N_API_KEY = process.env.N8N_API_KEY;
 
 // P-ACA DB 연결 (users 테이블 조회용)
 const pacaPool = mysql.createPool({
     host: process.env.PACA_DB_HOST || 'localhost',
     port: parseInt(process.env.PACA_DB_PORT) || 3306,
     user: process.env.PACA_DB_USER || 'paca',
-    password: process.env.PACA_DB_PASSWORD || 'q141171616!',
+    password: process.env.PACA_DB_PASSWORD,
     database: 'paca',
     waitForConnections: true,
     connectionLimit: 5,

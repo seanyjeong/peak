@@ -8,14 +8,14 @@ const router = express.Router();
 const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
-
-const ACADEMY_ID = 2; // 일산맥스체대입시
+const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/attendance - P-ACA에서 오늘 강사 출근 현황
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
         const { date } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
+        const academyId = req.user.academyId;  // 토큰에서 학원 ID 가져오기
 
         // P-ACA에서 강사 스케줄 + 출결 조회 (instructor_schedules + instructor_attendance JOIN)
         const [instructors] = await pacaPool.query(`
@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
                 AND ia.time_slot = ins.time_slot
             WHERE ins.academy_id = ? AND ins.work_date = ?
             ORDER BY ins.time_slot, i.name
-        `, [ACADEMY_ID, targetDate]);
+        `, [academyId, targetDate]);
 
         // 이름 복호화 및 시간대별 그룹화
         const bySlot = { morning: [], afternoon: [], evening: [] };
@@ -76,11 +76,22 @@ router.get('/', async (req, res) => {
 });
 
 // POST /peak/attendance/checkin - 출근 체크
-router.post('/checkin', async (req, res) => {
+router.post('/checkin', verifyToken, async (req, res) => {
     try {
         const { trainer_id } = req.body;
         const today = new Date().toISOString().split('T')[0];
         const now = new Date().toTimeString().split(' ')[0];
+
+        // 권한 체크: 본인 또는 원장/관리자만 대리 체크 가능
+        const requesterId = req.user.instructorId;
+        const isAdminOrOwner = req.user.role === 'admin' || req.user.role === 'owner';
+
+        if (parseInt(trainer_id) !== requesterId && !isAdminOrOwner) {
+            return res.status(403).json({
+                error: 'Forbidden',
+                message: '본인 또는 원장/관리자만 출근 체크 가능합니다.'
+            });
+        }
 
         // 이미 출근했는지 확인
         const [existing] = await db.query(

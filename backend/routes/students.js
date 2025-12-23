@@ -7,12 +7,13 @@ const router = express.Router();
 const db = require('../config/database');
 const mysql = require('mysql2/promise');
 const { decrypt } = require('../utils/encryption');
+const { verifyToken } = require('../middleware/auth');
 
-// P-ACA DB 연결
+// P-ACA DB 연결 (환경변수 필수)
 const pacaPool = mysql.createPool({
     host: process.env.PACA_DB_HOST || 'localhost',
     user: process.env.PACA_DB_USER || 'paca',
-    password: process.env.PACA_DB_PASSWORD || 'q141171616!',
+    password: process.env.PACA_DB_PASSWORD,  // 필수 - fallback 제거
     database: 'paca',
     waitForConnections: true,
     connectionLimit: 5
@@ -22,9 +23,9 @@ const pacaPool = mysql.createPool({
  * POST /peak/students/sync
  * P-ACA에서 학생 데이터 동기화
  */
-router.post('/sync', async (req, res) => {
+router.post('/sync', verifyToken, async (req, res) => {
     try {
-        const { academyId } = req.body;
+        const academyId = req.user.academyId;  // 토큰에서 학원 ID
 
         if (!academyId) {
             return res.status(400).json({ error: '학원 ID가 필요합니다.' });
@@ -34,7 +35,7 @@ router.post('/sync', async (req, res) => {
         // pending(미등록관리), withdrawn(퇴원), graduated(졸업) 제외
         const [pacaStudents] = await pacaPool.query(`
             SELECT id, name, gender, phone, school, grade, enrollment_date, status,
-                   class_days, trial_remaining
+                   class_days, trial_remaining, trial_dates
             FROM students
             WHERE academy_id = ? AND status IN ('active', 'paused', 'trial')
             ORDER BY name
@@ -75,8 +76,20 @@ router.post('/sync', async (req, res) => {
 
             // 체험생 상태 처리 - P-ACA status='trial'인 경우에만 체험생
             const isTrial = student.status === 'trial' ? 1 : 0;
-            const trialTotal = 2; // 체험 총 횟수 (기본 2회)
-            const trialRemaining = student.trial_remaining ?? 2;
+
+            // 체험 총 횟수: trial_dates 배열 길이 기반 동적 계산
+            let trialTotal = 2;  // 기본값
+            if (isTrial && student.trial_dates) {
+                try {
+                    const trialDates = typeof student.trial_dates === 'string'
+                        ? JSON.parse(student.trial_dates || '[]')
+                        : (student.trial_dates || []);
+                    trialTotal = trialDates.length || 2;
+                } catch (e) {
+                    trialTotal = 2;  // 파싱 실패 시 기본값
+                }
+            }
+            const trialRemaining = student.trial_remaining ?? trialTotal;
 
             // 이미 있는지 확인
             const [existing] = await db.query(
@@ -113,11 +126,26 @@ router.post('/sync', async (req, res) => {
             }
         }
 
+        // P-ACA에 없는 학생(퇴원/졸업) 비활성화
+        const pacaStudentIds = pacaStudents.map(s => s.id);
+        let deactivated = 0;
+        if (pacaStudentIds.length > 0) {
+            const [deactivateResult] = await db.query(`
+                UPDATE students
+                SET status = 'inactive', updated_at = NOW()
+                WHERE paca_student_id IS NOT NULL
+                AND paca_student_id NOT IN (?)
+                AND status = 'active'
+            `, [pacaStudentIds]);
+            deactivated = deactivateResult.affectedRows || 0;
+        }
+
         res.json({
             success: true,
-            message: `동기화 완료: ${synced}명 추가, ${updated}명 업데이트`,
+            message: `동기화 완료: ${synced}명 추가, ${updated}명 업데이트, ${deactivated}명 비활성화`,
             synced,
             updated,
+            deactivated,
             total: pacaStudents.length
         });
 
