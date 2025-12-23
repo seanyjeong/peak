@@ -389,7 +389,7 @@ export default function StudentProfilePage() {
   const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 6);
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col gap-4">
+    <div className="min-h-[600px] max-h-[800px] h-[calc(100vh-120px)] flex flex-col gap-4">
       {/* Header - 컴팩트 */}
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
