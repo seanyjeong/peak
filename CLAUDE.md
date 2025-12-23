@@ -27,7 +27,7 @@
 
 ---
 
-## 현재 버전: v1.9.0
+## 현재 버전: v2.0.0
 
 ## 버전 정책
 
@@ -281,10 +281,17 @@ training_logs (
 
 -- 반 배치
 daily_assignments (
-  id, date, time_slot, student_id, trainer_id, paca_attendance_id,
-  status, order_num
+  id, date, time_slot, student_id, trainer_id, class_id,
+  paca_attendance_id, status, order_num
 )
 -- UNIQUE KEY uk_date_slot_student (date, time_slot, student_id)
+
+-- 반별 강사 배치 (v2.0.0)
+class_instructors (
+  id, date, time_slot, class_num, instructor_id,
+  is_main, order_num, created_at
+)
+-- UNIQUE KEY uk_slot_class_instructor (date, time_slot, class_num, instructor_id)
 
 -- 운동 관리
 exercises (id, name, tags JSON, default_sets, default_reps, description)
@@ -329,9 +336,10 @@ academy_settings (
 ### 반 배치
 | Method | Path | 설명 |
 |--------|------|------|
-| GET | `/peak/assignments?date=YYYY-MM-DD` | 반 배치 + timeSlots |
-| POST | `/peak/assignments/sync` | P-ACA 동기화 (trainer_id 유지) |
-| PUT | `/peak/assignments/:id` | 학생 배치 변경 |
+| GET | `/peak/assignments?date=YYYY-MM-DD` | 반 배치 (v2.0.0: 반 중심 구조) |
+| POST | `/peak/assignments/sync` | P-ACA 동기화 |
+| PUT | `/peak/assignments/:id` | 학생 배치 변경 (class_id 지정) |
+| POST | `/peak/assignments/instructor` | 강사 배치 (v2.0.0) |
 
 ### 기록 측정
 | Method | Path | 설명 |
@@ -370,6 +378,20 @@ academy_settings (
 ---
 
 ## 버전 히스토리
+
+### v2.0.0 (2025-12-23)
+- **반 배치 시스템 전면 개편**
+  - 강사 컬럼 → 반(Class) 중심 구조로 변경
+  - 학생 + 강사 모두 드래그앤드롭 지원
+  - 한 반에 여러 강사 배치 가능 (주강사 + 보조강사)
+  - 자동 반 생성/삭제 (강사 드롭 시 생성, 빈 반 자동 삭제)
+- **컴팩트 UI**
+  - 학생 카드 1줄로 압축 (체험 표시 유지)
+  - 강사는 칩 형태로 표시 (★ = 주강사)
+  - 반 컬럼 너비 축소 (w-48)
+- **새 DB 테이블**: `class_instructors` (반별 강사 배치)
+- **새 API**: `POST /peak/assignments/instructor` (강사 배치)
+- **PC, 태블릿 동시 적용**
 
 ### v1.9.0 (2025-12-23)
 - **체험수업 연동 개선**

@@ -13,13 +13,8 @@ import {
   DragEndEvent,
   useDroppable,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { Users, RefreshCw, AlertCircle, Coffee, Sunrise, Sun, Moon, Download, Calendar, ExternalLink } from 'lucide-react';
+import { useDraggable } from '@dnd-kit/core';
+import { Users, RefreshCw, Download, Calendar, Star, Crown, Plus, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 
@@ -38,15 +33,24 @@ interface Student {
   status: 'enrolled' | 'trial' | 'rest' | 'injury';
 }
 
-interface TrainerColumn {
-  trainer_id: number | null;
-  trainer_name: string;
+interface Instructor {
+  id: number;
+  name: string;
+  isOwner: boolean;
+  isMain?: boolean;
+  order_num?: number;
+}
+
+interface ClassData {
+  class_num: number;
+  instructors: Instructor[];
   students: Student[];
 }
 
 interface SlotData {
-  instructors: { id: number; name: string }[];
-  trainers: TrainerColumn[];
+  waitingStudents: Student[];
+  waitingInstructors: Instructor[];
+  classes: ClassData[];
 }
 
 interface SlotsData {
@@ -55,154 +59,263 @@ interface SlotsData {
   evening: SlotData;
 }
 
-const TIME_SLOT_INFO: Record<TimeSlot, { label: string; icon: typeof Sun; color: string; bgColor: string }> = {
-  morning: { label: '오전', icon: Sunrise, color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  afternoon: { label: '오후', icon: Sun, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  evening: { label: '저녁', icon: Moon, color: 'text-purple-600', bgColor: 'bg-purple-100' },
+const TIME_SLOT_INFO: Record<TimeSlot, { label: string; color: string; bgColor: string }> = {
+  morning: { label: '오전', color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  afternoon: { label: '오후', color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  evening: { label: '저녁', color: 'text-purple-600', bgColor: 'bg-purple-100' },
 };
 
-// 학생 카드 컴포넌트
-function StudentCard({ student, isDragging }: { student: Student; isDragging?: boolean }) {
+// 컴팩트 학생 카드
+function CompactStudentCard({ student, isDragging }: { student: Student; isDragging?: boolean }) {
   const genderColor = student.gender === 'M' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700';
-  const statusIcon = student.status === 'rest' ? <Coffee size={14} /> :
-                     student.status === 'injury' ? <AlertCircle size={14} /> : null;
 
   return (
     <div
-      className={`p-3 bg-white rounded-lg border-2 border-transparent shadow-sm cursor-grab active:cursor-grabbing transition ${
-        isDragging ? 'opacity-50 border-orange-400 shadow-lg' : 'hover:border-slate-200'
+      className={`flex items-center gap-1.5 px-2 py-1.5 bg-white rounded-lg border shadow-sm cursor-grab active:cursor-grabbing transition ${
+        isDragging ? 'opacity-50 border-orange-400 shadow-lg scale-105' : 'hover:border-slate-300'
       }`}
     >
-      <div className="flex items-center gap-2">
-        <span className={`px-2 py-0.5 rounded text-xs font-medium ${genderColor}`}>
-          {student.gender === 'M' ? '남' : '여'}
+      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${genderColor}`}>
+        {student.gender === 'M' ? '남' : '여'}
+      </span>
+      <span className="font-medium text-sm text-slate-800 truncate max-w-[70px]">
+        {student.student_name}
+      </span>
+      <Link
+        href={`/students/${student.student_id}`}
+        className="p-0.5 hover:bg-orange-100 rounded transition"
+        title="프로필"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <ExternalLink size={10} className="text-orange-500" />
+      </Link>
+      {!!student.is_trial && (
+        <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-100 text-purple-700">
+          {student.trial_total - student.trial_remaining}/{student.trial_total}
         </span>
-        <span className="font-medium text-slate-800">{student.student_name}</span>
-        <Link
-          href={`/students/${student.student_id}`}
-          className="p-1 hover:bg-orange-100 rounded transition"
-          title="프로필 보기"
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <ExternalLink size={12} className="text-orange-500" />
-        </Link>
-        {!!student.is_trial && (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">
-            체험 {student.trial_total - student.trial_remaining}/{student.trial_total}
-          </span>
-        )}
-        {statusIcon && <span className="ml-auto text-slate-400">{statusIcon}</span>}
-      </div>
-      {(student.school || student.grade) && (
-        <p className="text-xs text-slate-400 mt-1 ml-9">
-          {student.school}{student.school && student.grade && ' '}{student.grade}
-        </p>
       )}
     </div>
   );
 }
 
-// 드래그 가능한 학생 카드
+// 드래그 가능한 학생
 function DraggableStudent({ student }: { student: Student }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: `student-${student.id}` });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `student-${student.id}`,
+    data: { type: 'student', student }
+  });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <StudentCard student={student} isDragging={isDragging} />
+      <CompactStudentCard student={student} isDragging={isDragging} />
     </div>
   );
 }
 
-// 트레이너 컬럼 컴포넌트
-function TrainerColumnComponent({
-  column,
-  isUnassigned = false
-}: {
-  column: TrainerColumn;
-  isUnassigned?: boolean;
-}) {
-  const columnId = column.trainer_id?.toString() ?? 'unassigned';
-  const { setNodeRef, isOver } = useDroppable({ id: columnId });
-  const bgColor = isUnassigned ? 'bg-slate-100' : 'bg-orange-50';
-  const headerColor = isUnassigned ? 'bg-slate-600' : 'bg-orange-500';
-
+// 강사 칩
+function InstructorChip({ instructor, isDragging, showMain = false }: { instructor: Instructor; isDragging?: boolean; showMain?: boolean }) {
   return (
     <div
-      ref={setNodeRef}
-      className={`flex flex-col w-72 max-h-[calc(100vh-280px)] rounded-xl ${bgColor} ${
-        isOver ? 'ring-2 ring-orange-400 ring-offset-2' : ''
+      className={`flex items-center gap-1 px-2 py-1 rounded-full border cursor-grab active:cursor-grabbing transition ${
+        isDragging
+          ? 'bg-orange-200 border-orange-400 shadow-lg scale-105'
+          : 'bg-orange-50 border-orange-200 hover:bg-orange-100'
       }`}
     >
-      {/* 헤더 - 항상 고정 */}
-      <div className={`${headerColor} text-white px-4 py-3 rounded-t-xl flex-shrink-0`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users size={18} />
-            <span className="font-semibold">{column.trainer_name}</span>
+      {showMain && instructor.isMain && (
+        <Star size={12} className="text-orange-500 fill-orange-500" />
+      )}
+      {instructor.isOwner && (
+        <Crown size={12} className="text-amber-500" />
+      )}
+      <span className="text-sm font-medium text-orange-700">{instructor.name}</span>
+    </div>
+  );
+}
+
+// 드래그 가능한 강사
+function DraggableInstructor({ instructor, showMain = false }: { instructor: Instructor; showMain?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `instructor-${instructor.id}`,
+    data: { type: 'instructor', instructor }
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <InstructorChip instructor={instructor} isDragging={isDragging} showMain={showMain} />
+    </div>
+  );
+}
+
+// 대기 영역
+function WaitingArea({
+  waitingStudents,
+  waitingInstructors
+}: {
+  waitingStudents: Student[];
+  waitingInstructors: Instructor[];
+}) {
+  const { setNodeRef: setStudentRef, isOver: isOverStudents } = useDroppable({ id: 'waiting-students' });
+  const { setNodeRef: setInstructorRef, isOver: isOverInstructors } = useDroppable({ id: 'waiting-instructors' });
+
+  return (
+    <div className="bg-slate-50 rounded-xl p-4 mb-6">
+      <div className="grid grid-cols-2 gap-4">
+        {/* 학생 대기 */}
+        <div
+          ref={setStudentRef}
+          className={`bg-white rounded-lg p-3 min-h-[80px] transition ${
+            isOverStudents ? 'ring-2 ring-blue-400 bg-blue-50' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-2 text-slate-600">
+            <Users size={16} />
+            <span className="text-sm font-medium">학생 대기</span>
+            <span className="px-1.5 py-0.5 bg-slate-100 rounded text-xs">{waitingStudents.length}명</span>
           </div>
-          <span className="px-2 py-0.5 bg-white/20 rounded-full text-sm">
-            {column.students.length}명
+          <div className="flex flex-wrap gap-2">
+            {waitingStudents.map((student) => (
+              <DraggableStudent key={student.id} student={student} />
+            ))}
+            {waitingStudents.length === 0 && (
+              <span className="text-slate-400 text-sm">대기 중인 학생 없음</span>
+            )}
+          </div>
+        </div>
+
+        {/* 강사 대기 */}
+        <div
+          ref={setInstructorRef}
+          className={`bg-white rounded-lg p-3 min-h-[80px] transition ${
+            isOverInstructors ? 'ring-2 ring-orange-400 bg-orange-50' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-2 text-slate-600">
+            <Users size={16} />
+            <span className="text-sm font-medium">강사 대기</span>
+            <span className="px-1.5 py-0.5 bg-slate-100 rounded text-xs">{waitingInstructors.length}명</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {waitingInstructors.map((instructor) => (
+              <DraggableInstructor key={instructor.id} instructor={instructor} />
+            ))}
+            {waitingInstructors.length === 0 && (
+              <span className="text-slate-400 text-sm">대기 중인 강사 없음</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 반 컬럼
+function ClassColumn({ classData }: { classData: ClassData }) {
+  const { setNodeRef: setStudentRef, isOver: isOverStudents } = useDroppable({
+    id: `class-${classData.class_num}-students`
+  });
+  const { setNodeRef: setInstructorRef, isOver: isOverInstructors } = useDroppable({
+    id: `class-${classData.class_num}-instructors`
+  });
+
+  return (
+    <div className="flex flex-col w-48 bg-white rounded-xl shadow-sm border overflow-hidden">
+      {/* 헤더: 반 이름 */}
+      <div className="bg-orange-500 text-white px-3 py-2">
+        <div className="flex items-center justify-between">
+          <span className="font-bold">{classData.class_num}반</span>
+          <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded">
+            {classData.students.length}명
           </span>
         </div>
       </div>
 
-      {/* 학생 목록 - 스크롤 가능 */}
-      <div className="flex-1 p-3 overflow-y-auto min-h-[200px]">
-        <SortableContext
-          items={column.students.map(s => `student-${s.id}`)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="space-y-2">
-            {column.students.map((student) => (
-              <DraggableStudent key={student.id} student={student} />
-            ))}
-          </div>
-        </SortableContext>
-
-        {column.students.length === 0 && (
-          <div className="h-full flex items-center justify-center text-slate-400 text-sm">
-            학생을 드래그하여 배치하세요
-          </div>
-        )}
+      {/* 강사 영역 */}
+      <div
+        ref={setInstructorRef}
+        className={`p-2 bg-orange-50 border-b min-h-[40px] transition ${
+          isOverInstructors ? 'ring-2 ring-inset ring-orange-400 bg-orange-100' : ''
+        }`}
+      >
+        <div className="flex flex-wrap gap-1">
+          {classData.instructors.map((inst) => (
+            <DraggableInstructor key={inst.id} instructor={inst} showMain />
+          ))}
+          {classData.instructors.length === 0 && (
+            <span className="text-orange-400 text-xs">강사 배치 필요</span>
+          )}
+        </div>
       </div>
+
+      {/* 학생 영역 */}
+      <div
+        ref={setStudentRef}
+        className={`flex-1 p-2 min-h-[120px] max-h-[300px] overflow-y-auto transition ${
+          isOverStudents ? 'ring-2 ring-inset ring-blue-400 bg-blue-50' : ''
+        }`}
+      >
+        <div className="space-y-1.5">
+          {classData.students.map((student) => (
+            <DraggableStudent key={student.id} student={student} />
+          ))}
+          {classData.students.length === 0 && (
+            <div className="text-slate-400 text-xs text-center py-4">
+              학생을 드래그하세요
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 새 반 생성 드롭존
+function NewClassZone() {
+  const { setNodeRef, isOver } = useDroppable({ id: 'new-class' });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex flex-col items-center justify-center w-48 min-h-[200px] rounded-xl border-2 border-dashed transition ${
+        isOver
+          ? 'border-orange-400 bg-orange-50'
+          : 'border-slate-300 bg-slate-50 hover:border-slate-400'
+      }`}
+    >
+      <Plus size={32} className={isOver ? 'text-orange-500' : 'text-slate-400'} />
+      <span className={`mt-2 text-sm font-medium ${isOver ? 'text-orange-600' : 'text-slate-500'}`}>
+        새 반 생성
+      </span>
+      <span className="text-xs text-slate-400 mt-1">강사를 드롭하세요</span>
     </div>
   );
 }
 
 export default function AssignmentsPage() {
   const [slotsData, setSlotsData] = useState<SlotsData>({
-    morning: { instructors: [], trainers: [] },
-    afternoon: { instructors: [], trainers: [] },
-    evening: { instructors: [], trainers: [] }
+    morning: { waitingStudents: [], waitingInstructors: [], classes: [] },
+    afternoon: { waitingStudents: [], waitingInstructors: [], classes: [] },
+    evening: { waitingStudents: [], waitingInstructors: [], classes: [] }
   });
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [activeStudent, setActiveStudent] = useState<Student | null>(null);
+  const [activeItem, setActiveItem] = useState<{ type: 'student' | 'instructor'; data: Student | Instructor } | null>(null);
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
 
-  // 날짜 선택 state
   const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return now.toISOString().split('T')[0];
   });
 
-  // 선택된 날짜를 한글로 표시
   const formatDateKorean = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00');
     return date.toLocaleDateString('ko-KR', {
@@ -215,7 +328,7 @@ export default function AssignmentsPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 10 }, // 클릭과 드래그 구분을 위해 거리 증가
+      activationConstraint: { distance: 8 },
     }),
     useSensor(KeyboardSensor)
   );
@@ -223,23 +336,18 @@ export default function AssignmentsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-
-      const assignmentsRes = await apiClient.get(`/assignments?date=${selectedDate}`);
-
-      const slots = assignmentsRes.data.slots || {
-        morning: { instructors: [], trainers: [] },
-        afternoon: { instructors: [], trainers: [] },
-        evening: { instructors: [], trainers: [] }
+      const res = await apiClient.get(`/assignments?date=${selectedDate}`);
+      const slots = res.data.slots || {
+        morning: { waitingStudents: [], waitingInstructors: [], classes: [] },
+        afternoon: { waitingStudents: [], waitingInstructors: [], classes: [] },
+        evening: { waitingStudents: [], waitingInstructors: [], classes: [] }
       };
+      setSlotsData(slots);
 
-      setSlotsData({
-        morning: { instructors: slots.morning.instructors || [], trainers: slots.morning.trainers || [] },
-        afternoon: { instructors: slots.afternoon.instructors || [], trainers: slots.afternoon.trainers || [] },
-        evening: { instructors: slots.evening.instructors || [], trainers: slots.evening.trainers || [] }
-      });
+      // 학생이 있는 슬롯 선택
+      const hasStudents = (slot: SlotData) =>
+        slot.waitingStudents.length > 0 || slot.classes.some(c => c.students.length > 0);
 
-      // 학생이 있는 첫 슬롯 선택
-      const hasStudents = (slot: SlotData) => slot.trainers.some(t => t.students.length > 0);
       if (hasStudents(slots.evening)) setActiveSlot('evening');
       else if (hasStudents(slots.afternoon)) setActiveSlot('afternoon');
       else if (hasStudents(slots.morning)) setActiveSlot('morning');
@@ -266,103 +374,97 @@ export default function AssignmentsPage() {
     fetchData();
   }, [selectedDate]);
 
-  const currentColumns = slotsData[activeSlot].trainers;
+  const currentSlotData = slotsData[activeSlot];
 
-  const findStudent = (id: string): Student | null => {
-    const studentId = parseInt(id.replace('student-', ''));
-    for (const col of currentColumns) {
-      const found = col.students.find(s => s.id === studentId);
-      if (found) return found;
-    }
-    return null;
-  };
-
-  const findColumn = (studentId: string): TrainerColumn | null => {
-    const id = parseInt(studentId.replace('student-', ''));
-    for (const col of currentColumns) {
-      if (col.students.some(s => s.id === id)) return col;
-    }
-    return null;
+  const getNextClassNum = () => {
+    const classNums = currentSlotData.classes.map(c => c.class_num);
+    return classNums.length > 0 ? Math.max(...classNums) + 1 : 1;
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    const student = findStudent(event.active.id as string);
-    setActiveStudent(student);
+    const { active } = event;
+    const data = active.data.current;
+    if (data?.type === 'student') {
+      setActiveItem({ type: 'student', data: data.student });
+    } else if (data?.type === 'instructor') {
+      setActiveItem({ type: 'instructor', data: data.instructor });
+    }
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveStudent(null);
+    setActiveItem(null);
 
     if (!over) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
+    const data = active.data.current;
 
-    const sourceColumn = findColumn(activeId);
-    if (!sourceColumn) return;
+    try {
+      // 학생 드래그
+      if (data?.type === 'student') {
+        const student = data.student as Student;
 
-    let targetColumn: TrainerColumn | null = null;
-    let targetTrainerId: number | null = null;
-
-    if (overId.startsWith('student-')) {
-      targetColumn = findColumn(overId);
-    } else {
-      targetColumn = currentColumns.find(c =>
-        (c.trainer_id === null && overId === 'unassigned') ||
-        c.trainer_id?.toString() === overId
-      ) || null;
-    }
-
-    if (!targetColumn || sourceColumn === targetColumn) return;
-
-    targetTrainerId = targetColumn.trainer_id;
-    const student = findStudent(activeId);
-    if (!student) return;
-
-    // UI 즉시 업데이트
-    setSlotsData(prev => {
-      const newSlots = { ...prev };
-      const newTrainers = newSlots[activeSlot].trainers.map(col => ({
-        ...col,
-        students: col.students.filter(s => s.id !== student.id)
-      }));
-
-      const targetIdx = newTrainers.findIndex(c => c.trainer_id === targetTrainerId);
-      if (targetIdx !== -1) {
-        newTrainers[targetIdx].students.push(student);
+        if (overId === 'waiting-students') {
+          // 대기로 이동
+          await apiClient.put(`/assignments/${student.id}`, { class_id: null });
+        } else if (overId.startsWith('class-') && overId.endsWith('-students')) {
+          // 반으로 이동
+          const classNum = parseInt(overId.split('-')[1]);
+          await apiClient.put(`/assignments/${student.id}`, { class_id: classNum });
+        }
       }
 
-      newSlots[activeSlot] = {
-        instructors: newSlots[activeSlot].instructors,
-        trainers: newTrainers
-      };
-      return newSlots;
-    });
+      // 강사 드래그
+      if (data?.type === 'instructor') {
+        const instructor = data.instructor as Instructor;
 
-    // API 호출
-    try {
-      await apiClient.put(`/assignments/${student.id}`, {
-        trainer_id: targetTrainerId,
-        status: student.status,
-        order_num: 0,
-        time_slot: activeSlot
-      });
+        if (overId === 'waiting-instructors') {
+          // 대기로 이동
+          await apiClient.post('/assignments/instructor', {
+            date: selectedDate,
+            time_slot: activeSlot,
+            instructor_id: instructor.id,
+            to_class_num: null
+          });
+        } else if (overId.startsWith('class-') && overId.endsWith('-instructors')) {
+          // 기존 반으로 이동
+          const classNum = parseInt(overId.split('-')[1]);
+          await apiClient.post('/assignments/instructor', {
+            date: selectedDate,
+            time_slot: activeSlot,
+            instructor_id: instructor.id,
+            to_class_num: classNum,
+            is_main: false
+          });
+        } else if (overId === 'new-class') {
+          // 새 반 생성
+          const newClassNum = getNextClassNum();
+          await apiClient.post('/assignments/instructor', {
+            date: selectedDate,
+            time_slot: activeSlot,
+            instructor_id: instructor.id,
+            to_class_num: newClassNum,
+            is_main: true
+          });
+        }
+      }
+
+      await fetchData();
     } catch (error) {
-      console.error('Failed to update assignment:', error);
-      fetchData();
+      console.error('Failed to update:', error);
     }
   };
 
-  // 현재 슬롯 학생 수 계산
   const getSlotStudentCount = (slot: TimeSlot) => {
-    return slotsData[slot].trainers.reduce((sum, col) => sum + col.students.length, 0);
+    const data = slotsData[slot];
+    return data.waitingStudents.length + data.classes.reduce((sum, c) => sum + c.students.length, 0);
   };
 
-  const totalStudents = currentColumns.reduce((sum, col) => sum + col.students.length, 0);
-  const assignedStudents = currentColumns
-    .filter(col => col.trainer_id !== null)
-    .reduce((sum, col) => sum + col.students.length, 0);
+  const totalStudents = currentSlotData.waitingStudents.length +
+    currentSlotData.classes.reduce((sum, c) => sum + c.students.length, 0);
+  const assignedStudents = currentSlotData.classes.reduce((sum, c) => sum + c.students.length, 0);
 
   return (
     <div className="max-w-full">
@@ -373,7 +475,6 @@ export default function AssignmentsPage() {
           <p className="text-slate-500 mt-1">{formatDateKorean(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* 날짜 선택 */}
           <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-200">
             <Calendar size={18} className="text-slate-400" />
             <input
@@ -384,7 +485,7 @@ export default function AssignmentsPage() {
             />
           </div>
           <div className="px-4 py-2 bg-white rounded-lg shadow-sm">
-            <span className="text-slate-500 text-sm">배정 현황</span>
+            <span className="text-slate-500 text-sm">배정</span>
             <span className="ml-2 font-bold text-orange-500">{assignedStudents}/{totalStudents}명</span>
           </div>
           <button
@@ -406,10 +507,9 @@ export default function AssignmentsPage() {
       </div>
 
       {/* 시간대 탭 */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-4">
         {(Object.keys(TIME_SLOT_INFO) as TimeSlot[]).map((slot) => {
           const info = TIME_SLOT_INFO[slot];
-          const Icon = info.icon;
           const count = getSlotStudentCount(slot);
           const isActive = activeSlot === slot;
 
@@ -417,13 +517,12 @@ export default function AssignmentsPage() {
             <button
               key={slot}
               onClick={() => setActiveSlot(slot)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-lg transition ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
                 isActive
-                  ? `${info.bgColor} ${info.color} ring-2 ring-offset-2 ring-${info.color.replace('text-', '')}`
+                  ? `${info.bgColor} ${info.color} ring-2 ring-offset-1`
                   : 'bg-white text-slate-500 hover:bg-slate-50'
               }`}
             >
-              <Icon size={20} />
               <span className="font-medium">{info.label}</span>
               <span className={`px-2 py-0.5 rounded-full text-xs ${
                 isActive ? 'bg-white/50' : 'bg-slate-100'
@@ -439,9 +538,9 @@ export default function AssignmentsPage() {
         <div className="flex items-center justify-center h-96">
           <RefreshCw size={32} className="animate-spin text-slate-400" />
         </div>
-      ) : totalStudents === 0 ? (
+      ) : totalStudents === 0 && currentSlotData.waitingInstructors.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-96 text-slate-400">
-          <p className="text-lg mb-4">오늘 {TIME_SLOT_INFO[activeSlot].label} 수업에 배정된 학생이 없습니다.</p>
+          <p className="text-lg mb-4">{TIME_SLOT_INFO[activeSlot].label} 수업 데이터가 없습니다.</p>
           <button
             onClick={handleSync}
             disabled={syncing}
@@ -458,18 +557,28 @@ export default function AssignmentsPage() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {currentColumns.map((column) => (
-              <TrainerColumnComponent
-                key={column.trainer_id ?? 'unassigned'}
-                column={column}
-                isUnassigned={column.trainer_id === null}
-              />
+          {/* 대기 영역 */}
+          <WaitingArea
+            waitingStudents={currentSlotData.waitingStudents}
+            waitingInstructors={currentSlotData.waitingInstructors}
+          />
+
+          {/* 반 그리드 */}
+          <div className="flex flex-wrap gap-4">
+            {currentSlotData.classes.map((classData) => (
+              <ClassColumn key={classData.class_num} classData={classData} />
             ))}
+            <NewClassZone />
           </div>
 
+          {/* 드래그 오버레이 */}
           <DragOverlay>
-            {activeStudent && <StudentCard student={activeStudent} isDragging />}
+            {activeItem?.type === 'student' && (
+              <CompactStudentCard student={activeItem.data as Student} isDragging />
+            )}
+            {activeItem?.type === 'instructor' && (
+              <InstructorChip instructor={activeItem.data as Instructor} isDragging />
+            )}
           </DragOverlay>
         </DndContext>
       )}
@@ -477,24 +586,24 @@ export default function AssignmentsPage() {
       {/* 범례 */}
       <div className="mt-6 flex items-center gap-6 text-sm text-slate-500">
         <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">남</span>
+          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">남</span>
           <span>남학생</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-xs">여</span>
+          <span className="px-1.5 py-0.5 bg-pink-100 text-pink-700 rounded text-xs">여</span>
           <span>여학생</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">체험</span>
-          <span>체험생</span>
+          <span className="px-1 py-0.5 bg-purple-100 text-purple-700 rounded text-[9px]">1/2</span>
+          <span>체험 (완료/전체)</span>
         </div>
         <div className="flex items-center gap-2">
-          <Coffee size={14} />
-          <span>휴식</span>
+          <Star size={12} className="text-orange-500 fill-orange-500" />
+          <span>주강사</span>
         </div>
         <div className="flex items-center gap-2">
-          <AlertCircle size={14} />
-          <span>부상</span>
+          <Crown size={12} className="text-amber-500" />
+          <span>원장</span>
         </div>
       </div>
     </div>

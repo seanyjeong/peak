@@ -20,7 +20,7 @@ import {
   Dumbbell
 } from 'lucide-react';
 
-const APP_VERSION = 'v1.9.0';
+const APP_VERSION = 'v2.0.0';
 
 // Orientation Context
 const OrientationContext = createContext<'portrait' | 'landscape'>('portrait');
