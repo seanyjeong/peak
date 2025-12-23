@@ -193,20 +193,6 @@ export default function TrainingPage() {
 
   useEffect(() => { fetchData(); }, [selectedDate]);
 
-  // 현재 시간대/강사의 플랜 찾기
-  const currentPlan = plans.find(p =>
-    p.time_slot === selectedSlot &&
-    (selectedTrainerId ? p.instructor_id === selectedTrainerId : true)
-  );
-
-  // 온습도 로드
-  useEffect(() => {
-    if (currentPlan) {
-      setTemperature(currentPlan.temperature?.toString() || '');
-      setHumidity(currentPlan.humidity?.toString() || '');
-    }
-  }, [currentPlan?.id]);
-
   // 학생이 배치된 시간대 목록 (반배치 기준)
   const availableSlots = ['morning', 'afternoon', 'evening'].filter(slot => {
     const slotData = slots[slot] as SlotData;
@@ -218,6 +204,33 @@ export default function TrainingPage() {
 
   const currentSlotData = slots[selectedSlot] as SlotData | undefined;
   const currentClasses = currentSlotData?.classes || [];
+
+  // 현재 시간대/강사의 플랜 찾기
+  // 반 선택 시 해당 반의 주 강사 플랜을 찾음
+  const getInstructorIdForPlan = (): number | null => {
+    if (!selectedTrainerId) return null;  // 전체 보기
+
+    const selectedClass = currentClasses.find(c => c.class_num === selectedTrainerId);
+    if (!selectedClass) return null;
+
+    // 주 강사 또는 첫 번째 강사의 ID 반환
+    const mainInstructor = selectedClass.instructors?.find(i => i.isMain);
+    return mainInstructor?.id || selectedClass.instructors?.[0]?.id || null;
+  };
+
+  const instructorIdForPlan = getInstructorIdForPlan();
+  const currentPlan = plans.find(p =>
+    p.time_slot === selectedSlot &&
+    (instructorIdForPlan ? p.instructor_id === instructorIdForPlan : true)
+  );
+
+  // 온습도 로드
+  useEffect(() => {
+    if (currentPlan) {
+      setTemperature(currentPlan.temperature?.toString() || '');
+      setHumidity(currentPlan.humidity?.toString() || '');
+    }
+  }, [currentPlan?.id]);
 
   // 학생 목록 가져오기 (원장은 전체, 강사는 자기 반)
   const getMyStudents = (): Student[] => {
