@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-const APP_VERSION = 'v2.0.5';
+const APP_VERSION = 'v2.0.6';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
