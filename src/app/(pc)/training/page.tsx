@@ -88,14 +88,24 @@ const SLOT_LABELS: Record<string, string> = {
   evening: '저녁반'
 };
 
+// plans API에서 받은 강사 목록 타입
+interface ScheduledInstructor {
+  id: number;
+  name: string;
+  user_id: number;
+  time_slot: string;
+  isOwner?: boolean;
+}
+
 export default function TrainingPage() {
   const [slots, setSlots] = useState<Record<string, SlotData>>({});
+  const [planSlots, setPlanSlots] = useState<Record<string, ScheduledInstructor[]>>({});  // plans API의 강사 목록
   const [plans, setPlans] = useState<Plan[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string>('');
-  const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
+  const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null);  // instructor_id로 변경
   const [existingLogs, setExistingLogs] = useState<ExistingLog[]>([]);
 
   // 날짜 선택
@@ -141,16 +151,18 @@ export default function TrainingPage() {
       ]);
 
       const slotsData = assignmentsRes.data.slots || {};
+      const planSlotsData = plansRes.data.slots || {};  // plans API의 강사 목록
       setSlots(slotsData);
+      setPlanSlots(planSlotsData);
       setExistingLogs(trainingRes.data.logs || []);
       setPlans(plansRes.data.plans || []);
       setExercises(exercisesRes.data.exercises || []);
 
-      // 자동 시간대 선택 (v2.0.0 classes 구조)
+      // 자동 시간대 선택 (학생이 있는 시간대)
       const myInstructorId = user?.instructorId;
       const availableSlots: string[] = [];
       let mySlot: string | null = null;
-      let myClassNum: number | null = null;
+      let myInstructorIdInSlot: number | null = null;
 
       ['morning', 'afternoon', 'evening'].forEach(slot => {
         const slotData = slotsData[slot] as SlotData;
@@ -163,15 +175,12 @@ export default function TrainingPage() {
         if (hasStudentsInClasses || hasWaitingStudents) {
           availableSlots.push(slot);
 
-          // 내가 배치된 반 찾기
-          if (myInstructorId) {
-            const myClass = slotData.classes?.find(c =>
-              c.instructors?.some(i => i.id === myInstructorId)
-            );
-            if (myClass) {
-              mySlot = slot;
-              myClassNum = myClass.class_num;
-            }
+          // 내가 해당 시간대에 스케줄되어 있는지 확인 (plans slots 기준)
+          const planInstructors = planSlotsData[slot] || [];
+          const mySchedule = planInstructors.find((i: ScheduledInstructor) => i.id === myInstructorId);
+          if (mySchedule) {
+            mySlot = slot;
+            myInstructorIdInSlot = mySchedule.id;
           }
         }
       });
@@ -179,10 +188,10 @@ export default function TrainingPage() {
       const admin = user?.role === 'admin' || user?.role === 'owner';
       if (!admin && mySlot) {
         setSelectedSlot(mySlot);
-        setSelectedTrainerId(myClassNum);  // 내 반 번호
+        setSelectedInstructorId(myInstructorIdInSlot);  // 내 instructor_id
       } else if (availableSlots.length > 0) {
         setSelectedSlot(availableSlots[0]);
-        setSelectedTrainerId(null);
+        setSelectedInstructorId(null);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -205,24 +214,14 @@ export default function TrainingPage() {
   const currentSlotData = slots[selectedSlot] as SlotData | undefined;
   const currentClasses = currentSlotData?.classes || [];
 
-  // 현재 시간대/강사의 플랜 찾기
-  // 반 선택 시 해당 반의 주 강사 플랜을 찾음
-  const getInstructorIdForPlan = (): number | null => {
-    if (!selectedTrainerId) return null;  // 전체 보기
-
-    const selectedClass = currentClasses.find(c => c.class_num === selectedTrainerId);
-    if (!selectedClass) return null;
-
-    // 주 강사 또는 첫 번째 강사의 ID 반환
-    const mainInstructor = selectedClass.instructors?.find(i => i.isMain);
-    return mainInstructor?.id || selectedClass.instructors?.[0]?.id || null;
-  };
-
-  const instructorIdForPlan = getInstructorIdForPlan();
+  // 현재 시간대/강사의 플랜 찾기 (직접 instructor_id 사용)
   const currentPlan = plans.find(p =>
     p.time_slot === selectedSlot &&
-    (instructorIdForPlan ? p.instructor_id === instructorIdForPlan : true)
+    (selectedInstructorId ? p.instructor_id === selectedInstructorId : true)
   );
+
+  // 현재 시간대의 강사 목록 (plans API 기준)
+  const currentInstructors = planSlots[selectedSlot] || [];
 
   // 온습도 로드
   useEffect(() => {
@@ -249,9 +248,11 @@ export default function TrainingPage() {
       }
       return allStudents;
     } else {
-      // 일반 강사: 자기 반 학생만
-      if (!selectedTrainerId) return [];
-      const myClass = currentClasses.find(c => c.class_num === selectedTrainerId);
+      // 일반 강사: 자기 반 학생만 (instructor_id로 찾기)
+      if (!selectedInstructorId) return [];
+      const myClass = currentClasses.find(c =>
+        c.instructors?.some(i => i.id === selectedInstructorId)
+      );
       return myClass?.students || [];
     }
   };
@@ -383,7 +384,7 @@ export default function TrainingPage() {
         const res = await apiClient.post('/training', {
           date: dateStr,
           student_id: studentId,
-          trainer_id: selectedTrainerId,
+          trainer_id: selectedInstructorId,
           plan_id: currentPlan?.id || null,
           condition_score: score,
           notes: ''
@@ -466,7 +467,7 @@ export default function TrainingPage() {
             {availableSlots.map(slot => (
               <button
                 key={slot}
-                onClick={() => { setSelectedSlot(slot); if (isAdmin) setSelectedTrainerId(null); }}
+                onClick={() => { setSelectedSlot(slot); if (isAdmin) setSelectedInstructorId(null); }}
                 className={`px-4 py-2 rounded-lg font-medium transition ${
                   selectedSlot === slot ? 'bg-orange-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                 }`}
@@ -476,30 +477,26 @@ export default function TrainingPage() {
             ))}
           </div>
 
-          {/* 반 선택 (관리자용 - 선택사항) */}
-          {isAdmin && selectedSlot && currentClasses.length > 0 && (
+          {/* 강사 선택 (관리자용) */}
+          {isAdmin && selectedSlot && currentInstructors.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <select
-                value={selectedTrainerId || ''}
-                onChange={e => setSelectedTrainerId(Number(e.target.value) || null)}
+                value={selectedInstructorId || ''}
+                onChange={e => setSelectedInstructorId(Number(e.target.value) || null)}
                 className="w-full px-4 py-2 border border-slate-200 rounded-lg"
               >
-                <option value="">전체 학생 보기</option>
-                {currentClasses.map(c => {
-                  const mainInstructor = c.instructors?.find(i => i.isMain);
-                  const instructorName = mainInstructor?.name || c.instructors?.[0]?.name || '담당강사 없음';
-                  return (
-                    <option key={c.class_num} value={c.class_num}>
-                      {c.class_num}반 - {instructorName} ({c.students?.length || 0}명)
-                    </option>
-                  );
-                })}
+                <option value="">전체 보기</option>
+                {currentInstructors.map(inst => (
+                  <option key={inst.id} value={inst.id}>
+                    {inst.name}{inst.isOwner ? '' : 'T'}
+                  </option>
+                ))}
               </select>
             </div>
           )}
 
-          {/* 강사가 반에 배치되지 않은 경우 (일반 강사만) */}
-          {!isAdmin && !selectedTrainerId ? (
+          {/* 강사가 스케줄되지 않은 경우 (일반 강사만) */}
+          {!isAdmin && !selectedInstructorId ? (
             <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
               <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
               <p className="text-slate-500">해당 시간대에 배정된 반이 없습니다.</p>
