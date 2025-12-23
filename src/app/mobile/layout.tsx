@@ -3,11 +3,15 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { authAPI } from '@/lib/api/auth';
 import Image from 'next/image';
 import { Medal, ClipboardList, Activity, LogOut } from 'lucide-react';
 
 const APP_VERSION = 'v2.0.4';
+
+// 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
+const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
 
 // Bottom tab items (3개)
 const bottomTabs = [
@@ -31,6 +35,7 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const [user, setUser] = useState<{ name: string; role?: string; position?: string | null } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [showAlertPopup, setShowAlertPopup] = useState(false);
 
   useEffect(() => {
     const currentUser = authAPI.getCurrentUser();
@@ -38,6 +43,12 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
       window.location.href = '/login';
     } else {
       setUser(currentUser);
+      // 로그인 후 알림 체크 (세션당 한 번만)
+      const alertShown = sessionStorage.getItem('alertShown');
+      if (!alertShown) {
+        setShowAlertPopup(true);
+        sessionStorage.setItem('alertShown', 'true');
+      }
     }
   }, []);
 
@@ -49,6 +60,9 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
+      {/* 인앱 알림 팝업 */}
+      {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
+
       {/* 헤더 */}
       <header className="h-14 bg-[#1a2b4a] flex items-center justify-between px-4 sticky top-0 z-20">
         <div className="flex items-center gap-2">

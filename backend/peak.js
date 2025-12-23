@@ -93,6 +93,10 @@ app.use('/peak/record-types', verifyToken, require('./routes/recordTypes'));
 app.use('/peak/score-tables', verifyToken, require('./routes/scoreTable'));
 app.use('/peak/stats', verifyToken, require('./routes/stats'));
 
+// 푸시 알림 및 인앱 알림
+app.use('/peak/push', require('./routes/push'));
+app.use('/peak/notifications', verifyToken, require('./routes/notifications'));
+
 // ==========================================
 // Error Handler
 // ==========================================
@@ -117,6 +121,12 @@ app.use((req, res) => {
 // Start Server
 // ==========================================
 
+// ==========================================
+// Push Notification Scheduler
+// ==========================================
+
+const { initScheduler } = require('./scheduler/pushScheduler');
+
 app.listen(PORT, () => {
     console.log(`
 ╔═══════════════════════════════════════════╗
@@ -128,6 +138,9 @@ app.listen(PORT, () => {
 ║  Env: ${process.env.NODE_ENV || 'development'}                       ║
 ╚═══════════════════════════════════════════╝
     `);
+
+    // 스케줄러 초기화
+    initScheduler();
 });
 
 module.exports = app;

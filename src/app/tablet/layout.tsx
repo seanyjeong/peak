@@ -4,6 +4,7 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -21,6 +22,9 @@ import {
 } from 'lucide-react';
 
 const APP_VERSION = 'v2.0.4';
+
+// 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
+const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
 
 // Orientation Context
 const OrientationContext = createContext<'portrait' | 'landscape'>('portrait');
@@ -64,6 +68,7 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
   const [user, setUser] = useState<{ name: string; role?: string; position?: string | null } | null>(null);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showAlertPopup, setShowAlertPopup] = useState(false);
 
   useEffect(() => {
     const currentUser = authAPI.getCurrentUser();
@@ -71,6 +76,12 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
       window.location.href = '/login';
     } else {
       setUser(currentUser);
+      // 로그인 후 알림 체크 (세션당 한 번만)
+      const alertShown = sessionStorage.getItem('alertShown');
+      if (!alertShown) {
+        setShowAlertPopup(true);
+        sessionStorage.setItem('alertShown', 'true');
+      }
     }
   }, []);
 
@@ -98,6 +109,9 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
     return (
       <OrientationContext.Provider value={orientation}>
         <div className="min-h-screen flex bg-slate-100">
+          {/* 인앱 알림 팝업 */}
+          {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
+
           {/* 축소형 사이드바 */}
           <aside className="w-20 bg-[#1a2b4a] text-white flex flex-col fixed h-full z-20">
             {/* 로고 */}
@@ -185,6 +199,9 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
   return (
     <OrientationContext.Provider value={orientation}>
       <div className="min-h-screen flex flex-col bg-slate-100">
+        {/* 인앱 알림 팝업 */}
+        {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
+
         {/* 헤더 */}
         <header className="h-16 bg-[#1a2b4a] flex items-center justify-between px-4 sticky top-0 z-20">
           <div className="flex items-center gap-3">

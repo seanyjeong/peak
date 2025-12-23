@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
 const APP_VERSION = 'v2.0.4';
 import { authAPI } from '@/lib/api/auth';
@@ -20,6 +21,9 @@ import {
   Settings
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+
+// 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
+const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
 
 const navigation = [
   { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
@@ -52,6 +56,7 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<{ name: string; role?: string; position?: string | null } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showAlertPopup, setShowAlertPopup] = useState(false);
 
   useEffect(() => {
     const currentUser = authAPI.getCurrentUser();
@@ -59,6 +64,12 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
       window.location.href = '/login';
     } else {
       setUser(currentUser);
+      // 로그인 후 알림 체크 (세션당 한 번만)
+      const alertShown = sessionStorage.getItem('alertShown');
+      if (!alertShown) {
+        setShowAlertPopup(true);
+        sessionStorage.setItem('alertShown', 'true');
+      }
     }
   }, []);
 
@@ -68,6 +79,9 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex bg-slate-100">
+      {/* 인앱 알림 팝업 */}
+      {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
+
       {/* Sidebar - Dark Navy */}
       <aside
         className={`${sidebarOpen ? 'w-52' : 'w-20'} bg-[#1a2b4a] text-white transition-all duration-300 flex flex-col fixed h-full z-10`}

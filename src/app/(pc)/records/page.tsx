@@ -20,15 +20,23 @@ interface Student {
   gender: 'M' | 'F';
 }
 
-interface SlotTrainer {
-  trainer_id: number | null;
-  trainer_name: string;
+interface ClassInstructor {
+  id: number;
+  name: string;
+  isOwner: boolean;
+  isMain: boolean;
+}
+
+interface ClassData {
+  class_num: number;
+  instructors: ClassInstructor[];
   students: Student[];
 }
 
 interface SlotData {
-  instructors: { id: number; name: string }[];
-  trainers: SlotTrainer[];
+  waitingStudents: Student[];
+  waitingInstructors: { id: number; name: string; isOwner: boolean }[];
+  classes: ClassData[];
 }
 
 interface ScoreRange {
@@ -162,38 +170,39 @@ export default function RecordsPage() {
       // 현재 사용자의 instructor_id
       const myInstructorId = user?.instructorId;
 
-      // 스케줄이 있는 시간대 찾기
+      // 학생이 배치된 시간대 찾기 (반배치 기준)
       const availableSlots: string[] = [];
       let mySlot: string | null = null;
-      let myTrainerIdInSlot: number | null = null;
+      let myClassNumInSlot: number | null = null;
 
       ['morning', 'afternoon', 'evening'].forEach(slot => {
         const slotData = slotsData[slot] as SlotData;
         if (!slotData) return;
 
-        const hasInstructors = slotData.instructors && slotData.instructors.length > 0;
-        const hasAssignments = slotData.trainers?.some(t => t.trainer_id && t.students.length > 0);
+        // 학생이 있는지 확인 (반에 배치된 학생 + 대기 학생)
+        const hasStudentsInClasses = slotData.classes?.some(c => c.students && c.students.length > 0);
+        const hasWaitingStudents = slotData.waitingStudents && slotData.waitingStudents.length > 0;
 
-        if (hasInstructors || hasAssignments) {
+        if (hasStudentsInClasses || hasWaitingStudents) {
           availableSlots.push(slot);
 
+          // 내가 배치된 반 찾기
           if (myInstructorId) {
-            const mySchedule = slotData.instructors?.find(i => i.id === myInstructorId);
-            if (mySchedule) {
+            const myClass = slotData.classes?.find(c =>
+              c.instructors?.some(i => i.id === myInstructorId)
+            );
+            if (myClass) {
               mySlot = slot;
-              const myTrainer = slotData.trainers?.find(t => t.trainer_id === myInstructorId);
-              if (myTrainer) {
-                myTrainerIdInSlot = myTrainer.trainer_id;
-              }
+              myClassNumInSlot = myClass.class_num;
             }
           }
         }
       });
 
-      // 시간대/강사 자동 선택
+      // 시간대/반 자동 선택
       if (!admin && mySlot) {
         setSelectedSlot(mySlot);
-        setSelectedTrainerId(myTrainerIdInSlot);
+        setSelectedTrainerId(myClassNumInSlot);  // 내 반 번호
       } else if (availableSlots.length > 0) {
         setSelectedSlot(availableSlots[0]);
         setSelectedTrainerId(null);
@@ -215,12 +224,19 @@ export default function RecordsPage() {
       const allStudentIds: number[] = [];
       Object.values(slotsData).forEach((slotData) => {
         const sd = slotData as SlotData;
-        sd.trainers?.forEach(t => {
-          t.students?.forEach(s => {
+        // 반에 배치된 학생
+        sd.classes?.forEach(c => {
+          c.students?.forEach(s => {
             if (!allStudentIds.includes(s.student_id)) {
               allStudentIds.push(s.student_id);
             }
           });
+        });
+        // 대기 중인 학생
+        sd.waitingStudents?.forEach(s => {
+          if (!allStudentIds.includes(s.student_id)) {
+            allStudentIds.push(s.student_id);
+          }
         });
       });
 
@@ -238,37 +254,41 @@ export default function RecordsPage() {
     fetchData();
   }, [fetchData]);
 
-  // 스케줄이 있는 시간대 목록
+  // 학생이 배치된 시간대 목록 (반배치 기준)
   const availableSlots = ['morning', 'afternoon', 'evening'].filter(slot => {
     const slotData = slots[slot] as SlotData;
     if (!slotData) return false;
-    const hasInstructors = slotData.instructors && slotData.instructors.length > 0;
-    const hasAssignments = slotData.trainers?.some(t => t.trainer_id && t.students.length > 0);
-    return hasInstructors || hasAssignments;
+    const hasStudentsInClasses = slotData.classes?.some(c => c.students && c.students.length > 0);
+    const hasWaitingStudents = slotData.waitingStudents && slotData.waitingStudents.length > 0;
+    return hasStudentsInClasses || hasWaitingStudents;
   });
 
-  // 선택된 시간대의 강사 목록
+  // 선택된 시간대의 데이터
   const currentSlotData = slots[selectedSlot] as SlotData | undefined;
-  const currentTrainers = currentSlotData?.trainers?.filter(t => t.trainer_id) || [];
+  const currentClasses = currentSlotData?.classes || [];
 
   // 학생 목록 (원장은 전체, 강사는 자기 반)
   const getMyStudents = (): Student[] => {
     if (!currentSlotData) return [];
 
     if (isAdmin) {
-      // 원장/admin: 해당 시간대 전체 학생
+      // 원장/admin: 해당 시간대 전체 학생 (반 배치 + 대기)
       const allStudents: Student[] = [];
-      currentSlotData.trainers?.forEach(t => {
-        if (t.students) {
-          allStudents.push(...t.students);
+      currentSlotData.classes?.forEach(c => {
+        if (c.students) {
+          allStudents.push(...c.students);
         }
       });
+      // 대기 중인 학생도 포함
+      if (currentSlotData.waitingStudents) {
+        allStudents.push(...currentSlotData.waitingStudents);
+      }
       return allStudents;
     } else {
       // 일반 강사: 자기 반 학생만
       if (!selectedTrainerId) return [];
-      const trainer = currentTrainers.find(t => t.trainer_id === selectedTrainerId);
-      return trainer?.students || [];
+      const myClass = currentClasses.find(c => c.class_num === selectedTrainerId);
+      return myClass?.students || [];
     }
   };
 
@@ -486,8 +506,8 @@ export default function RecordsPage() {
       ) : availableSlots.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center">
           <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500">오늘 수업 스케줄이 없습니다.</p>
-          <p className="text-slate-400 text-sm mt-1">출근 체크 페이지에서 스케줄을 확인하세요.</p>
+          <p className="text-slate-500">해당 날짜에 배정된 학생이 없습니다.</p>
+          <p className="text-slate-400 text-sm mt-1">반 배치 페이지에서 학생을 배치해주세요.</p>
         </div>
       ) : (
         <>
@@ -513,11 +533,12 @@ export default function RecordsPage() {
             ))}
           </div>
 
-          {/* 강사가 선택 안된 경우 (일반 강사만) */}
+          {/* 강사가 반에 배치되지 않은 경우 (일반 강사만) */}
           {!isAdmin && !selectedTrainerId ? (
             <div className="bg-white rounded-xl shadow-sm p-12 text-center">
               <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500">해당 시간대에 배정된 수업이 없습니다.</p>
+              <p className="text-slate-500">해당 시간대에 배정된 반이 없습니다.</p>
+              <p className="text-slate-400 text-sm mt-1">반 배치 페이지에서 반에 배정되어야 합니다.</p>
             </div>
           ) : myStudents.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm p-12 text-center">

@@ -30,8 +30,38 @@ router.get('/', async (req, res) => {
             ORDER BY ins.time_slot, i.name
         `, [ACADEMY_ID, targetDate]);
 
+        // 해당 날짜에 배정된 학생이 있는 시간대 확인
+        const [assignedSlots] = await db.query(`
+            SELECT DISTINCT time_slot FROM daily_assignments WHERE date = ?
+        `, [targetDate]);
+        const slotsWithStudents = new Set(assignedSlots.map(r => r.time_slot));
+
+        // P-ACA에서 원장 조회
+        const [owners] = await pacaPool.query(`
+            SELECT id, name FROM users
+            WHERE academy_id = ? AND role = 'owner' AND deleted_at IS NULL
+        `, [ACADEMY_ID]);
+
         // 이름 복호화 및 시간대별 그룹화
         const bySlot = { morning: [], afternoon: [], evening: [] };
+
+        // 원장: 학생이 있는 시간대에만 추가 (음수 ID)
+        owners.forEach(owner => {
+            const decryptedName = owner.name ? decrypt(owner.name) : owner.name;
+            ['morning', 'afternoon', 'evening'].forEach(slot => {
+                if (slotsWithStudents.has(slot)) {
+                    bySlot[slot].push({
+                        id: -owner.id,  // 음수 ID로 원장 구분
+                        name: decryptedName,
+                        user_id: owner.id,
+                        time_slot: slot,
+                        isOwner: true
+                    });
+                }
+            });
+        });
+
+        // 일반 강사 추가
         scheduledInstructors.forEach(inst => {
             const decryptedName = inst.name ? decrypt(inst.name) : inst.name;
             if (bySlot[inst.time_slot]) {
@@ -39,7 +69,8 @@ router.get('/', async (req, res) => {
                     id: inst.id,
                     name: decryptedName,
                     user_id: inst.user_id,
-                    time_slot: inst.time_slot
+                    time_slot: inst.time_slot,
+                    isOwner: false
                 });
             }
         });
@@ -62,6 +93,7 @@ router.get('/', async (req, res) => {
             return {
                 ...p,
                 instructor_name: instructor?.name || '알 수 없음',
+                isOwner: instructor?.isOwner || false,
                 tags: typeof p.tags === 'string' ? JSON.parse(p.tags) : (p.tags || []),
                 exercises: typeof p.exercises === 'string' ? JSON.parse(p.exercises) : (p.exercises || []),
                 completed_exercises: typeof p.completed_exercises === 'string' ? JSON.parse(p.completed_exercises) : (p.completed_exercises || []),
