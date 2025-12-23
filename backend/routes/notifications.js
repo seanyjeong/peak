@@ -82,11 +82,12 @@ router.get('/check', verifyToken, async (req, res) => {
         const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
         const currentMonth = monthNames[today.getMonth()];
 
-        // 활성 학생 중 최근 7일 기록 없는 학생 수
+        // 재원생 중 최근 7일 기록 없는 학생 수 (체험생 제외)
         const [studentsWithoutRecords] = await pool.query(`
             SELECT COUNT(DISTINCT s.id) as count
             FROM students s
             WHERE s.status = 'active'
+            AND (s.is_trial = FALSE OR s.is_trial IS NULL)
             AND s.id NOT IN (
                 SELECT DISTINCT sr.student_id
                 FROM student_records sr

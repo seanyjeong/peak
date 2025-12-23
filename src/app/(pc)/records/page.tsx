@@ -607,15 +607,15 @@ export default function RecordsPage() {
                 </div>
               </div>
 
-              {/* 내 반 학생 수 */}
+              {/* 학생 수 */}
               <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
                 <Users size={16} />
-                <span>내 반: {myStudents.length}명</span>
+                <span>{isAdmin ? '수업 참여 학생 수' : '내 반'}: {myStudents.length}명</span>
               </div>
 
               {inputMode === 'student' ? (
-                /* 학생별 입력 모드 */
-                <div className="space-y-2">
+                /* 학생별 입력 모드 - 2열 그리드 */
+                <div className="grid grid-cols-2 gap-2">
                   {myStudents.map(student => {
                     const isExpanded = expandedStudents.has(student.student_id);
                     const inputCount = getInputCount(student.student_id);
@@ -625,68 +625,48 @@ export default function RecordsPage() {
                     return (
                       <div
                         key={student.student_id}
-                        className={`bg-white rounded-xl shadow-sm overflow-hidden transition ${
+                        className={`bg-white rounded-lg shadow-sm overflow-hidden transition ${
                           isSaved ? 'ring-2 ring-green-400' : ''
                         }`}
                       >
                         <div
-                          className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50"
+                          className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-50"
                           onClick={() => toggleStudent(student.student_id)}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${
                               student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
                             }`}>
-                              {student.student_name.charAt(0)}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-slate-800">{student.student_name}</span>
-                                <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                  student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
-                                }`}>
-                                  {student.gender === 'M' ? '남' : '여'}
-                                </span>
-                                {isSaved && (
-                                  <span className="flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
-                                    <Check size={12} />
-                                    저장됨
-                                  </span>
-                                )}
-                              </div>
-                              {inputCount > 0 && (
-                                <div className="text-sm text-slate-500">
-                                  {inputCount}개 종목 입력 {totalScore !== null && (
-                                    <span className="text-orange-500 font-medium">· 총점 {totalScore}점</span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
+                              {student.gender === 'M' ? '남' : '여'}
+                            </span>
+                            <span className="font-medium text-slate-800 truncate">{student.student_name}</span>
+                            {isSaved && <Check size={14} className="text-green-500 flex-shrink-0" />}
                           </div>
-                          <div className="flex items-center gap-2">
-                            {saving && (
-                              <RefreshCw size={16} className="animate-spin text-orange-500" />
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {inputCount > 0 && (
+                              <span className="text-xs text-orange-500 font-medium">
+                                {totalScore !== null ? `${totalScore}점` : `${inputCount}개`}
+                              </span>
                             )}
                             {isExpanded ? (
-                              <ChevronUp size={20} className="text-slate-400" />
+                              <ChevronUp size={16} className="text-slate-400" />
                             ) : (
-                              <ChevronDown size={20} className="text-slate-400" />
+                              <ChevronDown size={16} className="text-slate-400" />
                             )}
                           </div>
                         </div>
 
                         {isExpanded && (
-                          <div className="border-t border-slate-100 p-4">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="border-t border-slate-100 px-3 py-2">
+                            <div className="grid grid-cols-2 gap-2">
                               {recordTypes.map(type => {
                                 const inputData = inputs[student.student_id]?.[type.id] || { value: '', score: null };
                                 const decimalPlaces = getDecimalPlaces(type.id);
 
                                 return (
                                   <div key={type.id} className="relative">
-                                    <label className="block text-sm font-medium text-slate-600 mb-1">
+                                    <label className="block text-xs text-slate-500 mb-0.5 truncate">
                                       {type.name}
-                                      <span className="text-slate-400 ml-1">({type.unit})</span>
                                     </label>
                                     <div className="relative">
                                       <input
@@ -695,13 +675,13 @@ export default function RecordsPage() {
                                         value={inputData.value}
                                         onChange={e => handleInputChange(student.student_id, type.id, e.target.value, student.gender)}
                                         onBlur={() => handleInputBlur(student.student_id, type.id)}
-                                        placeholder={`0${decimalPlaces > 0 ? '.' + '0'.repeat(decimalPlaces) : ''}`}
-                                        className="w-full px-3 py-2 pr-16 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        placeholder="0"
+                                        className="w-full px-2 py-1.5 pr-12 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                                       />
                                       {inputData.score !== null && (
-                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                                          <Trophy size={14} className="text-orange-500" />
-                                          <span className="text-sm font-bold text-orange-600">{inputData.score}</span>
+                                        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                                          <Trophy size={12} className="text-orange-500" />
+                                          <span className="text-xs font-bold text-orange-600">{inputData.score}</span>
                                         </div>
                                       )}
                                     </div>

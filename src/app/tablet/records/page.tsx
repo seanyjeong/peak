@@ -360,7 +360,7 @@ export default function TabletRecordsPage() {
               {/* 학생 수 */}
               <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
                 <Users size={16} />
-                <span>내 반: {myStudents.length}명</span>
+                <span>{isAdmin ? '수업 참여 학생 수' : '내 반'}: {myStudents.length}명</span>
                 {saving && <RefreshCw size={14} className="animate-spin text-orange-500" />}
               </div>
 
