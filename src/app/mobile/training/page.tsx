@@ -88,27 +88,40 @@ export default function MobileTrainingPage() {
       const token = authAPI.getToken();
       const headers = { Authorization: `Bearer ${token}` };
 
-      // 수업 기록 로드
+      // 반배치에서 학생 목록 로드 (PC 버전과 동일)
+      const assignmentsRes = await fetch(
+        `${API_BASE}/assignments?date=${selectedDate}`,
+        { headers }
+      );
+      const assignmentsData = await assignmentsRes.json();
+
+      // 기존 수업 기록 로드 (컨디션, 메모 등)
       const trainingRes = await fetch(
         `${API_BASE}/training?date=${selectedDate}`,
         { headers }
       );
       const trainingData = await trainingRes.json();
+      const existingLogs = trainingData.logs || [];
 
-      // 시간대별 학생 필터링
-      const slotData = (trainingData.training || trainingData.logs || [])
-        .filter((t: { time_slot: string }) => t.time_slot === selectedTimeSlot)
-        .map((t: { student_id: number; student_name: string; student_gender: string; id: number; condition_score?: number; notes?: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => ({
-          id: t.student_id,
-          training_log_id: t.id,
-          name: t.student_name,
-          gender: t.student_gender as 'male' | 'female',
-          condition_score: t.condition_score,
-          notes: t.notes,
-          is_trial: t.is_trial,
-          trial_total: t.trial_total,
-          trial_remaining: t.trial_remaining,
-        }));
+      // 시간대별 학생 필터링 (assignments 기반)
+      const slotsData = assignmentsData.slots || {};
+      const slotStudents = slotsData[selectedTimeSlot] || [];
+
+      const slotData = slotStudents.map((s: { student_id: number; student_name: string; student_gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
+        // 기존 로그에서 해당 학생의 컨디션/메모 찾기
+        const existingLog = existingLogs.find((l: { student_id: number }) => l.student_id === s.student_id);
+        return {
+          id: s.student_id,
+          training_log_id: existingLog?.id,
+          name: s.student_name,
+          gender: s.student_gender as 'male' | 'female',
+          condition_score: existingLog?.condition_score,
+          notes: existingLog?.notes,
+          is_trial: s.is_trial,
+          trial_total: s.trial_total,
+          trial_remaining: s.trial_remaining,
+        };
+      });
 
       setStudents(slotData);
 
