@@ -72,7 +72,8 @@ export default function MobilePlansPage() {
   const [saving, setSaving] = useState(false);
 
   // 유저 정보
-  const [user, setUser] = useState<{ id: number; name: string; role?: string } | null>(null);
+  const [user, setUser] = useState<{ id: number; name: string; role?: string; instructorId?: number } | null>(null);
+  const isOwner = user?.role === 'admin' || user?.role === 'owner';
 
   useEffect(() => {
     const currentUser = authAPI.getCurrentUser();
@@ -189,10 +190,13 @@ export default function MobilePlansPage() {
 
     try {
       const token = authAPI.getToken();
+      // 원장은 음수 ID, 강사는 instructorId 사용
+      const instructorId = isOwner ? -user.id : (user.instructorId || user.id);
+
       const body = {
         date: selectedDate,
         time_slot: selectedTimeSlot,
-        instructor_id: user.id,
+        instructor_id: instructorId,
         tags: selectedTags,
         exercises: selectedExercises,
         description: notes,
@@ -304,7 +308,9 @@ export default function MobilePlansPage() {
                     <div className="flex-1">
                       <p className="font-medium text-slate-800">{plan.instructor_name}</p>
                       {plan.tags && plan.tags.length > 0 && (
-                        <p className="text-xs text-orange-600 mt-1">{plan.tags.join(', ')}</p>
+                        <p className="text-xs text-orange-600 mt-1">
+                          {plan.tags.map(tagId => tags.find(t => t.tag_id === tagId)?.label || tagId).join(', ')}
+                        </p>
                       )}
                       {plan.exercises && plan.exercises.length > 0 && (
                         <p className="text-xs text-slate-500 mt-1">
