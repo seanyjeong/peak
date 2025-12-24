@@ -43,6 +43,8 @@ interface PlannedExercise {
 interface DailyPlan {
   id: number;
   exercises: PlannedExercise[];
+  completed_exercises: number[];
+  exercise_times: Record<number, string>;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
@@ -212,8 +214,40 @@ export default function MobileTrainingPage() {
 
   const koreanDate = format(new Date(selectedDate), 'M월 d일 (E)', { locale: ko });
 
-  // 모든 계획의 운동 합치기
-  const allExercises = plans.flatMap(p => p.exercises || []);
+  // 운동 완료 토글
+  const toggleExercise = async (planId: number, exerciseId: number) => {
+    try {
+      const token = authAPI.getToken();
+      const res = await fetch(`${API_BASE}/plans/${planId}/toggle-exercise`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ exercise_id: exerciseId }),
+      });
+      const data = await res.json();
+
+      // 로컬 상태 업데이트
+      setPlans(prev => prev.map(p =>
+        p.id === planId
+          ? { ...p, completed_exercises: data.completed_exercises || [], exercise_times: data.exercise_times || {} }
+          : p
+      ));
+    } catch (error) {
+      console.error('Failed to toggle exercise:', error);
+    }
+  };
+
+  // 모든 계획의 운동 합치기 (완료 상태 포함)
+  const allExercises = plans.flatMap(p =>
+    (p.exercises || []).map(ex => ({
+      ...ex,
+      planId: p.id,
+      completed: (p.completed_exercises || []).includes(ex.id),
+      completed_at: p.exercise_times?.[ex.id],
+    }))
+  );
 
   return (
     <div className="space-y-3">
@@ -342,10 +376,8 @@ export default function MobileTrainingPage() {
               allExercises.map((ex, idx) => (
                 <div key={idx} className="flex items-center gap-2 px-3 py-2">
                   <button
-                    onClick={() => {
-                      // TODO: 운동 완료 토글 API 연동
-                    }}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition ${
+                    onClick={() => toggleExercise(ex.planId, ex.id)}
+                    className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition ${
                       ex.completed
                         ? 'bg-green-500 border-green-500'
                         : 'border-slate-300'
