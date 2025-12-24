@@ -41,9 +41,9 @@ interface DailyPlan {
   time_slot: string;
   instructor_id: number;
   instructor_name: string;
-  focus_areas: string;
+  tags: string[];
   exercises: { id: number; name: string; sets?: number; reps?: number; notes?: string }[];
-  notes: string;
+  description: string;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
@@ -88,7 +88,7 @@ export default function MobilePlansPage() {
 
       // 계획 로드
       const planRes = await fetch(
-        `${API_BASE}/daily-plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
+        `${API_BASE}/plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
         { headers }
       );
       const planData = await planRes.json();
@@ -139,9 +139,9 @@ export default function MobilePlansPage() {
   const openForm = (plan?: DailyPlan) => {
     if (plan) {
       setEditingPlan(plan);
-      setSelectedTags(plan.focus_areas ? plan.focus_areas.split(',').map(t => t.trim()) : []);
+      setSelectedTags(plan.tags || []);
       setSelectedExercises(plan.exercises || []);
-      setNotes(plan.notes || '');
+      setNotes(plan.description || '');
     } else {
       setEditingPlan(null);
       setSelectedTags([]);
@@ -193,14 +193,14 @@ export default function MobilePlansPage() {
         date: selectedDate,
         time_slot: selectedTimeSlot,
         instructor_id: user.id,
-        focus_areas: selectedTags.join(', '),
+        tags: selectedTags,
         exercises: selectedExercises,
-        notes,
+        description: notes,
       };
 
       const url = editingPlan
-        ? `${API_BASE}/daily-plans/${editingPlan.id}`
-        : `${API_BASE}/daily-plans`;
+        ? `${API_BASE}/plans/${editingPlan.id}`
+        : `${API_BASE}/plans`;
 
       const response = await fetch(url, {
         method: editingPlan ? 'PUT' : 'POST',
@@ -228,7 +228,7 @@ export default function MobilePlansPage() {
 
     try {
       const token = authAPI.getToken();
-      await fetch(`${API_BASE}/daily-plans/${planId}`, {
+      await fetch(`${API_BASE}/plans/${planId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -303,16 +303,16 @@ export default function MobilePlansPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <p className="font-medium text-slate-800">{plan.instructor_name}</p>
-                      {plan.focus_areas && (
-                        <p className="text-xs text-orange-600 mt-1">{plan.focus_areas}</p>
+                      {plan.tags && plan.tags.length > 0 && (
+                        <p className="text-xs text-orange-600 mt-1">{plan.tags.join(', ')}</p>
                       )}
                       {plan.exercises && plan.exercises.length > 0 && (
                         <p className="text-xs text-slate-500 mt-1">
                           {plan.exercises.map(e => e.name).join(', ')}
                         </p>
                       )}
-                      {plan.notes && (
-                        <p className="text-xs text-slate-400 mt-2">{plan.notes}</p>
+                      {plan.description && (
+                        <p className="text-xs text-slate-400 mt-2">{plan.description}</p>
                       )}
                     </div>
                     <div className="flex gap-1">
