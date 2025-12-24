@@ -105,16 +105,23 @@ export default function MobileTrainingPage() {
 
       // 시간대별 학생 필터링 (assignments 기반)
       const slotsData = assignmentsData.slots || {};
-      const slotStudents = slotsData[selectedTimeSlot] || [];
+      const slotInfo = slotsData[selectedTimeSlot] || {};
 
-      const slotData = slotStudents.map((s: { student_id: number; student_name: string; student_gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
+      // classes 안의 학생들 + waitingStudents 합치기
+      const allStudents = [
+        ...(slotInfo.waitingStudents || []),
+        ...((slotInfo.classes || []).flatMap((c: { students: unknown[] }) => c.students || []))
+      ];
+
+      const slotData = allStudents.map((s: { id: number; student_id: number; student_name: string; gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
         // 기존 로그에서 해당 학생의 컨디션/메모 찾기
         const existingLog = existingLogs.find((l: { student_id: number }) => l.student_id === s.student_id);
         return {
           id: s.student_id,
+          assignment_id: s.id,
           training_log_id: existingLog?.id,
           name: s.student_name,
-          gender: s.student_gender as 'male' | 'female',
+          gender: s.gender as 'male' | 'female',
           condition_score: existingLog?.condition_score,
           notes: existingLog?.notes,
           is_trial: s.is_trial,
