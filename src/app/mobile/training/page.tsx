@@ -114,7 +114,7 @@ export default function MobileTrainingPage() {
 
       // 수업 계획 로드
       const planRes = await fetch(
-        `${API_BASE}/daily-plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
+        `${API_BASE}/plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
         { headers }
       );
       const planData = await planRes.json();
