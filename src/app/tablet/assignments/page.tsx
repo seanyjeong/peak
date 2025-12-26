@@ -32,6 +32,8 @@ interface Student {
   trial_total: number;
   trial_remaining: number;
   status: 'enrolled' | 'trial' | 'rest' | 'injury';
+  attendance_status?: 'scheduled' | 'present' | 'absent' | 'late' | 'early_leave';
+  absence_reason?: string | null;
 }
 
 interface Instructor {
@@ -69,19 +71,23 @@ const TIME_SLOT_INFO: Record<TimeSlot, { label: string; color: string; bgColor: 
 // 컴팩트 학생 카드
 function CompactStudentCard({ student, isDragging }: { student: Student; isDragging?: boolean }) {
   const genderColor = student.gender === 'M' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700';
+  const isAbsent = student.attendance_status === 'absent';
 
   return (
     <div
       className={`flex items-center gap-2 px-3 py-2 bg-white rounded-lg border shadow-sm cursor-grab active:cursor-grabbing transition touch-none ${
-        isDragging ? 'opacity-50 border-orange-400 shadow-lg scale-105' : 'hover:border-slate-300'
-      }`}
+        isDragging ? 'opacity-50 border-orange-400 shadow-lg scale-105' : ''
+      } ${isAbsent ? 'opacity-60 border-red-200 bg-red-50' : 'hover:border-slate-300'}`}
     >
       <span className={`px-2 py-1 rounded text-xs font-medium ${genderColor}`}>
         {student.gender === 'M' ? '남' : '여'}
       </span>
-      <span className="font-medium text-base text-slate-800 truncate max-w-[80px]">
+      <span className={`font-medium text-base truncate max-w-[80px] ${isAbsent ? 'line-through text-slate-400' : 'text-slate-800'}`}>
         {student.student_name}
       </span>
+      {isAbsent && (
+        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-600">결석</span>
+      )}
       <Link
         href={`/tablet/students/${student.student_id}`}
         className="p-1 hover:bg-orange-100 rounded transition"
@@ -91,9 +97,14 @@ function CompactStudentCard({ student, isDragging }: { student: Student; isDragg
       >
         <ExternalLink size={14} className="text-orange-500" />
       </Link>
-      {!!student.is_trial && (
+      {!isAbsent && !!student.is_trial && (
         <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">
           {student.trial_total - student.trial_remaining}/{student.trial_total}
+        </span>
+      )}
+      {isAbsent && student.absence_reason && (
+        <span className="text-xs text-red-500 truncate max-w-[60px]" title={student.absence_reason}>
+          ({student.absence_reason})
         </span>
       )}
     </div>
