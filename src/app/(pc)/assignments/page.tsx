@@ -31,6 +31,8 @@ interface Student {
   trial_total: number;
   trial_remaining: number;
   status: 'enrolled' | 'trial' | 'rest' | 'injury';
+  attendance_status?: 'scheduled' | 'present' | 'absent' | 'late' | 'early_leave';
+  absence_reason?: string | null;
 }
 
 interface Instructor {
@@ -68,32 +70,47 @@ const TIME_SLOT_INFO: Record<TimeSlot, { label: string; color: string; bgColor: 
 // 컴팩트 학생 카드
 function CompactStudentCard({ student, isDragging }: { student: Student; isDragging?: boolean }) {
   const genderColor = student.gender === 'M' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700';
+  const isAbsent = student.attendance_status === 'absent';
 
   return (
     <div
-      className={`flex items-center gap-1.5 px-2 py-1.5 bg-white rounded-lg border shadow-sm cursor-grab active:cursor-grabbing transition ${
-        isDragging ? 'opacity-50 border-orange-400 shadow-lg scale-105' : 'hover:border-slate-300'
-      }`}
+      className={`px-2 py-1.5 bg-white rounded-lg border shadow-sm cursor-grab active:cursor-grabbing transition ${
+        isDragging ? 'opacity-50 border-orange-400 shadow-lg scale-105' : ''
+      } ${isAbsent ? 'opacity-60 border-red-200 bg-red-50' : 'hover:border-slate-300'}`}
     >
-      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${genderColor}`}>
-        {student.gender === 'M' ? '남' : '여'}
-      </span>
-      <span className="font-medium text-sm text-slate-800 truncate max-w-[70px]">
-        {student.student_name}
-      </span>
-      <Link
-        href={`/students/${student.student_id}`}
-        className="p-0.5 hover:bg-orange-100 rounded transition"
-        title="프로필"
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <ExternalLink size={10} className="text-orange-500" />
-      </Link>
-      {!!student.is_trial && (
-        <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-100 text-purple-700">
-          {student.trial_total - student.trial_remaining}/{student.trial_total}
+      <div className="flex items-center gap-1.5">
+        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${genderColor}`}>
+          {student.gender === 'M' ? '남' : '여'}
         </span>
+        <span className={`font-medium text-sm truncate max-w-[70px] ${
+          isAbsent ? 'line-through text-slate-400' : 'text-slate-800'
+        }`}>
+          {student.student_name}
+        </span>
+        <Link
+          href={`/students/${student.student_id}`}
+          className="p-0.5 hover:bg-orange-100 rounded transition"
+          title="프로필"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <ExternalLink size={10} className="text-orange-500" />
+        </Link>
+        {!!student.is_trial && (
+          <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-100 text-purple-700">
+            {student.trial_total - student.trial_remaining}/{student.trial_total}
+          </span>
+        )}
+        {isAbsent && (
+          <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-red-100 text-red-600">
+            결석
+          </span>
+        )}
+      </div>
+      {isAbsent && student.absence_reason && (
+        <p className="text-[10px] text-red-500 mt-0.5 pl-6 truncate" title={student.absence_reason}>
+          {student.absence_reason}
+        </p>
       )}
     </div>
   );
@@ -600,6 +617,10 @@ export default function AssignmentsPage() {
         <div className="flex items-center gap-2">
           <span className="px-1 py-0.5 bg-purple-100 text-purple-700 rounded text-[9px]">1/2</span>
           <span>체험 (완료/전체)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="px-1 py-0.5 bg-red-100 text-red-600 rounded text-[9px]">결석</span>
+          <span className="line-through">결석</span>
         </div>
         <div className="flex items-center gap-2">
           <Star size={12} className="text-orange-500 fill-orange-500" />

@@ -98,12 +98,34 @@ router.get('/', verifyToken, async (req, res) => {
                 s.grade,
                 s.is_trial,
                 s.trial_total,
-                s.trial_remaining
+                s.trial_remaining,
+                s.paca_student_id
             FROM daily_assignments a
             JOIN students s ON a.student_id = s.id
             WHERE a.date = ?
             ORDER BY a.time_slot, a.class_id, a.order_num
         `, [targetDate]);
+
+        // P-ACA에서 출결 상태 조회
+        const [pacaAttendance] = await pacaPool.query(`
+            SELECT
+                a.student_id as paca_student_id,
+                a.attendance_status,
+                a.absence_reason,
+                cs.time_slot
+            FROM attendance a
+            JOIN class_schedules cs ON a.class_schedule_id = cs.id
+            WHERE cs.academy_id = ? AND cs.class_date = ?
+        `, [academyId, targetDate]);
+
+        // paca_student_id로 출결 정보 매핑
+        const attendanceMap = {};
+        pacaAttendance.forEach(att => {
+            attendanceMap[`${att.paca_student_id}-${att.time_slot}`] = {
+                attendance_status: att.attendance_status,
+                absence_reason: att.absence_reason
+            };
+        });
 
         // 배치된 강사 ID Set 생성 (시간대별)
         const assignedInstructorsBySlot = { morning: new Set(), afternoon: new Set(), evening: new Set() };
@@ -146,19 +168,24 @@ router.get('/', verifyToken, async (req, res) => {
 
                 const classStudents = assignments
                     .filter(a => a.time_slot === slot && a.class_id === classNum)
-                    .map(a => ({
-                        id: a.id,
-                        student_id: a.student_id,
-                        student_name: a.student_name,
-                        gender: a.gender,
-                        school: a.school,
-                        grade: a.grade,
-                        is_trial: a.is_trial,
-                        trial_total: a.trial_total,
-                        trial_remaining: a.trial_remaining,
-                        status: a.status,
-                        order_num: a.order_num
-                    }));
+                    .map(a => {
+                        const attInfo = attendanceMap[`${a.paca_student_id}-${slot}`] || {};
+                        return {
+                            id: a.id,
+                            student_id: a.student_id,
+                            student_name: a.student_name,
+                            gender: a.gender,
+                            school: a.school,
+                            grade: a.grade,
+                            is_trial: a.is_trial,
+                            trial_total: a.trial_total,
+                            trial_remaining: a.trial_remaining,
+                            status: a.status,
+                            order_num: a.order_num,
+                            attendance_status: attInfo.attendance_status || 'scheduled',
+                            absence_reason: attInfo.absence_reason || null
+                        };
+                    });
 
                 result[slot].classes.push({
                     class_num: classNum,
@@ -170,18 +197,23 @@ router.get('/', verifyToken, async (req, res) => {
             // 대기 중인 학생 (class_id가 NULL)
             result[slot].waitingStudents = assignments
                 .filter(a => a.time_slot === slot && a.class_id === null)
-                .map(a => ({
-                    id: a.id,
-                    student_id: a.student_id,
-                    student_name: a.student_name,
-                    gender: a.gender,
-                    school: a.school,
-                    grade: a.grade,
-                    is_trial: a.is_trial,
-                    trial_total: a.trial_total,
-                    trial_remaining: a.trial_remaining,
-                    status: a.status
-                }));
+                .map(a => {
+                    const attInfo = attendanceMap[`${a.paca_student_id}-${slot}`] || {};
+                    return {
+                        id: a.id,
+                        student_id: a.student_id,
+                        student_name: a.student_name,
+                        gender: a.gender,
+                        school: a.school,
+                        grade: a.grade,
+                        is_trial: a.is_trial,
+                        trial_total: a.trial_total,
+                        trial_remaining: a.trial_remaining,
+                        status: a.status,
+                        attendance_status: attInfo.attendance_status || 'scheduled',
+                        absence_reason: attInfo.absence_reason || null
+                    };
+                });
         });
 
         res.json({
