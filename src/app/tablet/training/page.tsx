@@ -203,7 +203,14 @@ export default function TabletTrainingPage() {
     ? currentTrainers.find(t => t.trainer_id === selectedTrainerId)?.students || []
     : [];
 
-  const getExerciseName = (exerciseId: number): string => {
+  // 운동 이름 조회 (exercise_id 또는 id 둘 다 지원)
+  const getExerciseName = (exercise: PlanExercise | { id?: number; name?: string; exercise_id?: number }): string => {
+    // 모바일에서 저장된 형식 (id, name) 또는 PC에서 저장된 형식 (exercise_id)
+    if ('name' in exercise && exercise.name) {
+      return exercise.name;
+    }
+    const exerciseId = exercise.exercise_id || ('id' in exercise ? exercise.id : undefined);
+    if (!exerciseId) return '알 수 없음';
     return exercises.find(e => e.id === exerciseId)?.name || `운동 #${exerciseId}`;
   };
 
@@ -496,14 +503,15 @@ export default function TabletTrainingPage() {
                   </div>
 
                   {/* 계획된 운동들 */}
-                  {currentPlan.exercises.map((ex) => {
-                    const isCompleted = currentPlan.completed_exercises.includes(ex.exercise_id);
-                    const completedTime = currentPlan.exercise_times?.[ex.exercise_id];
+                  {currentPlan.exercises.map((ex: PlanExercise & { id?: number }) => {
+                    const exId = ex.exercise_id || ex.id;
+                    const isCompleted = exId ? currentPlan.completed_exercises.includes(exId) : false;
+                    const completedTime = exId ? currentPlan.exercise_times?.[exId] : undefined;
                     return (
                       <div
-                        key={ex.exercise_id}
+                        key={exId || Math.random()}
                         className={`p-4 cursor-pointer transition ${isCompleted ? 'bg-green-50' : 'active:bg-slate-50'}`}
-                        onClick={() => toggleExercise(ex.exercise_id)}
+                        onClick={() => exId && toggleExercise(exId)}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition ${
@@ -513,7 +521,7 @@ export default function TabletTrainingPage() {
                           </div>
                           <div className="flex-1">
                             <span className={`font-medium text-base ${isCompleted ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                              {getExerciseName(ex.exercise_id)}
+                              {getExerciseName(ex)}
                             </span>
                             {ex.note && (
                               <span className={`ml-2 text-sm ${isCompleted ? 'text-slate-300' : 'text-slate-500'}`}>

@@ -42,7 +42,7 @@ interface DailyPlan {
   instructor_id: number;
   instructor_name: string;
   tags: string[];
-  exercises: { id: number; name: string; sets?: number; reps?: number; notes?: string }[];
+  exercises: { exercise_id: number; note?: string; id?: number; name?: string }[];
   description: string;
 }
 
@@ -67,7 +67,7 @@ export default function MobilePlansPage() {
 
   // 폼 상태
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedExercises, setSelectedExercises] = useState<{ id: number; name: string; sets?: number; reps?: number; notes?: string }[]>([]);
+  const [selectedExercises, setSelectedExercises] = useState<{ exercise_id: number; note?: string }[]>([]);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -141,7 +141,12 @@ export default function MobilePlansPage() {
     if (plan) {
       setEditingPlan(plan);
       setSelectedTags(plan.tags || []);
-      setSelectedExercises(plan.exercises || []);
+      // 기존 데이터 호환: id 형식도 exercise_id로 변환
+      const exercisesList = (plan.exercises || []).map(ex => ({
+        exercise_id: ex.exercise_id || ex.id || 0,
+        note: ex.note || '',
+      }));
+      setSelectedExercises(exercisesList);
       setNotes(plan.description || '');
     } else {
       setEditingPlan(null);
@@ -170,15 +175,13 @@ export default function MobilePlansPage() {
   // 운동 토글
   const toggleExercise = (exercise: Exercise) => {
     setSelectedExercises(prev => {
-      const exists = prev.find(e => e.id === exercise.id);
+      const exists = prev.find(e => e.exercise_id === exercise.id);
       if (exists) {
-        return prev.filter(e => e.id !== exercise.id);
+        return prev.filter(e => e.exercise_id !== exercise.id);
       }
       return [...prev, {
-        id: exercise.id,
-        name: exercise.name,
-        sets: exercise.default_sets,
-        reps: exercise.default_reps,
+        exercise_id: exercise.id,
+        note: '',
       }];
     });
   };
@@ -314,7 +317,10 @@ export default function MobilePlansPage() {
                       )}
                       {plan.exercises && plan.exercises.length > 0 && (
                         <p className="text-xs text-slate-500 mt-1">
-                          {plan.exercises.map(e => e.name).join(', ')}
+                          {plan.exercises.map(e => {
+                            const exId = e.exercise_id || e.id;
+                            return e.name || exercises.find(ex => ex.id === exId)?.name || `운동 #${exId}`;
+                          }).join(', ')}
                         </p>
                       )}
                       {plan.description && (
@@ -430,7 +436,7 @@ export default function MobilePlansPage() {
                 {expandedSections.has('exercises') && (
                   <div className="space-y-2 mt-2 max-h-48 overflow-y-auto">
                     {filteredExercises.map((ex) => {
-                      const isSelected = selectedExercises.some(e => e.id === ex.id);
+                      const isSelected = selectedExercises.some(e => e.exercise_id === ex.id);
                       return (
                         <button
                           key={ex.id}
