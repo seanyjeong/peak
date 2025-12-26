@@ -111,7 +111,7 @@ router.get('/', verifyToken, async (req, res) => {
             SELECT
                 a.student_id as paca_student_id,
                 a.attendance_status,
-                a.absence_reason,
+                a.notes,
                 cs.time_slot
             FROM attendance a
             JOIN class_schedules cs ON a.class_schedule_id = cs.id
@@ -123,7 +123,7 @@ router.get('/', verifyToken, async (req, res) => {
         pacaAttendance.forEach(att => {
             attendanceMap[`${att.paca_student_id}-${att.time_slot}`] = {
                 attendance_status: att.attendance_status,
-                absence_reason: att.absence_reason
+                absence_reason: att.notes  // notes를 absence_reason으로 사용
             };
         });
 

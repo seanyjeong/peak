@@ -27,6 +27,7 @@ const pacaPool = mysql.createPool({
  * P-ACA 계정으로 로그인
  */
 router.post('/login', async (req, res) => {
+    console.log('[Auth] Login attempt:', req.body?.email);
     try {
         const { email, password } = req.body;
 
@@ -98,7 +99,7 @@ router.post('/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('[Auth] Login error:', error.message);
         res.status(500).json({
             error: 'Internal Server Error',
             message: '로그인 처리 중 오류가 발생했습니다.'
