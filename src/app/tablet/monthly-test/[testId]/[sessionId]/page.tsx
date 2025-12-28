@@ -505,16 +505,16 @@ export default function TabletSessionGroupPage({
             </Card>
 
             {/* 학생 대기 */}
-            <Card className="flex-1 max-h-[200px] overflow-hidden flex flex-col">
-              <div className="p-3 border-b bg-gray-50 font-medium">
+            <div
+              ref={setWaitingParticipantsRef}
+              className={`flex-1 max-h-[200px] overflow-hidden flex flex-col rounded-lg border bg-white shadow-sm transition-colors ${
+                isOverWaitingP ? 'ring-2 ring-green-400 bg-green-50' : ''
+              }`}
+            >
+              <div className="p-3 border-b bg-gray-50 font-medium rounded-t-lg">
                 미배치 학생 ({waitingParticipants.length})
               </div>
-              <div
-                ref={setWaitingParticipantsRef}
-                className={`flex-1 p-3 overflow-y-auto transition-colors ${
-                  isOverWaitingP ? 'bg-green-100 ring-2 ring-green-400' : ''
-                }`}
-              >
+              <div className={`flex-1 p-3 overflow-y-auto ${isOverWaitingP ? 'bg-green-100' : ''}`}>
                 {waitingParticipants.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-gray-400 text-sm">
                     학생을 여기로 드롭하면 미배치
@@ -525,7 +525,7 @@ export default function TabletSessionGroupPage({
                   ))
                 )}
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* 조 영역 - 가로 스크롤 */}

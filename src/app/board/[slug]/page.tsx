@@ -286,18 +286,18 @@ function Card3D({
   );
 }
 
-// 3D 순위 행
+// 3D 순위 행 (32인치 FHD 최적화 - 10명 화면에 표시)
 function RankRow3D({ item, index, total, glowColor }: { item: RankingItem; index: number; total: number; glowColor: string }) {
   const isTop3 = item.rank <= 3;
   const rankColors = ['#fbbf24', '#9ca3af', '#cd7f32'];
   const rankBg = isTop3 ? rankColors[item.rank - 1] : 'rgba(255,255,255,0.1)';
 
   return (
-    <Card3D glowColor={isTop3 ? rankColors[item.rank - 1] : glowColor + '20'} className="mb-2" index={index} total={total} isTop3={isTop3}>
-      <div className="flex items-center gap-4 p-4">
+    <Card3D glowColor={isTop3 ? rankColors[item.rank - 1] : glowColor + '20'} className="mb-1.5" index={index} total={total} isTop3={isTop3}>
+      <div className="flex items-center gap-3 px-3 py-2">
         {/* 순위 */}
         <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-lg"
+          className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg shadow-lg flex-shrink-0"
           style={{
             background: isTop3
               ? `linear-gradient(135deg, ${rankBg}, ${rankBg}cc)`
@@ -311,39 +311,39 @@ function RankRow3D({ item, index, total, glowColor }: { item: RankingItem; index
 
         {/* 이름 & 학교 */}
         <div className="flex-1 min-w-0">
-          <div className={`font-bold truncate ${isTop3 ? 'text-white text-xl' : 'text-white/90 text-lg'}`}>
+          <div className={`font-bold truncate ${isTop3 ? 'text-white text-lg' : 'text-white/90 text-base'}`}>
             {item.name}
           </div>
           {item.school && (
-            <div className="text-sm text-white/50 truncate">{item.school}</div>
+            <div className="text-xs text-white/50 truncate">{item.school}</div>
           )}
         </div>
 
         {/* 점수 */}
         <div
-          className="text-right font-black text-2xl"
+          className="text-right font-black text-xl flex-shrink-0"
           style={{ color: isTop3 ? rankBg : '#fff' }}
         >
           {item.total}
-          <span className="text-sm font-normal text-white/40 ml-1">점</span>
+          <span className="text-xs font-normal text-white/40 ml-0.5">점</span>
         </div>
       </div>
     </Card3D>
   );
 }
 
-// 3D 종목별 순위 행
+// 3D 종목별 순위 행 (32인치 FHD 최적화)
 function EventRow3D({ record, index, total, unit, glowColor }: { record: EventRecord; index: number; total: number; unit: string; glowColor: string }) {
   const isTop3 = record.rank <= 3;
   const rankColors = ['#fbbf24', '#9ca3af', '#cd7f32'];
   const rankBg = isTop3 ? rankColors[record.rank - 1] : 'rgba(255,255,255,0.1)';
 
   return (
-    <Card3D glowColor={isTop3 ? rankColors[record.rank - 1] : glowColor + '20'} className="mb-2" index={index} total={total} isTop3={isTop3}>
-      <div className="flex items-center gap-3 p-3">
+    <Card3D glowColor={isTop3 ? rankColors[record.rank - 1] : glowColor + '20'} className="mb-1.5" index={index} total={total} isTop3={isTop3}>
+      <div className="flex items-center gap-3 px-3 py-2">
         {/* 순위 */}
         <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center font-black text-lg"
+          className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-base flex-shrink-0"
           style={{
             background: isTop3
               ? `linear-gradient(135deg, ${rankBg}, ${rankBg}cc)`
@@ -357,7 +357,7 @@ function EventRow3D({ record, index, total, unit, glowColor }: { record: EventRe
 
         {/* 이름 & 학교 */}
         <div className="flex-1 min-w-0">
-          <div className={`font-bold truncate ${isTop3 ? 'text-white text-lg' : 'text-white/90'}`}>
+          <div className={`font-bold truncate ${isTop3 ? 'text-white text-base' : 'text-white/90 text-sm'}`}>
             {record.name}
           </div>
           {record.school && (
@@ -366,8 +366,8 @@ function EventRow3D({ record, index, total, unit, glowColor }: { record: EventRe
         </div>
 
         {/* 기록 & 점수 */}
-        <div className="text-right">
-          <div className="font-black text-xl text-white">
+        <div className="text-right flex-shrink-0">
+          <div className="font-black text-lg text-white">
             {record.value}
             <span className="text-xs font-normal text-white/40 ml-0.5">{unit}</span>
           </div>
@@ -380,7 +380,7 @@ function EventRow3D({ record, index, total, unit, glowColor }: { record: EventRe
   );
 }
 
-// 성별 컬럼
+// 성별 컬럼 (32인치 FHD 최적화)
 function GenderColumn({
   title,
   color,
@@ -399,13 +399,13 @@ function GenderColumn({
     <div className="flex-1 flex flex-col min-w-0">
       {/* 헤더 */}
       <div
-        className="flex-shrink-0 py-4 px-6 rounded-t-2xl border-b border-white/10"
+        className="flex-shrink-0 py-2 px-4 rounded-t-xl border-b border-white/10"
         style={{
           background: `linear-gradient(135deg, ${colors[color].glow}, transparent)`,
         }}
       >
         <h3
-          className="text-3xl font-black"
+          className="text-2xl font-black"
           style={{
             color: colors[color].main,
             textShadow: `0 0 30px ${colors[color].main}`,
@@ -416,7 +416,7 @@ function GenderColumn({
       </div>
 
       {/* 컨텐츠 */}
-      <div className="flex-1 p-3 overflow-y-auto">
+      <div className="flex-1 p-2 overflow-y-auto">
         {children}
       </div>
     </div>
@@ -538,15 +538,15 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
       {/* CSS 스포티 배경 */}
       <SportyBackground />
 
-      <div className="relative z-10 h-full flex flex-col p-6">
+      <div className="relative z-10 h-full flex flex-col p-4">
         {/* 헤더 */}
-        <header className="flex-shrink-0 mb-4">
+        <header className="flex-shrink-0 mb-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
                 {data.academy.name}
               </h1>
-              <p className="text-lg text-white/40 mt-1">{data.test.name}</p>
+              <p className="text-base text-white/40">{data.test.name}</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10">
@@ -564,7 +564,7 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
           </div>
 
           {/* 모드 선택 */}
-          <div className="flex items-center gap-3 mt-4">
+          <div className="flex items-center gap-2 mt-2">
             {hasRankings && (
               <button
                 onClick={() => setViewMode('ranking')}
@@ -613,14 +613,14 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
         </header>
 
         {/* 타이틀 바 */}
-        <div className="flex-shrink-0 mb-4">
+        <div className="flex-shrink-0 mb-2">
           <Card3D glowColor="rgba(139, 92, 246, 0.3)">
-            <div className="py-3 px-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">
+            <div className="py-2 px-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">
                 {viewMode === 'ranking' ? '종합순위' : currentEvent?.shortName || currentEvent?.name}
               </h2>
               {viewMode === 'event' && currentEvent && (
-                <span className="text-white/50">단위: {currentEvent.unit}</span>
+                <span className="text-white/50 text-sm">단위: {currentEvent.unit}</span>
               )}
             </div>
           </Card3D>
