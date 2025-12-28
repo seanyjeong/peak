@@ -655,6 +655,47 @@ router.get('/:sessionId/records', async (req, res) => {
       });
     }
 
+    // 조 및 강사 정보 조회
+    const [groups] = await pool.query(`
+      SELECT * FROM test_groups WHERE test_session_id = ? ORDER BY group_num
+    `, [sessionId]);
+
+    const [supervisors] = await pool.query(`
+      SELECT tgs.*, tg.group_num, tg.id as group_id
+      FROM test_group_supervisors tgs
+      JOIN test_groups tg ON tgs.test_group_id = tg.id
+      WHERE tg.test_session_id = ?
+      ORDER BY tg.group_num, tgs.is_main DESC
+    `, [sessionId]);
+
+    // P-ACA에서 강사/원장 정보
+    const [instructors] = await pacaPool.query(`
+      SELECT id, name FROM instructors WHERE academy_id = ? AND deleted_at IS NULL
+    `, [ACADEMY_ID]);
+    const [owners] = await pacaPool.query(`
+      SELECT id, name FROM users WHERE academy_id = ? AND role = 'owner' AND deleted_at IS NULL
+    `, [ACADEMY_ID]);
+
+    const instructorMap = {};
+    instructors.forEach(i => { instructorMap[i.id] = decrypt(i.name); });
+    owners.forEach(o => { instructorMap[-o.id] = decrypt(o.name); });
+
+    // 조별 강사 매핑
+    const groupsWithInstructors = groups.map(g => {
+      const groupSupervisors = supervisors
+        .filter(s => s.group_id === g.id)
+        .map(s => ({
+          instructor_id: s.instructor_id,
+          name: instructorMap[s.instructor_id] || '알 수 없음',
+          is_main: s.is_main
+        }));
+      return {
+        id: g.id,
+        group_num: g.group_num,
+        instructors: groupSupervisors
+      };
+    });
+
     // 참가자 데이터 구성
     const participantsWithRecords = participants.map(p => {
       let info;
@@ -668,7 +709,8 @@ router.get('/:sessionId/records', async (req, res) => {
           gender: p.gender,
           school: p.school,
           grade: p.grade,
-          participant_type: p.participant_type
+          participant_type: p.participant_type,
+          test_group_id: p.test_group_id
         };
         records = studentRecords[p.student_id] || {};
       } else if (p.test_applicant_id && applicantMap[p.test_applicant_id]) {
@@ -680,7 +722,8 @@ router.get('/:sessionId/records', async (req, res) => {
           gender: a.gender,
           school: a.school,
           grade: a.grade,
-          participant_type: 'test_new'
+          participant_type: 'test_new',
+          test_group_id: p.test_group_id
         };
         records = applicantRecords[p.test_applicant_id] || {};
       }
@@ -728,7 +771,8 @@ router.get('/:sessionId/records', async (req, res) => {
       session,
       record_types: types,
       participants: participantsWithRecords,
-      score_ranges: scoreRangesMap
+      score_ranges: scoreRangesMap,
+      groups: groupsWithInstructors
     });
   } catch (error) {
     console.error('기록 조회 오류:', error);

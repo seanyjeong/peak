@@ -34,6 +34,19 @@ interface Participant {
   grade?: string;
   participant_type: string;
   records: Record<number, number>;
+  test_group_id?: number;
+}
+
+interface Instructor {
+  instructor_id: number;
+  name: string;
+  is_main: boolean;
+}
+
+interface Group {
+  id: number;
+  group_num: number;
+  instructors: Instructor[];
 }
 
 interface Session {
@@ -78,12 +91,14 @@ export default function SessionRecordsPage({
   const [session, setSession] = useState<Session | null>(null);
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [scoreRanges, setScoreRanges] = useState<Record<number, ScoreRange[]>>({});
   const [loading, setLoading] = useState(true);
   const [inputs, setInputs] = useState<Record<string, Record<number, string>>>({});
   const [savingMap, setSavingMap] = useState<Record<string, boolean>>({});
   const [savedMap, setSavedMap] = useState<Record<string, boolean>>({});
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null); // null = 전체
 
   // Debounce timers
   const saveTimers = useRef<Record<string, NodeJS.Timeout>>({});
@@ -103,6 +118,7 @@ export default function SessionRecordsPage({
       setSession(res.data.session);
       setRecordTypes(res.data.record_types || []);
       setParticipants(res.data.participants || []);
+      setGroups(res.data.groups || []);
       setScoreRanges(res.data.score_ranges || {});
 
       // 첫 종목 선택
@@ -198,6 +214,11 @@ export default function SessionRecordsPage({
 
   const selectedType = recordTypes.find(t => t.record_type_id === selectedTypeId);
 
+  // 필터링된 참가자 (선택된 조에 속한 학생만)
+  const filteredParticipants = selectedGroupId === null
+    ? participants
+    : participants.filter(p => p.test_group_id === selectedGroupId);
+
   const typeColors: Record<string, string> = {
     enrolled: 'bg-green-100 text-green-700',
     rest: 'bg-gray-100 text-gray-600',
@@ -245,6 +266,44 @@ export default function SessionRecordsPage({
         </div>
       </div>
 
+      {/* 강사별 필터 */}
+      {groups.length > 0 && (
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSelectedGroupId(null)}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              selectedGroupId === null
+                ? 'bg-gray-800 text-white'
+                : 'bg-gray-100 hover:bg-gray-200'
+            }`}
+          >
+            전체 ({participants.length}명)
+          </button>
+          {groups.map(group => {
+            const mainInstructor = group.instructors.find(i => i.is_main);
+            const groupParticipants = participants.filter(p => p.test_group_id === group.id);
+            return (
+              <button
+                key={group.id}
+                onClick={() => setSelectedGroupId(group.id)}
+                className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors flex items-center gap-2 ${
+                  selectedGroupId === group.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                <span className="font-medium">
+                  {mainInstructor?.name || `${group.group_num}조`}
+                </span>
+                <span className={`text-xs ${selectedGroupId === group.id ? 'text-blue-200' : 'text-gray-500'}`}>
+                  ({groupParticipants.length}명)
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* 종목 탭 */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
         {recordTypes.map(type => (
@@ -280,7 +339,7 @@ export default function SessionRecordsPage({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {participants.map(p => {
+              {filteredParticipants.map(p => {
                 const key = getParticipantKey(p);
                 const saveKey = `${key}-${selectedType.record_type_id}`;
                 const value = inputs[key]?.[selectedType.record_type_id] || '';
@@ -341,9 +400,11 @@ export default function SessionRecordsPage({
             </tbody>
           </table>
 
-          {participants.length === 0 && (
+          {filteredParticipants.length === 0 && (
             <div className="text-center py-12 text-gray-500">
-              참가자가 없습니다. 조 편성에서 학생을 추가해주세요.
+              {selectedGroupId === null
+                ? '참가자가 없습니다. 조 편성에서 학생을 추가해주세요.'
+                : '이 조에 배치된 학생이 없습니다.'}
             </div>
           )}
         </Card>

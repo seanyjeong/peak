@@ -152,7 +152,11 @@ export default function MonthlyTestListPage() {
       ) : (
         <div className="grid gap-4">
           {tests.map(test => (
-            <Card key={test.id} className="p-4">
+            <Card
+              key={test.id}
+              className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => router.push(`/monthly-test/${test.id}`)}
+            >
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -167,19 +171,15 @@ export default function MonthlyTestListPage() {
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push(`/monthly-test/${test.id}`)}
-                  >
-                    상세보기
-                  </Button>
-                  <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(test.id)}
-                    className="text-red-500 hover:text-red-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(test.id);
+                    }}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
                   >
-                    삭제
+                    🗑️ 삭제
                   </Button>
                 </div>
               </div>
