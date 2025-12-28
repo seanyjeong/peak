@@ -438,7 +438,7 @@ export default function SessionGroupPage({
               {syncing ? '동기화 중...' : '재원생 동기화'}
             </Button>
             {groups.length > 0 && waitingParticipants.length > 0 && (
-              <Button variant="secondary" onClick={handleAutoAssignAll}>
+              <Button variant="outline" onClick={handleAutoAssignAll}>
                 ⚡ 전체 균일 배치
               </Button>
             )}
@@ -584,12 +584,12 @@ function AddParticipantModal({
   const fetchList = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'rest' || activeTab === 'trial') {
-        const res = await apiClient.get(`/test-sessions/${sessionId}/available-students?type=${activeTab}`);
-        setStudents(res.data.students || []);
+      // 모든 타입을 available-students API로 통일
+      const res = await apiClient.get(`/test-sessions/${sessionId}/available-students?type=${activeTab}`);
+      if (activeTab === 'test_new') {
+        setApplicants(res.data.students || []);
       } else {
-        const res = await apiClient.get(`/test-applicants?month=${testMonth}&status=pending`);
-        setApplicants(res.data.applicants || []);
+        setStudents(res.data.students || []);
       }
     } catch (error) {
       console.error('목록 조회 오류:', error);

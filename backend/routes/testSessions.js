@@ -391,12 +391,44 @@ router.post('/:sessionId/participants/sync', async (req, res) => {
   }
 });
 
-// 추가 가능 학생 목록 (휴원생, 체험생 - P-ACA에서 조회)
+// 추가 가능 학생 목록 (휴원생, 체험생, 테스트신규 - P-ACA에서 조회)
 router.get('/:sessionId/available-students', async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { type } = req.query; // 'rest' | 'trial'
+    const { type } = req.query; // 'rest' | 'trial' | 'test_new'
 
+    // 테스트신규인 경우 별도 처리
+    if (type === 'test_new') {
+      // 이미 참가한 test_applicant_id 목록
+      const [existingApplicants] = await pool.query(`
+        SELECT test_applicant_id FROM test_participants
+        WHERE test_session_id = ? AND test_applicant_id IS NOT NULL
+      `, [sessionId]);
+
+      const existingApplicantIds = existingApplicants.map(e => e.test_applicant_id);
+
+      // P-ACA test_applicants에서 pending 상태인 학생 조회
+      const [applicants] = await pacaPool.query(`
+        SELECT id, name, gender, school, grade, phone
+        FROM test_applicants
+        WHERE academy_id = ? AND status = 'pending'
+        ${existingApplicantIds.length > 0 ? `AND id NOT IN (${existingApplicantIds.join(',')})` : ''}
+        ORDER BY name
+      `, [ACADEMY_ID]);
+
+      const students = applicants.map(a => ({
+        id: a.id,  // test_applicant_id
+        name: decrypt(a.name),
+        gender: a.gender === 'male' ? 'M' : 'F',
+        school: a.school,
+        grade: a.grade,
+        isTestApplicant: true  // 테스트신규임을 표시
+      }));
+
+      return res.json({ success: true, students });
+    }
+
+    // 휴원생/체험생인 경우
     // 이미 참가한 학생의 paca_student_id 목록
     const [existing] = await pool.query(`
       SELECT s.paca_student_id
@@ -413,7 +445,7 @@ router.get('/:sessionId/available-students', async (req, res) => {
     } else if (type === 'trial') {
       whereClause = "status = 'trial'";   // P-ACA에서 체험은 trial
     } else {
-      return res.status(400).json({ success: false, message: 'type 파라미터가 필요합니다 (rest 또는 trial)' });
+      return res.status(400).json({ success: false, message: 'type 파라미터가 필요합니다 (rest, trial, test_new)' });
     }
 
     // P-ACA에서 학생 목록 조회
