@@ -618,7 +618,8 @@ function AddParticipantModal({
       await Promise.all(
         items.map(id =>
           apiClient.post(`/test-sessions/${sessionId}/participants`, {
-            student_id: activeTab !== 'test_new' ? id : undefined,
+            // 휴원생/체험생은 P-ACA ID로 전송
+            paca_student_id: (activeTab === 'rest' || activeTab === 'trial') ? id : undefined,
             test_applicant_id: activeTab === 'test_new' ? id : undefined,
             participant_type: participantType
           })

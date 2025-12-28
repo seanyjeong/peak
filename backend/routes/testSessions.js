@@ -391,37 +391,49 @@ router.post('/:sessionId/participants/sync', async (req, res) => {
   }
 });
 
-// 추가 가능 학생 목록 (휴원생, 체험생 별도)
+// 추가 가능 학생 목록 (휴원생, 체험생 - P-ACA에서 조회)
 router.get('/:sessionId/available-students', async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { type } = req.query; // 'rest' | 'trial'
 
-    // 이미 참가한 학생 ID
+    // 이미 참가한 학생의 paca_student_id 목록
     const [existing] = await pool.query(`
-      SELECT student_id FROM test_participants
-      WHERE test_session_id = ? AND student_id IS NOT NULL
+      SELECT s.paca_student_id
+      FROM test_participants tp
+      JOIN students s ON tp.student_id = s.id
+      WHERE tp.test_session_id = ? AND tp.student_id IS NOT NULL
     `, [sessionId]);
 
-    const existingIds = existing.map(e => e.student_id);
+    const existingPacaIds = existing.map(e => e.paca_student_id).filter(Boolean);
 
     let whereClause = '';
     if (type === 'rest') {
-      whereClause = "status = 'rest'";
+      whereClause = "status = 'paused'";  // P-ACA에서 휴원은 paused
     } else if (type === 'trial') {
-      whereClause = "is_trial = 1";
+      whereClause = "status = 'trial'";   // P-ACA에서 체험은 trial
     } else {
       return res.status(400).json({ success: false, message: 'type 파라미터가 필요합니다 (rest 또는 trial)' });
     }
 
-    // 학생 목록
-    const [students] = await pool.query(`
+    // P-ACA에서 학생 목록 조회
+    const [pacaStudents] = await pacaPool.query(`
       SELECT id, name, gender, school, grade
       FROM students
-      WHERE ${whereClause}
-      ${existingIds.length > 0 ? `AND id NOT IN (${existingIds.join(',')})` : ''}
+      WHERE academy_id = ? AND ${whereClause} AND deleted_at IS NULL
+      ${existingPacaIds.length > 0 ? `AND id NOT IN (${existingPacaIds.join(',')})` : ''}
       ORDER BY name
-    `);
+    `, [ACADEMY_ID]);
+
+    // 이름 복호화 + 성별 변환
+    const students = pacaStudents.map(s => ({
+      id: s.id,  // P-ACA student id
+      name: decrypt(s.name),
+      gender: s.gender === 'male' ? 'M' : 'F',
+      school: s.school,
+      grade: s.grade,
+      isPaca: true  // P-ACA 학생임을 표시
+    }));
 
     res.json({ success: true, students });
   } catch (error) {
@@ -430,11 +442,44 @@ router.get('/:sessionId/available-students', async (req, res) => {
   }
 });
 
-// 참가자 수동 추가 (휴원생/테스트신규)
+// 참가자 수동 추가 (휴원생/체험생/테스트신규)
 router.post('/:sessionId/participants', async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { student_id, test_applicant_id, participant_type } = req.body;
+    let { student_id, paca_student_id, test_applicant_id, participant_type } = req.body;
+
+    // P-ACA 학생인 경우 (휴원생/체험생)
+    if (paca_student_id && !student_id) {
+      // P-EAK students에서 조회
+      const [existing] = await pool.query(`
+        SELECT id FROM students WHERE paca_student_id = ?
+      `, [paca_student_id]);
+
+      if (existing.length > 0) {
+        student_id = existing[0].id;
+      } else {
+        // P-ACA에서 학생 정보 가져와서 P-EAK에 생성
+        const [pacaStudent] = await pacaPool.query(`
+          SELECT id, name, gender, school, grade, status
+          FROM students WHERE id = ?
+        `, [paca_student_id]);
+
+        if (pacaStudent.length === 0) {
+          return res.status(404).json({ success: false, message: '학생을 찾을 수 없습니다.' });
+        }
+
+        const ps = pacaStudent[0];
+        const isTrial = ps.status === 'trial';
+        const peakStatus = ps.status === 'paused' ? 'rest' : (ps.status === 'trial' ? 'active' : ps.status);
+
+        const [insertResult] = await pool.query(`
+          INSERT INTO students (paca_student_id, name, gender, school, grade, status, is_trial)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [paca_student_id, decrypt(ps.name), ps.gender === 'male' ? 'M' : 'F', ps.school, ps.grade, peakStatus, isTrial ? 1 : 0]);
+
+        student_id = insertResult.insertId;
+      }
+    }
 
     // 중복 체크
     if (student_id) {
