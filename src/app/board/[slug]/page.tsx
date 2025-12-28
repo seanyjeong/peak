@@ -153,45 +153,58 @@ function EventRow({ record, index, unit }: { record: EventRecord; index: number;
   );
 }
 
-// 성별 컬럼 (남/녀)
+// 성별 컬럼 (남/녀) - 3D 스타일
 function GenderColumn({
   title,
-  icon,
   color,
   children
 }: {
   title: string;
-  icon: string;
   color: 'blue' | 'pink';
   children: React.ReactNode;
 }) {
   const gradients = {
-    blue: 'from-blue-500/20 to-cyan-500/20',
-    pink: 'from-pink-500/20 to-rose-500/20'
+    blue: 'from-blue-600/30 via-blue-500/10 to-transparent',
+    pink: 'from-pink-600/30 via-pink-500/10 to-transparent'
   };
-  const borderColors = {
-    blue: 'border-blue-400/30',
-    pink: 'border-pink-400/30'
-  };
-  const titleColors = {
-    blue: 'from-blue-400 to-cyan-400',
-    pink: 'from-pink-400 to-rose-400'
+  const glowColors = {
+    blue: '#3b82f6',
+    pink: '#ec4899'
   };
 
   return (
-    <div className={`flex-1 flex flex-col bg-gradient-to-b ${gradients[color]} rounded-3xl border ${borderColors[color]} backdrop-blur-xl overflow-hidden`}>
+    <div
+      className="flex-1 flex flex-col rounded-3xl overflow-hidden relative"
+      style={{
+        background: `linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)`,
+        boxShadow: `
+          0 0 0 1px rgba(255,255,255,0.1),
+          0 20px 50px -20px ${glowColors[color]}40,
+          inset 0 1px 0 rgba(255,255,255,0.2)
+        `,
+        transform: 'perspective(1000px) rotateY(0deg)',
+      }}
+    >
+      {/* 상단 글로우 */}
+      <div
+        className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b ${gradients[color]} pointer-events-none`}
+      />
+
       {/* 헤더 */}
-      <div className="flex-shrink-0 px-6 py-4 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">{icon}</span>
-          <h3 className={`text-2xl font-black bg-gradient-to-r ${titleColors[color]} bg-clip-text text-transparent`}>
-            {title}
-          </h3>
-        </div>
+      <div className="relative flex-shrink-0 px-6 py-5 border-b border-white/10">
+        <h3
+          className="text-3xl font-black tracking-tight"
+          style={{
+            color: glowColors[color],
+            textShadow: `0 0 30px ${glowColors[color]}60`
+          }}
+        >
+          {title}
+        </h3>
       </div>
 
       {/* 컨텐츠 */}
-      <div className="flex-1 p-4 overflow-hidden">
+      <div className="relative flex-1 p-4 overflow-hidden">
         <div className="h-full flex flex-col gap-2">
           {children}
         </div>
@@ -235,6 +248,13 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // 브라우저 탭 타이틀 설정
+  useEffect(() => {
+    if (data?.academy?.name && data?.test?.name) {
+      document.title = `${data.academy.name} - ${data.test.name}`;
+    }
+  }, [data]);
 
   // 자동 롤링 - 기록 있는 것만
   useEffect(() => {
@@ -463,7 +483,7 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
           ) : (
             <div className="h-full flex gap-4">
               {/* 남자 컬럼 */}
-              <GenderColumn title="남자" icon="👨" color="blue">
+              <GenderColumn title="남자" color="blue">
                 {viewMode === 'ranking' ? (
                   data.ranking.male.length > 0 ? (
                     data.ranking.male.slice(0, 10).map((item, idx) => (
@@ -484,7 +504,7 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
               </GenderColumn>
 
               {/* 여자 컬럼 */}
-              <GenderColumn title="여자" icon="👩" color="pink">
+              <GenderColumn title="여자" color="pink">
                 {viewMode === 'ranking' ? (
                   data.ranking.female.length > 0 ? (
                     data.ranking.female.slice(0, 10).map((item, idx) => (
