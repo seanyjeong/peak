@@ -18,7 +18,8 @@ import {
   LogOut,
   Menu,
   X,
-  Dumbbell
+  Dumbbell,
+  Trophy
 } from 'lucide-react';
 
 const APP_VERSION = 'v3.0.12';
@@ -38,6 +39,7 @@ const navigation = [
   { name: '수업 계획', href: '/tablet/plans', icon: ClipboardList },
   { name: '수업 기록', href: '/tablet/training', icon: Activity },
   { name: '기록 측정', href: '/tablet/records', icon: Medal },
+  { name: '월말테스트', href: '/tablet/monthly-test', icon: Trophy },
   { name: '학생 관리', href: '/tablet/students', icon: Calendar },
   { name: '운동 관리', href: '/tablet/exercises', icon: Dumbbell },
   { name: '실기측정설정', href: '/tablet/settings', icon: Settings, adminOnly: true },
