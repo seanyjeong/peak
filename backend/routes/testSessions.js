@@ -733,33 +733,13 @@ router.post('/:sessionId/records/batch', async (req, res) => {
 
     for (const r of records) {
       if (r.student_id) {
-        // 재원생: student_records에 UPSERT
-        const [existing] = await conn.query(`
-          SELECT id, value FROM student_records
-          WHERE student_id = ? AND record_type_id = ? AND measured_at = ?
-        `, [r.student_id, r.record_type_id, testDate]);
-
-        if (existing.length > 0) {
-          const direction = directionMap[r.record_type_id] || 'higher';
-          const oldValue = parseFloat(existing[0].value);
-          const newValue = parseFloat(r.value);
-          const isBetter = direction === 'higher' ? newValue > oldValue : newValue < oldValue;
-
-          if (isBetter) {
-            await conn.query(`
-              UPDATE student_records SET value = ? WHERE id = ?
-            `, [r.value, existing[0].id]);
-            results.push({ action: 'updated', student_id: r.student_id });
-          } else {
-            results.push({ action: 'skipped', student_id: r.student_id });
-          }
-        } else {
-          await conn.query(`
-            INSERT INTO student_records (student_id, record_type_id, value, measured_at)
-            VALUES (?, ?, ?, ?)
-          `, [r.student_id, r.record_type_id, r.value, testDate]);
-          results.push({ action: 'inserted', student_id: r.student_id });
-        }
+        // 재원생: student_records에 UPSERT (항상 덮어쓰기 - 수정 가능하도록)
+        await conn.query(`
+          INSERT INTO student_records (student_id, record_type_id, value, measured_at)
+          VALUES (?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE value = VALUES(value)
+        `, [r.student_id, r.record_type_id, r.value, testDate]);
+        results.push({ action: 'saved', student_id: r.student_id });
       } else if (r.test_applicant_id) {
         // 테스트신규: test_records에 UPSERT
         await conn.query(`
