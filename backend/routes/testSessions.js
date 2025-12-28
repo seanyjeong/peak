@@ -349,11 +349,24 @@ router.post('/:sessionId/participants/sync', async (req, res) => {
 
     const { sessionId } = req.params;
 
-    // 기존 참가자 student_id 목록
-    const [existing] = await conn.query(`
-      SELECT student_id FROM test_participants
-      WHERE test_session_id = ? AND student_id IS NOT NULL
+    // 세션의 테스트 ID 조회
+    const [sessions] = await conn.query(`
+      SELECT monthly_test_id FROM test_sessions WHERE id = ?
     `, [sessionId]);
+
+    if (sessions.length === 0) {
+      throw new Error('세션을 찾을 수 없습니다.');
+    }
+
+    const monthlyTestId = sessions[0].monthly_test_id;
+
+    // 같은 테스트의 모든 세션에서 이미 등록된 학생 조회 (중복 방지)
+    const [existing] = await conn.query(`
+      SELECT tp.student_id
+      FROM test_participants tp
+      JOIN test_sessions ts ON tp.test_session_id = ts.id
+      WHERE ts.monthly_test_id = ? AND tp.student_id IS NOT NULL
+    `, [monthlyTestId]);
 
     const existingIds = new Set(existing.map(e => e.student_id));
 
@@ -397,13 +410,26 @@ router.get('/:sessionId/available-students', async (req, res) => {
     const { sessionId } = req.params;
     const { type } = req.query; // 'rest' | 'trial' | 'test_new'
 
+    // 세션의 테스트 ID 조회
+    const [sessions] = await pool.query(`
+      SELECT monthly_test_id FROM test_sessions WHERE id = ?
+    `, [sessionId]);
+
+    if (sessions.length === 0) {
+      return res.status(404).json({ success: false, message: '세션을 찾을 수 없습니다.' });
+    }
+
+    const monthlyTestId = sessions[0].monthly_test_id;
+
     // 테스트신규인 경우 별도 처리
     if (type === 'test_new') {
-      // 이미 참가한 test_applicant_id 목록
+      // 같은 테스트의 모든 세션에서 이미 참가한 test_applicant_id 목록
       const [existingApplicants] = await pool.query(`
-        SELECT test_applicant_id FROM test_participants
-        WHERE test_session_id = ? AND test_applicant_id IS NOT NULL
-      `, [sessionId]);
+        SELECT tp.test_applicant_id
+        FROM test_participants tp
+        JOIN test_sessions ts ON tp.test_session_id = ts.id
+        WHERE ts.monthly_test_id = ? AND tp.test_applicant_id IS NOT NULL
+      `, [monthlyTestId]);
 
       const existingApplicantIds = existingApplicants.map(e => e.test_applicant_id);
 
@@ -429,13 +455,14 @@ router.get('/:sessionId/available-students', async (req, res) => {
     }
 
     // 휴원생/체험생인 경우
-    // 이미 참가한 학생의 paca_student_id 목록
+    // 같은 테스트의 모든 세션에서 이미 참가한 학생의 paca_student_id 목록
     const [existing] = await pool.query(`
       SELECT s.paca_student_id
       FROM test_participants tp
+      JOIN test_sessions ts ON tp.test_session_id = ts.id
       JOIN students s ON tp.student_id = s.id
-      WHERE tp.test_session_id = ? AND tp.student_id IS NOT NULL
-    `, [sessionId]);
+      WHERE ts.monthly_test_id = ? AND tp.student_id IS NOT NULL
+    `, [monthlyTestId]);
 
     const existingPacaIds = existing.map(e => e.paca_student_id).filter(Boolean);
 
