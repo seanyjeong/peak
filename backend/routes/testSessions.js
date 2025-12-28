@@ -782,4 +782,72 @@ router.post('/:sessionId/records/batch', async (req, res) => {
   }
 });
 
+// 세션 기록 전체 삭제
+router.delete('/:sessionId/records', async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { sessionId } = req.params;
+
+    // 세션 정보 조회
+    const [sessions] = await conn.query(`
+      SELECT id, test_date FROM test_sessions WHERE id = ?
+    `, [sessionId]);
+
+    if (sessions.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: '세션을 찾을 수 없습니다.' });
+    }
+
+    const testDate = sessions[0].test_date;
+
+    // 세션 참가자 조회
+    const [participants] = await conn.query(`
+      SELECT student_id, test_applicant_id FROM test_participants WHERE test_session_id = ?
+    `, [sessionId]);
+
+    const studentIds = participants.filter(p => p.student_id).map(p => p.student_id);
+    const applicantIds = participants.filter(p => p.test_applicant_id).map(p => p.test_applicant_id);
+
+    let deletedStudentRecords = 0;
+    let deletedApplicantRecords = 0;
+
+    // 재원생 기록 삭제 (해당 날짜의 기록만)
+    if (studentIds.length > 0) {
+      const [result] = await conn.query(`
+        DELETE FROM student_records
+        WHERE student_id IN (?) AND measured_at = ?
+      `, [studentIds, testDate]);
+      deletedStudentRecords = result.affectedRows;
+    }
+
+    // 테스트신규 기록 삭제
+    if (applicantIds.length > 0) {
+      const [result] = await conn.query(`
+        DELETE FROM test_records
+        WHERE test_session_id = ? AND test_applicant_id IN (?)
+      `, [sessionId, applicantIds]);
+      deletedApplicantRecords = result.affectedRows;
+    }
+
+    await conn.commit();
+    res.json({
+      success: true,
+      message: '세션 기록이 삭제되었습니다.',
+      deleted: {
+        studentRecords: deletedStudentRecords,
+        applicantRecords: deletedApplicantRecords,
+        total: deletedStudentRecords + deletedApplicantRecords
+      }
+    });
+  } catch (error) {
+    await conn.rollback();
+    console.error('세션 기록 삭제 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    conn.release();
+  }
+});
+
 module.exports = router;

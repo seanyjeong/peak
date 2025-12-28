@@ -164,6 +164,22 @@ export default function SessionRecordsPage({
     }
   };
 
+  const handleDeleteAllRecords = async () => {
+    if (!confirm('이 세션의 모든 기록을 삭제하시겠습니까?\n\n⚠️ 재원생 기록도 해당 날짜 기록이 삭제됩니다.')) return;
+
+    try {
+      setSaving(true);
+      const res = await apiClient.delete(`/test-sessions/${sessionId}/records`);
+      alert(`${res.data.deleted?.total || 0}개 기록이 삭제되었습니다.`);
+      fetchData();
+    } catch (error) {
+      console.error('삭제 오류:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const selectedType = recordTypes.find(t => t.record_type_id === selectedTypeId);
 
   const typeColors: Record<string, string> = {
@@ -206,9 +222,14 @@ export default function SessionRecordsPage({
             {session && new Date(session.test_date).toLocaleDateString('ko-KR')} | 참가자 {participants.length}명
           </div>
         </div>
-        <Button onClick={handleSaveAll} disabled={saving}>
-          {saving ? '저장 중...' : '전체 저장'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleDeleteAllRecords} disabled={saving}>
+            🗑️ 기록 전체 삭제
+          </Button>
+          <Button onClick={handleSaveAll} disabled={saving}>
+            {saving ? '저장 중...' : '전체 저장'}
+          </Button>
+        </div>
       </div>
 
       {/* 종목 탭 */}
