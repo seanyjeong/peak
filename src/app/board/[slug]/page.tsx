@@ -180,23 +180,31 @@ function Card3D({
   className = '',
   glowColor = '#3b82f6',
   index = 0,
-  total = 10
+  total = 10,
+  isTop3 = false
 }: {
   children: React.ReactNode;
   className?: string;
   glowColor?: string;
   index?: number;
   total?: number;
+  isTop3?: boolean;
 }) {
   // 10위(index 9)부터 1위(index 0)까지 순서대로 등장
   // 역순 delay: 10위가 먼저, 1위가 마지막
-  const delay = (total - 1 - index) * 0.08; // 80ms 간격
+  // TOP3는 더 긴 간격으로 웅장하게
+  const baseDelay = (total - 1 - index) * 0.18; // 180ms 간격 (더 느리게)
+  const top3ExtraDelay = isTop3 ? 0.3 : 0; // TOP3는 추가 딜레이
+  const delay = baseDelay + top3ExtraDelay;
+
+  // TOP3는 더 극적인 애니메이션
+  const animationDuration = isTop3 ? '1s' : '0.7s';
 
   return (
     <div
       className={`relative ${className}`}
       style={{
-        animation: `cardFlipIn 0.6s ease-out ${delay}s both`,
+        animation: `${isTop3 ? 'cardFlipInTop3' : 'cardFlipIn'} ${animationDuration} cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}s both`,
         transformStyle: 'preserve-3d',
       }}
     >
@@ -205,15 +213,48 @@ function Card3D({
         className="absolute -inset-1 rounded-2xl opacity-50 blur-xl transition-opacity"
         style={{ background: glowColor }}
       />
+
+      {/* TOP3 스파크 효과 */}
+      {isTop3 && (
+        <>
+          {/* 스파크 파티클들 */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ animation: `sparkBurst 0.8s ease-out ${delay + 0.3}s both` }}
+          >
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-2 h-2 rounded-full"
+                style={{
+                  background: glowColor,
+                  boxShadow: `0 0 10px 3px ${glowColor}`,
+                  left: '50%',
+                  top: '50%',
+                  animation: `sparkParticle 0.6s ease-out ${delay + 0.3 + i * 0.05}s both`,
+                  ['--angle' as any]: `${i * 45}deg`,
+                }}
+              />
+            ))}
+          </div>
+          {/* 중앙 플래시 */}
+          <div
+            className="absolute inset-0 rounded-xl pointer-events-none"
+            style={{
+              background: `radial-gradient(circle at center, ${glowColor}80 0%, transparent 70%)`,
+              animation: `flashBurst 0.5s ease-out ${delay + 0.2}s both`,
+            }}
+          />
+        </>
+      )}
+
       {/* 카드 본체 */}
       <div
         className="relative bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden hover:scale-[1.02] transition-transform duration-200"
         style={{
-          boxShadow: `
-            0 20px 40px -20px rgba(0,0,0,0.5),
-            inset 0 1px 0 rgba(255,255,255,0.2),
-            inset 0 -1px 0 rgba(0,0,0,0.2)
-          `,
+          boxShadow: isTop3
+            ? `0 0 30px ${glowColor}60, 0 20px 40px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3)`
+            : `0 20px 40px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.2)`,
         }}
       >
         {/* 상단 하이라이트 */}
@@ -226,18 +267,70 @@ function Card3D({
         @keyframes cardFlipIn {
           0% {
             opacity: 0;
-            transform: perspective(1000px) translateY(-80px) rotateX(90deg) scale(0.8);
+            transform: perspective(1000px) translateY(-100px) rotateX(90deg) scale(0.7);
           }
-          50% {
+          60% {
             opacity: 1;
-            transform: perspective(1000px) translateY(10px) rotateX(-10deg) scale(1.02);
+            transform: perspective(1000px) translateY(8px) rotateX(-8deg) scale(1.02);
           }
-          75% {
-            transform: perspective(1000px) translateY(-5px) rotateX(5deg) scale(1);
+          80% {
+            transform: perspective(1000px) translateY(-3px) rotateX(3deg) scale(1);
           }
           100% {
             opacity: 1;
             transform: perspective(1000px) translateY(0) rotateX(0) scale(1);
+          }
+        }
+
+        @keyframes cardFlipInTop3 {
+          0% {
+            opacity: 0;
+            transform: perspective(1000px) translateY(-150px) rotateX(180deg) scale(0.5);
+            filter: brightness(3);
+          }
+          40% {
+            opacity: 1;
+            transform: perspective(1000px) translateY(20px) rotateX(-15deg) scale(1.1);
+            filter: brightness(2);
+          }
+          60% {
+            transform: perspective(1000px) translateY(-10px) rotateX(10deg) scale(1.05);
+            filter: brightness(1.5);
+          }
+          80% {
+            transform: perspective(1000px) translateY(5px) rotateX(-3deg) scale(1.02);
+            filter: brightness(1.2);
+          }
+          100% {
+            opacity: 1;
+            transform: perspective(1000px) translateY(0) rotateX(0) scale(1);
+            filter: brightness(1);
+          }
+        }
+
+        @keyframes sparkParticle {
+          0% {
+            opacity: 1;
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(80px) scale(0);
+          }
+        }
+
+        @keyframes flashBurst {
+          0% {
+            opacity: 0;
+            transform: scale(0.5);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.2);
+          }
+          100% {
+            opacity: 0;
+            transform: scale(1.5);
           }
         }
       `}</style>
@@ -252,7 +345,7 @@ function RankRow3D({ item, index, total, glowColor }: { item: RankingItem; index
   const rankBg = isTop3 ? rankColors[item.rank - 1] : 'rgba(255,255,255,0.1)';
 
   return (
-    <Card3D glowColor={isTop3 ? rankColors[item.rank - 1] + '40' : glowColor + '20'} className="mb-2" index={index} total={total}>
+    <Card3D glowColor={isTop3 ? rankColors[item.rank - 1] : glowColor + '20'} className="mb-2" index={index} total={total} isTop3={isTop3}>
       <div className="flex items-center gap-4 p-4">
         {/* 순위 */}
         <div
@@ -298,7 +391,7 @@ function EventRow3D({ record, index, total, unit, glowColor }: { record: EventRe
   const rankBg = isTop3 ? rankColors[record.rank - 1] : 'rgba(255,255,255,0.1)';
 
   return (
-    <Card3D glowColor={isTop3 ? rankColors[record.rank - 1] + '40' : glowColor + '20'} className="mb-2" index={index} total={total}>
+    <Card3D glowColor={isTop3 ? rankColors[record.rank - 1] : glowColor + '20'} className="mb-2" index={index} total={total} isTop3={isTop3}>
       <div className="flex items-center gap-3 p-3">
         {/* 순위 */}
         <div
