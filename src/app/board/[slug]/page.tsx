@@ -174,47 +174,31 @@ function Background3D() {
   );
 }
 
-// 3D 카드 컴포넌트
+// 3D 카드 등장 애니메이션 컴포넌트
 function Card3D({
   children,
   className = '',
-  glowColor = '#3b82f6'
+  glowColor = '#3b82f6',
+  index = 0,
+  total = 10
 }: {
   children: React.ReactNode;
   className?: string;
   glowColor?: string;
+  index?: number;
+  total?: number;
 }) {
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    setRotateX((y - centerY) / 20);
-    setRotateY((centerX - x) / 20);
-  };
-
-  const handleMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
-  };
+  // 10위(index 9)부터 1위(index 0)까지 순서대로 등장
+  // 역순 delay: 10위가 먼저, 1위가 마지막
+  const delay = (total - 1 - index) * 0.08; // 80ms 간격
 
   return (
     <div
-      ref={cardRef}
-      className={`relative transition-transform duration-200 ${className}`}
+      className={`relative ${className}`}
       style={{
-        transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
+        animation: `cardFlipIn 0.6s ease-out ${delay}s both`,
         transformStyle: 'preserve-3d',
       }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
     >
       {/* 글로우 효과 */}
       <div
@@ -223,7 +207,7 @@ function Card3D({
       />
       {/* 카드 본체 */}
       <div
-        className="relative bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden"
+        className="relative bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden hover:scale-[1.02] transition-transform duration-200"
         style={{
           boxShadow: `
             0 20px 40px -20px rgba(0,0,0,0.5),
@@ -236,18 +220,39 @@ function Card3D({
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
         {children}
       </div>
+
+      {/* CSS keyframes */}
+      <style jsx>{`
+        @keyframes cardFlipIn {
+          0% {
+            opacity: 0;
+            transform: perspective(1000px) translateY(-80px) rotateX(90deg) scale(0.8);
+          }
+          50% {
+            opacity: 1;
+            transform: perspective(1000px) translateY(10px) rotateX(-10deg) scale(1.02);
+          }
+          75% {
+            transform: perspective(1000px) translateY(-5px) rotateX(5deg) scale(1);
+          }
+          100% {
+            opacity: 1;
+            transform: perspective(1000px) translateY(0) rotateX(0) scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }
 
 // 3D 순위 행
-function RankRow3D({ item, index, glowColor }: { item: RankingItem; index: number; glowColor: string }) {
+function RankRow3D({ item, index, total, glowColor }: { item: RankingItem; index: number; total: number; glowColor: string }) {
   const isTop3 = item.rank <= 3;
   const rankColors = ['#fbbf24', '#9ca3af', '#cd7f32'];
   const rankBg = isTop3 ? rankColors[item.rank - 1] : 'rgba(255,255,255,0.1)';
 
   return (
-    <Card3D glowColor={isTop3 ? rankColors[item.rank - 1] + '40' : glowColor + '20'} className="mb-2">
+    <Card3D glowColor={isTop3 ? rankColors[item.rank - 1] + '40' : glowColor + '20'} className="mb-2" index={index} total={total}>
       <div className="flex items-center gap-4 p-4">
         {/* 순위 */}
         <div
@@ -287,13 +292,13 @@ function RankRow3D({ item, index, glowColor }: { item: RankingItem; index: numbe
 }
 
 // 3D 종목별 순위 행
-function EventRow3D({ record, index, unit, glowColor }: { record: EventRecord; index: number; unit: string; glowColor: string }) {
+function EventRow3D({ record, index, total, unit, glowColor }: { record: EventRecord; index: number; total: number; unit: string; glowColor: string }) {
   const isTop3 = record.rank <= 3;
   const rankColors = ['#fbbf24', '#9ca3af', '#cd7f32'];
   const rankBg = isTop3 ? rankColors[record.rank - 1] : 'rgba(255,255,255,0.1)';
 
   return (
-    <Card3D glowColor={isTop3 ? rankColors[record.rank - 1] + '40' : glowColor + '20'} className="mb-2">
+    <Card3D glowColor={isTop3 ? rankColors[record.rank - 1] + '40' : glowColor + '20'} className="mb-2" index={index} total={total}>
       <div className="flex items-center gap-3 p-3">
         {/* 순위 */}
         <div
@@ -594,36 +599,42 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
               </div>
             </div>
           ) : (
-            <div className="h-full flex gap-6">
+            <div key={`view-${viewMode}-${currentEventIndex}`} className="h-full flex gap-6">
               <GenderColumn title="남자" color="blue">
                 {viewMode === 'ranking' ? (
                   data.ranking.male.length > 0 ? (
-                    data.ranking.male.slice(0, 10).map((item, idx) => (
-                      <RankRow3D key={`m-${idx}`} item={item} index={idx} glowColor="#3b82f6" />
+                    data.ranking.male.slice(0, 10).map((item, idx, arr) => (
+                      <RankRow3D key={`m-${idx}`} item={item} index={idx} total={arr.length} glowColor="#3b82f6" />
                     ))
                   ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
                 ) : currentEvent ? (
-                  getEventRecordsByGender(currentEvent.records, 'M').length > 0 ? (
-                    getEventRecordsByGender(currentEvent.records, 'M').map((record, idx) => (
-                      <EventRow3D key={`m-${idx}`} record={record} index={idx} unit={currentEvent.unit} glowColor="#3b82f6" />
-                    ))
-                  ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
+                  (() => {
+                    const maleRecords = getEventRecordsByGender(currentEvent.records, 'M');
+                    return maleRecords.length > 0 ? (
+                      maleRecords.map((record, idx) => (
+                        <EventRow3D key={`m-${idx}`} record={record} index={idx} total={maleRecords.length} unit={currentEvent.unit} glowColor="#3b82f6" />
+                      ))
+                    ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>;
+                  })()
                 ) : null}
               </GenderColumn>
 
               <GenderColumn title="여자" color="pink">
                 {viewMode === 'ranking' ? (
                   data.ranking.female.length > 0 ? (
-                    data.ranking.female.slice(0, 10).map((item, idx) => (
-                      <RankRow3D key={`f-${idx}`} item={item} index={idx} glowColor="#ec4899" />
+                    data.ranking.female.slice(0, 10).map((item, idx, arr) => (
+                      <RankRow3D key={`f-${idx}`} item={item} index={idx} total={arr.length} glowColor="#ec4899" />
                     ))
                   ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
                 ) : currentEvent ? (
-                  getEventRecordsByGender(currentEvent.records, 'F').length > 0 ? (
-                    getEventRecordsByGender(currentEvent.records, 'F').map((record, idx) => (
-                      <EventRow3D key={`f-${idx}`} record={record} index={idx} unit={currentEvent.unit} glowColor="#ec4899" />
-                    ))
-                  ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
+                  (() => {
+                    const femaleRecords = getEventRecordsByGender(currentEvent.records, 'F');
+                    return femaleRecords.length > 0 ? (
+                      femaleRecords.map((record, idx) => (
+                        <EventRow3D key={`f-${idx}`} record={record} index={idx} total={femaleRecords.length} unit={currentEvent.unit} glowColor="#ec4899" />
+                      ))
+                    ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>;
+                  })()
                 ) : null}
               </GenderColumn>
             </div>
