@@ -5,13 +5,11 @@ import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
   pointerWithin,
   useSensor,
   useSensors,
@@ -88,7 +86,7 @@ function DraggableParticipant({ participant }: { participant: Participant }) {
       style={style}
       {...listeners}
       {...attributes}
-      className="bg-white border rounded-lg p-2 mb-1 cursor-grab active:cursor-grabbing shadow-sm hover:shadow"
+      className="bg-white border rounded-lg p-2 mb-1 cursor-grab active:cursor-grabbing shadow-sm hover:shadow touch-none"
     >
       <div className="flex items-center gap-2">
         <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center ${
@@ -122,7 +120,7 @@ function DraggableSupervisor({ supervisor }: { supervisor: Supervisor }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm cursor-grab active:cursor-grabbing ${
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm cursor-grab active:cursor-grabbing touch-none ${
         supervisor.isOwner
           ? 'bg-yellow-100 text-yellow-800'
           : 'bg-blue-100 text-blue-700'
@@ -145,19 +143,19 @@ function GroupColumn({
 }) {
   const { setNodeRef: setParticipantsRef, isOver: isOverParticipants } = useDroppable({
     id: `group-${group.id}-participants`,
-    data: { type: 'participants', groupId: group.id }
+    data: { type: 'group-participants', groupId: group.id }
   });
 
   const { setNodeRef: setSupervisorsRef, isOver: isOverSupervisors } = useDroppable({
     id: `group-${group.id}-supervisors`,
-    data: { type: 'supervisors', groupId: group.id }
+    data: { type: 'group-supervisors', groupId: group.id }
   });
 
   const mainSupervisor = group.supervisors.find(s => s.is_main);
   const groupTitle = mainSupervisor ? `${mainSupervisor.name}T` : `${group.group_num}조`;
 
   return (
-    <div className="w-52 flex-shrink-0 bg-white rounded-lg border shadow-sm">
+    <div className="w-56 flex-shrink-0 bg-white rounded-lg border shadow-sm flex flex-col">
       {/* 조 헤더 */}
       <div className="flex justify-between items-center px-3 py-2 border-b bg-gray-50 rounded-t-lg">
         <span className="font-medium">{groupTitle}</span>
@@ -170,8 +168,8 @@ function GroupColumn({
       {/* 감독관 영역 */}
       <div
         ref={setSupervisorsRef}
-        className={`p-2 border-b min-h-[40px] flex flex-wrap gap-1 ${
-          isOverSupervisors ? 'bg-blue-50' : 'bg-gray-50'
+        className={`p-2 border-b min-h-[48px] flex flex-wrap gap-1 transition-colors ${
+          isOverSupervisors ? 'bg-blue-100 ring-2 ring-blue-400' : 'bg-gray-50'
         }`}
       >
         {group.supervisors.length === 0 ? (
@@ -183,18 +181,18 @@ function GroupColumn({
         )}
       </div>
 
-      {/* 학생 영역 */}
+      {/* 학생 영역 - 크기 확대 */}
       <div
         ref={setParticipantsRef}
-        className={`p-2 min-h-[200px] max-h-[400px] overflow-y-auto ${
-          isOverParticipants ? 'bg-green-50' : ''
+        className={`flex-1 p-2 min-h-[300px] overflow-y-auto transition-colors ${
+          isOverParticipants ? 'bg-green-100 ring-2 ring-green-400' : ''
         }`}
       >
         {group.participants.map(p => (
           <DraggableParticipant key={p.id} participant={p} />
         ))}
         {group.participants.length === 0 && (
-          <div className="text-center text-gray-400 text-sm py-8">
+          <div className="h-full flex items-center justify-center text-gray-400 text-sm">
             학생을 여기에 드롭
           </div>
         )}
@@ -213,8 +211,8 @@ function NewGroupZone() {
   return (
     <div
       ref={setNodeRef}
-      className={`w-48 flex-shrink-0 border-2 border-dashed rounded-lg flex items-center justify-center min-h-[300px] ${
-        isOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+      className={`w-48 flex-shrink-0 border-2 border-dashed rounded-lg flex items-center justify-center min-h-[300px] transition-colors ${
+        isOver ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-400' : 'border-gray-300'
       }`}
     >
       <div className="text-center text-gray-400">
@@ -278,6 +276,34 @@ export default function SessionGroupPage({
     }
   };
 
+  // 전체 조에 균일하게 자동배치
+  const handleAutoAssignAll = async () => {
+    if (waitingParticipants.length === 0 || groups.length === 0) return;
+
+    try {
+      // 각 조의 현재 인원수를 기준으로 정렬 (적은 순)
+      const sortedGroups = [...groups].sort((a, b) => a.participants.length - b.participants.length);
+
+      // 라운드 로빈 방식으로 균일 배분
+      const assignments: { participantId: number; groupId: number }[] = [];
+      waitingParticipants.forEach((p, index) => {
+        const targetGroup = sortedGroups[index % sortedGroups.length];
+        assignments.push({ participantId: p.id, groupId: targetGroup.id });
+      });
+
+      await Promise.all(
+        assignments.map(a =>
+          apiClient.put(`/test-sessions/${sessionId}/participants/${a.participantId}`, {
+            test_group_id: a.groupId
+          })
+        )
+      );
+      fetchData();
+    } catch (error) {
+      console.error('자동배치 오류:', error);
+    }
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     setActiveItem(event.active.data.current);
   };
@@ -290,15 +316,19 @@ export default function SessionGroupPage({
 
     const activeData = active.data.current;
     const overData = over.data.current;
+    const overId = String(over.id);
 
     try {
       if (activeData?.type === 'participant') {
         const participant = activeData.participant as Participant;
         let toGroupId: number | null = null;
 
-        if (overData?.type === 'participants') {
+        // 조의 학생 영역에 드롭
+        if (overData?.type === 'group-participants') {
           toGroupId = overData.groupId;
-        } else if (over.id === 'waiting-participants') {
+        }
+        // 미배치 영역에 드롭 (미배치로 빼기)
+        else if (overId === 'waiting-participants') {
           toGroupId = null;
         }
 
@@ -308,7 +338,7 @@ export default function SessionGroupPage({
       } else if (activeData?.type === 'supervisor') {
         const supervisor = activeData.supervisor as Supervisor;
 
-        if (over.id === 'new-group') {
+        if (overId === 'new-group') {
           // 새 조 생성 + 감독관 배치
           const newGroupRes = await apiClient.post(`/test-sessions/${sessionId}/groups`);
           await apiClient.post(`/test-sessions/${sessionId}/supervisor`, {
@@ -316,13 +346,13 @@ export default function SessionGroupPage({
             to_group_id: newGroupRes.data.id,
             is_main: true
           });
-        } else if (overData?.type === 'supervisors') {
+        } else if (overData?.type === 'group-supervisors') {
           await apiClient.post(`/test-sessions/${sessionId}/supervisor`, {
             instructor_id: supervisor.instructor_id,
             to_group_id: overData.groupId,
             is_main: false
           });
-        } else if (over.id === 'waiting-supervisors') {
+        } else if (overId === 'waiting-supervisors') {
           await apiClient.post(`/test-sessions/${sessionId}/supervisor`, {
             instructor_id: supervisor.instructor_id,
             to_group_id: null
@@ -349,12 +379,12 @@ export default function SessionGroupPage({
 
   const { setNodeRef: setWaitingParticipantsRef, isOver: isOverWaitingP } = useDroppable({
     id: 'waiting-participants',
-    data: { type: 'waiting' }
+    data: { type: 'waiting-participants' }
   });
 
   const { setNodeRef: setWaitingSupervisorsRef, isOver: isOverWaitingS } = useDroppable({
     id: 'waiting-supervisors',
-    data: { type: 'waiting' }
+    data: { type: 'waiting-supervisors' }
   });
 
   if (loading) {
@@ -398,6 +428,11 @@ export default function SessionGroupPage({
             <Button variant="outline" onClick={handleSync} disabled={syncing}>
               {syncing ? '동기화 중...' : '재원생 동기화'}
             </Button>
+            {groups.length > 0 && waitingParticipants.length > 0 && (
+              <Button variant="secondary" onClick={handleAutoAssignAll}>
+                ⚡ 전체 균일 배치
+              </Button>
+            )}
             <Button onClick={() => setShowAddModal(true)}>
               + 참가자 추가
             </Button>
@@ -407,7 +442,7 @@ export default function SessionGroupPage({
         {/* 메인 영역 */}
         <div className="flex-1 flex gap-4 overflow-hidden">
           {/* 대기 영역 */}
-          <div className="w-64 flex-shrink-0 flex flex-col gap-4">
+          <div className="w-72 flex-shrink-0 flex flex-col gap-4">
             {/* 감독관 대기 */}
             <Card className="flex-shrink-0">
               <div className="p-2 border-b bg-gray-50 font-medium text-sm">
@@ -415,30 +450,40 @@ export default function SessionGroupPage({
               </div>
               <div
                 ref={setWaitingSupervisorsRef}
-                className={`p-2 min-h-[80px] flex flex-wrap gap-1 ${
-                  isOverWaitingS ? 'bg-blue-50' : ''
+                className={`p-3 min-h-[60px] flex flex-wrap gap-1 transition-colors ${
+                  isOverWaitingS ? 'bg-blue-100 ring-2 ring-blue-400' : ''
                 }`}
               >
-                {waitingInstructors.map(s => (
-                  <DraggableSupervisor key={s.instructor_id} supervisor={s} />
-                ))}
+                {waitingInstructors.length === 0 ? (
+                  <span className="text-xs text-gray-400">감독관을 여기로 드롭하면 미배치</span>
+                ) : (
+                  waitingInstructors.map(s => (
+                    <DraggableSupervisor key={s.instructor_id} supervisor={s} />
+                  ))
+                )}
               </div>
             </Card>
 
-            {/* 학생 대기 */}
+            {/* 학생 대기 - 크기 확대 */}
             <Card className="flex-1 overflow-hidden flex flex-col">
               <div className="p-2 border-b bg-gray-50 font-medium text-sm">
                 미배치 학생 ({waitingParticipants.length})
               </div>
               <div
                 ref={setWaitingParticipantsRef}
-                className={`flex-1 p-2 overflow-y-auto ${
-                  isOverWaitingP ? 'bg-green-50' : ''
+                className={`flex-1 p-3 overflow-y-auto min-h-[200px] transition-colors ${
+                  isOverWaitingP ? 'bg-green-100 ring-2 ring-green-400' : ''
                 }`}
               >
-                {waitingParticipants.map(p => (
-                  <DraggableParticipant key={p.id} participant={p} />
-                ))}
+                {waitingParticipants.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                    학생을 여기로 드롭하면 미배치
+                  </div>
+                ) : (
+                  waitingParticipants.map(p => (
+                    <DraggableParticipant key={p.id} participant={p} />
+                  ))
+                )}
               </div>
             </Card>
           </div>
