@@ -13,6 +13,7 @@ import {
   pointerWithin,
   useSensor,
   useSensors,
+  TouchSensor,
   PointerSensor,
   DragStartEvent,
   DragEndEvent
@@ -86,18 +87,18 @@ function DraggableParticipant({ participant }: { participant: Participant }) {
       style={style}
       {...listeners}
       {...attributes}
-      className="bg-white border rounded-lg p-2 mb-1 cursor-grab active:cursor-grabbing shadow-sm hover:shadow touch-none"
+      className="bg-white border rounded-xl p-3 mb-2 cursor-grab active:cursor-grabbing shadow-sm hover:shadow touch-none"
     >
-      <div className="flex items-center gap-2">
-        <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center flex-shrink-0 ${
+      <div className="flex items-center gap-3">
+        <span className={`w-8 h-8 rounded-full text-sm flex items-center justify-center flex-shrink-0 ${
           participant.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
         }`}>
           {participant.gender === 'M' ? '남' : '여'}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1">
-            <span className="font-medium text-sm">{participant.name}</span>
-            <span className={`text-xs px-1.5 py-0.5 rounded ${typeColors[participant.participant_type]}`}>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{participant.name}</span>
+            <span className={`text-xs px-2 py-0.5 rounded ${typeColors[participant.participant_type]}`}>
               {typeLabels[participant.participant_type]}
             </span>
           </div>
@@ -129,7 +130,7 @@ function DraggableSupervisor({ supervisor }: { supervisor: Supervisor }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm cursor-grab active:cursor-grabbing touch-none ${
+      className={`inline-flex items-center gap-1 px-3 py-2 rounded-full text-sm cursor-grab active:cursor-grabbing touch-none ${
         supervisor.isOwner
           ? 'bg-yellow-100 text-yellow-800'
           : 'bg-blue-100 text-blue-700'
@@ -164,25 +165,30 @@ function GroupColumn({
   const groupTitle = mainSupervisor ? `${mainSupervisor.name}T` : `${group.group_num}조`;
 
   return (
-    <div className="w-56 flex-shrink-0 bg-white rounded-lg border shadow-sm flex flex-col">
+    <div className="w-64 flex-shrink-0 bg-white rounded-xl border shadow-sm flex flex-col">
       {/* 조 헤더 */}
-      <div className="flex justify-between items-center px-3 py-2 border-b bg-gray-50 rounded-t-lg">
-        <span className="font-medium">{groupTitle}</span>
-        <div className="flex items-center gap-1 text-xs text-gray-500">
+      <div className="flex justify-between items-center px-4 py-3 border-b bg-gray-50 rounded-t-xl">
+        <span className="font-semibold text-lg">{groupTitle}</span>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
           <span>{group.participants.length}명</span>
-          <button onClick={onDeleteGroup} className="ml-2 text-gray-400 hover:text-red-500">✕</button>
+          <button
+            onClick={onDeleteGroup}
+            className="ml-2 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50"
+          >
+            ✕
+          </button>
         </div>
       </div>
 
       {/* 감독관 영역 */}
       <div
         ref={setSupervisorsRef}
-        className={`p-2 border-b min-h-[48px] flex flex-wrap gap-1 transition-colors ${
+        className={`p-3 border-b min-h-[56px] flex flex-wrap gap-2 transition-colors ${
           isOverSupervisors ? 'bg-blue-100 ring-2 ring-blue-400' : 'bg-gray-50'
         }`}
       >
         {group.supervisors.length === 0 ? (
-          <span className="text-xs text-gray-400">감독관을 여기에 드롭</span>
+          <span className="text-sm text-gray-400">감독관을 여기에 드롭</span>
         ) : (
           group.supervisors.map(s => (
             <DraggableSupervisor key={s.instructor_id} supervisor={s} />
@@ -190,10 +196,10 @@ function GroupColumn({
         )}
       </div>
 
-      {/* 학생 영역 - 크기 확대 */}
+      {/* 학생 영역 */}
       <div
         ref={setParticipantsRef}
-        className={`flex-1 p-2 min-h-[300px] overflow-y-auto transition-colors ${
+        className={`flex-1 p-3 min-h-[250px] overflow-y-auto transition-colors ${
           isOverParticipants ? 'bg-green-100 ring-2 ring-green-400' : ''
         }`}
       >
@@ -220,19 +226,19 @@ function NewGroupZone() {
   return (
     <div
       ref={setNodeRef}
-      className={`w-48 flex-shrink-0 border-2 border-dashed rounded-lg flex items-center justify-center min-h-[300px] transition-colors ${
+      className={`w-56 flex-shrink-0 border-2 border-dashed rounded-xl flex items-center justify-center min-h-[250px] transition-colors ${
         isOver ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-400' : 'border-gray-300'
       }`}
     >
       <div className="text-center text-gray-400">
-        <div className="text-3xl mb-2">+</div>
-        <div className="text-sm">감독관 드롭하여<br/>새 조 생성</div>
+        <div className="text-4xl mb-2">+</div>
+        <div className="text-base">감독관 드롭하여<br/>새 조 생성</div>
       </div>
     </div>
   );
 }
 
-export default function SessionGroupPage({
+export default function TabletSessionGroupPage({
   params
 }: {
   params: Promise<{ testId: string; sessionId: string }>
@@ -248,7 +254,11 @@ export default function SessionGroupPage({
   const [syncing, setSyncing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // 터치 센서 (태블릿 최적화)
   const sensors = useSensors(
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 150, tolerance: 5 }
+    }),
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 }
     })
@@ -290,10 +300,7 @@ export default function SessionGroupPage({
     if (waitingParticipants.length === 0 || groups.length === 0) return;
 
     try {
-      // 각 조의 현재 인원수를 기준으로 정렬 (적은 순)
       const sortedGroups = [...groups].sort((a, b) => a.participants.length - b.participants.length);
-
-      // 라운드 로빈 방식으로 균일 배분
       const assignments: { participantId: number; groupId: number }[] = [];
       waitingParticipants.forEach((p, index) => {
         const targetGroup = sortedGroups[index % sortedGroups.length];
@@ -332,17 +339,12 @@ export default function SessionGroupPage({
         const participant = activeData.participant as Participant;
         let toGroupId: number | null = null;
 
-        // 조의 학생 영역에 드롭
         if (overData?.type === 'group-participants') {
           toGroupId = overData.groupId;
-        }
-        // 미배치 영역에 드롭 (미배치로 빼기)
-        else if (overId === 'waiting-participants' || overData?.type === 'waiting-participants') {
+        } else if (overId === 'waiting-participants' || overData?.type === 'waiting-participants') {
           toGroupId = null;
-        }
-        // 유효하지 않은 드롭 위치면 무시
-        else {
-          return;
+        } else {
+          return; // 유효하지 않은 드롭 위치
         }
 
         await apiClient.put(`/test-sessions/${sessionId}/participants/${participant.id}`, {
@@ -352,7 +354,6 @@ export default function SessionGroupPage({
         const supervisor = activeData.supervisor as Supervisor;
 
         if (overId === 'new-group' || overData?.type === 'new-group') {
-          // 새 조 생성 + 감독관 배치
           const newGroupRes = await apiClient.post(`/test-sessions/${sessionId}/groups`);
           await apiClient.post(`/test-sessions/${sessionId}/supervisor`, {
             instructor_id: supervisor.instructor_id,
@@ -417,13 +418,13 @@ export default function SessionGroupPage({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="p-4 h-screen flex flex-col">
+      <div className="p-4 min-h-screen flex flex-col">
         {/* 헤더 */}
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-start mb-4">
           <div>
             <button
-              onClick={() => router.push(`/monthly-test/${testId}`)}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              onClick={() => router.push(`/tablet/monthly-test/${testId}`)}
+              className="text-sm text-gray-500 hover:text-gray-700 min-h-12 flex items-center"
             >
               ← 테스트로 돌아가기
             </button>
@@ -439,38 +440,62 @@ export default function SessionGroupPage({
               })}
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSync} disabled={syncing}>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={handleSync}
+              disabled={syncing}
+              className="min-h-12"
+            >
               {syncing ? '동기화 중...' : '재원생 동기화'}
             </Button>
             {groups.length > 0 && waitingParticipants.length > 0 && (
-              <Button variant="outline" onClick={handleAutoAssignAll}>
+              <Button
+                variant="outline"
+                onClick={handleAutoAssignAll}
+                className="min-h-12"
+              >
                 ⚡ 전체 균일 배치
               </Button>
             )}
-            <Button onClick={() => setShowAddModal(true)}>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="min-h-12"
+            >
               + 참가자 추가
             </Button>
           </div>
         </div>
 
-        {/* 메인 영역 */}
-        <div className="flex-1 flex gap-4 overflow-hidden">
+        {/* 기록측정 버튼 */}
+        <div className="mb-4">
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full min-h-14 text-lg"
+            onClick={() => router.push(`/tablet/monthly-test/${testId}/${sessionId}/records`)}
+          >
+            📝 기록 측정
+          </Button>
+        </div>
+
+        {/* 메인 영역 - 세로로 배치 (태블릿 최적화) */}
+        <div className="flex-1 flex flex-col gap-4">
           {/* 대기 영역 */}
-          <div className="w-72 flex-shrink-0 flex flex-col gap-4">
+          <div className="flex gap-4">
             {/* 감독관 대기 */}
-            <Card className="flex-shrink-0">
-              <div className="p-2 border-b bg-gray-50 font-medium text-sm">
+            <Card className="flex-1">
+              <div className="p-3 border-b bg-gray-50 font-medium">
                 감독관 대기 ({waitingInstructors.length})
               </div>
               <div
                 ref={setWaitingSupervisorsRef}
-                className={`p-3 min-h-[60px] flex flex-wrap gap-1 transition-colors ${
+                className={`p-3 min-h-[70px] flex flex-wrap gap-2 transition-colors ${
                   isOverWaitingS ? 'bg-blue-100 ring-2 ring-blue-400' : ''
                 }`}
               >
                 {waitingInstructors.length === 0 ? (
-                  <span className="text-xs text-gray-400">감독관을 여기로 드롭하면 미배치</span>
+                  <span className="text-sm text-gray-400">감독관을 여기로 드롭하면 미배치</span>
                 ) : (
                   waitingInstructors.map(s => (
                     <DraggableSupervisor key={s.instructor_id} supervisor={s} />
@@ -479,14 +504,14 @@ export default function SessionGroupPage({
               </div>
             </Card>
 
-            {/* 학생 대기 - 크기 확대 */}
-            <Card className="flex-1 overflow-hidden flex flex-col">
-              <div className="p-2 border-b bg-gray-50 font-medium text-sm">
+            {/* 학생 대기 */}
+            <Card className="flex-1 max-h-[200px] overflow-hidden flex flex-col">
+              <div className="p-3 border-b bg-gray-50 font-medium">
                 미배치 학생 ({waitingParticipants.length})
               </div>
               <div
                 ref={setWaitingParticipantsRef}
-                className={`flex-1 p-3 overflow-y-auto min-h-[200px] transition-colors ${
+                className={`flex-1 p-3 overflow-y-auto transition-colors ${
                   isOverWaitingP ? 'bg-green-100 ring-2 ring-green-400' : ''
                 }`}
               >
@@ -503,9 +528,9 @@ export default function SessionGroupPage({
             </Card>
           </div>
 
-          {/* 조 영역 */}
-          <div className="flex-1 overflow-x-auto">
-            <div className="flex gap-4 h-full pb-4">
+          {/* 조 영역 - 가로 스크롤 */}
+          <div className="flex-1 overflow-x-auto pb-4">
+            <div className="flex gap-4 min-h-[350px]">
               {groups.map(group => (
                 <GroupColumn
                   key={group.id}
@@ -522,19 +547,19 @@ export default function SessionGroupPage({
       {/* 드래그 오버레이 */}
       <DragOverlay>
         {activeItem?.type === 'participant' && (
-          <div className="bg-white border rounded-lg p-2 shadow-lg">
-            <div className="flex items-center gap-2">
-              <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center ${
+          <div className="bg-white border rounded-xl p-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <span className={`w-8 h-8 rounded-full text-sm flex items-center justify-center ${
                 activeItem.participant.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
               }`}>
                 {activeItem.participant.gender === 'M' ? '남' : '여'}
               </span>
-              <span className="font-medium text-sm">{activeItem.participant.name}</span>
+              <span className="font-medium">{activeItem.participant.name}</span>
             </div>
           </div>
         )}
         {activeItem?.type === 'supervisor' && (
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm bg-blue-100 text-blue-700 shadow-lg">
+          <div className="inline-flex items-center gap-1 px-3 py-2 rounded-full text-sm bg-blue-100 text-blue-700 shadow-lg">
             {activeItem.supervisor.name}
           </div>
         )}
@@ -552,7 +577,7 @@ export default function SessionGroupPage({
   );
 }
 
-// 참가자 추가 모달 컴포넌트
+// 참가자 추가 모달 컴포넌트 (터치 최적화)
 function AddParticipantModal({
   isOpen,
   onClose,
@@ -590,7 +615,6 @@ function AddParticipantModal({
   const fetchList = async () => {
     setLoading(true);
     try {
-      // 모든 타입을 available-students API로 통일
       const res = await apiClient.get(`/test-sessions/${sessionId}/available-students?type=${activeTab}`);
       if (activeTab === 'test_new') {
         setApplicants(res.data.students || []);
@@ -621,16 +645,14 @@ function AddParticipantModal({
     setAdding(true);
     try {
       const items = Array.from(selected);
-      // participant_type 매핑: pending → test_new (미등록학생도 테스트신규로 취급)
       const participantType = activeTab === 'rest' ? 'rest'
         : activeTab === 'trial' ? 'trial'
-        : activeTab === 'pending' ? 'test_new'  // 미등록학생은 test_new로 저장
+        : activeTab === 'pending' ? 'test_new'
         : 'test_new';
 
       await Promise.all(
         items.map(id =>
           apiClient.post(`/test-sessions/${sessionId}/participants`, {
-            // 휴원생/체험생/미등록학생은 P-ACA ID로 전송
             paca_student_id: (activeTab === 'rest' || activeTab === 'trial' || activeTab === 'pending') ? id : undefined,
             test_applicant_id: activeTab === 'test_new' ? id : undefined,
             participant_type: participantType
@@ -656,7 +678,6 @@ function AddParticipantModal({
 
     setAdding(true);
     try {
-      // 1. 테스트신규로 등록
       const res = await apiClient.post('/test-applicants', {
         name: newName,
         gender: newGender,
@@ -665,7 +686,6 @@ function AddParticipantModal({
         test_month: testMonth
       });
 
-      // 2. 참가자로 추가
       await apiClient.post(`/test-sessions/${sessionId}/participants`, {
         test_applicant_id: res.data.id,
         participant_type: 'test_new'
@@ -687,25 +707,25 @@ function AddParticipantModal({
   const tabs = [
     { key: 'rest', label: '휴원생' },
     { key: 'trial', label: '체험생' },
-    { key: 'pending', label: '미등록학생' },
-    { key: 'test_new', label: '테스트신규' }
+    { key: 'pending', label: '미등록' },
+    { key: 'test_new', label: '신규' }
   ];
 
   const currentList = activeTab === 'test_new' ? applicants : students;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="참가자 추가">
-      <div className="min-h-[400px]">
-        {/* 탭 */}
-        <div className="flex border-b mb-4">
+      <div className="min-h-[450px]">
+        {/* 탭 - 터치 친화적 */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => { setActiveTab(tab.key as any); setSelected(new Set()); }}
-              className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex-1 min-h-12 px-4 py-2 text-sm font-medium rounded-xl transition-colors whitespace-nowrap ${
                 activeTab === tab.key
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               {tab.label}
@@ -725,24 +745,24 @@ function AddParticipantModal({
                 {!showNewForm ? (
                   <button
                     onClick={() => setShowNewForm(true)}
-                    className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-400 hover:text-blue-500"
+                    className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-400 hover:text-blue-500 min-h-14"
                   >
                     + 새 테스트신규 등록
                   </button>
                 ) : (
-                  <div className="p-3 border rounded-lg bg-gray-50 space-y-2">
+                  <div className="p-4 border rounded-xl bg-gray-50 space-y-3">
                     <div className="flex gap-2">
                       <input
                         type="text"
                         placeholder="이름"
                         value={newName}
                         onChange={e => setNewName(e.target.value)}
-                        className="flex-1 px-3 py-2 border rounded"
+                        className="flex-1 px-4 py-3 border rounded-xl text-lg"
                       />
                       <select
                         value={newGender}
                         onChange={e => setNewGender(e.target.value as 'M' | 'F')}
-                        className="px-3 py-2 border rounded"
+                        className="px-4 py-3 border rounded-xl"
                       >
                         <option value="M">남</option>
                         <option value="F">여</option>
@@ -754,21 +774,21 @@ function AddParticipantModal({
                         placeholder="학교"
                         value={newSchool}
                         onChange={e => setNewSchool(e.target.value)}
-                        className="flex-1 px-3 py-2 border rounded"
+                        className="flex-1 px-4 py-3 border rounded-xl"
                       />
                       <input
                         type="text"
                         placeholder="학년"
                         value={newGrade}
                         onChange={e => setNewGrade(e.target.value)}
-                        className="w-20 px-3 py-2 border rounded"
+                        className="w-24 px-4 py-3 border rounded-xl"
                       />
                     </div>
                     <div className="flex gap-2 justify-end">
-                      <Button variant="ghost" size="sm" onClick={() => setShowNewForm(false)}>
+                      <Button variant="ghost" onClick={() => setShowNewForm(false)} className="min-h-12">
                         취소
                       </Button>
-                      <Button size="sm" onClick={handleAddNew} disabled={adding}>
+                      <Button onClick={handleAddNew} disabled={adding} className="min-h-12">
                         {adding ? '등록 중...' : '등록 및 추가'}
                       </Button>
                     </div>
@@ -785,21 +805,21 @@ function AddParticipantModal({
                 {activeTab === 'test_new' && '등록된 테스트신규가 없습니다.'}
               </div>
             ) : (
-              <div className="max-h-[280px] overflow-y-auto space-y-1">
+              <div className="max-h-[280px] overflow-y-auto space-y-2">
                 {currentList.map((item: any) => (
                   <label
                     key={item.id}
-                    className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
-                      selected.has(item.id) ? 'bg-blue-50' : 'hover:bg-gray-50'
+                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors min-h-14 ${
+                      selected.has(item.id) ? 'bg-blue-50 border-2 border-blue-400' : 'bg-gray-50 hover:bg-gray-100'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={selected.has(item.id)}
                       onChange={() => toggleSelect(item.id)}
-                      className="w-4 h-4"
+                      className="w-5 h-5"
                     />
-                    <span className={`w-6 h-6 rounded-full text-xs flex items-center justify-center ${
+                    <span className={`w-8 h-8 rounded-full text-sm flex items-center justify-center ${
                       item.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
                     }`}>
                       {item.gender === 'M' ? '남' : '여'}
@@ -821,10 +841,10 @@ function AddParticipantModal({
             {selected.size > 0 && `${selected.size}명 선택됨`}
           </span>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} className="min-h-12 px-6">
               취소
             </Button>
-            <Button onClick={handleAdd} disabled={adding || selected.size === 0}>
+            <Button onClick={handleAdd} disabled={adding || selected.size === 0} className="min-h-12 px-6">
               {adding ? '추가 중...' : '추가'}
             </Button>
           </div>

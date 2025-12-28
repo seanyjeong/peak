@@ -148,14 +148,24 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
                   <div>{session.participant_count}명</div>
                 </div>
               </div>
-              <Button
-                size="lg"
-                variant="primary"
-                className="w-full min-h-14 text-lg"
-                onClick={() => router.push(`/tablet/monthly-test/${testId}/${session.id}/records`)}
-              >
-                기록 측정
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="flex-1 min-h-14 text-lg"
+                  onClick={() => router.push(`/tablet/monthly-test/${testId}/${session.id}`)}
+                >
+                  👥 조 편성
+                </Button>
+                <Button
+                  size="lg"
+                  variant="primary"
+                  className="flex-1 min-h-14 text-lg"
+                  onClick={() => router.push(`/tablet/monthly-test/${testId}/${session.id}/records`)}
+                >
+                  📝 기록 측정
+                </Button>
+              </div>
             </Card>
           ))}
         </div>
