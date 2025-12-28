@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 
 interface RecordType {
@@ -15,6 +14,14 @@ interface RecordType {
   short_name: string;
   unit: string;
   direction: 'higher' | 'lower';
+}
+
+interface ScoreRange {
+  score: number;
+  male_min: number | null;
+  male_max: number | null;
+  female_min: number | null;
+  female_max: number | null;
 }
 
 interface Participant {
@@ -37,6 +44,30 @@ interface Session {
   monthly_test_id?: number;
 }
 
+// 점수 계산 함수
+const calculateScore = (value: number, ranges: ScoreRange[], gender: 'M' | 'F'): number => {
+  if (!value || !ranges || ranges.length === 0) return 0;
+
+  const genderKey = gender === 'M' ? 'male' : 'female';
+
+  for (const range of ranges) {
+    const min = range[`${genderKey}_min` as keyof ScoreRange] as number | null;
+    const max = range[`${genderKey}_max` as keyof ScoreRange] as number | null;
+
+    if (min !== null && max !== null) {
+      if (value >= min && value <= max) {
+        return range.score;
+      }
+    } else if (min !== null && value >= min) {
+      return range.score;
+    } else if (max !== null && value <= max) {
+      return range.score;
+    }
+  }
+
+  return 0;
+};
+
 export default function SessionRecordsPage({
   params
 }: {
@@ -47,14 +78,22 @@ export default function SessionRecordsPage({
   const [session, setSession] = useState<Session | null>(null);
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [scoreRanges, setScoreRanges] = useState<Record<number, ScoreRange[]>>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [inputs, setInputs] = useState<Record<string, Record<number, string>>>({});
+  const [savingMap, setSavingMap] = useState<Record<string, boolean>>({});
   const [savedMap, setSavedMap] = useState<Record<string, boolean>>({});
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
 
+  // Debounce timers
+  const saveTimers = useRef<Record<string, NodeJS.Timeout>>({});
+
   useEffect(() => {
     fetchData();
+    return () => {
+      // Cleanup timers
+      Object.values(saveTimers.current).forEach(timer => clearTimeout(timer));
+    };
   }, [sessionId]);
 
   const fetchData = async () => {
@@ -64,6 +103,7 @@ export default function SessionRecordsPage({
       setSession(res.data.session);
       setRecordTypes(res.data.record_types || []);
       setParticipants(res.data.participants || []);
+      setScoreRanges(res.data.score_ranges || {});
 
       // 첫 종목 선택
       if (res.data.record_types?.length > 0 && !selectedTypeId) {
@@ -91,27 +131,14 @@ export default function SessionRecordsPage({
     return p.student_id ? `s_${p.student_id}` : `a_${p.test_applicant_id}`;
   };
 
-  const handleInputChange = (participant: Participant, typeId: number, value: string) => {
-    const key = getParticipantKey(participant);
-    setInputs(prev => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        [typeId]: value
-      }
-    }));
-    // 저장 상태 초기화
-    setSavedMap(prev => ({ ...prev, [`${key}-${typeId}`]: false }));
-  };
-
-  const handleSave = async (participant: Participant, typeId: number) => {
-    const key = getParticipantKey(participant);
-    const value = inputs[key]?.[typeId];
-
+  const saveRecord = useCallback(async (participant: Participant, typeId: number, value: string) => {
     if (!value || isNaN(parseFloat(value))) return;
 
+    const key = getParticipantKey(participant);
+    const saveKey = `${key}-${typeId}`;
+
     try {
-      setSaving(true);
+      setSavingMap(prev => ({ ...prev, [saveKey]: true }));
       await apiClient.post(`/test-sessions/${sessionId}/records/batch`, {
         records: [{
           student_id: participant.student_id,
@@ -120,47 +147,39 @@ export default function SessionRecordsPage({
           value: parseFloat(value)
         }]
       });
-      setSavedMap(prev => ({ ...prev, [`${key}-${typeId}`]: true }));
+      setSavedMap(prev => ({ ...prev, [saveKey]: true }));
     } catch (error) {
       console.error('저장 오류:', error);
     } finally {
-      setSaving(false);
+      setSavingMap(prev => ({ ...prev, [saveKey]: false }));
     }
-  };
+  }, [sessionId]);
 
-  const handleSaveAll = async () => {
-    const records: any[] = [];
+  const handleInputChange = (participant: Participant, typeId: number, value: string) => {
+    const key = getParticipantKey(participant);
+    const saveKey = `${key}-${typeId}`;
 
-    participants.forEach(p => {
-      const key = getParticipantKey(p);
-      recordTypes.forEach(type => {
-        const value = inputs[key]?.[type.record_type_id];
-        if (value && !isNaN(parseFloat(value))) {
-          records.push({
-            student_id: p.student_id,
-            test_applicant_id: p.test_applicant_id,
-            record_type_id: type.record_type_id,
-            value: parseFloat(value)
-          });
-        }
-      });
-    });
+    setInputs(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [typeId]: value
+      }
+    }));
 
-    if (records.length === 0) {
-      alert('저장할 기록이 없습니다.');
-      return;
+    // 저장 상태 초기화
+    setSavedMap(prev => ({ ...prev, [saveKey]: false }));
+
+    // 기존 타이머 취소
+    if (saveTimers.current[saveKey]) {
+      clearTimeout(saveTimers.current[saveKey]);
     }
 
-    try {
-      setSaving(true);
-      await apiClient.post(`/test-sessions/${sessionId}/records/batch`, { records });
-      alert(`${records.length}개 기록이 저장되었습니다.`);
-      fetchData();
-    } catch (error) {
-      console.error('저장 오류:', error);
-      alert('저장 중 오류가 발생했습니다.');
-    } finally {
-      setSaving(false);
+    // 500ms 후 자동 저장
+    if (value && !isNaN(parseFloat(value))) {
+      saveTimers.current[saveKey] = setTimeout(() => {
+        saveRecord(participant, typeId, value);
+      }, 500);
     }
   };
 
@@ -168,15 +187,12 @@ export default function SessionRecordsPage({
     if (!confirm('이 세션의 모든 기록을 삭제하시겠습니까?\n\n⚠️ 재원생 기록도 해당 날짜 기록이 삭제됩니다.')) return;
 
     try {
-      setSaving(true);
       const res = await apiClient.delete(`/test-sessions/${sessionId}/records`);
       alert(`${res.data.deleted?.total || 0}개 기록이 삭제되었습니다.`);
       fetchData();
     } catch (error) {
       console.error('삭제 오류:', error);
       alert('삭제 중 오류가 발생했습니다.');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -223,11 +239,8 @@ export default function SessionRecordsPage({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleDeleteAllRecords} disabled={saving}>
+          <Button variant="outline" onClick={handleDeleteAllRecords}>
             🗑️ 기록 전체 삭제
-          </Button>
-          <Button onClick={handleSaveAll} disabled={saving}>
-            {saving ? '저장 중...' : '전체 저장'}
           </Button>
         </div>
       </div>
@@ -262,14 +275,21 @@ export default function SessionRecordsPage({
                 <th className="px-4 py-3 text-left text-sm font-medium">
                   {selectedType.name} ({selectedType.unit})
                 </th>
-                <th className="px-4 py-3 text-center text-sm font-medium w-24">저장</th>
+                <th className="px-4 py-3 text-center text-sm font-medium w-20">점수</th>
+                <th className="px-4 py-3 text-center text-sm font-medium w-16">상태</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {participants.map(p => {
                 const key = getParticipantKey(p);
+                const saveKey = `${key}-${selectedType.record_type_id}`;
                 const value = inputs[key]?.[selectedType.record_type_id] || '';
-                const isSaved = savedMap[`${key}-${selectedType.record_type_id}`];
+                const numValue = parseFloat(value);
+                const score = !isNaN(numValue)
+                  ? calculateScore(numValue, scoreRanges[selectedType.record_type_id] || [], p.gender)
+                  : 0;
+                const isSaving = savingMap[saveKey];
+                const isSaved = savedMap[saveKey];
 
                 return (
                   <tr key={p.id} className="hover:bg-gray-50">
@@ -292,15 +312,28 @@ export default function SessionRecordsPage({
                         step="0.01"
                         value={value}
                         onChange={e => handleInputChange(p, selectedType.record_type_id, e.target.value)}
-                        onBlur={() => handleSave(p, selectedType.record_type_id)}
                         placeholder={`${selectedType.unit} 입력`}
                         className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {isSaved && (
-                        <span className="text-green-500">✓</span>
+                      {value && !isNaN(numValue) && (
+                        <span className={`font-bold text-lg ${
+                          score >= 80 ? 'text-green-600' :
+                          score >= 60 ? 'text-blue-600' :
+                          score >= 40 ? 'text-yellow-600' :
+                          'text-gray-500'
+                        }`}>
+                          {score}
+                        </span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {isSaving ? (
+                        <span className="text-blue-500 text-sm">저장중...</span>
+                      ) : isSaved ? (
+                        <span className="text-green-500">✓</span>
+                      ) : null}
                     </td>
                   </tr>
                 );

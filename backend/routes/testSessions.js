@@ -688,11 +688,47 @@ router.get('/:sessionId/records', async (req, res) => {
       return info ? { ...info, records } : null;
     }).filter(Boolean);
 
+    // 배점표 조회
+    const recordTypeIds = types.map(t => t.record_type_id);
+    let scoreRangesMap = {};
+
+    if (recordTypeIds.length > 0) {
+      const [scoreTables] = await pool.query(`
+        SELECT id, record_type_id FROM score_tables WHERE record_type_id IN (?)
+      `, [recordTypeIds]);
+
+      const scoreTableIds = scoreTables.map(st => st.id);
+
+      if (scoreTableIds.length > 0) {
+        const [scoreRanges] = await pool.query(`
+          SELECT sr.*, st.record_type_id
+          FROM score_ranges sr
+          JOIN score_tables st ON sr.score_table_id = st.id
+          WHERE sr.score_table_id IN (?)
+          ORDER BY sr.score DESC
+        `, [scoreTableIds]);
+
+        scoreRanges.forEach(sr => {
+          if (!scoreRangesMap[sr.record_type_id]) {
+            scoreRangesMap[sr.record_type_id] = [];
+          }
+          scoreRangesMap[sr.record_type_id].push({
+            score: sr.score,
+            male_min: sr.male_min,
+            male_max: sr.male_max,
+            female_min: sr.female_min,
+            female_max: sr.female_max
+          });
+        });
+      }
+    }
+
     res.json({
       success: true,
       session,
       record_types: types,
-      participants: participantsWithRecords
+      participants: participantsWithRecords,
+      score_ranges: scoreRangesMap
     });
   } catch (error) {
     console.error('기록 조회 오류:', error);
