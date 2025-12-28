@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const pacaPool = require('../config/paca-database');
+const { decrypt } = require('../utils/encryption');
+
+const ACADEMY_ID = 2;
 
 // 월말테스트 목록 조회
 router.get('/', async (req, res) => {
@@ -40,6 +44,13 @@ router.get('/:id', async (req, res) => {
 
     const test = tests[0];
 
+    // 학원 정보 (slug 포함)
+    const [academies] = await pacaPool.query(`
+      SELECT id, name, slug FROM academies WHERE id = ?
+    `, [ACADEMY_ID]);
+
+    const academy = academies[0] || {};
+
     // 선택된 종목
     const [types] = await pool.query(`
       SELECT mtt.*, rt.name, rt.short_name, rt.unit, rt.direction
@@ -66,6 +77,11 @@ router.get('/:id', async (req, res) => {
         ...test,
         record_types: types,
         sessions
+      },
+      academy: {
+        id: academy.id,
+        name: academy.name ? decrypt(academy.name) : '',
+        slug: academy.slug
       }
     });
   } catch (error) {

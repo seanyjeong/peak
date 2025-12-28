@@ -35,6 +35,12 @@ interface MonthlyTest {
   sessions: Session[];
 }
 
+interface Academy {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 const TIME_SLOT_LABELS: Record<string, string> = {
   morning: '오전',
   afternoon: '오후',
@@ -45,6 +51,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
   const { testId } = use(params);
   const router = useRouter();
   const [test, setTest] = useState<MonthlyTest | null>(null);
+  const [academy, setAcademy] = useState<Academy | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [newSessionDate, setNewSessionDate] = useState('');
@@ -61,6 +68,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       setLoading(true);
       const res = await apiClient.get(`/monthly-tests/${testId}`);
       setTest(res.data.test);
+      setAcademy(res.data.academy);
     } catch (error) {
       console.error('테스트 로드 오류:', error);
     } finally {
@@ -115,10 +123,13 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
   };
 
   const copyBoardUrl = () => {
-    // TODO: 실제 슬러그 사용
-    const url = `${window.location.origin}/board/ilsan-max`;
+    if (!academy?.slug) {
+      alert('학원 정보를 불러오는 중입니다.');
+      return;
+    }
+    const url = `${window.location.origin}/board/${academy.slug}`;
     navigator.clipboard.writeText(url);
-    alert('전광판 URL이 복사되었습니다.');
+    alert(`전광판 URL이 복사되었습니다.\n${url}`);
   };
 
   if (loading) {
@@ -174,7 +185,8 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
           </Button>
           <Button
             variant="outline"
-            onClick={() => window.open('/board/ilsan-max', '_blank')}
+            onClick={() => academy?.slug && window.open(`/board/${academy.slug}`, '_blank')}
+            disabled={!academy?.slug}
           >
             📺 전광판 미리보기
           </Button>
