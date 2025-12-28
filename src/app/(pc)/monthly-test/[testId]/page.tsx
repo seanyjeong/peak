@@ -58,6 +58,9 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
   const [newSessionSlot, setNewSessionSlot] = useState<'morning' | 'afternoon' | 'evening'>('morning');
   const [addingSession, setAddingSession] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showSlugModal, setShowSlugModal] = useState(false);
+  const [slugInput, setSlugInput] = useState('');
+  const [savingSlug, setSavingSlug] = useState(false);
 
   useEffect(() => {
     fetchTest();
@@ -124,12 +127,37 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
 
   const copyBoardUrl = () => {
     if (!academy?.slug) {
-      alert('학원 정보를 불러오는 중입니다.');
+      alert('전광판 슬러그를 먼저 설정해주세요.');
+      setShowSlugModal(true);
       return;
     }
     const url = `${window.location.origin}/board/${academy.slug}`;
     navigator.clipboard.writeText(url);
     alert(`전광판 URL이 복사되었습니다.\n${url}`);
+  };
+
+  const openSlugModal = () => {
+    setSlugInput(academy?.slug || '');
+    setShowSlugModal(true);
+  };
+
+  const handleSaveSlug = async () => {
+    if (!slugInput.trim()) {
+      alert('슬러그를 입력해주세요.');
+      return;
+    }
+
+    try {
+      setSavingSlug(true);
+      await apiClient.put('/monthly-tests/academy/slug', { slug: slugInput.trim() });
+      setShowSlugModal(false);
+      fetchTest();
+      alert('슬러그가 저장되었습니다.');
+    } catch (error: any) {
+      alert(error.response?.data?.message || '슬러그 저장 실패');
+    } finally {
+      setSavingSlug(false);
+    }
   };
 
   if (loading) {
@@ -180,15 +208,18 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={openSlugModal}>
+            ⚙️ 전광판 설정
+          </Button>
           <Button variant="outline" onClick={copyBoardUrl}>
-            📋 전광판 URL 복사
+            📋 URL 복사
           </Button>
           <Button
             variant="outline"
             onClick={() => academy?.slug && window.open(`/board/${academy.slug}`, '_blank')}
             disabled={!academy?.slug}
           >
-            📺 전광판 미리보기
+            📺 미리보기
           </Button>
           <Button onClick={() => setShowSessionModal(true)}>
             + 세션 추가
@@ -341,6 +372,50 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
             <div className="font-medium">완료</div>
             <div className="text-sm text-gray-500">테스트 종료</div>
           </button>
+        </div>
+      </Modal>
+
+      {/* 슬러그 설정 모달 */}
+      <Modal
+        isOpen={showSlugModal}
+        onClose={() => setShowSlugModal(false)}
+        title="전광판 설정"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">전광판 URL 슬러그</label>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-sm">/board/</span>
+              <input
+                type="text"
+                value={slugInput}
+                onChange={e => setSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                placeholder="ilsan-max"
+                className="flex-1 px-3 py-2 border rounded-lg"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              영문 소문자, 숫자, 하이픈(-)만 사용 가능합니다.
+            </p>
+          </div>
+
+          {academy?.slug && (
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="text-sm text-gray-600">현재 전광판 URL:</div>
+              <div className="font-mono text-sm text-blue-600">
+                {window.location.origin}/board/{academy.slug}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setShowSlugModal(false)}>
+              취소
+            </Button>
+            <Button onClick={handleSaveSlug} disabled={savingSlug}>
+              {savingSlug ? '저장 중...' : '저장'}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

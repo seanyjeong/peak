@@ -218,6 +218,49 @@ router.post('/:testId/sessions', async (req, res) => {
   }
 });
 
+// 학원 슬러그 업데이트 (전광판 URL용)
+router.put('/academy/slug', async (req, res) => {
+  try {
+    const { slug } = req.body;
+
+    if (!slug || slug.trim() === '') {
+      return res.status(400).json({ success: false, message: '슬러그를 입력해주세요.' });
+    }
+
+    // 슬러그 형식 검증 (영문 소문자, 숫자, 하이픈만)
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      return res.status(400).json({
+        success: false,
+        message: '슬러그는 영문 소문자, 숫자, 하이픈(-)만 사용 가능합니다.'
+      });
+    }
+
+    // 중복 체크 (다른 학원이 사용 중인지)
+    const [existing] = await pacaPool.query(
+      'SELECT id FROM academies WHERE slug = ? AND id != ?',
+      [slug, ACADEMY_ID]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: '이미 사용 중인 슬러그입니다.'
+      });
+    }
+
+    // 슬러그 업데이트
+    await pacaPool.query(
+      'UPDATE academies SET slug = ? WHERE id = ?',
+      [slug, ACADEMY_ID]
+    );
+
+    res.json({ success: true, message: '슬러그가 업데이트되었습니다.', slug });
+  } catch (error) {
+    console.error('슬러그 업데이트 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 세션 목록 조회
 router.get('/:testId/sessions', async (req, res) => {
   try {
