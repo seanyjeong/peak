@@ -560,7 +560,7 @@ function AddParticipantModal({
   testMonth: string;
   onAdded: () => void;
 }) {
-  const [activeTab, setActiveTab] = useState<'rest' | 'trial' | 'test_new'>('rest');
+  const [activeTab, setActiveTab] = useState<'rest' | 'trial' | 'pending' | 'test_new'>('rest');
   const [students, setStudents] = useState<any[]>([]);
   const [applicants, setApplicants] = useState<any[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -588,8 +588,10 @@ function AddParticipantModal({
       const res = await apiClient.get(`/test-sessions/${sessionId}/available-students?type=${activeTab}`);
       if (activeTab === 'test_new') {
         setApplicants(res.data.students || []);
+        setStudents([]);
       } else {
         setStudents(res.data.students || []);
+        setApplicants([]);
       }
     } catch (error) {
       console.error('목록 조회 오류:', error);
@@ -613,13 +615,17 @@ function AddParticipantModal({
     setAdding(true);
     try {
       const items = Array.from(selected);
-      const participantType = activeTab === 'rest' ? 'rest' : activeTab === 'trial' ? 'trial' : 'test_new';
+      // participant_type 매핑: pending → test_new (미등록학생도 테스트신규로 취급)
+      const participantType = activeTab === 'rest' ? 'rest'
+        : activeTab === 'trial' ? 'trial'
+        : activeTab === 'pending' ? 'test_new'  // 미등록학생은 test_new로 저장
+        : 'test_new';
 
       await Promise.all(
         items.map(id =>
           apiClient.post(`/test-sessions/${sessionId}/participants`, {
-            // 휴원생/체험생은 P-ACA ID로 전송
-            paca_student_id: (activeTab === 'rest' || activeTab === 'trial') ? id : undefined,
+            // 휴원생/체험생/미등록학생은 P-ACA ID로 전송
+            paca_student_id: (activeTab === 'rest' || activeTab === 'trial' || activeTab === 'pending') ? id : undefined,
             test_applicant_id: activeTab === 'test_new' ? id : undefined,
             participant_type: participantType
           })
@@ -675,6 +681,7 @@ function AddParticipantModal({
   const tabs = [
     { key: 'rest', label: '휴원생' },
     { key: 'trial', label: '체험생' },
+    { key: 'pending', label: '미등록학생' },
     { key: 'test_new', label: '테스트신규' }
   ];
 
@@ -768,6 +775,7 @@ function AddParticipantModal({
               <div className="text-center py-8 text-gray-500">
                 {activeTab === 'rest' && '추가 가능한 휴원생이 없습니다.'}
                 {activeTab === 'trial' && '추가 가능한 체험생이 없습니다.'}
+                {activeTab === 'pending' && '추가 가능한 미등록학생이 없습니다.'}
                 {activeTab === 'test_new' && '등록된 테스트신규가 없습니다.'}
               </div>
             ) : (

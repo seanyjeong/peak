@@ -444,8 +444,10 @@ router.get('/:sessionId/available-students', async (req, res) => {
       whereClause = "status = 'paused'";  // P-ACA에서 휴원은 paused
     } else if (type === 'trial') {
       whereClause = "status = 'trial'";   // P-ACA에서 체험은 trial
+    } else if (type === 'pending') {
+      whereClause = "status = 'pending'"; // P-ACA에서 미등록은 pending
     } else {
-      return res.status(400).json({ success: false, message: 'type 파라미터가 필요합니다 (rest, trial, test_new)' });
+      return res.status(400).json({ success: false, message: 'type 파라미터가 필요합니다 (rest, trial, pending, test_new)' });
     }
 
     // P-ACA에서 학생 목록 조회
