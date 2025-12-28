@@ -14,7 +14,7 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
-import { Users, RefreshCw, Download, Calendar, Star, Crown, Plus, ExternalLink } from 'lucide-react';
+import { Users, RefreshCw, Calendar, Star, Crown, Plus, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 
@@ -379,20 +379,38 @@ export default function AssignmentsPage() {
     }
   };
 
-  const handleSync = async () => {
-    try {
-      setSyncing(true);
-      await apiClient.post('/assignments/sync', { date: selectedDate });
-      await fetchData();
-    } catch (error) {
-      console.error('Failed to sync:', error);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
+  // 날짜 변경 시 자동으로 P-ACA 동기화 후 데이터 로드
   useEffect(() => {
-    fetchData();
+    const syncAndFetch = async () => {
+      try {
+        setSyncing(true);
+        setLoading(true);
+        await apiClient.post('/assignments/sync', { date: selectedDate });
+
+        const res = await apiClient.get(`/assignments?date=${selectedDate}`);
+        const slots = res.data.slots || {
+          morning: { waitingStudents: [], waitingInstructors: [], classes: [] },
+          afternoon: { waitingStudents: [], waitingInstructors: [], classes: [] },
+          evening: { waitingStudents: [], waitingInstructors: [], classes: [] }
+        };
+        setSlotsData(slots);
+
+        // 학생이 있는 슬롯 선택
+        const hasStudents = (slot: SlotData) =>
+          slot.waitingStudents.length > 0 || slot.classes.some(c => c.students.length > 0);
+
+        if (hasStudents(slots.evening)) setActiveSlot('evening');
+        else if (hasStudents(slots.afternoon)) setActiveSlot('afternoon');
+        else if (hasStudents(slots.morning)) setActiveSlot('morning');
+      } catch (error) {
+        console.error('Failed to sync and fetch:', error);
+      } finally {
+        setSyncing(false);
+        setLoading(false);
+      }
+    };
+
+    syncAndFetch();
   }, [selectedDate]);
 
   const currentSlotData = slotsData[activeSlot];
@@ -510,14 +528,6 @@ export default function AssignmentsPage() {
             <span className="ml-2 font-bold text-orange-500">{assignedStudents}/{totalStudents}명</span>
           </div>
           <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
-          >
-            <Download size={18} className={syncing ? 'animate-bounce' : ''} />
-            <span>P-ACA 동기화</span>
-          </button>
-          <button
             onClick={fetchData}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
@@ -561,15 +571,7 @@ export default function AssignmentsPage() {
         </div>
       ) : totalStudents === 0 && currentSlotData.waitingInstructors.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-96 text-slate-400">
-          <p className="text-lg mb-4">{TIME_SLOT_INFO[activeSlot].label} 수업 데이터가 없습니다.</p>
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex items-center gap-2 px-6 py-3 text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition"
-          >
-            <Download size={20} />
-            <span>P-ACA에서 스케줄 가져오기</span>
-          </button>
+          <p className="text-lg">{TIME_SLOT_INFO[activeSlot].label} 수업 데이터가 없습니다.</p>
         </div>
       ) : (
         <DndContext
