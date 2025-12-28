@@ -93,6 +93,14 @@ app.use('/peak/record-types', verifyToken, require('./routes/recordTypes'));
 app.use('/peak/score-tables', verifyToken, require('./routes/scoreTable'));
 app.use('/peak/stats', verifyToken, require('./routes/stats'));
 
+// 월말테스트
+app.use('/peak/monthly-tests', verifyToken, require('./routes/monthlyTests'));
+app.use('/peak/test-sessions', verifyToken, require('./routes/testSessions'));
+app.use('/peak/test-applicants', verifyToken, require('./routes/testApplicants'));
+
+// 전광판 (공개 API - 인증 불필요)
+app.use('/peak/public', require('./routes/publicBoard'));
+
 // 푸시 알림 및 인앱 알림
 app.use('/peak/push', require('./routes/push'));
 app.use('/peak/notifications', verifyToken, require('./routes/notifications'));
