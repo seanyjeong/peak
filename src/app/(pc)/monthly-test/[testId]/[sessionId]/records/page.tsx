@@ -44,7 +44,7 @@ interface Session {
   monthly_test_id?: number;
 }
 
-// 점수 계산 함수
+// 점수 계산 함수 (범위 내에서 매칭)
 const calculateScore = (value: number, ranges: ScoreRange[], gender: 'M' | 'F'): number => {
   if (!value || !ranges || ranges.length === 0) return 0;
 
