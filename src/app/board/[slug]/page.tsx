@@ -34,195 +34,166 @@ interface BoardData {
   events: EventData[];
 }
 
-type ViewMode = 'ranking-male' | 'ranking-female' | 'event-male' | 'event-female';
+type ViewMode = 'ranking' | 'event';
 
-// 스플릿 플랩 글자 컴포넌트
-function SplitFlapChar({ char, delay = 0 }: { char: string; delay?: number }) {
-  const [currentChar, setCurrentChar] = useState(' ');
-  const [isFlipping, setIsFlipping] = useState(false);
-  const chars = '가나다라마바사아자차카타파하거너더러머버서어저처커터퍼허고노도로모보소오조초코토포호ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-
-  useEffect(() => {
-    let iteration = 0;
-    const maxIterations = 6 + Math.floor(Math.random() * 4);
-
-    const timer = setTimeout(() => {
-      const flipInterval = setInterval(() => {
-        setIsFlipping(true);
-
-        setTimeout(() => {
-          if (iteration < maxIterations) {
-            setCurrentChar(chars[Math.floor(Math.random() * chars.length)]);
-            iteration++;
-          } else {
-            setCurrentChar(char);
-            clearInterval(flipInterval);
-          }
-          setIsFlipping(false);
-        }, 40);
-      }, 60);
-
-      return () => clearInterval(flipInterval);
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [char, delay]);
-
+// 3D 카드 컴포넌트
+function Card3D({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
-    <span
+    <div
       className={`
-        inline-flex items-center justify-center
-        w-[0.85em] h-[1.3em] mx-[1px]
-        bg-[#1a1a1a] text-[#f0e6d3] rounded-[2px]
-        font-mono font-bold
-        shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.3)]
-        transition-transform duration-[40ms]
-        ${isFlipping ? 'scale-y-0' : 'scale-y-100'}
+        relative backdrop-blur-xl bg-white/10
+        border border-white/20 rounded-2xl
+        shadow-[0_8px_32px_rgba(0,0,0,0.12)]
+        transform-gpu transition-all duration-300
+        hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)]
+        ${className}
       `}
-      style={{ transformOrigin: 'center center' }}
+      style={{
+        animationDelay: `${delay}ms`,
+        transform: 'perspective(1000px) rotateX(2deg)',
+      }}
     >
-      {currentChar}
-    </span>
-  );
-}
-
-// 스플릿 플랩 텍스트
-function SplitFlapText({ text, className = '', baseDelay = 0 }: { text: string; className?: string; baseDelay?: number }) {
-  return (
-    <span className={`inline-flex items-center ${className}`}>
-      {text.split('').map((char, i) => (
-        <SplitFlapChar key={`${text}-${i}-${char}`} char={char} delay={baseDelay + i * 30} />
-      ))}
-    </span>
-  );
-}
-
-// 숫자 플랩 (점수/기록용)
-function NumberFlap({ value, unit = '', className = '' }: { value: number | string; unit?: string; className?: string }) {
-  const displayValue = String(value);
-  return (
-    <span className={`inline-flex items-center ${className}`}>
-      <span className="inline-flex">
-        {displayValue.split('').map((char, i) => (
-          <SplitFlapChar key={`${value}-${i}`} char={char} delay={i * 50} />
-        ))}
-      </span>
-      {unit && <span className="ml-1 text-[0.5em] opacity-60">{unit}</span>}
-    </span>
-  );
-}
-
-// 순위 배지
-function RankBadge({ rank }: { rank: number }) {
-  if (rank === 1) {
-    return (
-      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#ffd700] via-[#ffec80] to-[#daa520] flex items-center justify-center shadow-lg">
-        <span className="text-2xl font-black text-[#1a1a1a]">1</span>
+      {/* 글래스 하이라이트 */}
+      <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-white/30 to-transparent rotate-12" />
       </div>
-    );
-  }
-  if (rank === 2) {
-    return (
-      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#c0c0c0] via-[#e8e8e8] to-[#a0a0a0] flex items-center justify-center shadow-lg">
-        <span className="text-2xl font-black text-[#1a1a1a]">2</span>
-      </div>
-    );
-  }
-  if (rank === 3) {
-    return (
-      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#cd7f32] via-[#daa06d] to-[#8b4513] flex items-center justify-center shadow-lg">
-        <span className="text-2xl font-black text-white">3</span>
-      </div>
-    );
-  }
-  return (
-    <div className="w-14 h-14 rounded-full bg-[#2a2a2a] flex items-center justify-center">
-      <span className="text-2xl font-bold text-[#f0e6d3]">{rank}</span>
+      <div className="relative z-10">{children}</div>
     </div>
   );
 }
 
-// 종합순위 행
-function OverallRankRow({ item, index, gender }: { item: RankingItem; index: number; gender: 'male' | 'female' }) {
-  const accentColor = gender === 'male' ? '#3b82f6' : '#ec4899';
-  const baseDelay = index * 100;
+// 순위 행 (종합순위용)
+function RankRow({ item, index }: { item: RankingItem; index: number }) {
+  const isTop3 = item.rank <= 3;
+  const rankColors = ['from-amber-400 to-yellow-500', 'from-slate-300 to-slate-400', 'from-orange-400 to-amber-500'];
 
   return (
     <div
-      className="flex items-center gap-4 py-3 px-4 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100"
-      style={{
-        animationDelay: `${index * 50}ms`,
-        borderLeft: `4px solid ${accentColor}`
-      }}
+      className={`
+        flex items-center gap-3 p-3 rounded-xl transition-all duration-500
+        ${isTop3 ? 'bg-white/15' : 'bg-white/5'}
+        hover:bg-white/20
+      `}
+      style={{ animationDelay: `${index * 50}ms` }}
     >
-      <RankBadge rank={item.rank} />
-
-      <div className="flex-1 min-w-0">
-        <div className="text-2xl">
-          <SplitFlapText text={item.name} baseDelay={baseDelay} />
-        </div>
-        <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-          {item.school && <SplitFlapText text={item.school} className="text-base" baseDelay={baseDelay + 100} />}
-          {item.grade && <span className="opacity-60">· {item.grade}</span>}
-        </div>
+      {/* 순위 */}
+      <div className={`
+        w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg
+        ${isTop3
+          ? `bg-gradient-to-br ${rankColors[item.rank - 1]} text-white shadow-lg`
+          : 'bg-white/10 text-white/60'
+        }
+      `}>
+        {item.rank}
       </div>
 
-      <div className="text-right">
-        <div className="text-3xl font-black" style={{ color: accentColor }}>
-          <NumberFlap value={item.total} />
+      {/* 이름 & 학교 */}
+      <div className="flex-1 min-w-0">
+        <div className={`font-bold truncate ${isTop3 ? 'text-white text-lg' : 'text-white/90'}`}>
+          {item.name}
         </div>
-        <div className="text-xs text-gray-400 uppercase tracking-wider">TOTAL</div>
+        {item.school && (
+          <div className="text-xs text-white/50 truncate">{item.school}</div>
+        )}
+      </div>
+
+      {/* 점수 */}
+      <div className={`
+        text-right font-black
+        ${isTop3 ? 'text-2xl text-white' : 'text-xl text-white/80'}
+      `}>
+        {item.total}
+        <span className="text-xs font-normal text-white/40 ml-1">점</span>
       </div>
     </div>
   );
 }
 
 // 종목별 순위 행
-function EventRankRow({
-  record,
-  index,
-  unit,
-  gender
-}: {
-  record: EventRecord;
-  index: number;
-  unit: string;
-  gender: 'male' | 'female';
-}) {
-  const accentColor = gender === 'male' ? '#3b82f6' : '#ec4899';
-  const baseDelay = index * 80;
+function EventRow({ record, index, unit }: { record: EventRecord; index: number; unit: string }) {
+  const isTop3 = record.rank <= 3;
+  const rankColors = ['from-amber-400 to-yellow-500', 'from-slate-300 to-slate-400', 'from-orange-400 to-amber-500'];
 
   return (
     <div
-      className="flex items-center gap-3 py-2.5 px-3 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100"
-      style={{ borderLeft: `4px solid ${accentColor}` }}
+      className={`
+        flex items-center gap-3 p-3 rounded-xl transition-all
+        ${isTop3 ? 'bg-white/15' : 'bg-white/5'}
+      `}
     >
-      <RankBadge rank={record.rank} />
+      {/* 순위 */}
+      <div className={`
+        w-9 h-9 rounded-lg flex items-center justify-center font-black
+        ${isTop3
+          ? `bg-gradient-to-br ${rankColors[record.rank - 1]} text-white shadow-lg`
+          : 'bg-white/10 text-white/60'
+        }
+      `}>
+        {record.rank}
+      </div>
 
+      {/* 이름 & 학교 */}
       <div className="flex-1 min-w-0">
-        <div className="text-xl">
-          <SplitFlapText text={record.name} baseDelay={baseDelay} />
+        <div className={`font-bold truncate ${isTop3 ? 'text-white' : 'text-white/90'}`}>
+          {record.name}
         </div>
         {record.school && (
-          <div className="text-sm text-gray-500 mt-0.5">
-            <SplitFlapText text={record.school} className="text-sm" baseDelay={baseDelay + 80} />
-          </div>
+          <div className="text-xs text-white/50 truncate">{record.school}</div>
         )}
       </div>
 
-      <div className="text-right flex items-center gap-4">
-        <div>
-          <div className="text-2xl font-black text-[#1a1a1a]">
-            <NumberFlap value={record.value} unit={unit} />
-          </div>
-          <div className="text-xs text-gray-400">기록</div>
+      {/* 기록 & 점수 */}
+      <div className="text-right">
+        <div className={`font-black ${isTop3 ? 'text-xl text-white' : 'text-lg text-white/80'}`}>
+          {record.value}<span className="text-xs font-normal text-white/40 ml-0.5">{unit}</span>
         </div>
-        <div className="w-px h-10 bg-gray-200" />
-        <div>
-          <div className="text-2xl font-black" style={{ color: accentColor }}>
-            <NumberFlap value={record.score} />
-          </div>
-          <div className="text-xs text-gray-400">점수</div>
+        <div className="text-xs text-white/50">{record.score}점</div>
+      </div>
+    </div>
+  );
+}
+
+// 성별 컬럼 (남/녀)
+function GenderColumn({
+  title,
+  icon,
+  color,
+  children
+}: {
+  title: string;
+  icon: string;
+  color: 'blue' | 'pink';
+  children: React.ReactNode;
+}) {
+  const gradients = {
+    blue: 'from-blue-500/20 to-cyan-500/20',
+    pink: 'from-pink-500/20 to-rose-500/20'
+  };
+  const borderColors = {
+    blue: 'border-blue-400/30',
+    pink: 'border-pink-400/30'
+  };
+  const titleColors = {
+    blue: 'from-blue-400 to-cyan-400',
+    pink: 'from-pink-400 to-rose-400'
+  };
+
+  return (
+    <div className={`flex-1 flex flex-col bg-gradient-to-b ${gradients[color]} rounded-3xl border ${borderColors[color]} backdrop-blur-xl overflow-hidden`}>
+      {/* 헤더 */}
+      <div className="flex-shrink-0 px-6 py-4 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">{icon}</span>
+          <h3 className={`text-2xl font-black bg-gradient-to-r ${titleColors[color]} bg-clip-text text-transparent`}>
+            {title}
+          </h3>
+        </div>
+      </div>
+
+      {/* 컨텐츠 */}
+      <div className="flex-1 p-4 overflow-hidden">
+        <div className="h-full flex flex-col gap-2">
+          {children}
         </div>
       </div>
     </div>
@@ -234,10 +205,9 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
   const [data, setData] = useState<BoardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('ranking-male');
+  const [viewMode, setViewMode] = useState<ViewMode>('ranking');
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [key, setKey] = useState(0); // 애니메이션 리셋용
 
   const fetchData = useCallback(async () => {
     try {
@@ -266,36 +236,37 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // 자동 순환: 종합(남) → 종합(여) → 종목(남) → 종목(여) → 다음종목...
+  // 자동 롤링 - 기록 있는 것만
   useEffect(() => {
     if (!data) return;
 
+    const hasRankings = data.ranking.male.length > 0 || data.ranking.female.length > 0;
+    const eventsWithRecords = data.events.filter(e => e.records.length > 0);
+
+    if (!hasRankings && eventsWithRecords.length === 0) return;
+
     const interval = setInterval(() => {
-      setViewMode(prev => {
-        let next: ViewMode;
-
-        if (prev === 'ranking-male') {
-          next = 'ranking-female';
-        } else if (prev === 'ranking-female') {
-          next = 'event-male';
-        } else if (prev === 'event-male') {
-          next = 'event-female';
-        } else {
-          // event-female 다음: 다음 종목으로 이동 후 ranking-male
-          setCurrentEventIndex(i => {
-            const nextIndex = (i + 1) % (data.events.length || 1);
-            return nextIndex;
-          });
-          next = 'ranking-male';
+      if (viewMode === 'ranking') {
+        if (eventsWithRecords.length > 0) {
+          setViewMode('event');
+          setCurrentEventIndex(0);
         }
-
-        setKey(k => k + 1); // 애니메이션 리셋
-        return next;
-      });
-    }, 8000);
+      } else {
+        const nextIndex = currentEventIndex + 1;
+        if (nextIndex >= eventsWithRecords.length) {
+          if (hasRankings) {
+            setViewMode('ranking');
+          } else {
+            setCurrentEventIndex(0);
+          }
+        } else {
+          setCurrentEventIndex(nextIndex);
+        }
+      }
+    }, 10000);
 
     return () => clearInterval(interval);
-  }, [data]);
+  }, [data, viewMode, currentEventIndex]);
 
   const handleFullscreen = () => {
     if (document.documentElement.requestFullscreen) {
@@ -303,28 +274,27 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
     }
   };
 
-  // 현재 표시할 데이터
-  const currentEvent = data?.events?.[currentEventIndex];
-  const currentGender = viewMode.includes('male') ? 'male' : 'female';
-  const isEventView = viewMode.startsWith('event');
-
   // 종목별 남/여 분리
-  const getEventRecordsByGender = (records: EventRecord[], gender: 'male' | 'female') => {
+  const getEventRecordsByGender = (records: EventRecord[], gender: 'M' | 'F') => {
     return records
-      .filter(r => (gender === 'male' ? r.gender === 'M' : r.gender === 'F'))
+      .filter(r => r.gender === gender)
       .slice(0, 10)
       .map((r, i) => ({ ...r, rank: i + 1 }));
   };
 
+  const eventsWithRecords = data?.events.filter(e => e.records.length > 0) || [];
+  const currentEvent = eventsWithRecords[currentEventIndex];
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f1eb]">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
         <div className="text-center">
           <div className="relative w-20 h-20 mx-auto mb-6">
-            <div className="absolute inset-0 border-4 border-[#1a1a1a]/20 rounded-full" />
-            <div className="absolute inset-0 border-4 border-t-[#1a1a1a] rounded-full animate-spin" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 animate-spin" style={{ padding: '3px' }}>
+              <div className="w-full h-full rounded-full bg-[#0a0a0f]" />
+            </div>
           </div>
-          <p className="text-2xl text-[#1a1a1a]/60 font-mono tracking-[0.3em]">LOADING</p>
+          <p className="text-xl text-white/40 tracking-widest">LOADING</p>
         </div>
       </div>
     );
@@ -332,174 +302,227 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   if (error || !data?.test) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f1eb]">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
         <div className="text-center px-8">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[#1a1a1a]/10 flex items-center justify-center">
-            <svg className="w-12 h-12 text-[#1a1a1a]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-[#1a1a1a] mb-3">{data?.academy?.name}</h1>
-          <p className="text-xl text-[#1a1a1a]/50">{error || '진행 중인 테스트가 없습니다'}</p>
+          <div className="text-6xl mb-6">📊</div>
+          <h1 className="text-3xl font-bold text-white mb-3">{data?.academy?.name}</h1>
+          <p className="text-xl text-white/50">{error || '진행 중인 테스트가 없습니다'}</p>
         </div>
       </div>
     );
   }
 
-  const hasNoData =
-    (isEventView && currentEvent && getEventRecordsByGender(currentEvent.records, currentGender).length === 0) ||
-    (!isEventView && data.ranking[currentGender].length === 0);
+  const hasRankings = data.ranking.male.length > 0 || data.ranking.female.length > 0;
+  const hasNoData = !hasRankings && eventsWithRecords.length === 0;
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f5f1eb] text-[#1a1a1a]">
-      {/* 배경 패턴 */}
-      <div
-        className="fixed inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }}
-      />
+    <div className="h-screen overflow-hidden bg-[#0a0a0f] text-white">
+      {/* 3D 그라데이션 메시 배경 */}
+      <div className="fixed inset-0 overflow-hidden">
+        {/* 메인 그라데이션 오브 */}
+        <div
+          className="absolute w-[800px] h-[800px] rounded-full opacity-30 blur-[120px]"
+          style={{
+            background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)',
+            top: '-20%',
+            left: '-10%',
+            animation: 'float1 20s ease-in-out infinite'
+          }}
+        />
+        <div
+          className="absolute w-[600px] h-[600px] rounded-full opacity-30 blur-[100px]"
+          style={{
+            background: 'radial-gradient(circle, #ec4899 0%, transparent 70%)',
+            bottom: '-10%',
+            right: '-5%',
+            animation: 'float2 25s ease-in-out infinite'
+          }}
+        />
+        <div
+          className="absolute w-[500px] h-[500px] rounded-full opacity-20 blur-[80px]"
+          style={{
+            background: 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            animation: 'float3 30s ease-in-out infinite'
+          }}
+        />
+        {/* 노이즈 오버레이 */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+          }}
+        />
+      </div>
 
       <div className="relative z-10 h-full flex flex-col p-6">
         {/* 헤더 */}
         <header className="flex-shrink-0 mb-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-black tracking-tight">{data.academy.name}</h1>
-              <p className="text-lg text-[#1a1a1a]/60 mt-1">{data.test.name}</p>
+              <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+                {data.academy.name}
+              </h1>
+              <p className="text-lg text-white/40 mt-1">{data.test.name}</p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/60 rounded-full">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-sm font-medium text-[#1a1a1a]/70">LIVE</span>
-                <span className="text-sm text-[#1a1a1a]/40">{lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur rounded-full border border-white/10">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-sm text-white/60">LIVE</span>
+                <span className="text-sm text-white/30">{lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
               <button
                 onClick={handleFullscreen}
-                className="px-4 py-2 bg-[#1a1a1a] text-white rounded-full text-sm font-medium hover:bg-[#333] transition-colors"
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur rounded-full text-sm font-medium transition-all border border-white/10"
               >
                 전체화면
               </button>
             </div>
           </div>
 
-          {/* 모드 인디케이터 */}
+          {/* 모드 선택 */}
           <div className="flex items-center gap-3 mt-4">
-            {['ranking-male', 'ranking-female', 'event-male', 'event-female'].map((mode) => (
+            {hasRankings && (
               <button
-                key={mode}
-                onClick={() => { setViewMode(mode as ViewMode); setKey(k => k + 1); }}
+                onClick={() => setViewMode('ranking')}
                 className={`
-                  px-4 py-2 rounded-full text-sm font-medium transition-all
-                  ${viewMode === mode
-                    ? mode.includes('male')
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-pink-500 text-white'
-                    : 'bg-white/60 text-[#1a1a1a]/60 hover:bg-white'
+                  px-5 py-2.5 rounded-xl text-sm font-bold transition-all
+                  ${viewMode === 'ranking'
+                    ? 'bg-white/20 text-white border border-white/20'
+                    : 'bg-white/5 text-white/50 hover:bg-white/10 border border-transparent'
                   }
                 `}
               >
-                {mode === 'ranking-male' && '종합 남자'}
-                {mode === 'ranking-female' && '종합 여자'}
-                {mode === 'event-male' && '종목 남자'}
-                {mode === 'event-female' && '종목 여자'}
+                🏆 종합순위
               </button>
-            ))}
-
-            {isEventView && data.events.length > 1 && (
+            )}
+            {eventsWithRecords.length > 0 && (
               <>
-                <div className="w-px h-6 bg-[#1a1a1a]/20 mx-2" />
-                {data.events.map((e, idx) => (
-                  <button
-                    key={e.id}
-                    onClick={() => { setCurrentEventIndex(idx); setKey(k => k + 1); }}
-                    className={`
-                      px-3 py-1.5 rounded-full text-sm font-medium transition-all
-                      ${idx === currentEventIndex
-                        ? 'bg-[#1a1a1a] text-white'
-                        : 'bg-white/60 text-[#1a1a1a]/60 hover:bg-white'
-                      }
-                    `}
-                  >
-                    {e.shortName || e.name}
-                  </button>
-                ))}
+                <button
+                  onClick={() => setViewMode('event')}
+                  className={`
+                    px-5 py-2.5 rounded-xl text-sm font-bold transition-all
+                    ${viewMode === 'event'
+                      ? 'bg-white/20 text-white border border-white/20'
+                      : 'bg-white/5 text-white/50 hover:bg-white/10 border border-transparent'
+                    }
+                  `}
+                >
+                  📋 종목별
+                </button>
+                {viewMode === 'event' && (
+                  <>
+                    <div className="w-px h-6 bg-white/20 mx-1" />
+                    {eventsWithRecords.map((e, idx) => (
+                      <button
+                        key={e.id}
+                        onClick={() => setCurrentEventIndex(idx)}
+                        className={`
+                          px-4 py-2 rounded-lg text-sm font-medium transition-all
+                          ${idx === currentEventIndex
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                            : 'bg-white/5 text-white/50 hover:bg-white/10'
+                          }
+                        `}
+                      >
+                        {e.shortName || e.name}
+                      </button>
+                    ))}
+                  </>
+                )}
               </>
             )}
           </div>
         </header>
 
         {/* 타이틀 바 */}
-        <div
-          className={`
-            flex-shrink-0 py-3 px-6 rounded-t-xl text-white font-bold text-xl
-            ${currentGender === 'male' ? 'bg-blue-500' : 'bg-pink-500'}
-          `}
-        >
-          <div className="flex items-center justify-between">
-            <span>
-              {isEventView
-                ? `${currentEvent?.shortName || currentEvent?.name} · ${currentGender === 'male' ? '남자' : '여자'}`
-                : `종합순위 · ${currentGender === 'male' ? '남자' : '여자'}`
-              }
-            </span>
-            {isEventView && currentEvent && (
-              <span className="text-white/80 font-normal">단위: {currentEvent.unit}</span>
-            )}
-          </div>
+        <div className="flex-shrink-0 mb-4">
+          <Card3D className="py-3 px-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">
+                {viewMode === 'ranking' ? '🏆 종합순위' : `📋 ${currentEvent?.shortName || currentEvent?.name}`}
+              </h2>
+              {viewMode === 'event' && currentEvent && (
+                <span className="text-white/50">단위: {currentEvent.unit}</span>
+              )}
+            </div>
+          </Card3D>
         </div>
 
-        {/* 메인 컨텐츠 */}
-        <div
-          key={key}
-          className="flex-1 bg-white/40 backdrop-blur rounded-b-xl p-4 overflow-hidden"
-        >
+        {/* 메인 컨텐츠 - 남/여 2컬럼 */}
+        <div className="flex-1 overflow-hidden">
           {hasNoData ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#1a1a1a]/5 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-[#1a1a1a]/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <p className="text-xl text-[#1a1a1a]/40">아직 기록이 없습니다</p>
+                <div className="text-6xl mb-4">🏃</div>
+                <p className="text-xl text-white/40">아직 기록이 없습니다</p>
               </div>
             </div>
           ) : (
-            <div className="h-full flex flex-col gap-2">
-              {isEventView && currentEvent ? (
-                // 종목별 순위
-                getEventRecordsByGender(currentEvent.records, currentGender).map((record, idx) => (
-                  <EventRankRow
-                    key={`${record.name}-${idx}`}
-                    record={record}
-                    index={idx}
-                    unit={currentEvent.unit}
-                    gender={currentGender}
-                  />
-                ))
-              ) : (
-                // 종합 순위
-                data.ranking[currentGender].slice(0, 10).map((item, idx) => (
-                  <OverallRankRow
-                    key={`${item.name}-${idx}`}
-                    item={item}
-                    index={idx}
-                    gender={currentGender}
-                  />
-                ))
-              )}
+            <div className="h-full flex gap-4">
+              {/* 남자 컬럼 */}
+              <GenderColumn title="남자" icon="👨" color="blue">
+                {viewMode === 'ranking' ? (
+                  data.ranking.male.length > 0 ? (
+                    data.ranking.male.slice(0, 10).map((item, idx) => (
+                      <RankRow key={`m-${idx}`} item={item} index={idx} />
+                    ))
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
+                  )
+                ) : currentEvent ? (
+                  getEventRecordsByGender(currentEvent.records, 'M').length > 0 ? (
+                    getEventRecordsByGender(currentEvent.records, 'M').map((record, idx) => (
+                      <EventRow key={`m-${idx}`} record={record} index={idx} unit={currentEvent.unit} />
+                    ))
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
+                  )
+                ) : null}
+              </GenderColumn>
+
+              {/* 여자 컬럼 */}
+              <GenderColumn title="여자" icon="👩" color="pink">
+                {viewMode === 'ranking' ? (
+                  data.ranking.female.length > 0 ? (
+                    data.ranking.female.slice(0, 10).map((item, idx) => (
+                      <RankRow key={`f-${idx}`} item={item} index={idx} />
+                    ))
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
+                  )
+                ) : currentEvent ? (
+                  getEventRecordsByGender(currentEvent.records, 'F').length > 0 ? (
+                    getEventRecordsByGender(currentEvent.records, 'F').map((record, idx) => (
+                      <EventRow key={`f-${idx}`} record={record} index={idx} unit={currentEvent.unit} />
+                    ))
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
+                  )
+                ) : null}
+              </GenderColumn>
             </div>
           )}
         </div>
       </div>
 
-      {/* 글로벌 스타일 */}
+      {/* 애니메이션 키프레임 */}
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-
-        * {
-          font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+        @keyframes float1 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -30px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        @keyframes float2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(-40px, 20px) scale(1.1); }
+          66% { transform: translate(30px, -30px) scale(0.95); }
+        }
+        @keyframes float3 {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); }
+          50% { transform: translate(-50%, -50%) scale(1.2); }
         }
       `}</style>
     </div>
