@@ -89,15 +89,24 @@ function DraggableParticipant({ participant }: { participant: Participant }) {
       className="bg-white border rounded-lg p-2 mb-1 cursor-grab active:cursor-grabbing shadow-sm hover:shadow touch-none"
     >
       <div className="flex items-center gap-2">
-        <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center ${
+        <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center flex-shrink-0 ${
           participant.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
         }`}>
           {participant.gender === 'M' ? '남' : '여'}
         </span>
-        <span className="font-medium text-sm flex-1">{participant.name}</span>
-        <span className={`text-xs px-1.5 py-0.5 rounded ${typeColors[participant.participant_type]}`}>
-          {typeLabels[participant.participant_type]}
-        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-sm">{participant.name}</span>
+            <span className={`text-xs px-1.5 py-0.5 rounded ${typeColors[participant.participant_type]}`}>
+              {typeLabels[participant.participant_type]}
+            </span>
+          </div>
+          {(participant.school || participant.grade) && (
+            <div className="text-xs text-gray-400 truncate">
+              {participant.school} {participant.grade}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -526,16 +535,286 @@ export default function SessionGroupPage({
       </DragOverlay>
 
       {/* 참가자 추가 모달 */}
-      <Modal
+      <AddParticipantModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        title="참가자 추가"
-      >
-        <div className="text-center py-8 text-gray-500">
-          휴원생/테스트신규 추가 기능은<br/>
-          별도로 구현 예정입니다.
-        </div>
-      </Modal>
+        sessionId={sessionId}
+        testMonth={session?.test_month || ''}
+        onAdded={fetchData}
+      />
     </DndContext>
+  );
+}
+
+// 참가자 추가 모달 컴포넌트
+function AddParticipantModal({
+  isOpen,
+  onClose,
+  sessionId,
+  testMonth,
+  onAdded
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  sessionId: string;
+  testMonth: string;
+  onAdded: () => void;
+}) {
+  const [activeTab, setActiveTab] = useState<'rest' | 'trial' | 'test_new'>('rest');
+  const [students, setStudents] = useState<any[]>([]);
+  const [applicants, setApplicants] = useState<any[]>([]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  // 새 테스트신규 등록 폼
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newGender, setNewGender] = useState<'M' | 'F'>('M');
+  const [newSchool, setNewSchool] = useState('');
+  const [newGrade, setNewGrade] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelected(new Set());
+      fetchList();
+    }
+  }, [isOpen, activeTab]);
+
+  const fetchList = async () => {
+    setLoading(true);
+    try {
+      if (activeTab === 'rest' || activeTab === 'trial') {
+        const res = await apiClient.get(`/test-sessions/${sessionId}/available-students?type=${activeTab}`);
+        setStudents(res.data.students || []);
+      } else {
+        const res = await apiClient.get(`/test-applicants?month=${testMonth}&status=pending`);
+        setApplicants(res.data.applicants || []);
+      }
+    } catch (error) {
+      console.error('목록 조회 오류:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleAdd = async () => {
+    if (selected.size === 0) return;
+
+    setAdding(true);
+    try {
+      const items = Array.from(selected);
+      const participantType = activeTab === 'rest' ? 'rest' : activeTab === 'trial' ? 'trial' : 'test_new';
+
+      await Promise.all(
+        items.map(id =>
+          apiClient.post(`/test-sessions/${sessionId}/participants`, {
+            student_id: activeTab !== 'test_new' ? id : undefined,
+            test_applicant_id: activeTab === 'test_new' ? id : undefined,
+            participant_type: participantType
+          })
+        )
+      );
+
+      setSelected(new Set());
+      onAdded();
+      onClose();
+    } catch (error: any) {
+      alert(error.response?.data?.message || '추가 실패');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleAddNew = async () => {
+    if (!newName.trim()) {
+      alert('이름을 입력해주세요.');
+      return;
+    }
+
+    setAdding(true);
+    try {
+      // 1. 테스트신규로 등록
+      const res = await apiClient.post('/test-applicants', {
+        name: newName,
+        gender: newGender,
+        school: newSchool,
+        grade: newGrade,
+        test_month: testMonth
+      });
+
+      // 2. 참가자로 추가
+      await apiClient.post(`/test-sessions/${sessionId}/participants`, {
+        test_applicant_id: res.data.id,
+        participant_type: 'test_new'
+      });
+
+      setNewName('');
+      setNewSchool('');
+      setNewGrade('');
+      setShowNewForm(false);
+      onAdded();
+      onClose();
+    } catch (error: any) {
+      alert(error.response?.data?.message || '등록 실패');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const tabs = [
+    { key: 'rest', label: '휴원생' },
+    { key: 'trial', label: '체험생' },
+    { key: 'test_new', label: '테스트신규' }
+  ];
+
+  const currentList = activeTab === 'test_new' ? applicants : students;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="참가자 추가">
+      <div className="min-h-[400px]">
+        {/* 탭 */}
+        <div className="flex border-b mb-4">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => { setActiveTab(tab.key as any); setSelected(new Set()); }}
+              className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 목록 */}
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Spinner />
+          </div>
+        ) : (
+          <>
+            {activeTab === 'test_new' && (
+              <div className="mb-4">
+                {!showNewForm ? (
+                  <button
+                    onClick={() => setShowNewForm(true)}
+                    className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-400 hover:text-blue-500"
+                  >
+                    + 새 테스트신규 등록
+                  </button>
+                ) : (
+                  <div className="p-3 border rounded-lg bg-gray-50 space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="이름"
+                        value={newName}
+                        onChange={e => setNewName(e.target.value)}
+                        className="flex-1 px-3 py-2 border rounded"
+                      />
+                      <select
+                        value={newGender}
+                        onChange={e => setNewGender(e.target.value as 'M' | 'F')}
+                        className="px-3 py-2 border rounded"
+                      >
+                        <option value="M">남</option>
+                        <option value="F">여</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="학교"
+                        value={newSchool}
+                        onChange={e => setNewSchool(e.target.value)}
+                        className="flex-1 px-3 py-2 border rounded"
+                      />
+                      <input
+                        type="text"
+                        placeholder="학년"
+                        value={newGrade}
+                        onChange={e => setNewGrade(e.target.value)}
+                        className="w-20 px-3 py-2 border rounded"
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="ghost" size="sm" onClick={() => setShowNewForm(false)}>
+                        취소
+                      </Button>
+                      <Button size="sm" onClick={handleAddNew} disabled={adding}>
+                        {adding ? '등록 중...' : '등록 및 추가'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {currentList.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                {activeTab === 'rest' && '추가 가능한 휴원생이 없습니다.'}
+                {activeTab === 'trial' && '추가 가능한 체험생이 없습니다.'}
+                {activeTab === 'test_new' && '등록된 테스트신규가 없습니다.'}
+              </div>
+            ) : (
+              <div className="max-h-[280px] overflow-y-auto space-y-1">
+                {currentList.map((item: any) => (
+                  <label
+                    key={item.id}
+                    className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
+                      selected.has(item.id) ? 'bg-blue-50' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(item.id)}
+                      onChange={() => toggleSelect(item.id)}
+                      className="w-4 h-4"
+                    />
+                    <span className={`w-6 h-6 rounded-full text-xs flex items-center justify-center ${
+                      item.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+                    }`}>
+                      {item.gender === 'M' ? '남' : '여'}
+                    </span>
+                    <span className="font-medium flex-1">{item.name}</span>
+                    <span className="text-sm text-gray-500">
+                      {item.school || ''} {item.grade || ''}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 하단 버튼 */}
+        <div className="flex justify-between items-center mt-4 pt-4 border-t">
+          <span className="text-sm text-gray-500">
+            {selected.size > 0 && `${selected.size}명 선택됨`}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>
+              취소
+            </Button>
+            <Button onClick={handleAdd} disabled={adding || selected.size === 0}>
+              {adding ? '추가 중...' : '추가'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Modal>
   );
 }

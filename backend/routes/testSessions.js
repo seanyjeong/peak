@@ -341,7 +341,7 @@ router.put('/:sessionId/participants/:participantId', async (req, res) => {
   }
 });
 
-// 재원생 동기화
+// 재원생 동기화 (재원생만, 체험생 제외)
 router.post('/:sessionId/participants/sync', async (req, res) => {
   const conn = await pool.getConnection();
   try {
@@ -357,22 +357,21 @@ router.post('/:sessionId/participants/sync', async (req, res) => {
 
     const existingIds = new Set(existing.map(e => e.student_id));
 
-    // P-EAK에서 재원생 조회
+    // P-EAK에서 재원생만 조회 (체험생, 휴원생 제외)
     const [students] = await pool.query(`
       SELECT id, name, gender, school, grade, status, is_trial
       FROM students
-      WHERE status = 'active' OR is_trial = 1
+      WHERE status = 'active' AND is_trial = 0
       ORDER BY name
     `);
 
     let added = 0;
     for (const s of students) {
       if (!existingIds.has(s.id)) {
-        const participantType = s.is_trial ? 'trial' : 'enrolled';
         await conn.query(`
           INSERT INTO test_participants (test_session_id, student_id, participant_type)
-          VALUES (?, ?, ?)
-        `, [sessionId, s.id, participantType]);
+          VALUES (?, ?, 'enrolled')
+        `, [sessionId, s.id]);
         added++;
       }
     }
@@ -389,6 +388,45 @@ router.post('/:sessionId/participants/sync', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   } finally {
     conn.release();
+  }
+});
+
+// 추가 가능 학생 목록 (휴원생, 체험생 별도)
+router.get('/:sessionId/available-students', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { type } = req.query; // 'rest' | 'trial'
+
+    // 이미 참가한 학생 ID
+    const [existing] = await pool.query(`
+      SELECT student_id FROM test_participants
+      WHERE test_session_id = ? AND student_id IS NOT NULL
+    `, [sessionId]);
+
+    const existingIds = existing.map(e => e.student_id);
+
+    let whereClause = '';
+    if (type === 'rest') {
+      whereClause = "status = 'rest'";
+    } else if (type === 'trial') {
+      whereClause = "is_trial = 1";
+    } else {
+      return res.status(400).json({ success: false, message: 'type 파라미터가 필요합니다 (rest 또는 trial)' });
+    }
+
+    // 학생 목록
+    const [students] = await pool.query(`
+      SELECT id, name, gender, school, grade
+      FROM students
+      WHERE ${whereClause}
+      ${existingIds.length > 0 ? `AND id NOT IN (${existingIds.join(',')})` : ''}
+      ORDER BY name
+    `);
+
+    res.json({ success: true, students });
+  } catch (error) {
+    console.error('추가 가능 학생 조회 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
