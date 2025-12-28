@@ -169,11 +169,15 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
           </div>
         </div>
         <div className="flex gap-2">
-          {test.status === 'active' && (
-            <Button variant="outline" onClick={copyBoardUrl}>
-              전광판 URL 복사
-            </Button>
-          )}
+          <Button variant="outline" onClick={copyBoardUrl}>
+            📋 전광판 URL 복사
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => window.open('/board/ilsan-max', '_blank')}
+          >
+            📺 전광판 미리보기
+          </Button>
           <Button onClick={() => setShowSessionModal(true)}>
             + 세션 추가
           </Button>
