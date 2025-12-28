@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect, use, useCallback } from 'react';
+import { useState, useEffect, use, useCallback, useRef, Suspense } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Sphere, MeshDistortMaterial } from '@react-three/drei';
+import * as THREE from 'three';
 
 interface RankingItem {
   rank: number;
@@ -36,29 +39,60 @@ interface BoardData {
 
 type ViewMode = 'ranking' | 'event';
 
-// 3D 카드 컴포넌트
-function Card3D({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+// 3D 움직이는 구체
+function AnimatedSphere({ position, color, speed = 1, size = 1 }: { position: [number, number, number]; color: string; speed?: number; size?: number }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * speed) * 0.5;
+      meshRef.current.position.x = position[0] + Math.cos(state.clock.elapsedTime * speed * 0.5) * 0.3;
+      meshRef.current.rotation.x = state.clock.elapsedTime * 0.2;
+      meshRef.current.rotation.z = state.clock.elapsedTime * 0.1;
+    }
+  });
+
   return (
-    <div
-      className={`
-        relative backdrop-blur-xl bg-white/10
-        border border-white/20 rounded-2xl
-        shadow-[0_8px_32px_rgba(0,0,0,0.12)]
-        transform-gpu transition-all duration-300
-        hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)]
-        ${className}
-      `}
-      style={{
-        animationDelay: `${delay}ms`,
-        transform: 'perspective(1000px) rotateX(2deg)',
-      }}
+    <Sphere ref={meshRef} args={[size, 64, 64]} position={position}>
+      <MeshDistortMaterial
+        color={color}
+        attach="material"
+        distort={0.4}
+        speed={2}
+        roughness={0.2}
+        metalness={0.8}
+        emissive={color}
+        emissiveIntensity={0.3}
+      />
+    </Sphere>
+  );
+}
+
+// 3D 배경 씬
+function Background3D() {
+  return (
+    <Canvas
+      camera={{ position: [0, 0, 10], fov: 50 }}
+      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
     >
-      {/* 글래스 하이라이트 */}
-      <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-white/30 to-transparent rotate-12" />
-      </div>
-      <div className="relative z-10">{children}</div>
-    </div>
+      <ambientLight intensity={0.5} />
+      <pointLight position={[10, 10, 10]} intensity={1} color="#ffffff" />
+      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#3b82f6" />
+      <pointLight position={[10, -10, 10]} intensity={0.5} color="#ec4899" />
+
+      <Suspense fallback={null}>
+        {/* 파란 구체 (남자) */}
+        <AnimatedSphere position={[-4, 2, -5]} color="#3b82f6" speed={0.8} size={2} />
+        <AnimatedSphere position={[-5, -1, -8]} color="#06b6d4" speed={0.6} size={1.5} />
+
+        {/* 핑크 구체 (여자) */}
+        <AnimatedSphere position={[4, 1, -5]} color="#ec4899" speed={0.7} size={2} />
+        <AnimatedSphere position={[5, -2, -8]} color="#f43f5e" speed={0.9} size={1.5} />
+
+        {/* 보라 구체 (중앙) */}
+        <AnimatedSphere position={[0, 0, -10]} color="#8b5cf6" speed={0.5} size={3} />
+      </Suspense>
+    </Canvas>
   );
 }
 
@@ -72,11 +106,10 @@ function RankRow({ item, index }: { item: RankingItem; index: number }) {
       className={`
         flex items-center gap-3 p-3 rounded-xl transition-all duration-500
         ${isTop3 ? 'bg-white/15' : 'bg-white/5'}
-        hover:bg-white/20
+        hover:bg-white/20 backdrop-blur-sm
       `}
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      {/* 순위 */}
       <div className={`
         w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg
         ${isTop3
@@ -87,7 +120,6 @@ function RankRow({ item, index }: { item: RankingItem; index: number }) {
         {item.rank}
       </div>
 
-      {/* 이름 & 학교 */}
       <div className="flex-1 min-w-0">
         <div className={`font-bold truncate ${isTop3 ? 'text-white text-lg' : 'text-white/90'}`}>
           {item.name}
@@ -97,7 +129,6 @@ function RankRow({ item, index }: { item: RankingItem; index: number }) {
         )}
       </div>
 
-      {/* 점수 */}
       <div className={`
         text-right font-black
         ${isTop3 ? 'text-2xl text-white' : 'text-xl text-white/80'}
@@ -117,11 +148,10 @@ function EventRow({ record, index, unit }: { record: EventRecord; index: number;
   return (
     <div
       className={`
-        flex items-center gap-3 p-3 rounded-xl transition-all
+        flex items-center gap-3 p-3 rounded-xl transition-all backdrop-blur-sm
         ${isTop3 ? 'bg-white/15' : 'bg-white/5'}
       `}
     >
-      {/* 순위 */}
       <div className={`
         w-9 h-9 rounded-lg flex items-center justify-center font-black
         ${isTop3
@@ -132,7 +162,6 @@ function EventRow({ record, index, unit }: { record: EventRecord; index: number;
         {record.rank}
       </div>
 
-      {/* 이름 & 학교 */}
       <div className="flex-1 min-w-0">
         <div className={`font-bold truncate ${isTop3 ? 'text-white' : 'text-white/90'}`}>
           {record.name}
@@ -142,7 +171,6 @@ function EventRow({ record, index, unit }: { record: EventRecord; index: number;
         )}
       </div>
 
-      {/* 기록 & 점수 */}
       <div className="text-right">
         <div className={`font-black ${isTop3 ? 'text-xl text-white' : 'text-lg text-white/80'}`}>
           {record.value}<span className="text-xs font-normal text-white/40 ml-0.5">{unit}</span>
@@ -153,7 +181,7 @@ function EventRow({ record, index, unit }: { record: EventRecord; index: number;
   );
 }
 
-// 성별 컬럼 (남/녀) - 3D 스타일
+// 성별 컬럼
 function GenderColumn({
   title,
   color,
@@ -163,10 +191,6 @@ function GenderColumn({
   color: 'blue' | 'pink';
   children: React.ReactNode;
 }) {
-  const gradients = {
-    blue: 'from-blue-600/30 via-blue-500/10 to-transparent',
-    pink: 'from-pink-600/30 via-pink-500/10 to-transparent'
-  };
   const glowColors = {
     blue: '#3b82f6',
     pink: '#ec4899'
@@ -174,20 +198,20 @@ function GenderColumn({
 
   return (
     <div
-      className="flex-1 flex flex-col rounded-3xl overflow-hidden relative"
+      className="flex-1 flex flex-col rounded-3xl overflow-hidden relative backdrop-blur-xl"
       style={{
-        background: `linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)`,
+        background: `linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)`,
         boxShadow: `
           0 0 0 1px rgba(255,255,255,0.1),
-          0 20px 50px -20px ${glowColors[color]}40,
-          inset 0 1px 0 rgba(255,255,255,0.2)
+          0 25px 60px -20px ${glowColors[color]}50,
+          inset 0 1px 0 rgba(255,255,255,0.15)
         `,
-        transform: 'perspective(1000px) rotateY(0deg)',
       }}
     >
-      {/* 상단 글로우 */}
+      {/* 상단 글로우 라인 */}
       <div
-        className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b ${gradients[color]} pointer-events-none`}
+        className="absolute top-0 left-0 right-0 h-1"
+        style={{ background: glowColors[color], boxShadow: `0 0 20px ${glowColors[color]}` }}
       />
 
       {/* 헤더 */}
@@ -196,7 +220,7 @@ function GenderColumn({
           className="text-3xl font-black tracking-tight"
           style={{
             color: glowColors[color],
-            textShadow: `0 0 30px ${glowColors[color]}60`
+            textShadow: `0 0 40px ${glowColors[color]}`
           }}
         >
           {title}
@@ -307,11 +331,11 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
+      <div className="min-h-screen flex items-center justify-center bg-[#050508]">
         <div className="text-center">
           <div className="relative w-20 h-20 mx-auto mb-6">
             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 animate-spin" style={{ padding: '3px' }}>
-              <div className="w-full h-full rounded-full bg-[#0a0a0f]" />
+              <div className="w-full h-full rounded-full bg-[#050508]" />
             </div>
           </div>
           <p className="text-xl text-white/40 tracking-widest">LOADING</p>
@@ -322,7 +346,7 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   if (error || !data?.test) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
+      <div className="min-h-screen flex items-center justify-center bg-[#050508]">
         <div className="text-center px-8">
           <div className="text-6xl mb-6">📊</div>
           <h1 className="text-3xl font-bold text-white mb-3">{data?.academy?.name}</h1>
@@ -336,45 +360,12 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
   const hasNoData = !hasRankings && eventsWithRecords.length === 0;
 
   return (
-    <div className="h-screen overflow-hidden bg-[#0a0a0f] text-white">
-      {/* 3D 그라데이션 메시 배경 */}
-      <div className="fixed inset-0 overflow-hidden">
-        {/* 메인 그라데이션 오브 */}
-        <div
-          className="absolute w-[800px] h-[800px] rounded-full opacity-30 blur-[120px]"
-          style={{
-            background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)',
-            top: '-20%',
-            left: '-10%',
-            animation: 'float1 20s ease-in-out infinite'
-          }}
-        />
-        <div
-          className="absolute w-[600px] h-[600px] rounded-full opacity-30 blur-[100px]"
-          style={{
-            background: 'radial-gradient(circle, #ec4899 0%, transparent 70%)',
-            bottom: '-10%',
-            right: '-5%',
-            animation: 'float2 25s ease-in-out infinite'
-          }}
-        />
-        <div
-          className="absolute w-[500px] h-[500px] rounded-full opacity-20 blur-[80px]"
-          style={{
-            background: 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            animation: 'float3 30s ease-in-out infinite'
-          }}
-        />
-        {/* 노이즈 오버레이 */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
-          }}
-        />
+    <div className="h-screen overflow-hidden bg-[#050508] text-white">
+      {/* Three.js 3D 배경 */}
+      <div className="fixed inset-0 z-0">
+        <Background3D />
+        {/* 오버레이 그라데이션 */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#050508]/50 to-[#050508]/80 pointer-events-none" />
       </div>
 
       <div className="relative z-10 h-full flex flex-col p-6">
@@ -382,20 +373,20 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
         <header className="flex-shrink-0 mb-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-white via-white to-white/50 bg-clip-text text-transparent">
                 {data.academy.name}
               </h1>
               <p className="text-lg text-white/40 mt-1">{data.test.name}</p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur rounded-full border border-white/10">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10">
                 <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
                 <span className="text-sm text-white/60">LIVE</span>
                 <span className="text-sm text-white/30">{lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
               <button
                 onClick={handleFullscreen}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur rounded-full text-sm font-medium transition-all border border-white/10"
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-sm font-medium transition-all border border-white/10"
               >
                 전체화면
               </button>
@@ -408,14 +399,14 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
               <button
                 onClick={() => setViewMode('ranking')}
                 className={`
-                  px-5 py-2.5 rounded-xl text-sm font-bold transition-all
+                  px-5 py-2.5 rounded-xl text-sm font-bold transition-all backdrop-blur-xl
                   ${viewMode === 'ranking'
-                    ? 'bg-white/20 text-white border border-white/20'
-                    : 'bg-white/5 text-white/50 hover:bg-white/10 border border-transparent'
+                    ? 'bg-white/20 text-white border border-white/30'
+                    : 'bg-white/5 text-white/50 hover:bg-white/10 border border-white/10'
                   }
                 `}
               >
-                🏆 종합순위
+                종합순위
               </button>
             )}
             {eventsWithRecords.length > 0 && (
@@ -423,14 +414,14 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
                 <button
                   onClick={() => setViewMode('event')}
                   className={`
-                    px-5 py-2.5 rounded-xl text-sm font-bold transition-all
+                    px-5 py-2.5 rounded-xl text-sm font-bold transition-all backdrop-blur-xl
                     ${viewMode === 'event'
-                      ? 'bg-white/20 text-white border border-white/20'
-                      : 'bg-white/5 text-white/50 hover:bg-white/10 border border-transparent'
+                      ? 'bg-white/20 text-white border border-white/30'
+                      : 'bg-white/5 text-white/50 hover:bg-white/10 border border-white/10'
                     }
                   `}
                 >
-                  📋 종목별
+                  종목별
                 </button>
                 {viewMode === 'event' && (
                   <>
@@ -440,9 +431,9 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
                         key={e.id}
                         onClick={() => setCurrentEventIndex(idx)}
                         className={`
-                          px-4 py-2 rounded-lg text-sm font-medium transition-all
+                          px-4 py-2 rounded-lg text-sm font-medium transition-all backdrop-blur-xl
                           ${idx === currentEventIndex
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-purple-500/30'
                             : 'bg-white/5 text-white/50 hover:bg-white/10'
                           }
                         `}
@@ -459,16 +450,16 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
         {/* 타이틀 바 */}
         <div className="flex-shrink-0 mb-4">
-          <Card3D className="py-3 px-6">
+          <div className="py-3 px-6 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-white">
-                {viewMode === 'ranking' ? '🏆 종합순위' : `📋 ${currentEvent?.shortName || currentEvent?.name}`}
+                {viewMode === 'ranking' ? '종합순위' : currentEvent?.shortName || currentEvent?.name}
               </h2>
               {viewMode === 'event' && currentEvent && (
                 <span className="text-white/50">단위: {currentEvent.unit}</span>
               )}
             </div>
-          </Card3D>
+          </div>
         </div>
 
         {/* 메인 컨텐츠 - 남/여 2컬럼 */}
@@ -527,24 +518,6 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
           )}
         </div>
       </div>
-
-      {/* 애니메이션 키프레임 */}
-      <style jsx global>{`
-        @keyframes float1 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -30px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        @keyframes float2 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(-40px, 20px) scale(1.1); }
-          66% { transform: translate(30px, -30px) scale(0.95); }
-        }
-        @keyframes float3 {
-          0%, 100% { transform: translate(-50%, -50%) scale(1); }
-          50% { transform: translate(-50%, -50%) scale(1.2); }
-        }
-      `}</style>
     </div>
   );
 }
