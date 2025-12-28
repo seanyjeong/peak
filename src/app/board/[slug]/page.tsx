@@ -1,9 +1,6 @@
 'use client';
 
-import { useState, useEffect, use, useCallback, useRef, Suspense } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Text3D, Center } from '@react-three/drei';
-import * as THREE from 'three';
+import { useState, useEffect, use, useCallback } from 'react';
 
 interface RankingItem {
   rank: number;
@@ -39,138 +36,89 @@ interface BoardData {
 
 type ViewMode = 'ranking' | 'event';
 
-// 3D 덤벨
-function Dumbbell({ position, rotation, scale = 1 }: { position: [number, number, number]; rotation?: [number, number, number]; scale?: number }) {
-  const groupRef = useRef<THREE.Group>(null);
-
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.3;
-      groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.8) * 0.2;
-    }
-  });
-
+// CSS 스포티 배경
+function SportyBackground() {
   return (
-    <group ref={groupRef} position={position} rotation={rotation} scale={scale}>
-      {/* 바 */}
-      <mesh>
-        <cylinderGeometry args={[0.08, 0.08, 2, 16]} />
-        <meshStandardMaterial color="#374151" metalness={0.9} roughness={0.2} />
-      </mesh>
-      {/* 왼쪽 웨이트 */}
-      <mesh position={[-0.85, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.3, 0.3, 0.25, 32]} />
-        <meshStandardMaterial color="#1f2937" metalness={0.8} roughness={0.3} />
-      </mesh>
-      <mesh position={[-1.05, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.35, 0.35, 0.15, 32]} />
-        <meshStandardMaterial color="#111827" metalness={0.8} roughness={0.3} />
-      </mesh>
-      {/* 오른쪽 웨이트 */}
-      <mesh position={[0.85, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.3, 0.3, 0.25, 32]} />
-        <meshStandardMaterial color="#1f2937" metalness={0.8} roughness={0.3} />
-      </mesh>
-      <mesh position={[1.05, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.35, 0.35, 0.15, 32]} />
-        <meshStandardMaterial color="#111827" metalness={0.8} roughness={0.3} />
-      </mesh>
-    </group>
-  );
-}
+    <div className="fixed inset-0 overflow-hidden">
+      {/* 베이스 그라데이션 */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" />
 
-// 3D 메달
-function Medal({ position, color, speed = 1 }: { position: [number, number, number]; color: string; speed?: number }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+      {/* 스포츠 트랙 라인 */}
+      <div className="absolute inset-0 opacity-10">
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute h-full border-l-2 border-white/30"
+            style={{ left: `${20 + i * 15}%` }}
+          />
+        ))}
+      </div>
 
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y = state.clock.elapsedTime * speed;
-      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 1.2) * 0.15;
-    }
-  });
+      {/* 대형 원형 그라데이션 (스포트라이트) */}
+      <div
+        className="absolute w-[800px] h-[800px] rounded-full opacity-20"
+        style={{
+          background: 'radial-gradient(circle, rgba(59,130,246,0.5) 0%, transparent 70%)',
+          top: '-200px',
+          left: '-200px',
+          animation: 'pulse 4s ease-in-out infinite',
+        }}
+      />
+      <div
+        className="absolute w-[600px] h-[600px] rounded-full opacity-15"
+        style={{
+          background: 'radial-gradient(circle, rgba(236,72,153,0.5) 0%, transparent 70%)',
+          bottom: '-150px',
+          right: '-150px',
+          animation: 'pulse 5s ease-in-out infinite reverse',
+        }}
+      />
 
-  return (
-    <mesh ref={meshRef} position={position}>
-      <cylinderGeometry args={[0.4, 0.4, 0.08, 32]} />
-      <meshStandardMaterial color={color} metalness={1} roughness={0.1} />
-    </mesh>
-  );
-}
+      {/* 동적 라인 애니메이션 */}
+      <svg className="absolute inset-0 w-full h-full opacity-20" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="50%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="transparent" />
+          </linearGradient>
+        </defs>
+        {[...Array(3)].map((_, i) => (
+          <line
+            key={i}
+            x1="0"
+            y1={`${30 + i * 20}%`}
+            x2="100%"
+            y2={`${35 + i * 20}%`}
+            stroke="url(#lineGrad)"
+            strokeWidth="2"
+            style={{
+              animation: `slideLine ${3 + i}s linear infinite`,
+              animationDelay: `${i * 0.5}s`,
+            }}
+          />
+        ))}
+      </svg>
 
-// 3D 트로피
-function Trophy({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
-  const groupRef = useRef<THREE.Group>(null);
+      {/* 스포츠 아이콘 (대형) */}
+      <div className="absolute top-10 right-20 text-[200px] opacity-5 select-none">🏆</div>
+      <div className="absolute bottom-20 left-10 text-[150px] opacity-5 select-none rotate-12">🏅</div>
+      <div className="absolute top-1/3 left-1/4 text-[120px] opacity-5 select-none -rotate-6">💪</div>
 
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.2;
-      groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.6) * 0.1;
-    }
-  });
+      {/* 상단/하단 그라데이션 오버레이 */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
 
-  return (
-    <group ref={groupRef} position={position} scale={scale}>
-      {/* 받침대 */}
-      <mesh position={[0, -0.8, 0]}>
-        <boxGeometry args={[0.6, 0.15, 0.6]} />
-        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
-      </mesh>
-      <mesh position={[0, -0.6, 0]}>
-        <boxGeometry args={[0.4, 0.25, 0.4]} />
-        <meshStandardMaterial color="#374151" metalness={0.5} roughness={0.5} />
-      </mesh>
-      {/* 기둥 */}
-      <mesh position={[0, -0.2, 0]}>
-        <cylinderGeometry args={[0.1, 0.15, 0.5, 16]} />
-        <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
-      </mesh>
-      {/* 컵 */}
-      <mesh position={[0, 0.3, 0]}>
-        <cylinderGeometry args={[0.35, 0.2, 0.6, 32]} />
-        <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
-      </mesh>
-      {/* 손잡이 */}
-      <mesh position={[-0.45, 0.3, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <torusGeometry args={[0.15, 0.04, 8, 16, Math.PI]} />
-        <meshStandardMaterial color="#f59e0b" metalness={0.9} roughness={0.1} />
-      </mesh>
-      <mesh position={[0.45, 0.3, 0]} rotation={[0, 0, -Math.PI / 2]}>
-        <torusGeometry args={[0.15, 0.04, 8, 16, Math.PI]} />
-        <meshStandardMaterial color="#f59e0b" metalness={0.9} roughness={0.1} />
-      </mesh>
-    </group>
-  );
-}
-
-// 3D 배경 씬
-function Background3D() {
-  return (
-    <Canvas
-      camera={{ position: [0, 0, 8], fov: 50 }}
-      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-    >
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[5, 5, 5]} intensity={1} />
-      <pointLight position={[-5, 5, 5]} intensity={0.5} color="#3b82f6" />
-      <pointLight position={[5, -5, 5]} intensity={0.5} color="#ec4899" />
-
-      <Suspense fallback={null}>
-        {/* 트로피 (중앙 상단) */}
-        <Float speed={2} rotationIntensity={0.3} floatIntensity={0.5}>
-          <Trophy position={[0, 2.5, -3]} scale={1.2} />
-        </Float>
-
-        {/* 덤벨들 */}
-        <Dumbbell position={[-4, 0, -4]} rotation={[0.3, 0.5, 0.2]} scale={0.8} />
-        <Dumbbell position={[4, -1, -5]} rotation={[-0.2, -0.3, 0.1]} scale={0.6} />
-
-        {/* 메달들 */}
-        <Medal position={[-3, 2, -3]} color="#fbbf24" speed={0.8} />
-        <Medal position={[3, 1.5, -4]} color="#9ca3af" speed={0.6} />
-        <Medal position={[0, -2, -4]} color="#cd7f32" speed={0.7} />
-      </Suspense>
-    </Canvas>
+      <style jsx>{`
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.2; }
+          50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        @keyframes slideLine {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
+    </div>
   );
 }
 
@@ -586,13 +534,9 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
   const hasNoData = !hasRankings && eventsWithRecords.length === 0;
 
   return (
-    <div className="h-screen overflow-hidden bg-[#0a0a12] text-white">
-      {/* Three.js 3D 배경 */}
-      <div className="fixed inset-0 z-0 opacity-60">
-        <Background3D />
-      </div>
-      {/* 그라데이션 오버레이 */}
-      <div className="fixed inset-0 z-0 bg-gradient-to-b from-[#0a0a12]/60 via-[#0a0a12]/80 to-[#0a0a12] pointer-events-none" />
+    <div className="h-screen overflow-hidden text-white">
+      {/* CSS 스포티 배경 */}
+      <SportyBackground />
 
       <div className="relative z-10 h-full flex flex-col p-6">
         {/* 헤더 */}

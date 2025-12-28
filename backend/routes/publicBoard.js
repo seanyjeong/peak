@@ -254,9 +254,9 @@ router.get('/:slug', async (req, res) => {
         total: p.totalScore
       }));
 
-    // 10. 종목별 순위
+    // 10. 종목별 순위 (남/여 각각 10명씩)
     const events = recordTypes.map(rt => {
-      const eventData = participantData
+      const allRecords = participantData
         .filter(p => p.eventScores[rt.record_type_id])
         .map(p => ({
           name: p.name,
@@ -264,13 +264,22 @@ router.get('/:slug', async (req, res) => {
           school: p.school,
           value: p.eventScores[rt.record_type_id].value,
           score: p.eventScores[rt.record_type_id].score
-        }))
-        .sort((a, b) => {
-          if (rt.direction === 'lower') {
-            return a.value - b.value;
-          }
-          return b.value - a.value;
-        })
+        }));
+
+      const sortFn = rt.direction === 'lower'
+        ? (a, b) => a.value - b.value
+        : (a, b) => b.value - a.value;
+
+      // 남녀 각각 10명씩
+      const maleRecords = allRecords
+        .filter(r => r.gender === 'M')
+        .sort(sortFn)
+        .slice(0, 10)
+        .map((p, idx) => ({ rank: idx + 1, ...p }));
+
+      const femaleRecords = allRecords
+        .filter(r => r.gender === 'F')
+        .sort(sortFn)
         .slice(0, 10)
         .map((p, idx) => ({ rank: idx + 1, ...p }));
 
@@ -279,7 +288,7 @@ router.get('/:slug', async (req, res) => {
         name: rt.name,
         shortName: rt.short_name,
         unit: rt.unit,
-        records: eventData
+        records: [...maleRecords, ...femaleRecords]
       };
     });
 
