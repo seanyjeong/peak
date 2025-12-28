@@ -214,7 +214,7 @@ router.get('/:sessionId/groups', async (req, res) => {
 router.post('/:sessionId/groups', async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { group_name } = req.body;
+    const { group_name } = req.body || {};
 
     // 다음 group_num 계산
     const [maxNum] = await pool.query(`
