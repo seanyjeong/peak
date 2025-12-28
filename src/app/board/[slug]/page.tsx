@@ -271,7 +271,7 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    const interval = setInterval(fetchData, 15000); // 15초마다 갱신
     return () => clearInterval(interval);
   }, [slug]);
 
@@ -299,7 +299,7 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
   const fetchData = async () => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
-      const res = await fetch(`${apiUrl}/public/board/${slug}`);
+      const res = await fetch(`${apiUrl}/public/${slug}`);
       const json = await res.json();
 
       if (!json.success) {
