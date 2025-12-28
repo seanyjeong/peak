@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use, useRef } from 'react';
+import { useState, useEffect, use } from 'react';
 
 interface RankingItem {
   rank: number;
@@ -20,242 +20,181 @@ interface EventRecord {
 interface EventData {
   id: number;
   name: string;
-  short_name?: string;
+  shortName?: string;
   unit: string;
-  direction: 'higher' | 'lower';
   records: EventRecord[];
 }
 
 interface BoardData {
-  academy: {
-    name: string;
-    slug: string;
-  };
-  test: {
-    id: number;
-    month: string;
-    name: string;
-    status: string;
-  } | null;
-  ranking: {
-    male: RankingItem[];
-    female: RankingItem[];
-  };
+  academy: { name: string; slug: string };
+  test: { name: string; month: string } | null;
+  ranking: { male: RankingItem[]; female: RankingItem[] };
   events: EventData[];
 }
 
-// 플립 애니메이션 텍스트 컴포넌트 (공항 보드 스타일)
-function FlipText({ text, className = '' }: { text: string; className?: string }) {
-  const [displayText, setDisplayText] = useState(text);
+// 공항 플립보드 스타일 글자 (한 글자씩 플립)
+function FlipChar({ char, delay = 0 }: { char: string; delay?: number }) {
+  const [displayChar, setDisplayChar] = useState(' ');
   const [isFlipping, setIsFlipping] = useState(false);
 
   useEffect(() => {
-    if (text !== displayText) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789가나다라마바사아자차카타파하';
+    let iterations = 0;
+    const maxIterations = 8 + Math.floor(Math.random() * 5);
+
+    const flipInterval = setInterval(() => {
       setIsFlipping(true);
       setTimeout(() => {
-        setDisplayText(text);
+        if (iterations < maxIterations) {
+          setDisplayChar(chars[Math.floor(Math.random() * chars.length)]);
+          iterations++;
+        } else {
+          setDisplayChar(char);
+          clearInterval(flipInterval);
+        }
         setIsFlipping(false);
-      }, 300);
-    }
-  }, [text, displayText]);
+      }, 50);
+    }, 80);
+
+    return () => clearInterval(flipInterval);
+  }, [char]);
 
   return (
-    <span className={`inline-block transition-all duration-300 ${isFlipping ? 'flip-out' : 'flip-in'} ${className}`}>
-      {displayText}
+    <span className={`
+      inline-block w-[1.2em] h-[1.8em] mx-[1px] rounded-sm
+      bg-gradient-to-b from-slate-800 via-slate-900 to-slate-800
+      border border-slate-600 text-center leading-[1.8em]
+      shadow-inner transition-transform duration-75
+      ${isFlipping ? 'scale-y-0' : 'scale-y-100'}
+    `}>
+      {displayChar}
     </span>
   );
 }
 
-// 3D 카드 (TOP 3용 - 큰 카드)
-function TopThreeCard({ item, rank, gender }: { item: RankingItem; rank: number; gender: 'male' | 'female' }) {
-  const colors = {
-    1: 'from-yellow-400 via-yellow-300 to-amber-500',
-    2: 'from-slate-300 via-gray-200 to-slate-400',
-    3: 'from-orange-400 via-amber-300 to-orange-500'
-  };
-
-  const glowColors = {
-    1: 'shadow-yellow-500/50',
-    2: 'shadow-slate-400/50',
-    3: 'shadow-orange-500/50'
-  };
-
-  const medals = {
-    1: '🥇',
-    2: '🥈',
-    3: '🥉'
-  };
-
-  const bgColor = gender === 'male' ? 'bg-blue-900/30' : 'bg-pink-900/30';
-  const borderColor = gender === 'male' ? 'border-blue-500/50' : 'border-pink-500/50';
-
+// 플립보드 텍스트 (여러 글자)
+function FlipText({ text, className = '' }: { text: string; className?: string }) {
   return (
-    <div
-      className={`relative perspective-1000 transform hover:scale-105 transition-all duration-500`}
-      style={{ animationDelay: `${rank * 0.2}s` }}
-    >
-      <div className={`
-        card-3d ${bgColor} backdrop-blur-sm rounded-2xl border-2 ${borderColor}
-        p-6 min-w-[200px] shadow-2xl ${glowColors[rank as keyof typeof glowColors]}
-      `}>
-        {/* 메달 & 순위 */}
-        <div className="absolute -top-4 -left-4 text-5xl animate-bounce-slow">
-          {medals[rank as keyof typeof medals]}
-        </div>
-
-        {/* 순위 배지 */}
-        <div className={`
-          absolute -top-3 -right-3 w-12 h-12 rounded-full
-          bg-gradient-to-br ${colors[rank as keyof typeof colors]}
-          flex items-center justify-center text-2xl font-black text-white
-          shadow-lg ${glowColors[rank as keyof typeof glowColors]}
-        `}>
-          {rank}
-        </div>
-
-        {/* 컨텐츠 */}
-        <div className="text-center pt-4">
-          <div className={`text-3xl font-bold mb-2 ${rank === 1 ? 'text-yellow-400' : 'text-white'}`}>
-            <FlipText text={item.name} />
-          </div>
-          {item.school && (
-            <div className="text-sm text-slate-400 mb-3">{item.school}</div>
-          )}
-          <div className={`
-            text-4xl font-black
-            bg-gradient-to-r ${colors[rank as keyof typeof colors]} bg-clip-text text-transparent
-          `}>
-            <FlipText text={String(item.total)} />
-            <span className="text-lg text-slate-400 ml-1">점</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <span className={`inline-flex ${className}`}>
+      {text.split('').map((char, i) => (
+        <FlipChar key={`${text}-${i}`} char={char} delay={i * 50} />
+      ))}
+    </span>
   );
 }
 
-// 순위 행 (4위 이하용) - 공항 보드 스타일
-function RankingRow({ item, isNew = false }: { item: RankingItem; isNew?: boolean }) {
+// 순위 행 (공항 보드 스타일)
+function RankingRow({ item, index, gender }: { item: RankingItem; index: number; gender: 'male' | 'female' }) {
+  const medalColors = ['text-yellow-400', 'text-slate-300', 'text-orange-400'];
+  const medals = ['🥇', '🥈', '🥉'];
+  const borderColor = gender === 'male' ? 'border-blue-500/30' : 'border-pink-500/30';
+  const bgColor = gender === 'male' ? 'bg-blue-900/20' : 'bg-pink-900/20';
+
   return (
-    <div className={`
-      flex items-center gap-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700/50
-      ${isNew ? 'animate-slide-in' : ''}
-    `}>
+    <div
+      className={`
+        flex items-center gap-6 p-4 rounded-lg ${bgColor} border ${borderColor}
+        backdrop-blur-sm transform transition-all duration-500
+      `}
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
       {/* 순위 */}
-      <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-xl font-bold">
-        {item.rank}
+      <div className={`
+        w-16 h-16 rounded-xl flex items-center justify-center text-3xl font-black
+        ${item.rank <= 3
+          ? `bg-gradient-to-br ${item.rank === 1 ? 'from-yellow-400 to-amber-600' : item.rank === 2 ? 'from-slate-300 to-slate-500' : 'from-orange-400 to-orange-600'} text-black`
+          : 'bg-slate-700 text-white'
+        }
+      `}>
+        {item.rank <= 3 ? medals[item.rank - 1] : item.rank}
       </div>
 
-      {/* 이름 (플립 효과) */}
+      {/* 이름 (플립보드 스타일) */}
       <div className="flex-1">
-        <div className="flip-board-container">
-          {item.name.split('').map((char, i) => (
-            <span
-              key={i}
-              className="inline-block bg-slate-900 px-1 mx-0.5 rounded text-xl font-mono"
-              style={{ animationDelay: `${i * 0.05}s` }}
-            >
-              <FlipText text={char} />
-            </span>
-          ))}
+        <div className="text-3xl font-mono font-bold tracking-wider">
+          <FlipText text={item.name} />
         </div>
         {item.school && (
-          <div className="text-xs text-slate-500 mt-1">{item.school}</div>
+          <div className="text-lg text-slate-400 mt-1">{item.school}</div>
         )}
       </div>
 
-      {/* 점수 */}
+      {/* 점수 (플립보드 스타일) */}
       <div className="text-right">
-        <div className="flip-board-container">
-          {String(item.total).split('').map((char, i) => (
-            <span
-              key={i}
-              className="inline-block bg-gradient-to-b from-yellow-500 to-amber-600 text-black px-2 mx-0.5 rounded text-2xl font-mono font-bold"
-            >
-              <FlipText text={char} />
-            </span>
-          ))}
+        <div className="text-4xl font-mono font-black text-yellow-400 tracking-wider">
+          <FlipText text={String(item.total)} />
         </div>
-        <div className="text-xs text-slate-500">점</div>
+        <div className="text-lg text-slate-500">점</div>
       </div>
     </div>
   );
 }
 
 // 종목별 순위 (공항 보드 스타일)
-function EventBoard({ event, isActive }: { event: EventData; isActive: boolean }) {
+function EventBoard({ event }: { event: EventData }) {
+  const medals = ['🥇', '🥈', '🥉'];
+
   return (
-    <div className={`
-      transition-all duration-500 transform
-      ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95 absolute'}
-    `}>
+    <div className="h-full flex flex-col">
       {/* 종목명 */}
-      <div className="flex items-center justify-center gap-4 mb-6">
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-emerald-500/50" />
-        <h2 className="text-3xl font-bold text-emerald-400 px-4">
-          {event.short_name || event.name}
-          <span className="text-lg text-slate-500 ml-2">({event.unit})</span>
+      <div className="text-center mb-8">
+        <h2 className="text-5xl font-black text-emerald-400">
+          {event.shortName || event.name}
         </h2>
-        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-emerald-500/50" />
+        <div className="text-2xl text-slate-400 mt-2">단위: {event.unit}</div>
       </div>
 
-      {/* TOP 3 */}
-      <div className="flex justify-center gap-8 mb-6">
-        {event.records.slice(0, 3).map((record, idx) => (
-          <div
-            key={record.rank}
-            className={`
-              transform transition-all duration-500 hover:scale-110
-              ${idx === 0 ? 'scale-110 z-10' : 'scale-100'}
-            `}
-            style={{ animationDelay: `${idx * 0.1}s` }}
-          >
-            <div className="bg-slate-800/80 backdrop-blur rounded-xl p-4 border border-slate-700/50 min-w-[150px]">
-              <div className="text-center">
-                <span className="text-4xl">{['🥇', '🥈', '🥉'][idx]}</span>
-                <div className={`text-2xl font-bold mt-2 ${idx === 0 ? 'text-yellow-400' : 'text-white'}`}>
+      {event.records.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-3xl text-slate-500">아직 기록이 없습니다</div>
+        </div>
+      ) : (
+        <div className="flex-1 grid grid-cols-2 gap-4">
+          {event.records.slice(0, 10).map((record, idx) => (
+            <div
+              key={record.rank}
+              className={`
+                flex items-center gap-4 p-4 rounded-xl
+                bg-slate-800/60 border border-slate-700/50
+                ${idx < 3 ? 'col-span-2' : ''}
+              `}
+            >
+              {/* 순위 */}
+              <div className={`
+                w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-black
+                ${idx < 3
+                  ? `bg-gradient-to-br ${idx === 0 ? 'from-yellow-400 to-amber-600' : idx === 1 ? 'from-slate-300 to-slate-500' : 'from-orange-400 to-orange-600'} text-black`
+                  : 'bg-slate-700 text-white'
+                }
+              `}>
+                {idx < 3 ? medals[idx] : record.rank}
+              </div>
+
+              {/* 이름 */}
+              <div className="flex-1">
+                <div className={`text-2xl font-bold ${idx === 0 ? 'text-yellow-400' : 'text-white'}`}>
                   {record.name}
                 </div>
                 <span className={`
-                  inline-block px-2 py-0.5 rounded-full text-xs mt-1
+                  inline-block px-2 py-0.5 rounded text-sm mt-1
                   ${record.gender === 'M' ? 'bg-blue-500/30 text-blue-300' : 'bg-pink-500/30 text-pink-300'}
                 `}>
                   {record.gender === 'M' ? '남' : '여'}
                 </span>
-                <div className="mt-2">
-                  <span className={`text-3xl font-black ${idx === 0 ? 'text-yellow-400' : 'text-white'}`}>
-                    {record.value}
-                  </span>
-                  <span className="text-slate-400 ml-1">{event.unit}</span>
+              </div>
+
+              {/* 기록 */}
+              <div className="text-right">
+                <div className={`text-3xl font-black ${idx === 0 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                  {record.value}
+                  <span className="text-lg text-slate-400 ml-1">{event.unit}</span>
                 </div>
-                <div className="text-sm text-emerald-400 mt-1">{record.score}점</div>
+                <div className="text-sm text-slate-500">{record.score}점</div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* 4위 이하 */}
-      <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
-        {event.records.slice(3, 10).map((record) => (
-          <div
-            key={record.rank}
-            className="flex items-center gap-3 p-2 bg-slate-800/50 rounded-lg border border-slate-700/30"
-          >
-            <span className="w-8 h-8 rounded bg-slate-700 flex items-center justify-center font-bold">
-              {record.rank}
-            </span>
-            <span className="flex-1 font-medium truncate">{record.name}</span>
-            <span className={`
-              px-1.5 py-0.5 rounded text-xs
-              ${record.gender === 'M' ? 'bg-blue-500/30 text-blue-300' : 'bg-pink-500/30 text-pink-300'}
-            `}>
-              {record.gender === 'M' ? '남' : '여'}
-            </span>
-            <span className="font-bold text-emerald-400">{record.value}</span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -267,32 +206,38 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
   const [error, setError] = useState<string | null>(null);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [activeTab, setActiveTab] = useState<'male' | 'female' | 'event'>('male');
+  const [activeTab, setActiveTab] = useState<'ranking' | 'event'>('ranking');
+  const [showMale, setShowMale] = useState(true);
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 15000); // 15초마다 갱신
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [slug]);
 
-  // 탭 자동 전환 (15초)
+  // 탭 자동 전환 (20초)
   useEffect(() => {
-    const tabs: Array<'male' | 'female' | 'event'> = ['male', 'female', 'event'];
     const interval = setInterval(() => {
-      setActiveTab(prev => {
-        const currentIdx = tabs.indexOf(prev);
-        return tabs[(currentIdx + 1) % tabs.length];
-      });
-    }, 15000);
+      setActiveTab(prev => prev === 'ranking' ? 'event' : 'ranking');
+    }, 20000);
     return () => clearInterval(interval);
   }, []);
 
-  // 종목 자동 전환 (10초)
+  // 종합순위 남/여 자동 전환 (10초)
+  useEffect(() => {
+    if (activeTab !== 'ranking') return;
+    const interval = setInterval(() => {
+      setShowMale(prev => !prev);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
+  // 종목 자동 전환 (8초)
   useEffect(() => {
     if (!data?.events?.length || activeTab !== 'event') return;
     const interval = setInterval(() => {
       setCurrentEventIndex(prev => (prev + 1) % data.events.length);
-    }, 10000);
+    }, 8000);
     return () => clearInterval(interval);
   }, [data?.events?.length, activeTab]);
 
@@ -327,11 +272,11 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="text-center">
-          <div className="relative w-24 h-24 mx-auto mb-6">
+          <div className="relative w-32 h-32 mx-auto mb-8">
             <div className="absolute inset-0 border-4 border-blue-500/30 rounded-full animate-ping"></div>
-            <div className="absolute inset-2 border-4 border-t-blue-500 rounded-full animate-spin"></div>
+            <div className="absolute inset-4 border-4 border-t-blue-500 rounded-full animate-spin"></div>
           </div>
-          <p className="text-2xl text-slate-400 font-mono">LOADING...</p>
+          <p className="text-4xl text-slate-400 font-mono tracking-widest">LOADING...</p>
         </div>
       </div>
     );
@@ -341,213 +286,179 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="text-center">
-          <div className="text-6xl mb-6">📊</div>
-          <h1 className="text-3xl font-bold text-slate-400 mb-4">{data?.academy?.name}</h1>
-          <p className="text-xl text-slate-500">{error || '진행 중인 테스트가 없습니다.'}</p>
+          <div className="text-9xl mb-8">📊</div>
+          <h1 className="text-5xl font-bold text-slate-400 mb-6">{data?.academy?.name}</h1>
+          <p className="text-3xl text-slate-500">{error || '진행 중인 테스트가 없습니다.'}</p>
         </div>
       </div>
     );
   }
 
   const currentEvent = data.events[currentEventIndex];
+  const hasNoRankings = data.ranking.male.length === 0 && data.ranking.female.length === 0;
+  const hasNoEvents = data.events.every(e => e.records.length === 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white overflow-hidden">
       {/* 배경 효과 */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 w-[800px] h-[800px] bg-emerald-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       </div>
 
-      <div className="relative z-10 p-6 h-screen flex flex-col">
+      <div className="relative z-10 h-screen flex flex-col p-8">
         {/* 헤더 */}
-        <header className="text-center mb-6">
-          <h1 className="text-5xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+        <header className="text-center mb-8 flex-shrink-0">
+          <h1 className="text-6xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             {data.academy.name}
           </h1>
-          <h2 className="text-3xl font-bold text-white/80 mt-2">
+          <h2 className="text-4xl font-bold text-white/80 mt-3">
             {data.test.name}
           </h2>
-          <div className="flex items-center justify-center gap-6 mt-4 text-sm text-slate-500">
+          <div className="flex items-center justify-center gap-8 mt-4 text-xl text-slate-500">
             <span className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
               LIVE
             </span>
             <span>업데이트: {lastUpdated.toLocaleTimeString()}</span>
             <button
               onClick={handleFullscreen}
-              className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-lg"
             >
               전체화면
             </button>
           </div>
         </header>
 
-        {/* 탭 */}
-        <div className="flex justify-center gap-4 mb-6">
-          {[
-            { key: 'male', label: '종합순위 (남)', color: 'blue' },
-            { key: 'female', label: '종합순위 (여)', color: 'pink' },
-            { key: 'event', label: '종목별 순위', color: 'emerald' }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`
-                px-6 py-3 rounded-xl font-bold text-lg transition-all duration-300
-                ${activeTab === tab.key
-                  ? `bg-${tab.color}-500/20 border-2 border-${tab.color}-500 text-${tab.color}-400 scale-105`
-                  : 'bg-slate-800/50 border-2 border-slate-700/50 text-slate-400 hover:border-slate-600'
-                }
-              `}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* 탭 버튼 */}
+        <div className="flex justify-center gap-6 mb-8 flex-shrink-0">
+          <button
+            onClick={() => setActiveTab('ranking')}
+            className={`
+              px-10 py-4 rounded-2xl font-bold text-2xl transition-all duration-300
+              ${activeTab === 'ranking'
+                ? 'bg-blue-500/20 border-2 border-blue-500 text-blue-400 scale-105'
+                : 'bg-slate-800/50 border-2 border-slate-700/50 text-slate-400 hover:border-slate-600'
+              }
+            `}
+          >
+            🏆 종합순위
+          </button>
+          <button
+            onClick={() => setActiveTab('event')}
+            className={`
+              px-10 py-4 rounded-2xl font-bold text-2xl transition-all duration-300
+              ${activeTab === 'event'
+                ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 scale-105'
+                : 'bg-slate-800/50 border-2 border-slate-700/50 text-slate-400 hover:border-slate-600'
+              }
+            `}
+          >
+            📋 종목별 순위
+          </button>
         </div>
 
         {/* 메인 컨텐츠 */}
         <div className="flex-1 overflow-hidden">
-          {/* 종합순위 - 남자 */}
-          {activeTab === 'male' && (
-            <div className="h-full flex flex-col animate-fade-in">
-              <h2 className="text-3xl font-bold text-blue-400 text-center mb-6">🏆 종합순위 (남자)</h2>
+          {/* 종합순위 */}
+          {activeTab === 'ranking' && (
+            <div className="h-full">
+              {hasNoRankings ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-9xl mb-8">🏃</div>
+                    <div className="text-4xl text-slate-400">아직 기록이 없습니다</div>
+                    <div className="text-2xl text-slate-500 mt-4">테스트가 시작되면 순위가 표시됩니다</div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* 남/여 토글 */}
+                  <div className="flex justify-center gap-4 mb-6">
+                    <button
+                      onClick={() => setShowMale(true)}
+                      className={`
+                        px-8 py-3 rounded-xl font-bold text-xl transition-all
+                        ${showMale ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-400'}
+                      `}
+                    >
+                      👨 남자 ({data.ranking.male.length}명)
+                    </button>
+                    <button
+                      onClick={() => setShowMale(false)}
+                      className={`
+                        px-8 py-3 rounded-xl font-bold text-xl transition-all
+                        ${!showMale ? 'bg-pink-500 text-white' : 'bg-slate-700 text-slate-400'}
+                      `}
+                    >
+                      👩 여자 ({data.ranking.female.length}명)
+                    </button>
+                  </div>
 
-              {/* TOP 3 */}
-              <div className="flex justify-center items-end gap-8 mb-8">
-                {[1, 0, 2].map(idx => {
-                  const item = data.ranking.male[idx];
-                  if (!item) return null;
-                  return (
-                    <TopThreeCard
-                      key={item.rank}
-                      item={item}
-                      rank={item.rank}
-                      gender="male"
-                    />
-                  );
-                })}
-              </div>
-
-              {/* 4위 이하 */}
-              <div className="grid grid-cols-2 gap-3 max-w-3xl mx-auto">
-                {data.ranking.male.slice(3, 10).map(item => (
-                  <RankingRow key={item.rank} item={item} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 종합순위 - 여자 */}
-          {activeTab === 'female' && (
-            <div className="h-full flex flex-col animate-fade-in">
-              <h2 className="text-3xl font-bold text-pink-400 text-center mb-6">🏆 종합순위 (여자)</h2>
-
-              {/* TOP 3 */}
-              <div className="flex justify-center items-end gap-8 mb-8">
-                {[1, 0, 2].map(idx => {
-                  const item = data.ranking.female[idx];
-                  if (!item) return null;
-                  return (
-                    <TopThreeCard
-                      key={item.rank}
-                      item={item}
-                      rank={item.rank}
-                      gender="female"
-                    />
-                  );
-                })}
-              </div>
-
-              {/* 4위 이하 */}
-              <div className="grid grid-cols-2 gap-3 max-w-3xl mx-auto">
-                {data.ranking.female.slice(3, 10).map(item => (
-                  <RankingRow key={item.rank} item={item} />
-                ))}
-              </div>
+                  {/* 순위 목록 */}
+                  <div className="grid grid-cols-2 gap-4 max-h-[calc(100%-60px)] overflow-auto px-4">
+                    {(showMale ? data.ranking.male : data.ranking.female).map((item, idx) => (
+                      <RankingRow
+                        key={item.rank}
+                        item={item}
+                        index={idx}
+                        gender={showMale ? 'male' : 'female'}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
           {/* 종목별 순위 */}
           {activeTab === 'event' && (
-            <div className="h-full animate-fade-in relative">
-              {/* 종목 인디케이터 */}
-              <div className="flex justify-center gap-2 mb-4">
-                {data.events.map((e, idx) => (
-                  <button
-                    key={e.id}
-                    onClick={() => setCurrentEventIndex(idx)}
-                    className={`
-                      px-3 py-1 rounded-full text-sm transition-all
-                      ${idx === currentEventIndex
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                      }
-                    `}
-                  >
-                    {e.short_name || e.name}
-                  </button>
-                ))}
-              </div>
+            <div className="h-full">
+              {data.events.length === 0 ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-4xl text-slate-400">등록된 종목이 없습니다</div>
+                </div>
+              ) : (
+                <>
+                  {/* 종목 인디케이터 */}
+                  <div className="flex justify-center gap-3 mb-6">
+                    {data.events.map((e, idx) => (
+                      <button
+                        key={e.id}
+                        onClick={() => setCurrentEventIndex(idx)}
+                        className={`
+                          px-6 py-2 rounded-full text-xl font-bold transition-all
+                          ${idx === currentEventIndex
+                            ? 'bg-emerald-500 text-white scale-110'
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                          }
+                        `}
+                      >
+                        {e.shortName || e.name}
+                      </button>
+                    ))}
+                  </div>
 
-              {data.events.map((event, idx) => (
-                <EventBoard
-                  key={event.id}
-                  event={event}
-                  isActive={idx === currentEventIndex}
-                />
-              ))}
+                  {/* 현재 종목 */}
+                  {currentEvent && <EventBoard event={currentEvent} />}
+                </>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* 스타일 */}
+      {/* 글로벌 스타일 */}
       <style jsx global>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
+        @keyframes flip-in {
+          0% { transform: rotateX(-90deg); opacity: 0; }
+          100% { transform: rotateX(0deg); opacity: 1; }
         }
 
-        @keyframes slide-in {
-          from { opacity: 0; transform: translateX(-20px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        .animate-slide-in {
-          animation: slide-in 0.5s ease-out;
-        }
-
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-5px); }
-        }
-        .animate-bounce-slow {
-          animation: bounce-slow 2s ease-in-out infinite;
-        }
-
-        .flip-out {
-          transform: rotateX(-90deg);
-          opacity: 0;
-        }
-        .flip-in {
-          transform: rotateX(0deg);
-          opacity: 1;
-        }
-
-        .card-3d {
-          transform-style: preserve-3d;
-          transform: perspective(1000px) rotateX(5deg);
-          transition: transform 0.3s ease;
-        }
-        .card-3d:hover {
-          transform: perspective(1000px) rotateX(0deg) translateY(-5px);
-        }
-
-        .perspective-1000 {
-          perspective: 1000px;
+        * {
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
       `}</style>
     </div>

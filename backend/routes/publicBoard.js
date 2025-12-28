@@ -149,17 +149,18 @@ router.get('/:slug', async (req, res) => {
       });
     }
 
-    // 7. 기록 조회 (student_records + test_records)
+    // 7. 기록 조회 (student_records + test_records) - 테스트 세션 날짜 기준
     const studentIds = participants.filter(p => p.student_id).map(p => p.student_id);
+    const testDates = sessions.map(s => s.test_date);
     let studentRecords = {};
 
-    if (studentIds.length > 0 && recordTypeIds.length > 0) {
+    if (studentIds.length > 0 && recordTypeIds.length > 0 && testDates.length > 0) {
       const [records] = await pool.query(`
         SELECT student_id, record_type_id, value
         FROM student_records
-        WHERE student_id IN (?) AND record_type_id IN (?)
+        WHERE student_id IN (?) AND record_type_id IN (?) AND measured_at IN (?)
         ORDER BY measured_at DESC
-      `, [studentIds, recordTypeIds]);
+      `, [studentIds, recordTypeIds, testDates]);
 
       records.forEach(r => {
         if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
@@ -228,9 +229,9 @@ router.get('/:slug', async (req, res) => {
       };
     }).filter(Boolean);
 
-    // 9. 종합순위 (남/여 분리, TOP 10)
+    // 9. 종합순위 (남/여 분리, TOP 10) - 점수 0인 참가자 제외
     const maleRanking = participantData
-      .filter(p => p.gender === 'M')
+      .filter(p => p.gender === 'M' && p.totalScore > 0)
       .sort((a, b) => b.totalScore - a.totalScore)
       .slice(0, 10)
       .map((p, idx) => ({
@@ -242,7 +243,7 @@ router.get('/:slug', async (req, res) => {
       }));
 
     const femaleRanking = participantData
-      .filter(p => p.gender === 'F')
+      .filter(p => p.gender === 'F' && p.totalScore > 0)
       .sort((a, b) => b.totalScore - a.totalScore)
       .slice(0, 10)
       .map((p, idx) => ({
