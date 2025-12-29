@@ -11,19 +11,27 @@ interface Student {
   id: number;
   student_id: number;
   student_name: string;
-  gender: 'M' | 'F';
+  gender: 'M' | 'F' | string;
   status: string;
 }
 
-interface SlotTrainer {
-  trainer_id: number | null;
-  trainer_name: string;
+interface ClassInstructor {
+  id: number;
+  name: string;
+  isOwner?: boolean;
+  isMain?: boolean;
+}
+
+interface ClassData {
+  class_num: number;
+  instructors: ClassInstructor[];
   students: Student[];
 }
 
 interface SlotData {
-  instructors: { id: number; name: string }[];
-  trainers: SlotTrainer[];
+  waitingStudents: Student[];
+  waitingInstructors: ClassInstructor[];
+  classes: ClassData[];
 }
 
 interface Exercise {
@@ -139,8 +147,10 @@ export default function TabletTrainingPage() {
       setPlans(plansRes.data.plans || []);
       setExercises(exercisesRes.data.exercises || []);
 
-      // 자동 시간대 선택
+      // 자동 시간대 선택 (v2.0.0 classes 구조)
       const myInstructorId = user?.instructorId;
+      // 원장의 경우 음수 ID 사용
+      const myNegativeId = user?.role === 'owner' ? -(user?.id || 0) : null;
       const availableSlots: string[] = [];
       let mySlot: string | null = null;
       let myTrainerId: number | null = null;
@@ -148,21 +158,30 @@ export default function TabletTrainingPage() {
       ['morning', 'afternoon', 'evening'].forEach(slot => {
         const slotData = slotsData[slot] as SlotData;
         if (!slotData) return;
-        const hasData = slotData.instructors?.length > 0 || slotData.trainers?.some(t => t.trainer_id && t.students.length > 0);
+
+        // classes에 학생이 있는지 확인
+        const hasData = slotData.classes?.some(cls => cls.students?.length > 0);
         if (hasData) {
           availableSlots.push(slot);
-          if (myInstructorId) {
-            const mySchedule = slotData.instructors?.find(i => i.id === myInstructorId);
-            if (mySchedule) {
-              mySlot = slot;
-              const myTrainer = slotData.trainers?.find(t => t.trainer_id === myInstructorId);
-              if (myTrainer) myTrainerId = myTrainer.trainer_id;
-            }
+
+          // 내가 배치된 반 찾기
+          const myClass = slotData.classes?.find(cls =>
+            cls.instructors?.some(inst =>
+              inst.id === myInstructorId || inst.id === myNegativeId
+            )
+          );
+          if (myClass) {
+            mySlot = slot;
+            // 첫 번째 강사 ID를 trainer로 사용
+            const myInst = myClass.instructors?.find(inst =>
+              inst.id === myInstructorId || inst.id === myNegativeId
+            );
+            if (myInst) myTrainerId = myInst.id;
           }
         }
       });
 
-      if (!isAdmin && mySlot) {
+      if (mySlot) {
         setSelectedSlot(mySlot);
         setSelectedTrainerId(myTrainerId);
       } else if (availableSlots.length > 0) {
@@ -194,14 +213,35 @@ export default function TabletTrainingPage() {
   const availableSlots = ['morning', 'afternoon', 'evening'].filter(slot => {
     const slotData = slots[slot] as SlotData;
     if (!slotData) return false;
-    return slotData.instructors?.length > 0 || slotData.trainers?.some(t => t.trainer_id && t.students.length > 0);
+    return slotData.classes?.some(cls => cls.students?.length > 0);
   });
 
   const currentSlotData = slots[selectedSlot] as SlotData | undefined;
-  const currentTrainers = currentSlotData?.trainers?.filter(t => t.trainer_id) || [];
-  const myStudents = selectedTrainerId
-    ? currentTrainers.find(t => t.trainer_id === selectedTrainerId)?.students || []
-    : [];
+
+  // 현재 시간대의 강사 목록 (반별로)
+  const currentTrainers = (() => {
+    if (!currentSlotData) return [];
+    const trainers: { trainer_id: number; trainer_name: string; students: Student[] }[] = [];
+    currentSlotData.classes?.forEach(cls => {
+      cls.instructors?.forEach(inst => {
+        trainers.push({
+          trainer_id: inst.id,
+          trainer_name: inst.name,
+          students: cls.students || []
+        });
+      });
+    });
+    return trainers;
+  })();
+
+  // 내 반의 학생들 가져오기
+  const myStudents = (() => {
+    if (!currentSlotData || !selectedTrainerId) return [];
+    const myClass = currentSlotData.classes?.find(cls =>
+      cls.instructors?.some(inst => inst.id === selectedTrainerId)
+    );
+    return myClass?.students || [];
+  })();
 
   // 운동 이름 조회 (exercise_id 또는 id 둘 다 지원)
   const getExerciseName = (exercise: PlanExercise | { id?: number; name?: string; exercise_id?: number }): string => {
