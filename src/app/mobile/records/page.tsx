@@ -29,6 +29,27 @@ interface Student {
   trial_remaining?: number;
 }
 
+interface ClassInstructor {
+  id: number;
+  name: string;
+  isOwner?: boolean;
+  isMain?: boolean;
+}
+
+interface ClassData {
+  class_num: number;
+  instructors: ClassInstructor[];
+  students: Array<{
+    id: number;
+    student_id: number;
+    student_name: string;
+    student_gender: string;
+    is_trial?: boolean;
+    trial_total?: number;
+    trial_remaining?: number;
+  }>;
+}
+
 interface RecordType {
   id: number;
   name: string;
@@ -63,7 +84,6 @@ export default function MobileRecordsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<'student' | 'type'>('student');
   const [selectedType, setSelectedType] = useState<number | null>(null);
-
   // 데이터 로드
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -82,10 +102,40 @@ export default function MobileRecordsPage() {
       const slotData = assignData.slots?.[selectedTimeSlot];
       const slotStudents: Student[] = [];
 
+      // 현재 유저 정보
+      const currentUser = authAPI.getCurrentUser();
+      const userIsOwnerOrAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin';
+      const userInstructorId = currentUser?.instructorId;
+      // 원장의 경우 음수 ID 사용 (-user.id)
+      const userNegativeId = currentUser?.role === 'owner' ? -(currentUser?.id || 0) : null;
+
       if (slotData) {
-        // 반에 배치된 학생들
-        slotData.classes?.forEach((cls: { students: Array<{ id: number; student_id: number; student_name: string; student_gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }> }) => {
-          cls.students?.forEach(s => {
+        // 반에 배치된 학생들 - 강사 필터링 적용
+        (slotData.classes as ClassData[] || []).forEach((cls) => {
+          // 원장/관리자이거나, 내가 이 반의 강사인 경우에만 학생 포함
+          const isMyClass = userIsOwnerOrAdmin ||
+            cls.instructors?.some((inst: ClassInstructor) =>
+              inst.id === userInstructorId || inst.id === userNegativeId
+            );
+
+          if (isMyClass) {
+            cls.students?.forEach(s => {
+              slotStudents.push({
+                id: s.student_id,
+                assignment_id: s.id,
+                name: s.student_name,
+                gender: s.student_gender as 'male' | 'female',
+                is_trial: s.is_trial,
+                trial_total: s.trial_total,
+                trial_remaining: s.trial_remaining,
+              });
+            });
+          }
+        });
+
+        // 대기 중인 학생들 - 원장/관리자만 볼 수 있음
+        if (userIsOwnerOrAdmin) {
+          slotData.waitingStudents?.forEach((s: { id: number; student_id: number; student_name: string; student_gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
             slotStudents.push({
               id: s.student_id,
               assignment_id: s.id,
@@ -96,19 +146,7 @@ export default function MobileRecordsPage() {
               trial_remaining: s.trial_remaining,
             });
           });
-        });
-        // 대기 중인 학생들도 포함
-        slotData.waitingStudents?.forEach((s: { id: number; student_id: number; student_name: string; student_gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
-          slotStudents.push({
-            id: s.student_id,
-            assignment_id: s.id,
-            name: s.student_name,
-            gender: s.student_gender as 'male' | 'female',
-            is_trial: s.is_trial,
-            trial_total: s.trial_total,
-            trial_remaining: s.trial_remaining,
-          });
-        });
+        }
       }
 
       setStudents(slotStudents);

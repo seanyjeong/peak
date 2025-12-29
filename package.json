@@ -1,6 +1,6 @@
 {
   "name": "peak-temp",
-  "version": "4.0.2",
+  "version": "4.0.6",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -31,6 +31,27 @@ interface Student {
   trial_remaining?: number;
 }
 
+interface ClassInstructor {
+  id: number;
+  name: string;
+  isOwner?: boolean;
+  isMain?: boolean;
+}
+
+interface ClassData {
+  class_num: number;
+  instructors: ClassInstructor[];
+  students: Array<{
+    id: number;
+    student_id: number;
+    student_name: string;
+    gender: string;
+    is_trial?: boolean;
+    trial_total?: number;
+    trial_remaining?: number;
+  }>;
+}
+
 interface PlannedExercise {
   id: number;
   name: string;
@@ -109,13 +130,39 @@ export default function MobileTrainingPage() {
       const slotsData = assignmentsData.slots || {};
       const slotInfo = slotsData[selectedTimeSlot] || {};
 
-      // classes 안의 학생들 + waitingStudents 합치기
-      const allStudents = [
-        ...(slotInfo.waitingStudents || []),
-        ...((slotInfo.classes || []).flatMap((c: { students: unknown[] }) => c.students || []))
-      ];
+      // 현재 유저 정보
+      const currentUser = authAPI.getCurrentUser();
+      const userIsOwnerOrAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin';
+      const userInstructorId = currentUser?.instructorId;
+      // 원장의 경우 음수 ID 사용 (-user.id)
+      const userNegativeId = currentUser?.role === 'owner' ? -(currentUser?.id || 0) : null;
 
-      const slotData = allStudents.map((s: { id: number; student_id: number; student_name: string; gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
+      // 내 반의 학생들만 필터링
+      const myStudents: Array<{ id: number; student_id: number; student_name: string; gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }> = [];
+
+      // 반에 배치된 학생들 - 강사 필터링 적용
+      (slotInfo.classes as ClassData[] || []).forEach((cls) => {
+        // 원장/관리자이거나, 내가 이 반의 강사인 경우에만 학생 포함
+        const isMyClass = userIsOwnerOrAdmin ||
+          cls.instructors?.some((inst: ClassInstructor) =>
+            inst.id === userInstructorId || inst.id === userNegativeId
+          );
+
+        if (isMyClass) {
+          cls.students?.forEach(s => {
+            myStudents.push(s);
+          });
+        }
+      });
+
+      // 대기 중인 학생들 - 원장/관리자만 볼 수 있음
+      if (userIsOwnerOrAdmin) {
+        (slotInfo.waitingStudents || []).forEach((s: { id: number; student_id: number; student_name: string; gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
+          myStudents.push(s);
+        });
+      }
+
+      const slotData = myStudents.map((s) => {
         // 기존 로그에서 해당 학생의 컨디션/메모 찾기
         const existingLog = existingLogs.find((l: { student_id: number }) => l.student_id === s.student_id);
         return {
