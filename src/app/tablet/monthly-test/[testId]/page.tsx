@@ -6,6 +6,7 @@ import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
 
 interface RecordType {
@@ -45,6 +46,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
   const router = useRouter();
   const [test, setTest] = useState<MonthlyTest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showStatusModal, setShowStatusModal] = useState(false);
 
   useEffect(() => {
     fetchTest();
@@ -62,14 +64,28 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await apiClient.put(`/monthly-tests/${testId}`, {
+        ...test,
+        status: newStatus
+      });
+      setShowStatusModal(false);
+      fetchTest();
+    } catch (error) {
+      console.error('상태 변경 오류:', error);
+    }
+  };
+
+  const getStatusBadge = (status: string, clickable = false) => {
+    const baseClass = clickable ? 'cursor-pointer hover:opacity-80 hover:ring-2 hover:ring-offset-1 transition-all' : '';
     switch (status) {
       case 'draft':
-        return <Badge variant="default">준비중</Badge>;
+        return <Badge variant="default" className={baseClass}>준비중 {clickable && '▾'}</Badge>;
       case 'active':
-        return <Badge variant="success">진행중</Badge>;
+        return <Badge variant="success" className={baseClass}>진행중 {clickable && '▾'}</Badge>;
       case 'completed':
-        return <Badge variant="default">완료</Badge>;
+        return <Badge variant="default" className={baseClass}>완료 {clickable && '▾'}</Badge>;
       default:
         return null;
     }
@@ -103,7 +119,9 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
         </button>
         <div className="flex items-center gap-3 mt-2">
           <h1 className="text-2xl font-bold">{test.test_name}</h1>
-          {getStatusBadge(test.status)}
+          <button onClick={() => setShowStatusModal(true)} title="클릭하여 상태 변경">
+            {getStatusBadge(test.status, true)}
+          </button>
         </div>
       </div>
 
@@ -170,6 +188,43 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
           ))}
         </div>
       )}
+
+      {/* 상태 변경 모달 */}
+      <Modal
+        isOpen={showStatusModal}
+        onClose={() => setShowStatusModal(false)}
+        title="테스트 상태 변경"
+      >
+        <div className="space-y-3">
+          <button
+            onClick={() => handleStatusChange('draft')}
+            className={`w-full p-4 text-left border rounded-xl hover:bg-gray-50 min-h-16 ${
+              test.status === 'draft' ? 'border-blue-500 bg-blue-50' : ''
+            }`}
+          >
+            <div className="font-medium text-lg">준비중</div>
+            <div className="text-sm text-gray-500">테스트 준비 단계</div>
+          </button>
+          <button
+            onClick={() => handleStatusChange('active')}
+            className={`w-full p-4 text-left border rounded-xl hover:bg-gray-50 min-h-16 ${
+              test.status === 'active' ? 'border-green-500 bg-green-50' : ''
+            }`}
+          >
+            <div className="font-medium text-lg">진행중</div>
+            <div className="text-sm text-gray-500">테스트 진행 중 (전광판 활성화)</div>
+          </button>
+          <button
+            onClick={() => handleStatusChange('completed')}
+            className={`w-full p-4 text-left border rounded-xl hover:bg-gray-50 min-h-16 ${
+              test.status === 'completed' ? 'border-gray-500 bg-gray-50' : ''
+            }`}
+          >
+            <div className="font-medium text-lg">완료</div>
+            <div className="text-sm text-gray-500">테스트 종료</div>
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

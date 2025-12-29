@@ -176,14 +176,15 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
     );
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, clickable = false) => {
+    const baseClass = clickable ? 'cursor-pointer hover:opacity-80 hover:ring-2 hover:ring-offset-1 transition-all' : '';
     switch (status) {
       case 'draft':
-        return <Badge variant="default">준비중</Badge>;
+        return <Badge variant="default" className={baseClass}>준비중 {clickable && '▾'}</Badge>;
       case 'active':
-        return <Badge variant="success">진행중</Badge>;
+        return <Badge variant="success" className={baseClass}>진행중 {clickable && '▾'}</Badge>;
       case 'completed':
-        return <Badge variant="default">완료</Badge>;
+        return <Badge variant="default" className={baseClass}>완료 {clickable && '▾'}</Badge>;
       default:
         return null;
     }
@@ -202,8 +203,8 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
           </button>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{test.test_name}</h1>
-            <button onClick={() => setShowStatusModal(true)}>
-              {getStatusBadge(test.status)}
+            <button onClick={() => setShowStatusModal(true)} title="클릭하여 상태 변경">
+              {getStatusBadge(test.status, true)}
             </button>
           </div>
         </div>
