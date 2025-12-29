@@ -132,7 +132,6 @@ export default function MobileTrainingPage() {
 
       // 현재 유저 정보
       const currentUser = authAPI.getCurrentUser();
-      const userIsOwnerOrAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin';
       const userInstructorId = currentUser?.instructorId;
       // 원장의 경우 음수 ID 사용 (-user.id)
       const userNegativeId = currentUser?.role === 'owner' ? -(currentUser?.id || 0) : null;
@@ -140,13 +139,12 @@ export default function MobileTrainingPage() {
       // 내 반의 학생들만 필터링
       const myStudents: Array<{ id: number; student_id: number; student_name: string; gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }> = [];
 
-      // 반에 배치된 학생들 - 강사 필터링 적용
+      // 반에 배치된 학생들 - 내가 배치된 반만 필터링
       (slotInfo.classes as ClassData[] || []).forEach((cls) => {
-        // 원장/관리자이거나, 내가 이 반의 강사인 경우에만 학생 포함
-        const isMyClass = userIsOwnerOrAdmin ||
-          cls.instructors?.some((inst: ClassInstructor) =>
-            inst.id === userInstructorId || inst.id === userNegativeId
-          );
+        // 내가 이 반의 강사인 경우에만 학생 포함
+        const isMyClass = cls.instructors?.some((inst: ClassInstructor) =>
+          inst.id === userInstructorId || inst.id === userNegativeId
+        );
 
         if (isMyClass) {
           cls.students?.forEach(s => {
@@ -154,13 +152,7 @@ export default function MobileTrainingPage() {
           });
         }
       });
-
-      // 대기 중인 학생들 - 원장/관리자만 볼 수 있음
-      if (userIsOwnerOrAdmin) {
-        (slotInfo.waitingStudents || []).forEach((s: { id: number; student_id: number; student_name: string; gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
-          myStudents.push(s);
-        });
-      }
+      // 대기 중인 학생은 모바일에서 표시하지 않음 (PC에서 배치 후 사용)
 
       const slotData = myStudents.map((s) => {
         // 기존 로그에서 해당 학생의 컨디션/메모 찾기
@@ -181,13 +173,19 @@ export default function MobileTrainingPage() {
 
       setStudents(slotData);
 
-      // 수업 계획 로드
+      // 수업 계획 로드 (내 계획만 필터링)
       const planRes = await fetch(
         `${API_BASE}/plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
         { headers }
       );
       const planData = await planRes.json();
-      setPlans(planData.plans || []);
+
+      // 내 instructor_id와 일치하는 계획만 필터링
+      const myInstructorId = userInstructorId || userNegativeId;
+      const myPlans = (planData.plans || []).filter((p: { instructor_id: number }) =>
+        p.instructor_id === myInstructorId
+      );
+      setPlans(myPlans);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
