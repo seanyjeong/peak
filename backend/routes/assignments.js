@@ -448,7 +448,7 @@ router.post('/sync', verifyToken, async (req, res) => {
                 peakStudentId = peakStudents[0].id;
                 await db.query(`
                     UPDATE students SET name = ?, gender = ?, school = ?, grade = ?,
-                           is_trial = ?, trial_remaining = ?
+                           is_trial = ?, trial_total = ?, trial_remaining = ?
                     WHERE id = ?
                 `, [
                     decryptedName,
@@ -456,6 +456,7 @@ router.post('/sync', verifyToken, async (req, res) => {
                     ps.school,
                     ps.grade,
                     ps.is_trial ? 1 : 0,
+                    trialTotal,
                     ps.trial_remaining || 0,
                     peakStudentId
                 ]);
