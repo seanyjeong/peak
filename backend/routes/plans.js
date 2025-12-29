@@ -86,16 +86,30 @@ router.get('/', async (req, res) => {
 
         const [plans] = await db.query(planQuery, params);
 
+        // 운동 목록 조회 (이름 매칭용)
+        const [allExercises] = await db.query('SELECT id, name FROM exercises');
+        const exerciseMap = {};
+        allExercises.forEach(ex => { exerciseMap[ex.id] = ex.name; });
+
         // 계획에 강사 이름 매칭
         const allInstructors = [...bySlot.morning, ...bySlot.afternoon, ...bySlot.evening];
         const result = plans.map(p => {
             const instructor = allInstructors.find(i => i.id === p.instructor_id);
+            const exercises = typeof p.exercises === 'string' ? JSON.parse(p.exercises) : (p.exercises || []);
+
+            // exercises에 name 추가
+            const exercisesWithNames = exercises.map(ex => ({
+                ...ex,
+                id: ex.exercise_id || ex.id,
+                name: ex.name || exerciseMap[ex.exercise_id] || exerciseMap[ex.id] || `운동 #${ex.exercise_id || ex.id}`
+            }));
+
             return {
                 ...p,
                 instructor_name: instructor?.name || '알 수 없음',
                 isOwner: instructor?.isOwner || false,
                 tags: typeof p.tags === 'string' ? JSON.parse(p.tags) : (p.tags || []),
-                exercises: typeof p.exercises === 'string' ? JSON.parse(p.exercises) : (p.exercises || []),
+                exercises: exercisesWithNames,
                 completed_exercises: typeof p.completed_exercises === 'string' ? JSON.parse(p.completed_exercises) : (p.completed_exercises || []),
                 extra_exercises: typeof p.extra_exercises === 'string' ? JSON.parse(p.extra_exercises) : (p.extra_exercises || []),
                 exercise_times: typeof p.exercise_times === 'string' ? JSON.parse(p.exercise_times) : (p.exercise_times || {})
