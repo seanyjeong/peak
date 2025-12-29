@@ -18,34 +18,100 @@ router.delete('/:sessionId', async (req, res) => {
   }
 });
 
-// 조 편성 조회 (감독관 + 학생 포함)
+// 조 편성 조회 (감독관 + 학생 포함) - P-ACA 자동 동기화
 router.get('/:sessionId/groups', async (req, res) => {
+  const conn = await pool.getConnection();
   try {
     const { sessionId } = req.params;
 
     // 세션 정보
-    const [sessions] = await pool.query(`
-      SELECT ts.*, mt.test_name, mt.test_month
+    const [sessions] = await conn.query(`
+      SELECT ts.*, mt.test_name, mt.test_month, mt.id as monthly_test_id
       FROM test_sessions ts
       JOIN monthly_tests mt ON ts.monthly_test_id = mt.id
       WHERE ts.id = ?
     `, [sessionId]);
 
     if (sessions.length === 0) {
+      conn.release();
       return res.status(404).json({ success: false, message: '세션을 찾을 수 없습니다.' });
     }
 
     const session = sessions[0];
 
+    // === P-ACA 자동 동기화 ===
+    // 1. P-ACA에서 현재 active 재원생 조회
+    const [pacaActiveStudents] = await pacaPool.query(`
+      SELECT id, name, gender, school, grade
+      FROM students
+      WHERE academy_id = ? AND status = 'active' AND deleted_at IS NULL
+    `, [ACADEMY_ID]);
+
+    const pacaActiveIds = new Set(pacaActiveStudents.map(s => s.id));
+
+    // 2. 같은 테스트의 모든 세션에서 이미 등록된 학생 (paca_student_id 기준)
+    const [allParticipants] = await conn.query(`
+      SELECT tp.id, tp.student_id, tp.test_session_id, s.paca_student_id
+      FROM test_participants tp
+      JOIN test_sessions ts ON tp.test_session_id = ts.id
+      JOIN students s ON tp.student_id = s.id
+      WHERE ts.monthly_test_id = ? AND tp.student_id IS NOT NULL
+    `, [session.monthly_test_id]);
+
+    const registeredPacaIds = new Set(allParticipants.map(p => p.paca_student_id));
+
+    // 3. P-ACA에 active인데 아직 등록 안 된 학생 → 자동 추가
+    const toAdd = pacaActiveStudents.filter(ps => !registeredPacaIds.has(ps.id));
+
+    if (toAdd.length > 0) {
+      // P-EAK students에서 paca_student_id로 매칭
+      const toAddPacaIds = toAdd.map(s => s.id);
+      const [peakStudents] = await conn.query(`
+        SELECT id, paca_student_id FROM students WHERE paca_student_id IN (?)
+      `, [toAddPacaIds]);
+
+      const peakStudentMap = {};
+      peakStudents.forEach(s => { peakStudentMap[s.paca_student_id] = s.id; });
+
+      for (const ps of toAdd) {
+        let peakStudentId = peakStudentMap[ps.id];
+
+        // P-EAK에 없으면 생성
+        if (!peakStudentId) {
+          const [insertResult] = await conn.query(`
+            INSERT INTO students (paca_student_id, name, gender, school, grade, status, is_trial)
+            VALUES (?, ?, ?, ?, ?, 'active', 0)
+          `, [ps.id, decrypt(ps.name), ps.gender === 'male' ? 'M' : 'F', ps.school, ps.grade]);
+          peakStudentId = insertResult.insertId;
+        }
+
+        // test_participants에 추가
+        await conn.query(`
+          INSERT INTO test_participants (test_session_id, student_id, participant_type)
+          VALUES (?, ?, 'enrolled')
+        `, [sessionId, peakStudentId]);
+      }
+    }
+
+    // 4. test_participants에 있지만 P-ACA에서 더 이상 active가 아닌 학생 → 자동 제거
+    const thisSessionParticipants = allParticipants.filter(p => p.test_session_id == sessionId);
+    const toRemove = thisSessionParticipants.filter(p => p.paca_student_id && !pacaActiveIds.has(p.paca_student_id));
+
+    if (toRemove.length > 0) {
+      const toRemoveIds = toRemove.map(p => p.id);
+      await conn.query(`DELETE FROM test_participants WHERE id IN (?)`, [toRemoveIds]);
+    }
+    // === 동기화 끝 ===
+
     // 조 목록
-    const [groups] = await pool.query(`
+    const [groups] = await conn.query(`
       SELECT * FROM test_groups
       WHERE test_session_id = ?
       ORDER BY group_num
     `, [sessionId]);
 
     // 조별 감독관
-    const [supervisors] = await pool.query(`
+    const [supervisors] = await conn.query(`
       SELECT tgs.*, tg.group_num
       FROM test_group_supervisors tgs
       JOIN test_groups tg ON tgs.test_group_id = tg.id
@@ -90,7 +156,7 @@ router.get('/:sessionId/groups', async (req, res) => {
     });
 
     // 참가자 목록 (학생)
-    const [participants] = await pool.query(`
+    const [participants] = await conn.query(`
       SELECT tp.*, s.name as student_name, s.gender, s.school, s.grade
       FROM test_participants tp
       LEFT JOIN students s ON tp.student_id = s.id
@@ -207,6 +273,8 @@ router.get('/:sessionId/groups', async (req, res) => {
   } catch (error) {
     console.error('조 편성 조회 오류:', error);
     res.status(500).json({ success: false, message: error.message });
+  } finally {
+    conn.release();
   }
 });
 
@@ -341,7 +409,7 @@ router.put('/:sessionId/participants/:participantId', async (req, res) => {
   }
 });
 
-// 재원생 동기화 (재원생만, 체험생 제외)
+// 재원생 동기화 (재원생만, 체험생 제외) - P-ACA 상태 기준으로 조회
 router.post('/:sessionId/participants/sync', async (req, res) => {
   const conn = await pool.getConnection();
   try {
@@ -370,21 +438,52 @@ router.post('/:sessionId/participants/sync', async (req, res) => {
 
     const existingIds = new Set(existing.map(e => e.student_id));
 
-    // P-EAK에서 재원생만 조회 (체험생, 휴원생 제외)
-    const [students] = await pool.query(`
-      SELECT id, name, gender, school, grade, status, is_trial
+    // P-ACA에서 재원생(active)만 조회 (미등록, 체험, 휴원, 졸업 제외)
+    const [pacaStudents] = await pacaPool.query(`
+      SELECT id, name, gender, school, grade
       FROM students
-      WHERE status = 'active' AND is_trial = 0
+      WHERE academy_id = ? AND status = 'active' AND deleted_at IS NULL
       ORDER BY name
-    `);
+    `, [ACADEMY_ID]);
+
+    // P-ACA 학생 ID로 P-EAK students에서 매칭되는 학생 찾기
+    const pacaIds = pacaStudents.map(s => s.id);
+
+    let peakStudentMap = {};
+    if (pacaIds.length > 0) {
+      const [peakStudents] = await conn.query(`
+        SELECT id, paca_student_id FROM students WHERE paca_student_id IN (?)
+      `, [pacaIds]);
+      peakStudents.forEach(s => {
+        peakStudentMap[s.paca_student_id] = s.id;
+      });
+    }
 
     let added = 0;
-    for (const s of students) {
-      if (!existingIds.has(s.id)) {
+    for (const ps of pacaStudents) {
+      const peakStudentId = peakStudentMap[ps.id];
+
+      // P-EAK에 없는 학생이면 생성
+      if (!peakStudentId) {
+        const [insertResult] = await conn.query(`
+          INSERT INTO students (paca_student_id, name, gender, school, grade, status, is_trial)
+          VALUES (?, ?, ?, ?, ?, 'active', 0)
+        `, [ps.id, decrypt(ps.name), ps.gender === 'male' ? 'M' : 'F', ps.school, ps.grade]);
+
+        const newStudentId = insertResult.insertId;
+        if (!existingIds.has(newStudentId)) {
+          await conn.query(`
+            INSERT INTO test_participants (test_session_id, student_id, participant_type)
+            VALUES (?, ?, 'enrolled')
+          `, [sessionId, newStudentId]);
+          added++;
+        }
+      } else if (!existingIds.has(peakStudentId)) {
+        // 기존 P-EAK 학생이 이미 등록되지 않았으면 추가
         await conn.query(`
           INSERT INTO test_participants (test_session_id, student_id, participant_type)
           VALUES (?, ?, 'enrolled')
-        `, [sessionId, s.id]);
+        `, [sessionId, peakStudentId]);
         added++;
       }
     }
