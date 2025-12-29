@@ -177,7 +177,9 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
   }
 
   const getStatusBadge = (status: string, clickable = false) => {
-    const baseClass = clickable ? 'cursor-pointer hover:opacity-80 hover:ring-2 hover:ring-offset-1 transition-all' : '';
+    const baseClass = clickable
+      ? 'cursor-pointer hover:opacity-80 hover:ring-2 hover:ring-offset-1 transition-all text-lg px-4 py-1.5'
+      : '';
     switch (status) {
       case 'draft':
         return <Badge variant="default" className={baseClass}>준비중 {clickable && '▾'}</Badge>;
