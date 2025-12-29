@@ -16,13 +16,31 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 모바일 감지 (스마트폰)
-  // iPhone, Android+Mobile, webOS, BlackBerry, IEMobile
-  const isMobile = /iPhone|Android.*Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  // 태블릿 감지 (먼저 체크! - 아이뮤즈 L11 포함)
+  // iPad, 아이뮤즈(IMUZ, im-h091), 삼성 태블릿(SM-T), Android 태블릿
+  const isTablet = /iPad|IMUZ|im-h\d|H091|SM-T\d|GT-P\d|Tab|tablet/i.test(ua) ||
+    (/Android/i.test(ua) && !/Mobile/i.test(ua));
 
-  // 태블릿 감지 (아이뮤즈 L11 포함)
-  // iPad, Android 태블릿 (Mobile 제외), 아이뮤즈 감지
-  const isTablet = /iPad|Android(?!.*Mobile)|tablet|IMUZ|imuz/i.test(ua);
+  // 모바일 감지 (스마트폰) - 태블릿이 아닌 경우만
+  // iPhone, Android+Mobile, webOS, BlackBerry, IEMobile
+  const isMobile = !isTablet && /iPhone|Android.*Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
+  // 태블릿 사용자가 PC 경로에 접근하면 태블릿 버전으로 리다이렉트
+  if (isTablet) {
+    // 이미 tablet 경로면 스킵
+    if (pathname.startsWith('/tablet')) {
+      return NextResponse.next();
+    }
+
+    // 루트 경로면 대시보드로
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL('/tablet/dashboard', request.url));
+    }
+
+    // PC 경로를 태블릿 경로로 변환
+    const tabletPath = `/tablet${pathname}`;
+    return NextResponse.redirect(new URL(tabletPath, request.url));
+  }
 
   // 모바일 사용자 처리
   if (isMobile) {
@@ -47,25 +65,6 @@ export function middleware(request: NextRequest) {
 
     // 지원하지 않는 경로는 기록측정으로
     return NextResponse.redirect(new URL('/mobile/records', request.url));
-  }
-
-  // 태블릿 사용자가 PC 경로에 접근하면 태블릿 버전으로 리다이렉트
-  if (isTablet) {
-    // 이미 tablet 경로면 스킵
-    if (pathname.startsWith('/tablet')) {
-      return NextResponse.next();
-    }
-
-    // 루트 경로면 대시보드로
-    if (pathname === '/') {
-      return NextResponse.redirect(new URL('/tablet/dashboard', request.url));
-    }
-
-    // PC 경로를 태블릿 경로로 변환
-    // /dashboard -> /tablet/dashboard
-    // /students/123 -> /tablet/students/123
-    const tabletPath = `/tablet${pathname}`;
-    return NextResponse.redirect(new URL(tabletPath, request.url));
   }
 
   return NextResponse.next();

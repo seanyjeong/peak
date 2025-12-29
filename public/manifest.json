@@ -2,8 +2,9 @@
   "name": "P-EAK",
   "short_name": "P-EAK",
   "description": "Physical Excellence Achievement Keeper - 체육 성과 기록 관리 시스템",
-  "start_url": "/dashboard",
+  "start_url": "/tablet/dashboard",
   "display": "standalone",
+  "orientation": "landscape",
   "background_color": "#ea6a3a",
   "theme_color": "#ea6a3a",
   "icons": [
