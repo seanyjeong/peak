@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -68,43 +68,29 @@ const TIME_SLOT_INFO: Record<TimeSlot, { label: string; color: string; bgColor: 
   evening: { label: '저녁', color: 'text-purple-600', bgColor: 'bg-purple-100' },
 };
 
-// 컴팩트 학생 카드
+// 컴팩트 학생 카드 (태블릿용 작게)
 function CompactStudentCard({ student, isDragging }: { student: Student; isDragging?: boolean }) {
   const genderColor = student.gender === 'M' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700';
   const isAbsent = student.attendance_status === 'absent';
 
   return (
     <div
-      className={`flex items-center gap-2 px-3 py-2 bg-white rounded-lg border shadow-sm cursor-grab active:cursor-grabbing transition touch-none ${
+      className={`flex items-center gap-1 px-2 py-1 bg-white rounded border shadow-sm cursor-grab active:cursor-grabbing transition touch-none ${
         isDragging ? 'opacity-50 border-orange-400 shadow-lg scale-105' : ''
       } ${isAbsent ? 'opacity-60 border-red-200 bg-red-50' : 'hover:border-slate-300'}`}
     >
-      <span className={`px-2 py-1 rounded text-xs font-medium ${genderColor}`}>
+      <span className={`px-1 py-0.5 rounded text-xs font-medium ${genderColor}`}>
         {student.gender === 'M' ? '남' : '여'}
       </span>
-      <span className={`font-medium text-base truncate max-w-[80px] ${isAbsent ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+      <span className={`font-medium text-sm truncate max-w-[60px] ${isAbsent ? 'line-through text-slate-400' : 'text-slate-800'}`}>
         {student.student_name}
       </span>
       {isAbsent && (
-        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-600">결석</span>
+        <span className="px-1 py-0.5 rounded text-xs bg-red-100 text-red-600">결</span>
       )}
-      <Link
-        href={`/tablet/students/${student.student_id}`}
-        className="p-1 hover:bg-orange-100 rounded transition"
-        title="프로필"
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <ExternalLink size={14} className="text-orange-500" />
-      </Link>
       {!isAbsent && !!student.is_trial && (
-        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">
+        <span className="px-1 py-0.5 rounded text-xs bg-purple-100 text-purple-700">
           {student.trial_total - student.trial_remaining}/{student.trial_total}
-        </span>
-      )}
-      {isAbsent && student.absence_reason && (
-        <span className="text-xs text-red-500 truncate max-w-[60px]" title={student.absence_reason}>
-          ({student.absence_reason})
         </span>
       )}
     </div>
@@ -338,6 +324,9 @@ export default function TabletAssignmentsPage() {
     return now.toISOString().split('T')[0];
   });
 
+  // 스크롤 위치 저장용
+  const scrollPositionRef = useRef<number>(0);
+
   const formatDateKorean = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00');
     return date.toLocaleDateString('ko-KR', {
@@ -440,6 +429,9 @@ export default function TabletAssignmentsPage() {
     const overId = over.id as string;
     const data = active.data.current;
 
+    // 스크롤 위치 저장
+    scrollPositionRef.current = window.scrollY;
+
     try {
       if (data?.type === 'student') {
         const student = data.student as Student;
@@ -484,6 +476,11 @@ export default function TabletAssignmentsPage() {
       }
 
       await fetchData();
+
+      // 스크롤 위치 복원
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollPositionRef.current);
+      });
     } catch (error) {
       console.error('Failed to update:', error);
     }
