@@ -31,13 +31,13 @@ router.post('/sync', verifyToken, async (req, res) => {
             return res.status(400).json({ error: '학원 ID가 필요합니다.' });
         }
 
-        // P-ACA에서 해당 학원의 학생 목록 가져오기 (재원생, 휴원생, 체험생)
-        // pending(미등록관리), withdrawn(퇴원), graduated(졸업) 제외
+        // P-ACA에서 해당 학원의 학생 목록 가져오기 (재원생, 휴원생, 체험생, 미등록관리)
+        // withdrawn(퇴원), graduated(졸업) 제외
         const [pacaStudents] = await pacaPool.query(`
             SELECT id, name, gender, phone, school, grade, enrollment_date, status,
                    class_days, trial_remaining, trial_dates
             FROM students
-            WHERE academy_id = ? AND status IN ('active', 'paused', 'trial')
+            WHERE academy_id = ? AND status IN ('active', 'paused', 'trial', 'pending')
             ORDER BY name
         `, [academyId]);
 
@@ -69,10 +69,11 @@ router.post('/sync', verifyToken, async (req, res) => {
             const gender = student.gender === 'male' ? 'M' : 'F';
 
             // status 변환 (P-ACA -> P-EAK)
-            // P-ACA: active, paused, trial
-            // P-EAK: active, inactive
+            // P-ACA: active, paused, trial, pending
+            // P-EAK: active, inactive, pending
             let status = 'active';
             if (student.status === 'paused') status = 'inactive';
+            if (student.status === 'pending') status = 'pending';
 
             // 체험생 상태 처리 - P-ACA status='trial'인 경우에만 체험생
             const isTrial = student.status === 'trial' ? 1 : 0;

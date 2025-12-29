@@ -41,6 +41,7 @@ export default function StudentsPage() {
     active: students.filter(s => s.status === 'active' && !s.is_trial).length,
     inactive: students.filter(s => s.status === 'inactive').length,
     injury: students.filter(s => s.status === 'injury').length,
+    pending: students.filter(s => s.status === 'pending').length,
     trial: students.filter(s => s.is_trial).length,
   };
 
