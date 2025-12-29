@@ -35,6 +35,15 @@ interface MonthlyTest {
   sessions: Session[];
 }
 
+interface AllRecordType {
+  id: number;
+  name: string;
+  short_name: string;
+  unit: string;
+  direction: 'higher' | 'lower';
+  is_active: boolean;
+}
+
 const TIME_SLOT_LABELS: Record<string, string> = {
   morning: '오전',
   afternoon: '오후',
@@ -48,9 +57,26 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
   const [loading, setLoading] = useState(true);
   const [showStatusModal, setShowStatusModal] = useState(false);
 
+  // 수정 모달 상태
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [allRecordTypes, setAllRecordTypes] = useState<AllRecordType[]>([]);
+  const [editName, setEditName] = useState('');
+  const [editSelectedTypes, setEditSelectedTypes] = useState<number[]>([]);
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     fetchTest();
+    fetchRecordTypes();
   }, [testId]);
+
+  const fetchRecordTypes = async () => {
+    try {
+      const res = await apiClient.get('/record-types');
+      setAllRecordTypes((res.data.recordTypes || []).filter((t: AllRecordType) => t.is_active));
+    } catch (error) {
+      console.error('종목 목록 로드 오류:', error);
+    }
+  };
 
   const fetchTest = async () => {
     try {
@@ -74,6 +100,49 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
       fetchTest();
     } catch (error) {
       console.error('상태 변경 오류:', error);
+    }
+  };
+
+  const openEditModal = () => {
+    if (test) {
+      setEditName(test.test_name);
+      setEditSelectedTypes(test.record_types.map(t => t.record_type_id));
+      setShowEditModal(true);
+    }
+  };
+
+  const toggleEditType = (typeId: number) => {
+    setEditSelectedTypes(prev =>
+      prev.includes(typeId)
+        ? prev.filter(id => id !== typeId)
+        : [...prev, typeId]
+    );
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) {
+      alert('테스트 이름을 입력해주세요.');
+      return;
+    }
+    if (editSelectedTypes.length === 0) {
+      alert('최소 1개 이상의 종목을 선택해주세요.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await apiClient.put(`/monthly-tests/${testId}`, {
+        test_name: editName.trim(),
+        status: test?.status,
+        notes: test?.notes,
+        record_type_ids: editSelectedTypes
+      });
+      setShowEditModal(false);
+      fetchTest();
+    } catch (error: any) {
+      alert(error.response?.data?.message || '수정 실패');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -124,6 +193,11 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
           <button onClick={() => setShowStatusModal(true)} title="클릭하여 상태 변경">
             {getStatusBadge(test.status, true)}
           </button>
+          {test.status === 'draft' && (
+            <Button variant="outline" onClick={openEditModal} className="min-h-12">
+              ✏️ 수정
+            </Button>
+          )}
         </div>
       </div>
 
@@ -225,6 +299,74 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
             <div className="font-medium text-lg">완료</div>
             <div className="text-sm text-gray-500">테스트 종료</div>
           </button>
+        </div>
+      </Modal>
+
+      {/* 수정 모달 (준비중 상태에서만) */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="테스트 수정"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">테스트 이름</label>
+            <input
+              type="text"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              className="w-full px-4 py-3 border rounded-xl text-lg"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">측정 종목 선택</label>
+            <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
+              {allRecordTypes.map(type => (
+                <label
+                  key={type.id}
+                  className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors min-h-14 ${
+                    editSelectedTypes.includes(type.id)
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={editSelectedTypes.includes(type.id)}
+                    onChange={() => toggleEditType(type.id)}
+                    className="w-5 h-5"
+                  />
+                  <span className="text-base">
+                    {type.name}
+                    <span className="text-gray-400 ml-1">({type.unit})</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            {editSelectedTypes.length > 0 && (
+              <p className="text-sm text-blue-600 mt-2">
+                {editSelectedTypes.length}개 종목 선택됨
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowEditModal(false)}
+              className="flex-1 min-h-14 text-lg"
+            >
+              취소
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={saving || editSelectedTypes.length === 0}
+              className="flex-1 min-h-14 text-lg"
+            >
+              {saving ? '저장 중...' : '저장'}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
