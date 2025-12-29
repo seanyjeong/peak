@@ -21,15 +21,23 @@ interface Student {
   gender: 'M' | 'F';
 }
 
-interface SlotTrainer {
-  trainer_id: number | null;
-  trainer_name: string;
+interface ClassInstructor {
+  id: number;
+  name: string;
+  isOwner?: boolean;
+  isMain?: boolean;
+}
+
+interface ClassData {
+  class_num: number;
+  instructors: ClassInstructor[];
   students: Student[];
 }
 
 interface SlotData {
-  instructors: { id: number; name: string }[];
-  trainers: SlotTrainer[];
+  waitingStudents: Student[];
+  waitingInstructors: ClassInstructor[];
+  classes: ClassData[];
 }
 
 interface ScoreRange {
@@ -63,7 +71,6 @@ export default function TabletRecordsPage() {
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
   const [slots, setSlots] = useState<Record<string, SlotData>>({});
   const [selectedSlot, setSelectedSlot] = useState<string>('');
-  const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [measuredAt, setMeasuredAt] = useState(() => {
@@ -79,7 +86,6 @@ export default function TabletRecordsPage() {
   const [expandedStudents, setExpandedStudents] = useState<Set<number>>(new Set());
   const [savedStudents, setSavedStudents] = useState<Set<number>>(new Set());
 
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
   const loadExistingRecords = useCallback(async (studentIds: number[], date: string) => {
     if (studentIds.length === 0) return;
@@ -103,7 +109,6 @@ export default function TabletRecordsPage() {
       setLoading(true);
       const user = authAPI.getCurrentUser();
       setCurrentUser(user);
-      const admin = user?.role === 'admin' || user?.role === 'owner';
 
       const typesRes = await apiClient.get('/record-types');
       const activeTypes = (typesRes.data.recordTypes || []).filter((t: RecordType) => t.is_active);
@@ -118,24 +123,24 @@ export default function TabletRecordsPage() {
       setSlots(slotsData);
 
       const myInstructorId = user?.instructorId;
+      // 원장의 경우 음수 ID 사용 (-user.id)
+      const myNegativeId = user?.role === 'owner' ? -(user?.id || 0) : null;
       const availableSlots: string[] = [];
       let mySlot: string | null = null;
-      let myTrainerIdInSlot: number | null = null;
 
       ['morning', 'afternoon', 'evening'].forEach(slot => {
         const slotData = slotsData[slot] as SlotData;
         if (!slotData) return;
-        const hasInstructors = slotData.instructors?.length > 0;
-        const hasAssignments = slotData.trainers?.some(t => t.trainer_id && t.students.length > 0);
-        if (hasInstructors || hasAssignments) {
+        // v2.0.0: classes 구조 사용
+        const hasClasses = slotData.classes?.some(c => c.instructors?.length > 0 || c.students?.length > 0);
+        if (hasClasses) {
           availableSlots.push(slot);
-          if (myInstructorId) {
-            const mySchedule = slotData.instructors?.find(i => i.id === myInstructorId);
-            if (mySchedule) {
-              mySlot = slot;
-              const myTrainer = slotData.trainers?.find(t => t.trainer_id === myInstructorId);
-              if (myTrainer) myTrainerIdInSlot = myTrainer.trainer_id;
-            }
+          // 내가 배정된 반 찾기
+          const myClass = slotData.classes?.find(c =>
+            c.instructors?.some(inst => inst.id === myInstructorId || inst.id === myNegativeId)
+          );
+          if (myClass) {
+            mySlot = slot;
           }
         }
       });
@@ -143,12 +148,9 @@ export default function TabletRecordsPage() {
       // 기존 선택이 유효하면 유지, 없으면 새로 설정
       setSelectedSlot(prev => {
         if (prev && availableSlots.includes(prev)) return prev;
-        if (!admin && mySlot) return mySlot;
+        // 내가 배치된 시간대가 있으면 해당 슬롯 선택
+        if (mySlot) return mySlot;
         return availableSlots[0] || '';
-      });
-      setSelectedTrainerId(prev => {
-        if (!admin && myTrainerIdInSlot) return myTrainerIdInSlot;
-        return prev;
       });
 
       const scoreTablesData: { [key: number]: ScoreTableData } = {};
@@ -163,7 +165,8 @@ export default function TabletRecordsPage() {
       const allStudentIds: number[] = [];
       Object.values(slotsData).forEach((slotData) => {
         const sd = slotData as SlotData;
-        sd.trainers?.forEach(t => t.students?.forEach(s => {
+        // v2.0.0: classes 구조에서 학생 ID 수집
+        sd.classes?.forEach(c => c.students?.forEach(s => {
           if (!allStudentIds.includes(s.student_id)) allStudentIds.push(s.student_id);
         }));
       });
@@ -180,23 +183,30 @@ export default function TabletRecordsPage() {
   const availableSlots = ['morning', 'afternoon', 'evening'].filter(slot => {
     const slotData = slots[slot] as SlotData;
     if (!slotData) return false;
-    return slotData.instructors?.length > 0 || slotData.trainers?.some(t => t.trainer_id && t.students.length > 0);
+    // v2.0.0: classes 구조 사용
+    return slotData.classes?.some(c => c.instructors?.length > 0 || c.students?.length > 0);
   });
 
   const currentSlotData = slots[selectedSlot] as SlotData | undefined;
-  const currentTrainers = currentSlotData?.trainers?.filter(t => t.trainer_id) || [];
 
   const getMyStudents = (): Student[] => {
     if (!currentSlotData) return [];
-    if (isAdmin) {
-      const allStudents: Student[] = [];
-      currentSlotData.trainers?.forEach(t => { if (t.students) allStudents.push(...t.students); });
-      return allStudents;
-    } else {
-      if (!selectedTrainerId) return [];
-      const trainer = currentTrainers.find(t => t.trainer_id === selectedTrainerId);
-      return trainer?.students || [];
-    }
+
+    // 현재 유저 정보
+    const userInstructorId = currentUser?.instructorId;
+    const userNegativeId = currentUser?.role === 'owner' ? -(currentUser?.id || 0) : null;
+
+    // v2.0.0: 내가 배정된 반의 학생만 반환 (원장/관리자도 동일)
+    const myStudents: Student[] = [];
+    currentSlotData.classes?.forEach(cls => {
+      const isMyClass = cls.instructors?.some(inst =>
+        inst.id === userInstructorId || inst.id === userNegativeId
+      );
+      if (isMyClass && cls.students) {
+        myStudents.push(...cls.students);
+      }
+    });
+    return myStudents;
   };
 
   const myStudents = getMyStudents();
@@ -299,7 +309,7 @@ export default function TabletRecordsPage() {
             {availableSlots.map(slot => (
               <button
                 key={slot}
-                onClick={() => { setSelectedSlot(slot); if (isAdmin) setSelectedTrainerId(null); }}
+                onClick={() => setSelectedSlot(slot)}
                 className={`px-5 py-3 rounded-xl font-medium transition whitespace-nowrap ${
                   selectedSlot === slot ? 'bg-orange-500 text-white' : 'bg-white text-slate-600 border border-slate-200'
                 }`}
@@ -309,12 +319,7 @@ export default function TabletRecordsPage() {
             ))}
           </div>
 
-          {!isAdmin && !selectedTrainerId ? (
-            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-              <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500">해당 시간대에 배정된 수업이 없습니다.</p>
-            </div>
-          ) : myStudents.length === 0 ? (
+          {myStudents.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
               <AlertCircle size={48} className="mx-auto text-orange-400 mb-4" />
               <p className="text-slate-600 font-medium">배정된 학생이 없습니다</p>
@@ -366,7 +371,7 @@ export default function TabletRecordsPage() {
               {/* 학생 수 */}
               <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
                 <Users size={16} />
-                <span>{isAdmin ? '수업 참여 학생 수' : '내 반'}: {myStudents.length}명</span>
+                <span>내 반: {myStudents.length}명</span>
                 {saving && <RefreshCw size={14} className="animate-spin text-orange-500" />}
               </div>
 
