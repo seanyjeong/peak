@@ -43,7 +43,7 @@ interface ClassData {
     id: number;
     student_id: number;
     student_name: string;
-    student_gender: string;
+    gender: string;
     is_trial?: boolean;
     trial_total?: number;
     trial_remaining?: number;
@@ -124,7 +124,7 @@ export default function MobileRecordsPage() {
                 id: s.student_id,
                 assignment_id: s.id,
                 name: s.student_name,
-                gender: s.student_gender as 'male' | 'female',
+                gender: s.gender === 'M' || s.gender === 'male' ? 'male' : 'female',
                 is_trial: s.is_trial,
                 trial_total: s.trial_total,
                 trial_remaining: s.trial_remaining,
@@ -135,12 +135,12 @@ export default function MobileRecordsPage() {
 
         // 대기 중인 학생들 - 원장/관리자만 볼 수 있음
         if (userIsOwnerOrAdmin) {
-          slotData.waitingStudents?.forEach((s: { id: number; student_id: number; student_name: string; student_gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
+          slotData.waitingStudents?.forEach((s: { id: number; student_id: number; student_name: string; gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }) => {
             slotStudents.push({
               id: s.student_id,
               assignment_id: s.id,
               name: s.student_name,
-              gender: s.student_gender as 'male' | 'female',
+              gender: s.gender === 'M' || s.gender === 'male' ? 'male' : 'female',
               is_trial: s.is_trial,
               trial_total: s.trial_total,
               trial_remaining: s.trial_remaining,

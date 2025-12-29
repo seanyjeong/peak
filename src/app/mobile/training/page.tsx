@@ -170,7 +170,7 @@ export default function MobileTrainingPage() {
           assignment_id: s.id,
           training_log_id: existingLog?.id,
           name: s.student_name,
-          gender: s.gender as 'male' | 'female',
+          gender: (s.gender === 'M' || s.gender === 'male' ? 'male' : 'female') as 'male' | 'female',
           condition_score: existingLog?.condition_score,
           notes: existingLog?.notes,
           is_trial: s.is_trial,
