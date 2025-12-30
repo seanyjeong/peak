@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MAXT - 데이터 기반 체대입시 트레이닝</title>
+  <title>P-EAK - 체육 성과 기록 관리 시스템</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -887,6 +887,86 @@
       }
     }
 
+    /* ===== SCREENSHOTS SECTION ===== */
+    .screenshots {
+      padding: 8rem 2rem;
+      background: var(--black);
+    }
+
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 3rem;
+    }
+
+    .screenshot-card {
+      background: var(--gray-900);
+      border: 1px solid var(--gray-800);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.4s;
+      position: relative;
+    }
+
+    .screenshot-card:hover {
+      border-color: var(--orange-500);
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(255, 107, 0, 0.15);
+    }
+
+    .screenshot-card.main {
+      grid-column: span 2;
+      grid-row: span 2;
+    }
+
+    .screenshot-label {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      background: rgba(10, 10, 10, 0.9);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--orange-400);
+      z-index: 10;
+      border: 1px solid var(--gray-700);
+    }
+
+    .screenshot-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top left;
+      display: block;
+    }
+
+    .screenshot-card.main img {
+      min-height: 400px;
+    }
+
+    @media (max-width: 1024px) {
+      .screenshots-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .screenshot-card.main {
+        grid-column: span 2;
+        grid-row: span 1;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .screenshots-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .screenshot-card.main {
+        grid-column: span 1;
+      }
+    }
+
     /* ===== WORKFLOW SECTION ===== */
     .workflow {
       padding: 8rem 2rem;
@@ -1339,7 +1419,7 @@
   <nav id="navbar">
     <div class="nav-container">
       <div class="logo">
-        <span class="logo-accent">MAX</span>T
+        <span class="logo-accent">P-</span>EAK
       </div>
       <span class="nav-cta" style="opacity: 0.6; cursor: not-allowed;">Coming Soon</span>
     </div>
@@ -1512,116 +1592,39 @@
     </div>
   </section>
 
-  <!-- Preview Section - Student Profile -->
-  <section class="preview">
+  <!-- Screenshots Section -->
+  <section class="screenshots" id="screenshots">
     <div class="section-container">
       <div class="section-header">
-        <span class="section-label">Preview</span>
-        <h2 class="section-title">이렇게 관리됩니다</h2>
-        <p class="section-desc">학생별 프로필에서 기록 변화와 훈련 히스토리를 한눈에 확인하세요.</p>
+        <span class="section-label">실제 화면</span>
+        <h2 class="section-title">P-EAK 미리보기</h2>
+        <p class="section-desc">실제 시스템 화면을 확인해보세요.</p>
       </div>
 
-      <div class="preview-card">
-        <div class="preview-header">
-          <div class="preview-tabs">
-            <span class="tab active">학생 프로필</span>
-            <span class="tab">훈련 기록</span>
-            <span class="tab">기록 측정</span>
-          </div>
-          <div class="preview-date">2025.12.18</div>
+      <div class="screenshots-grid">
+        <div class="screenshot-card main">
+          <div class="screenshot-label">대시보드</div>
+          <img src="screenshots/dashboard.png" alt="P-EAK 대시보드" loading="lazy">
         </div>
-
-        <div class="preview-content">
-          <div class="profile-section">
-            <div class="profile-avatar">김철수</div>
-            <div class="profile-info">
-              <h3>김철수</h3>
-              <p>남 · 고2 · 일산고 · 입학 2025.03</p>
-              <div class="profile-status">
-                <span class="status-badge active">재원중</span>
-                <span class="status-badge">목표: 제멀 280cm</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="records-grid">
-            <div class="record-item">
-              <div class="record-label">제자리멀리뛰기</div>
-              <div class="record-number">265<span>cm</span></div>
-              <div class="record-progress">
-                <div class="progress-bar" style="width: 88%;"></div>
-              </div>
-              <div class="record-meta">
-                <span class="change positive">▲ 12cm</span>
-                <span class="target">목표 280cm</span>
-              </div>
-            </div>
-            <div class="record-item">
-              <div class="record-label">메디신볼던지기</div>
-              <div class="record-number">9.8<span>m</span></div>
-              <div class="record-progress">
-                <div class="progress-bar" style="width: 75%;"></div>
-              </div>
-              <div class="record-meta">
-                <span class="change positive">▲ 0.6m</span>
-                <span class="target">목표 11m</span>
-              </div>
-            </div>
-            <div class="record-item">
-              <div class="record-label">20m왕복달리기</div>
-              <div class="record-number">15.2<span>초</span></div>
-              <div class="record-progress">
-                <div class="progress-bar reverse" style="width: 70%;"></div>
-              </div>
-              <div class="record-meta">
-                <span class="change positive">▼ 0.6초</span>
-                <span class="target">목표 14.5초</span>
-              </div>
-            </div>
-            <div class="record-item">
-              <div class="record-label">좌전굴</div>
-              <div class="record-number">+15<span>cm</span></div>
-              <div class="record-progress">
-                <div class="progress-bar" style="width: 60%;"></div>
-              </div>
-              <div class="record-meta">
-                <span class="change positive">▲ 3cm</span>
-                <span class="target">꾸준히 향상</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="history-section">
-            <h4>최근 훈련 기록</h4>
-            <div class="history-list">
-              <div class="history-item">
-                <span class="history-date">12/17</span>
-                <span class="history-tags">
-                  <span class="tag">하체파워</span>
-                  <span class="tag">민첩성</span>
-                </span>
-                <span class="history-trainer">박코치</span>
-                <span class="history-condition">컨디션 8/10</span>
-              </div>
-              <div class="history-item">
-                <span class="history-date">12/16</span>
-                <span class="history-tags">
-                  <span class="tag">기술/자세</span>
-                </span>
-                <span class="history-trainer">김코치</span>
-                <span class="history-condition">컨디션 9/10</span>
-              </div>
-              <div class="history-item">
-                <span class="history-date">12/15</span>
-                <span class="history-tags">
-                  <span class="tag">상체파워</span>
-                  <span class="tag">유연성</span>
-                </span>
-                <span class="history-trainer">박코치</span>
-                <span class="history-condition">컨디션 7/10</span>
-              </div>
-            </div>
-          </div>
+        <div class="screenshot-card">
+          <div class="screenshot-label">학생 프로필</div>
+          <img src="screenshots/student-profile.png" alt="학생 프로필" loading="lazy">
+        </div>
+        <div class="screenshot-card">
+          <div class="screenshot-label">반 배치</div>
+          <img src="screenshots/assignments.png" alt="반 배치" loading="lazy">
+        </div>
+        <div class="screenshot-card">
+          <div class="screenshot-label">기록 측정</div>
+          <img src="screenshots/records.png" alt="기록 측정" loading="lazy">
+        </div>
+        <div class="screenshot-card">
+          <div class="screenshot-label">수업 기록</div>
+          <img src="screenshots/training.png" alt="수업 기록" loading="lazy">
+        </div>
+        <div class="screenshot-card">
+          <div class="screenshot-label">학생 관리</div>
+          <img src="screenshots/students.png" alt="학생 관리" loading="lazy">
         </div>
       </div>
     </div>
@@ -1634,7 +1637,7 @@
       <div class="section-header">
         <span class="section-label">Daily Workflow</span>
         <h2 class="section-title">하루 수업 흐름</h2>
-        <p class="section-desc">수업 전, 중, 후 모든 과정을 MAXT 하나로 관리하세요.</p>
+        <p class="section-desc">수업 전, 중, 후 모든 과정을 P-EAK 하나로 관리하세요.</p>
       </div>
 
       <div class="workflow-steps">
@@ -1717,7 +1720,7 @@
       <div class="section-header">
         <span class="section-label">P-ACA Integration</span>
         <h2 class="section-title">P-ACA와 완벽 연동</h2>
-        <p class="section-desc">학원 관리는 P-ACA, 트레이닝 관리는 MAXT. 데이터는 자동 동기화.</p>
+        <p class="section-desc">학원 관리는 P-ACA(파카), 트레이닝 관리는 P-EAK(피크). 데이터는 자동 동기화.</p>
       </div>
 
       <div class="integration-content">
@@ -1728,7 +1731,7 @@
             <div class="connector-line"></div>
             <span style="font-size: 0.75rem; color: var(--gray-400);">실시간 동기화</span>
           </div>
-          <div class="integration-logo maxt">MAXT</div>
+          <div class="integration-logo maxt">P-EAK</div>
         </div>
 
         <ul class="integration-features">
@@ -1743,14 +1746,14 @@
             <div class="icon">👥</div>
             <div>
               <h4>학생 정보 연동</h4>
-              <p>P-ACA에 등록된 학생 정보가 자동으로 MAXT에 동기화.</p>
+              <p>P-ACA에 등록된 학생 정보가 자동으로 P-EAK에 동기화.</p>
             </div>
           </li>
           <li>
             <div class="icon">✅</div>
             <div>
               <h4>출결 양방향 동기화</h4>
-              <p>MAXT에서 체크한 출석이 P-ACA에 자동 반영. 반대도 가능.</p>
+              <p>P-EAK에서 체크한 출석이 P-ACA에 자동 반영. 반대도 가능.</p>
             </div>
           </li>
           <li>
@@ -1786,7 +1789,7 @@
   <footer>
     <div class="footer-content">
       <div class="footer-logo">
-        <span style="color: var(--orange-500);">MAX</span>T
+        <span style="color: var(--orange-500);">P-</span>EAK
       </div>
       <div class="footer-links">
         <a href="#">기능 소개</a>
@@ -1794,7 +1797,7 @@
         <a href="#">문의하기</a>
       </div>
       <div class="footer-copy">
-        &copy; 2025 MAXT. P-ACA 연동 서비스.
+        &copy; 2025 P-EAK. P-ACA 연동 서비스.
       </div>
     </div>
   </footer>
@@ -1825,7 +1828,7 @@
       });
     }, observerOptions);
 
-    document.querySelectorAll('.feature-card, .workflow-step, .integration-features li, .preview-card').forEach(el => {
+    document.querySelectorAll('.feature-card, .workflow-step, .integration-features li, .screenshot-card').forEach(el => {
       el.style.opacity = '0';
       el.style.transform = 'translateY(30px)';
       el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
@@ -1839,6 +1842,10 @@
 
     document.querySelectorAll('.workflow-steps .workflow-step').forEach((step, index) => {
       step.style.transitionDelay = `${index * 0.15}s`;
+    });
+
+    document.querySelectorAll('.screenshots-grid .screenshot-card').forEach((card, index) => {
+      card.style.transitionDelay = `${index * 0.1}s`;
     });
   </script>
 </body>

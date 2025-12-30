@@ -11,7 +11,7 @@ export interface Student {
   trial_total: number;
   trial_remaining: number;
   join_date: string | null;
-  status: 'active' | 'inactive' | 'injury' | 'pending';
+  status: 'active' | 'inactive' | 'injury' | 'paused' | 'pending';
 }
 
 export interface RecordType {
@@ -55,9 +55,10 @@ export interface RecordInput {
   score: number | null;
 }
 
-export const STATUS_MAP = {
+export const STATUS_MAP: Record<string, { label: string; color: string }> = {
   active: { label: '재원', color: 'bg-green-100 text-green-700' },
-  inactive: { label: '휴원', color: 'bg-slate-100 text-slate-600' },
+  inactive: { label: '퇴원', color: 'bg-slate-100 text-slate-600' },
   injury: { label: '부상', color: 'bg-red-100 text-red-700' },
+  paused: { label: '휴원', color: 'bg-yellow-100 text-yellow-700' },
   pending: { label: '미등록', color: 'bg-amber-100 text-amber-700' },
 };

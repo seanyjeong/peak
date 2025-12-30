@@ -229,8 +229,9 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 // POST /peak/assignments/instructor - 강사 배치/이동
-router.post('/instructor', async (req, res) => {
+router.post('/instructor', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { date, time_slot, instructor_id, to_class_num, is_main } = req.body;
         const targetDate = date || new Date().toISOString().split('T')[0];
 

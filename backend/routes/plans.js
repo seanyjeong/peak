@@ -45,19 +45,17 @@ router.get('/', verifyToken, async (req, res) => {
         // 이름 복호화 및 시간대별 그룹화
         const bySlot = { morning: [], afternoon: [], evening: [] };
 
-        // 원장: 학생이 있는 시간대에만 추가 (음수 ID)
+        // 원장: 모든 시간대에 항상 추가 (음수 ID)
         owners.forEach(owner => {
             const decryptedName = owner.name ? decrypt(owner.name) : owner.name;
             ['morning', 'afternoon', 'evening'].forEach(slot => {
-                if (slotsWithStudents.has(slot)) {
-                    bySlot[slot].push({
-                        id: -owner.id,  // 음수 ID로 원장 구분
-                        name: decryptedName,
-                        user_id: owner.id,
-                        time_slot: slot,
-                        isOwner: true
-                    });
-                }
+                bySlot[slot].push({
+                    id: -owner.id,  // 음수 ID로 원장 구분
+                    name: decryptedName,
+                    user_id: owner.id,
+                    time_slot: slot,
+                    isOwner: true
+                });
             });
         });
 

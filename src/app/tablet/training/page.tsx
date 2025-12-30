@@ -472,15 +472,10 @@ export default function TabletTrainingPage() {
               <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
               <p className="text-slate-500 text-lg">강사를 선택하세요.</p>
             </div>
-          ) : !currentPlan ? (
-            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-              <ClipboardList size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500 text-lg">수업 계획이 없습니다.</p>
-              <p className="text-slate-400 text-sm mt-2">수업 계획 페이지에서 먼저 계획을 작성하세요.</p>
-            </div>
           ) : (
             <div className={`${orientation === 'landscape' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>
-              {/* 체크리스트 */}
+              {/* 체크리스트 - 수업 계획이 있을 때만 표시 */}
+              {currentPlan ? (
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-4">
                   <h2 className="text-white font-bold flex items-center gap-2 text-lg">
@@ -656,6 +651,14 @@ export default function TabletTrainingPage() {
                   </div>
                 </div>
               </div>
+              ) : (
+                /* 수업 계획 없을 때 안내 */
+                <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
+                  <ClipboardList size={36} className="mx-auto text-slate-300 mb-3" />
+                  <p className="text-slate-500">수업 계획이 없습니다.</p>
+                  <p className="text-slate-400 text-sm mt-1">수업 계획 페이지에서 계획을 작성하면 체크리스트가 표시됩니다.</p>
+                </div>
+              )}
 
               {/* 학생 컨디션 */}
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden">

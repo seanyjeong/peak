@@ -467,7 +467,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
                 type="text"
                 value={slugInput}
                 onChange={e => setSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="ilsan-max"
+                placeholder="test"
                 className="flex-1 px-3 py-2 border rounded-lg"
               />
             </div>

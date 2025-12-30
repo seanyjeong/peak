@@ -69,11 +69,12 @@ router.post('/sync', verifyToken, async (req, res) => {
             const gender = student.gender === 'male' ? 'M' : 'F';
 
             // status 변환 (P-ACA -> P-EAK)
-            // P-ACA: active, paused, trial, pending
-            // P-EAK: active, inactive, pending
+            // P-ACA: active, paused, graduated, withdrawn, trial, pending
+            // P-EAK: active, inactive, injury, paused, pending
             let status = 'active';
-            if (student.status === 'paused') status = 'inactive';
-            if (student.status === 'pending') status = 'pending';
+            if (student.status === 'paused') status = 'paused';           // 휴원
+            else if (student.status === 'pending') status = 'pending';    // 미등록
+            else if (['graduated', 'withdrawn'].includes(student.status)) status = 'inactive';
 
             // 체험생 상태 처리 - P-ACA status='trial'인 경우에만 체험생
             const isTrial = student.status === 'trial' ? 1 : 0;
