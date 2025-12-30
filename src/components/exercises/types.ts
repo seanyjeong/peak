@@ -24,6 +24,7 @@ export interface ExercisePack {
   author: string;
   exercise_count: number;
   created_at: string;
+  is_system?: boolean;
 }
 
 export interface ExerciseFormData {

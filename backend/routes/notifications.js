@@ -71,6 +71,7 @@ router.get('/check', verifyToken, async (req, res) => {
         const alerts = [];
         const today = new Date();
         const dayOfWeek = today.getDay(); // 0=일, 1=월, ...
+        const academyId = req.user.academyId;
 
         // 1. 기록 미입력 체크 (최근 7일간 기록이 없는 학생)
         const oneWeekAgo = new Date(today);
@@ -82,18 +83,19 @@ router.get('/check', verifyToken, async (req, res) => {
         const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
         const currentMonth = monthNames[today.getMonth()];
 
-        // 재원생 중 최근 7일 기록 없는 학생 수 (체험생 제외)
+        // 재원생 중 최근 7일 기록 없는 학생 수 (체험생 제외) - academy_id 필터 추가
         const [studentsWithoutRecords] = await pool.query(`
             SELECT COUNT(DISTINCT s.id) as count
             FROM students s
-            WHERE s.status = 'active'
+            WHERE s.academy_id = ?
+            AND s.status = 'active'
             AND (s.is_trial = FALSE OR s.is_trial IS NULL)
             AND s.id NOT IN (
                 SELECT DISTINCT sr.student_id
                 FROM student_records sr
-                WHERE sr.measured_at >= ?
+                WHERE sr.academy_id = ? AND sr.measured_at >= ?
             )
-        `, [weekAgoStr]);
+        `, [academyId, academyId, weekAgoStr]);
 
         if (studentsWithoutRecords[0].count > 0) {
             alerts.push({
@@ -112,11 +114,11 @@ router.get('/check', verifyToken, async (req, res) => {
         const tomorrowFormatted = `${tomorrow.getMonth() + 1}.${String(tomorrow.getDate()).padStart(2, '0')}`;
 
         // 내일 출근 예정인 강사 중 계획 미제출자 (P-ACA 스케줄 기반)
-        // 단순화: 본인의 내일 수업 계획 체크
+        // 단순화: 본인의 내일 수업 계획 체크 - academy_id 필터 추가
         const [myPlans] = await pool.query(`
             SELECT COUNT(*) as count FROM daily_plans
-            WHERE date = ? AND instructor_id = ?
-        `, [tomorrowStr, req.user.id]);
+            WHERE academy_id = ? AND date = ? AND instructor_id = ?
+        `, [academyId, tomorrowStr, req.user.id]);
 
         // 내일 스케줄이 있는지 체크 (P-ACA instructor_schedules)
         // 여기서는 간단히 계획이 없으면 알림
@@ -159,13 +161,24 @@ async function createNotification(userId, type, title, message, data = null) {
 }
 
 /**
- * 모든 강사에게 알림 생성 (스케줄러에서 사용)
+ * 특정 학원의 모든 강사에게 알림 생성 (스케줄러에서 사용)
+ * @param {number} academyId - 학원 ID (필수)
  */
-async function createNotificationForAllInstructors(type, title, message, data = null) {
+async function createNotificationForAllInstructors(academyId, type, title, message, data = null) {
+    if (!academyId) {
+        console.error('[Notification] academyId is required');
+        return 0;
+    }
+
     try {
-        // P-EAK에 구독한 모든 사용자에게 알림 생성
-        const [users] = await pool.query(
-            `SELECT DISTINCT user_id FROM push_subscriptions`
+        // 해당 학원의 구독자에게만 알림 생성 (P-ACA users 테이블 조인)
+        const pacaPool = require('../config/paca-database');
+        const [users] = await pacaPool.query(
+            `SELECT DISTINCT ps.user_id
+             FROM peak.push_subscriptions ps
+             JOIN users u ON ps.user_id = u.id
+             WHERE u.academy_id = ? AND u.deleted_at IS NULL`,
+            [academyId]
         );
 
         for (const user of users) {

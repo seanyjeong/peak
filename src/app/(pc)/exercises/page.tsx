@@ -381,6 +381,7 @@ export default function ExercisesPage() {
           onDelete={deletePack}
           onExport={exportPack}
           onImport={importPack}
+          onUpdate={fetchData}
         />
       ) : null}
     </div>

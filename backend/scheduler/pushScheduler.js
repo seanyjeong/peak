@@ -4,21 +4,32 @@
  * 스케줄:
  * 1. 기록 미입력 알림: 일요일 21:00 KST (모든 강사)
  * 2. 수업계획 미제출 알림: 매일 21:00 KST (해당 강사)
+ *
+ * v4.3.4: 멀티테넌트 academy_id 필터링 추가
  */
 
 const cron = require('node-cron');
 const pool = require('../config/database');
+const pacaPool = require('../config/paca-database');
 const { sendPushToUser, sendPushToAllInstructors } = require('../routes/push');
 const { createNotification, createNotificationForAllInstructors } = require('../routes/notifications');
 
 /**
- * 기록 미입력 체크 및 알림 발송
- * 일요일 21:00 KST 실행
+ * 활성화된 모든 학원 목록 조회
  */
-async function checkMissingRecords() {
-    try {
-        console.log('[Scheduler] Checking missing records...');
+async function getActiveAcademies() {
+    const [academies] = await pacaPool.query(`
+        SELECT id, name FROM academies WHERE status = 'active' AND deleted_at IS NULL
+    `);
+    return academies;
+}
 
+/**
+ * 특정 학원의 기록 미입력 체크 및 알림 발송
+ * @param {number} academyId - 학원 ID
+ */
+async function checkMissingRecordsForAcademy(academyId) {
+    try {
         const today = new Date();
         const oneWeekAgo = new Date(today);
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -29,29 +40,30 @@ async function checkMissingRecords() {
         const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
         const currentMonth = monthNames[today.getMonth()];
 
-        // 활성 학생 중 최근 7일 기록 없는 학생 조회
+        // 해당 학원의 활성 학생 중 최근 7일 기록 없는 학생 조회 - academy_id 필터 추가
         const [studentsWithoutRecords] = await pool.query(`
             SELECT s.id, s.name, s.school, s.grade
             FROM students s
-            WHERE s.status = 'active'
+            WHERE s.academy_id = ?
+            AND s.status = 'active'
+            AND (s.is_trial = FALSE OR s.is_trial IS NULL)
             AND s.id NOT IN (
                 SELECT DISTINCT sr.student_id
                 FROM student_records sr
-                WHERE sr.measured_at >= ?
+                WHERE sr.academy_id = ? AND sr.measured_at >= ?
             )
             LIMIT 50
-        `, [weekAgoStr]);
+        `, [academyId, academyId, weekAgoStr]);
 
         if (studentsWithoutRecords.length === 0) {
-            console.log('[Scheduler] No missing records found');
-            return;
+            return { success: true, count: 0 };
         }
 
         const count = studentsWithoutRecords.length;
         const title = '실기기록 미입력 알림';
         const message = `${currentMonth} ${weekOfMonth}주차 실기기록측정이 이루어지지 않은 학생이 ${count}명 있습니다.`;
 
-        // 푸시 알림 발송 (모든 구독자)
+        // 푸시 알림 발송 (해당 학원의 구독자만)
         const payload = {
             title,
             body: message,
@@ -64,31 +76,56 @@ async function checkMissingRecords() {
             }
         };
 
-        const pushResult = await sendPushToAllInstructors(payload);
-        console.log(`[Scheduler] Push sent: ${pushResult.success} success, ${pushResult.failed} failed`);
+        const pushResult = await sendPushToAllInstructors(academyId, payload);
 
-        // DB 알림 생성
+        // DB 알림 생성 (해당 학원의 강사들에게만)
         const notifCount = await createNotificationForAllInstructors(
+            academyId,
             'record_missing',
             title,
             message,
             { count, studentIds: studentsWithoutRecords.map(s => s.id) }
         );
-        console.log(`[Scheduler] Created ${notifCount} notifications`);
+
+        return { success: true, count, pushResult, notifCount };
 
     } catch (error) {
-        console.error('[Scheduler] Error checking missing records:', error);
+        console.error(`[Scheduler] Error checking missing records for academy ${academyId}:`, error);
+        return { success: false, error: error.message };
     }
 }
 
 /**
- * 수업계획 미제출 체크 및 알림 발송
- * 매일 21:00 KST 실행 (다음날 수업 예정자 대상)
+ * 기록 미입력 체크 및 알림 발송 (모든 학원)
+ * 일요일 21:00 KST 실행
  */
-async function checkMissingPlans() {
+async function checkMissingRecords() {
     try {
-        console.log('[Scheduler] Checking missing plans...');
+        console.log('[Scheduler] Checking missing records for all academies...');
 
+        const academies = await getActiveAcademies();
+        console.log(`[Scheduler] Found ${academies.length} active academies`);
+
+        for (const academy of academies) {
+            const result = await checkMissingRecordsForAcademy(academy.id);
+            if (result.success && result.count > 0) {
+                console.log(`[Scheduler] Academy ${academy.id}: ${result.count} students without records, ${result.pushResult?.success || 0} push sent`);
+            }
+        }
+
+        console.log('[Scheduler] Missing records check completed');
+
+    } catch (error) {
+        console.error('[Scheduler] Error in checkMissingRecords:', error);
+    }
+}
+
+/**
+ * 특정 학원의 수업계획 미제출 체크 및 알림 발송
+ * @param {number} academyId - 학원 ID
+ */
+async function checkMissingPlansForAcademy(academyId) {
+    try {
         const today = new Date();
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -98,28 +135,31 @@ async function checkMissingPlans() {
         // 내일이 주말이면 스킵
         const tomorrowDay = tomorrow.getDay();
         if (tomorrowDay === 0 || tomorrowDay === 6) {
-            console.log('[Scheduler] Tomorrow is weekend, skipping plan check');
-            return;
+            return { success: true, skipped: true, reason: 'weekend' };
         }
 
-        // 푸시 구독한 모든 유저 중 내일 계획이 없는 사람 찾기
-        const [usersWithoutPlan] = await pool.query(`
+        // 해당 학원의 푸시 구독 유저 중 내일 계획이 없는 사람 찾기 - academy_id 필터 추가
+        const [usersWithoutPlan] = await pacaPool.query(`
             SELECT DISTINCT ps.user_id
-            FROM push_subscriptions ps
-            WHERE ps.user_id NOT IN (
+            FROM peak.push_subscriptions ps
+            JOIN users u ON ps.user_id = u.id
+            WHERE u.academy_id = ?
+            AND u.deleted_at IS NULL
+            AND ps.user_id NOT IN (
                 SELECT DISTINCT dp.instructor_id
-                FROM daily_plans dp
-                WHERE dp.date = ?
+                FROM peak.daily_plans dp
+                WHERE dp.academy_id = ? AND dp.date = ?
             )
-        `, [tomorrowStr]);
+        `, [academyId, academyId, tomorrowStr]);
 
         if (usersWithoutPlan.length === 0) {
-            console.log('[Scheduler] All instructors have plans for tomorrow');
-            return;
+            return { success: true, count: 0 };
         }
 
         const title = '수업계획 미제출 알림';
         const message = `${tomorrowFormatted}일 수업계획이 작성되지 않았습니다.`;
+
+        let sentCount = 0;
 
         // 각 유저에게 개별 알림
         for (const user of usersWithoutPlan) {
@@ -137,7 +177,7 @@ async function checkMissingPlans() {
 
             // 푸시 발송
             const pushResult = await sendPushToUser(user.user_id, payload);
-            console.log(`[Scheduler] Push to user ${user.user_id}: ${pushResult.success} success`);
+            if (pushResult.success > 0) sentCount++;
 
             // DB 알림 생성
             await createNotification(
@@ -149,10 +189,36 @@ async function checkMissingPlans() {
             );
         }
 
-        console.log(`[Scheduler] Sent plan reminders to ${usersWithoutPlan.length} users`);
+        return { success: true, count: usersWithoutPlan.length, sentCount };
 
     } catch (error) {
-        console.error('[Scheduler] Error checking missing plans:', error);
+        console.error(`[Scheduler] Error checking missing plans for academy ${academyId}:`, error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * 수업계획 미제출 체크 및 알림 발송 (모든 학원)
+ * 매일 21:00 KST 실행 (다음날 수업 예정자 대상)
+ */
+async function checkMissingPlans() {
+    try {
+        console.log('[Scheduler] Checking missing plans for all academies...');
+
+        const academies = await getActiveAcademies();
+        console.log(`[Scheduler] Found ${academies.length} active academies`);
+
+        for (const academy of academies) {
+            const result = await checkMissingPlansForAcademy(academy.id);
+            if (result.success && !result.skipped && result.count > 0) {
+                console.log(`[Scheduler] Academy ${academy.id}: ${result.count} users without plans, ${result.sentCount} notifications sent`);
+            }
+        }
+
+        console.log('[Scheduler] Missing plans check completed');
+
+    } catch (error) {
+        console.error('[Scheduler] Error in checkMissingPlans:', error);
     }
 }
 
@@ -186,14 +252,28 @@ function initScheduler() {
 }
 
 // 테스트용 수동 실행 함수
-async function runManualCheck(type) {
-    if (type === 'records') {
-        await checkMissingRecords();
-    } else if (type === 'plans') {
-        await checkMissingPlans();
+async function runManualCheck(type, academyId = null) {
+    if (academyId) {
+        // 특정 학원만 체크
+        if (type === 'records') {
+            return await checkMissingRecordsForAcademy(academyId);
+        } else if (type === 'plans') {
+            return await checkMissingPlansForAcademy(academyId);
+        } else {
+            const recordsResult = await checkMissingRecordsForAcademy(academyId);
+            const plansResult = await checkMissingPlansForAcademy(academyId);
+            return { records: recordsResult, plans: plansResult };
+        }
     } else {
-        await checkMissingRecords();
-        await checkMissingPlans();
+        // 모든 학원 체크
+        if (type === 'records') {
+            await checkMissingRecords();
+        } else if (type === 'plans') {
+            await checkMissingPlans();
+        } else {
+            await checkMissingRecords();
+            await checkMissingPlans();
+        }
     }
 }
 
@@ -201,5 +281,7 @@ module.exports = {
     initScheduler,
     checkMissingRecords,
     checkMissingPlans,
+    checkMissingRecordsForAcademy,
+    checkMissingPlansForAcademy,
     runManualCheck
 };

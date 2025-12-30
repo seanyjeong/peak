@@ -242,12 +242,24 @@ async function sendPushToUser(userId, payload) {
 }
 
 /**
- * 모든 강사에게 푸시 발송
+ * 특정 학원의 모든 강사에게 푸시 발송
+ * @param {number} academyId - 학원 ID (필수)
+ * @param {Object} payload - 푸시 알림 내용
  */
-async function sendPushToAllInstructors(payload) {
-    // P-ACA에서 강사 user_id 조회 (instructors.user_id 또는 users.role='staff')
-    const [subscriptions] = await pool.query(
-        `SELECT ps.* FROM push_subscriptions ps`
+async function sendPushToAllInstructors(academyId, payload) {
+    if (!academyId) {
+        console.error('[Push] academyId is required');
+        return { success: 0, failed: 0, error: 'academyId is required' };
+    }
+
+    // 해당 학원의 구독자에게만 푸시 발송 (P-ACA users 테이블 조인)
+    const pacaPool = require('../config/paca-database');
+    const [subscriptions] = await pacaPool.query(
+        `SELECT ps.*
+         FROM peak.push_subscriptions ps
+         JOIN users u ON ps.user_id = u.id
+         WHERE u.academy_id = ? AND u.deleted_at IS NULL`,
+        [academyId]
     );
 
     const results = { success: 0, failed: 0 };
