@@ -100,6 +100,7 @@ export default function StudentProfilePage({
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
   const [recordHistory, setRecordHistory] = useState<RecordHistory[]>([]);
   const [academyAverages, setAcademyAverages] = useState<Record<number, number>>({});
+  const [academyScoreAverages, setAcademyScoreAverages] = useState<Record<number, number>>({});
   const [scoreTables, setScoreTables] = useState<Record<number, ScoreTable>>({});
   const [loading, setLoading] = useState(true);
 
@@ -141,12 +142,14 @@ export default function StudentProfilePage({
       setStats(statsRes.data.stats);
       setRecordHistory(historyRes.data.records || []);
       setRecordTypes(typesRes.data.recordTypes || []);
-      // 성별에 맞는 학원 평균 선택
+      // 성별에 맞는 학원 평균 선택 (원시값 + 점수)
       const gender = statsRes.data.student?.gender;
       if (gender === 'M') {
         setAcademyAverages(academyRes.data.maleAverages || {});
+        setAcademyScoreAverages(academyRes.data.maleScoreAverages || {});
       } else {
         setAcademyAverages(academyRes.data.femaleAverages || {});
+        setAcademyScoreAverages(academyRes.data.femaleScoreAverages || {});
       }
 
       // 배점표 데이터를 종목ID별로 매핑
@@ -209,34 +212,24 @@ export default function StudentProfilePage({
     return type?.direction === 'lower';
   }, [selectedTrendType, recordTypes]);
 
-  // 레이더 차트 데이터 생성
+  // 레이더 차트 데이터 생성 (점수 기반)
   const radarChartData = useMemo(() => {
     if (!stats || !selectedRadarTypes.length) return [];
 
     return selectedRadarTypes.map(typeId => {
       const type = recordTypes.find(t => t.id === typeId);
-      const studentValue = stats.latests[typeId]?.value || 0;
-      const academyAvg = academyAverages[typeId] || 0;
-
-      // 상대값 계산 (학원평균 대비 %, direction 고려)
-      let relativeValue = 50;
-      if (academyAvg > 0) {
-        if (type?.direction === 'lower') {
-          // 낮을수록 좋은 종목: 학원평균보다 낮으면 50 이상
-          relativeValue = Math.min((academyAvg / studentValue) * 50, 100);
-        } else {
-          // 높을수록 좋은 종목: 학원평균보다 높으면 50 이상
-          relativeValue = Math.min((studentValue / academyAvg) * 50, 100);
-        }
-      }
+      // 학생 점수 (0-100)
+      const studentScore = stats.scores[typeId] || 0;
+      // 학원 평균 점수 (0-100)
+      const academyScore = academyScoreAverages[typeId] || 0;
 
       return {
         subject: type?.short_name || type?.name || `종목${typeId}`,
-        student: Math.round(relativeValue),
-        academy: 50 // 기준선 (학원평균 = 50)
+        student: studentScore,
+        academy: academyScore
       };
     });
-  }, [stats, selectedRadarTypes, recordTypes, academyAverages]);
+  }, [stats, selectedRadarTypes, recordTypes, academyScoreAverages]);
 
   // 비교 막대 차트 데이터 (선택된 게이지 종목 기준)
   const compareBarData = useMemo(() => {
