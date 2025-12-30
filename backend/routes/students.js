@@ -1,5 +1,6 @@
 /**
  * Students Routes
+ * v4.3.1 - Bulk Upsert로 N+1 Query 문제 해결
  */
 
 const express = require('express');
@@ -13,7 +14,7 @@ const { verifyToken } = require('../middleware/auth');
 const pacaPool = mysql.createPool({
     host: process.env.PACA_DB_HOST || 'localhost',
     user: process.env.PACA_DB_USER || 'paca',
-    password: process.env.PACA_DB_PASSWORD,  // 필수 - fallback 제거
+    password: process.env.PACA_DB_PASSWORD,
     database: 'paca',
     waitForConnections: true,
     connectionLimit: 5
@@ -21,18 +22,20 @@ const pacaPool = mysql.createPool({
 
 /**
  * POST /peak/students/sync
- * P-ACA에서 학생 데이터 동기화
+ * P-ACA에서 학생 데이터 동기화 (Bulk Upsert 방식)
  */
 router.post('/sync', verifyToken, async (req, res) => {
+    const connection = await db.getConnection();
+
     try {
-        const academyId = req.user.academyId;  // 토큰에서 학원 ID
+        const academyId = req.user.academyId;
 
         if (!academyId) {
+            connection.release();
             return res.status(400).json({ error: '학원 ID가 필요합니다.' });
         }
 
-        // P-ACA에서 해당 학원의 학생 목록 가져오기 (재원생, 휴원생, 체험생, 미등록관리)
-        // withdrawn(퇴원), graduated(졸업) 제외
+        // P-ACA에서 해당 학원의 학생 목록 가져오기
         const [pacaStudents] = await pacaPool.query(`
             SELECT id, name, gender, phone, school, grade, enrollment_date, status,
                    class_days, trial_remaining, trial_dates
@@ -41,10 +44,22 @@ router.post('/sync', verifyToken, async (req, res) => {
             ORDER BY name
         `, [academyId]);
 
-        let synced = 0;
-        let updated = 0;
+        // 0명이면 방어적 처리 (P-ACA 연결 문제일 수 있음)
+        if (pacaStudents.length === 0) {
+            connection.release();
+            return res.json({
+                success: true,
+                message: '동기화할 학생이 없습니다. P-ACA 데이터를 확인하세요.',
+                synced: 0,
+                updated: 0,
+                deactivated: 0,
+                total: 0,
+                warning: 'P-ACA에서 0명 반환됨'
+            });
+        }
 
-        for (const student of pacaStudents) {
+        // 메모리에서 데이터 전처리
+        const processedStudents = pacaStudents.map(student => {
             // 이름 복호화
             let decryptedName = student.name;
             try {
@@ -68,19 +83,17 @@ router.post('/sync', verifyToken, async (req, res) => {
             // gender 변환 (male/female -> M/F)
             const gender = student.gender === 'male' ? 'M' : 'F';
 
-            // status 변환 (P-ACA -> P-EAK)
-            // P-ACA: active, paused, graduated, withdrawn, trial, pending
-            // P-EAK: active, inactive, injury, paused, pending
+            // status 변환
             let status = 'active';
-            if (student.status === 'paused') status = 'paused';           // 휴원
-            else if (student.status === 'pending') status = 'pending';    // 미등록
+            if (student.status === 'paused') status = 'paused';
+            else if (student.status === 'pending') status = 'pending';
             else if (['graduated', 'withdrawn'].includes(student.status)) status = 'inactive';
 
-            // 체험생 상태 처리 - P-ACA status='trial'인 경우에만 체험생
+            // 체험생 처리
             const isTrial = student.status === 'trial' ? 1 : 0;
 
-            // 체험 총 횟수: trial_dates 배열 길이 기반 동적 계산
-            let trialTotal = 2;  // 기본값
+            // 체험 총 횟수
+            let trialTotal = 2;
             if (isTrial && student.trial_dates) {
                 try {
                     const trialDates = typeof student.trial_dates === 'string'
@@ -88,73 +101,100 @@ router.post('/sync', verifyToken, async (req, res) => {
                         : (student.trial_dates || []);
                     trialTotal = trialDates.length || 2;
                 } catch (e) {
-                    trialTotal = 2;  // 파싱 실패 시 기본값
+                    trialTotal = 2;
                 }
             }
             const trialRemaining = student.trial_remaining ?? trialTotal;
 
-            // 이미 있는지 확인
-            const [existing] = await db.query(
-                'SELECT id FROM students WHERE paca_student_id = ?',
-                [student.id]
-            );
-
             // class_days JSON 처리
             const classDays = student.class_days ? JSON.stringify(student.class_days) : null;
 
-            if (existing.length > 0) {
-                // 업데이트
-                await db.query(`
-                    UPDATE students SET
-                        name = ?, gender = ?, phone = ?, school = ?, grade = ?,
-                        class_days = ?, is_trial = ?, trial_total = ?, trial_remaining = ?,
-                        status = ?, academy_id = ?, updated_at = NOW()
-                    WHERE paca_student_id = ?
-                `, [decryptedName, gender, decryptedPhone, student.school, student.grade,
-                    classDays, isTrial, trialTotal, trialRemaining,
-                    status, academyId, student.id]);
-                updated++;
-            } else {
-                // 새로 추가
-                await db.query(`
-                    INSERT INTO students (academy_id, paca_student_id, name, gender, phone, school, grade,
-                                          class_days, is_trial, trial_total, trial_remaining,
-                                          join_date, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `, [academyId, student.id, decryptedName, gender, decryptedPhone, student.school, student.grade,
-                    classDays, isTrial, trialTotal, trialRemaining,
-                    student.enrollment_date, status]);
-                synced++;
-            }
-        }
+            return {
+                pacaId: student.id,
+                academyId,
+                name: decryptedName,
+                gender,
+                phone: decryptedPhone,
+                school: student.school,
+                grade: student.grade,
+                classDays,
+                isTrial,
+                trialTotal,
+                trialRemaining,
+                joinDate: student.enrollment_date,
+                status
+            };
+        });
 
-        // P-ACA에 없는 학생(퇴원/졸업) 비활성화 - 해당 학원만
-        const pacaStudentIds = pacaStudents.map(s => s.id);
-        let deactivated = 0;
-        if (pacaStudentIds.length > 0) {
-            const [deactivateResult] = await db.query(`
+        await connection.beginTransaction();
+
+        try {
+            // Bulk Upsert: INSERT ... ON DUPLICATE KEY UPDATE
+            // paca_student_id에 UNIQUE KEY가 있어야 함
+            const upsertQuery = `
+                INSERT INTO students
+                    (academy_id, paca_student_id, name, gender, phone, school, grade,
+                     class_days, is_trial, trial_total, trial_remaining, join_date, status)
+                VALUES ?
+                ON DUPLICATE KEY UPDATE
+                    name = VALUES(name),
+                    gender = VALUES(gender),
+                    phone = VALUES(phone),
+                    school = VALUES(school),
+                    grade = VALUES(grade),
+                    class_days = VALUES(class_days),
+                    is_trial = VALUES(is_trial),
+                    trial_total = VALUES(trial_total),
+                    trial_remaining = VALUES(trial_remaining),
+                    status = VALUES(status),
+                    academy_id = VALUES(academy_id),
+                    updated_at = NOW()
+            `;
+
+            const values = processedStudents.map(s => [
+                s.academyId, s.pacaId, s.name, s.gender, s.phone, s.school, s.grade,
+                s.classDays, s.isTrial, s.trialTotal, s.trialRemaining, s.joinDate, s.status
+            ]);
+
+            const [upsertResult] = await connection.query(upsertQuery, [values]);
+
+            // affectedRows: INSERT는 1, UPDATE는 2로 카운트됨
+            const synced = upsertResult.affectedRows - upsertResult.changedRows;
+            const updated = upsertResult.changedRows;
+
+            // P-ACA에 없는 학생 비활성화
+            const pacaStudentIds = processedStudents.map(s => s.pacaId);
+            const [deactivateResult] = await connection.query(`
                 UPDATE students
                 SET status = 'inactive', updated_at = NOW()
                 WHERE academy_id = ?
                 AND paca_student_id IS NOT NULL
                 AND paca_student_id NOT IN (?)
-                AND status = 'active'
+                AND status != 'inactive'
             `, [academyId, pacaStudentIds]);
-            deactivated = deactivateResult.affectedRows || 0;
-        }
+            const deactivated = deactivateResult.affectedRows || 0;
 
-        res.json({
-            success: true,
-            message: `동기화 완료: ${synced}명 추가, ${updated}명 업데이트, ${deactivated}명 비활성화`,
-            synced,
-            updated,
-            deactivated,
-            total: pacaStudents.length
-        });
+            await connection.commit();
+
+            res.json({
+                success: true,
+                message: `동기화 완료: ${synced}명 추가, ${updated}명 업데이트, ${deactivated}명 비활성화`,
+                synced,
+                updated,
+                deactivated,
+                total: pacaStudents.length
+            });
+
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        }
 
     } catch (error) {
         console.error('Sync students error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    } finally {
+        connection.release();
     }
 });
 
@@ -165,12 +205,9 @@ router.post('/sync', verifyToken, async (req, res) => {
 router.get('/today', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-
-        // 오늘 요일 구하기 (0=일요일, 1=월요일, ... 6=토요일)
         const today = new Date();
         const dayOfWeek = today.getDay();
 
-        // class_days에 오늘 요일이 포함된 학생만 조회 - 해당 학원만
         const [students] = await db.query(`
             SELECT *
             FROM students
@@ -204,7 +241,6 @@ router.get('/schedule', verifyToken, async (req, res) => {
         const targetDate = date ? new Date(date) : new Date();
         const dayOfWeek = targetDate.getDay();
 
-        // class_days에 해당 요일이 포함된 학생 + 체험생 - 해당 학원만
         const [students] = await db.query(`
             SELECT *
             FROM students
@@ -275,7 +311,6 @@ router.get('/:id/records', verifyToken, async (req, res) => {
         const academyId = req.user.academyId;
         const studentId = req.params.id;
 
-        // 학생이 해당 학원 소속인지 확인
         const [students] = await db.query(
             'SELECT id FROM students WHERE id = ? AND academy_id = ?',
             [studentId, academyId]
@@ -292,10 +327,9 @@ router.get('/:id/records', verifyToken, async (req, res) => {
             ORDER BY r.measured_at DESC, rt.display_order
         `, [studentId, academyId]);
 
-        // 날짜별로 그룹화해서 반환
+        // 날짜별로 그룹화
         const grouped = {};
         records.forEach(r => {
-            // measured_at이 Date 객체일 수도 있고 문자열일 수도 있음
             let dateKey;
             if (r.measured_at instanceof Date) {
                 dateKey = r.measured_at.toISOString().split('T')[0];
@@ -305,10 +339,7 @@ router.get('/:id/records', verifyToken, async (req, res) => {
                 dateKey = String(r.measured_at);
             }
             if (!grouped[dateKey]) {
-                grouped[dateKey] = {
-                    measured_at: dateKey,
-                    records: []
-                };
+                grouped[dateKey] = { measured_at: dateKey, records: [] };
             }
             grouped[dateKey].records.push({
                 record_type_id: r.record_type_id,
@@ -334,14 +365,13 @@ router.get('/:id/records', verifyToken, async (req, res) => {
 
 /**
  * GET /peak/students/:id/stats - 학생 종합 통계
- * 프로필 페이지용 데이터
  */
 router.get('/:id/stats', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const studentId = req.params.id;
 
-        // 1. 학생 정보 조회 - 해당 학원 소속인지 확인
+        // 1. 학생 정보 조회
         const [students] = await db.query(
             'SELECT * FROM students WHERE id = ? AND academy_id = ?',
             [studentId, academyId]
@@ -353,10 +383,11 @@ router.get('/:id/stats', verifyToken, async (req, res) => {
 
         // 2. 활성 종목 목록
         const [recordTypes] = await db.query(
-            'SELECT * FROM record_types WHERE is_active = 1 ORDER BY display_order'
+            'SELECT * FROM record_types WHERE academy_id = ? AND is_active = 1 ORDER BY display_order',
+            [academyId]
         );
 
-        // 3. 학생의 모든 기록 조회 - 해당 학원만
+        // 3. 학생의 모든 기록 조회
         const [allRecords] = await db.query(`
             SELECT r.*, rt.direction
             FROM student_records r
@@ -370,17 +401,15 @@ router.get('/:id/stats', verifyToken, async (req, res) => {
             SELECT st.*, sr.score, sr.male_min, sr.male_max, sr.female_min, sr.female_max
             FROM score_tables st
             JOIN score_ranges sr ON sr.score_table_id = st.id
+            WHERE st.academy_id = ?
             ORDER BY st.record_type_id, sr.score DESC
-        `);
+        `, [academyId]);
 
         // 배점표를 종목별로 그룹화
         const scoreTablesByType = {};
         scoreTables.forEach(row => {
             if (!scoreTablesByType[row.record_type_id]) {
-                scoreTablesByType[row.record_type_id] = {
-                    maxScore: row.max_score,
-                    ranges: []
-                };
+                scoreTablesByType[row.record_type_id] = { maxScore: row.max_score, ranges: [] };
             }
             scoreTablesByType[row.record_type_id].ranges.push({
                 score: row.score,
@@ -402,33 +431,23 @@ router.get('/:id/stats', verifyToken, async (req, res) => {
             const typeRecords = allRecords.filter(r => r.record_type_id === rt.id);
             if (typeRecords.length === 0) return;
 
-            // 평균
             const values = typeRecords.map(r => parseFloat(r.value));
             averages[rt.id] = values.reduce((a, b) => a + b, 0) / values.length;
 
-            // 최고 기록 (direction 고려)
             const isLowerBetter = rt.direction === 'lower';
             const bestValue = isLowerBetter ? Math.min(...values) : Math.max(...values);
             const bestRecord = typeRecords.find(r => parseFloat(r.value) === bestValue);
-            bests[rt.id] = {
-                value: bestValue,
-                date: bestRecord?.measured_at
-            };
+            bests[rt.id] = { value: bestValue, date: bestRecord?.measured_at };
 
-            // 최신 기록
-            latests[rt.id] = {
-                value: parseFloat(typeRecords[0].value),
-                date: typeRecords[0].measured_at
-            };
+            latests[rt.id] = { value: parseFloat(typeRecords[0].value), date: typeRecords[0].measured_at };
 
-            // 점수 계산 (최신 기록 기준)
+            // 점수 계산
             const scoreTable = scoreTablesByType[rt.id];
             if (scoreTable) {
                 const latestValue = parseFloat(typeRecords[0].value);
-                const ranges = scoreTable.ranges; // 점수 내림차순 정렬됨 (100, 95, 90, ...)
+                const ranges = scoreTable.ranges;
                 let foundScore = null;
 
-                // 1. 정확히 범위에 맞는 점수 찾기
                 for (const range of ranges) {
                     const min = student.gender === 'M' ? range.male_min : range.female_min;
                     const max = student.gender === 'M' ? range.male_max : range.female_max;
@@ -438,87 +457,58 @@ router.get('/:id/stats', verifyToken, async (req, res) => {
                     }
                 }
 
-                // 2. 못 찾았으면 방향에 따라 적절한 점수 찾기
                 if (foundScore === null) {
                     if (isLowerBetter) {
-                        // 낮을수록 좋음: 기록이 max 이하인 가장 높은 점수 찾기
                         for (const range of ranges) {
                             const max = student.gender === 'M' ? range.male_max : range.female_max;
-                            if (latestValue <= max) {
-                                foundScore = range.score;
-                                break;
-                            }
+                            if (latestValue <= max) { foundScore = range.score; break; }
                         }
-                        // 그래도 못 찾으면 (모든 범위보다 나쁨) 최저점
-                        if (foundScore === null) {
-                            foundScore = ranges[ranges.length - 1]?.score || 50;
-                        }
+                        if (foundScore === null) foundScore = ranges[ranges.length - 1]?.score || 50;
                     } else {
-                        // 높을수록 좋음: 기록이 min 이상인 가장 높은 점수 찾기
                         for (const range of ranges) {
                             const min = student.gender === 'M' ? range.male_min : range.female_min;
-                            if (latestValue >= min) {
-                                foundScore = range.score;
-                                break;
-                            }
+                            if (latestValue >= min) { foundScore = range.score; break; }
                         }
-                        // 그래도 못 찾으면 (모든 범위보다 나쁨) 최저점
-                        if (foundScore === null) {
-                            foundScore = ranges[ranges.length - 1]?.score || 50;
-                        }
+                        if (foundScore === null) foundScore = ranges[ranges.length - 1]?.score || 50;
                     }
                 }
 
                 scores[rt.id] = foundScore;
             }
 
-            // 추세 계산 (최근 5개 기록의 연속 변화 + 처음↔마지막 비교)
+            // 추세 계산
             if (typeRecords.length >= 5) {
-                // 최근 5개 기록: [0]=최신, [1], [2], [3], [4]=가장 오래됨
                 const vals = typeRecords.slice(0, 5).map(r => parseFloat(r.value));
-
-                // 연속 비교: 개선 횟수 vs 하락 횟수 (4번 비교)
-                let improvements = 0;
-                let declines = 0;
+                let improvements = 0, declines = 0;
 
                 for (let i = 0; i < 4; i++) {
-                    const newer = vals[i];
-                    const older = vals[i + 1];
-
+                    const newer = vals[i], older = vals[i + 1];
                     if (isLowerBetter) {
-                        if (newer < older) improvements++;
-                        else if (newer > older) declines++;
+                        if (newer < older) improvements++; else if (newer > older) declines++;
                     } else {
-                        if (newer > older) improvements++;
-                        else if (newer < older) declines++;
+                        if (newer > older) improvements++; else if (newer < older) declines++;
                     }
                 }
 
-                // 처음 vs 마지막 비교 추가 (가중치 적용)
-                const newest = vals[0];
-                const oldest = vals[4];
+                const newest = vals[0], oldest = vals[4];
                 if (isLowerBetter) {
-                    if (newest < oldest) improvements += 2;  // 가중치 2
-                    else if (newest > oldest) declines += 2;
+                    if (newest < oldest) improvements += 2; else if (newest > oldest) declines += 2;
                 } else {
-                    if (newest > oldest) improvements += 2;
-                    else if (newest < oldest) declines += 2;
+                    if (newest > oldest) improvements += 2; else if (newest < oldest) declines += 2;
                 }
 
-                // 최종 판정
                 if (improvements > declines) trends[rt.id] = 'up';
                 else if (declines > improvements) trends[rt.id] = 'down';
                 else trends[rt.id] = 'stable';
             } else {
-                // 기록이 5개 미만이면 추세 판단 불가
                 trends[rt.id] = 'need_more';
             }
         });
 
-        // 6. 총점 및 등급 계산
+        // 6. 총점 및 등급
         const scoreValues = Object.values(scores);
         const totalScore = scoreValues.reduce((a, b) => a + b, 0);
-        const maxPossibleScore = scoreValues.length * 100; // 각 종목 만점 100점 가정
+        const maxPossibleScore = scoreValues.length * 100;
         const percentage = maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0;
 
         let grade = 'F';
@@ -527,7 +517,6 @@ router.get('/:id/stats', verifyToken, async (req, res) => {
         else if (percentage >= 70) grade = 'C';
         else if (percentage >= 60) grade = 'D';
 
-        // 7. 전체 추세 (점수가 있는 종목들의 추세 종합)
         const trendValues = Object.values(trends);
         const upCount = trendValues.filter(t => t === 'up').length;
         const downCount = trendValues.filter(t => t === 'down').length;
@@ -537,16 +526,10 @@ router.get('/:id/stats', verifyToken, async (req, res) => {
             success: true,
             student,
             stats: {
-                averages,
-                bests,
-                latests,
-                scores,
-                trends,
-                totalScore,
-                maxPossibleScore,
+                averages, bests, latests, scores, trends,
+                totalScore, maxPossibleScore,
                 percentage: Math.round(percentage * 10) / 10,
-                grade,
-                overallTrend,
+                grade, overallTrend,
                 recordCount: allRecords.length,
                 typesWithRecords: Object.keys(averages).length
             }

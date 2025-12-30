@@ -1,6 +1,8 @@
 /**
  * Daily Plans Routes (수업 계획 - P-ACA 연동)
  * P-ACA instructor_schedules에서 스케줄된 강사 조회
+ *
+ * v4.3.1: Race Condition 방지를 위한 트랜잭션 락 추가
  */
 
 const express = require('express');
@@ -179,15 +181,24 @@ router.post('/', verifyToken, async (req, res) => {
 });
 
 // PUT /peak/plans/:id/toggle-exercise - 운동 완료 토글
+// Race Condition 방지: 트랜잭션 + SELECT FOR UPDATE
 router.put('/:id/toggle-exercise', verifyToken, async (req, res) => {
+    const connection = await db.getConnection();
     try {
         const academyId = req.user.academyId;
         const { exercise_id } = req.body;
         const planId = req.params.id;
 
-        // 현재 completed_exercises, exercise_times 조회 - 해당 학원만
-        const [plans] = await db.query('SELECT completed_exercises, exercise_times FROM daily_plans WHERE id = ? AND academy_id = ?', [planId, academyId]);
+        await connection.beginTransaction();
+
+        // SELECT FOR UPDATE로 행 락
+        const [plans] = await connection.query(
+            'SELECT completed_exercises, exercise_times FROM daily_plans WHERE id = ? AND academy_id = ? FOR UPDATE',
+            [planId, academyId]
+        );
+
         if (plans.length === 0) {
+            await connection.rollback();
             return res.status(404).json({ error: 'Plan not found' });
         }
 
@@ -207,25 +218,42 @@ router.put('/:id/toggle-exercise', verifyToken, async (req, res) => {
             times[exercise_id] = new Date(); // 완료 시간 기록
         }
 
-        await db.query('UPDATE daily_plans SET completed_exercises = ?, exercise_times = ? WHERE id = ?',
-            [JSON.stringify(completed), JSON.stringify(times), planId]);
+        await connection.query(
+            'UPDATE daily_plans SET completed_exercises = ?, exercise_times = ? WHERE id = ?',
+            [JSON.stringify(completed), JSON.stringify(times), planId]
+        );
+
+        await connection.commit();
 
         res.json({ success: true, completed_exercises: completed, exercise_times: times });
     } catch (error) {
+        await connection.rollback();
         console.error('Toggle exercise error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    } finally {
+        connection.release();
     }
 });
 
 // POST /peak/plans/:id/extra-exercise - 추가 운동 등록
+// Race Condition 방지: 트랜잭션 + SELECT FOR UPDATE
 router.post('/:id/extra-exercise', verifyToken, async (req, res) => {
+    const connection = await db.getConnection();
     try {
         const academyId = req.user.academyId;
         const { exercise_id, name, note } = req.body;
         const planId = req.params.id;
 
-        const [plans] = await db.query('SELECT extra_exercises FROM daily_plans WHERE id = ? AND academy_id = ?', [planId, academyId]);
+        await connection.beginTransaction();
+
+        // SELECT FOR UPDATE로 행 락
+        const [plans] = await connection.query(
+            'SELECT extra_exercises FROM daily_plans WHERE id = ? AND academy_id = ? FOR UPDATE',
+            [planId, academyId]
+        );
+
         if (plans.length === 0) {
+            await connection.rollback();
             return res.status(404).json({ error: 'Plan not found' });
         }
 
@@ -235,24 +263,42 @@ router.post('/:id/extra-exercise', verifyToken, async (req, res) => {
         // 추가 (completed: false로 시작)
         extras.push({ exercise_id, name, note: note || '', completed: false });
 
-        await db.query('UPDATE daily_plans SET extra_exercises = ? WHERE id = ?', [JSON.stringify(extras), planId]);
+        await connection.query(
+            'UPDATE daily_plans SET extra_exercises = ? WHERE id = ?',
+            [JSON.stringify(extras), planId]
+        );
+
+        await connection.commit();
 
         res.json({ success: true, extra_exercises: extras });
     } catch (error) {
+        await connection.rollback();
         console.error('Add extra exercise error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    } finally {
+        connection.release();
     }
 });
 
 // PUT /peak/plans/:id/toggle-extra - 추가 운동 완료 토글
+// Race Condition 방지: 트랜잭션 + SELECT FOR UPDATE
 router.put('/:id/toggle-extra', verifyToken, async (req, res) => {
+    const connection = await db.getConnection();
     try {
         const academyId = req.user.academyId;
         const { index } = req.body; // 배열 인덱스
         const planId = req.params.id;
 
-        const [plans] = await db.query('SELECT extra_exercises FROM daily_plans WHERE id = ? AND academy_id = ?', [planId, academyId]);
+        await connection.beginTransaction();
+
+        // SELECT FOR UPDATE로 행 락
+        const [plans] = await connection.query(
+            'SELECT extra_exercises FROM daily_plans WHERE id = ? AND academy_id = ? FOR UPDATE',
+            [planId, academyId]
+        );
+
         if (plans.length === 0) {
+            await connection.rollback();
             return res.status(404).json({ error: 'Plan not found' });
         }
 
@@ -263,12 +309,20 @@ router.put('/:id/toggle-extra', verifyToken, async (req, res) => {
             extras[index].completed = !extras[index].completed;
         }
 
-        await db.query('UPDATE daily_plans SET extra_exercises = ? WHERE id = ?', [JSON.stringify(extras), planId]);
+        await connection.query(
+            'UPDATE daily_plans SET extra_exercises = ? WHERE id = ?',
+            [JSON.stringify(extras), planId]
+        );
+
+        await connection.commit();
 
         res.json({ success: true, extra_exercises: extras });
     } catch (error) {
+        await connection.rollback();
         console.error('Toggle extra exercise error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    } finally {
+        connection.release();
     }
 });
 
