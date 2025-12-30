@@ -202,14 +202,22 @@ export default function TabletStudentProfilePage({
       const studentValue = stats.latests[typeId]?.value || 0;
       const academyAvg = academyAverages[typeId] || 0;
 
-      const relativeValue = academyAvg > 0
-        ? Math.min((studentValue / academyAvg) * 50, 100)
-        : 50;
+      // 상대값 계산 (학원평균 대비 %, direction 고려)
+      let relativeValue = 50;
+      if (academyAvg > 0) {
+        if (type?.direction === 'lower') {
+          // 낮을수록 좋은 종목: 학원평균보다 낮으면 50 이상
+          relativeValue = Math.min((academyAvg / studentValue) * 50, 100);
+        } else {
+          // 높을수록 좋은 종목: 학원평균보다 높으면 50 이상
+          relativeValue = Math.min((studentValue / academyAvg) * 50, 100);
+        }
+      }
 
       return {
         subject: type?.short_name || type?.name || `종목${typeId}`,
-        student: relativeValue,
-        academy: 50
+        student: Math.round(relativeValue),
+        academy: 50 // 기준선 (학원평균 = 50)
       };
     });
   }, [stats, selectedRadarTypes, recordTypes, academyAverages]);

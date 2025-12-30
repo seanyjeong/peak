@@ -16,9 +16,10 @@ router.get('/academy-average', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
 
-        // 1. 활성 종목 목록
+        // 1. 활성 종목 목록 (해당 학원만)
         const [recordTypes] = await db.query(
-            'SELECT * FROM record_types WHERE is_active = 1 ORDER BY display_order'
+            'SELECT * FROM record_types WHERE academy_id = ? AND is_active = 1 ORDER BY display_order',
+            [academyId]
         );
 
         // 2. 모든 학생의 최신 기록만 조회 (종목별 최신 1개씩) + 성별 정보 포함 - 해당 학원만
