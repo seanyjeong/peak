@@ -7,6 +7,7 @@ const router = express.Router();
 const db = require('../config/database');
 const mysql = require('mysql2/promise');
 const { decrypt } = require('../utils/encryption');
+const { verifyToken } = require('../middleware/auth');
 
 // P-ACA DB 연결
 const pacaPool = mysql.createPool({
@@ -21,16 +22,17 @@ const pacaPool = mysql.createPool({
 });
 
 // GET /peak/trainers - P-ACA 강사 목록
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
-        // P-ACA 강사 조회 (일산맥스: academy_id = 2)
+        const academyId = req.user.academyId;
+        // P-ACA 강사 조회 - 로그인한 사용자의 학원
         const [instructors] = await pacaPool.query(`
             SELECT i.id, i.user_id as paca_user_id, i.name, u.email
             FROM instructors i
             LEFT JOIN users u ON i.user_id = u.id
-            WHERE i.academy_id = 2 AND i.status = 'active' AND i.deleted_at IS NULL
+            WHERE i.academy_id = ? AND i.status = 'active' AND i.deleted_at IS NULL
             ORDER BY i.name
-        `);
+        `, [academyId]);
 
         // 이름 복호화
         const trainers = instructors.map(i => {

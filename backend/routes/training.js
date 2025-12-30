@@ -5,10 +5,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/training - 훈련 기록 목록
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { date, trainer_id, student_id } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
 
@@ -25,9 +27,9 @@ router.get('/', async (req, res) => {
             FROM training_logs l
             JOIN students s ON l.student_id = s.id
             LEFT JOIN daily_plans p ON l.plan_id = p.id
-            WHERE l.date = ?
+            WHERE l.academy_id = ? AND l.date = ?
         `;
-        const params = [targetDate];
+        const params = [academyId, targetDate];
 
         if (trainer_id) {
             query += ' AND l.trainer_id = ?';
@@ -49,15 +51,16 @@ router.get('/', async (req, res) => {
 });
 
 // POST /peak/training - 훈련 기록 저장
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { date, student_id, trainer_id, plan_id, condition_score, notes, temperature, humidity } = req.body;
 
         const [result] = await db.query(`
             INSERT INTO training_logs
-            (date, student_id, trainer_id, plan_id, condition_score, notes, temperature, humidity)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [date, student_id, trainer_id, plan_id, condition_score, notes, temperature || null, humidity || null]);
+            (academy_id, date, student_id, trainer_id, plan_id, condition_score, notes, temperature, humidity)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [academyId, date, student_id, trainer_id, plan_id, condition_score, notes, temperature || null, humidity || null]);
 
         res.status(201).json({
             success: true,

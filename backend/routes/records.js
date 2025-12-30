@@ -5,10 +5,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/records - 기록 목록
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { student_id, record_type_id, from_date, to_date } = req.query;
 
         let query = `
@@ -17,9 +19,9 @@ router.get('/', async (req, res) => {
             FROM student_records r
             JOIN students s ON r.student_id = s.id
             JOIN record_types rt ON r.record_type_id = rt.id
-            WHERE 1=1
+            WHERE r.academy_id = ?
         `;
-        const params = [];
+        const params = [academyId];
 
         if (student_id) {
             query += ' AND r.student_id = ?';
@@ -49,8 +51,9 @@ router.get('/', async (req, res) => {
 });
 
 // POST /peak/records - 기록 측정 입력
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { student_id, record_type_id, measured_at, value, notes } = req.body;
 
         if (!student_id || !record_type_id || !measured_at || value === undefined) {
@@ -59,9 +62,9 @@ router.post('/', async (req, res) => {
 
         const [result] = await db.query(`
             INSERT INTO student_records
-            (student_id, record_type_id, measured_at, value, notes)
-            VALUES (?, ?, ?, ?, ?)
-        `, [student_id, record_type_id, measured_at, value, notes]);
+            (academy_id, student_id, record_type_id, measured_at, value, notes)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [academyId, student_id, record_type_id, measured_at, value, notes]);
 
         res.status(201).json({
             success: true,
@@ -74,8 +77,9 @@ router.post('/', async (req, res) => {
 });
 
 // POST /peak/records/batch - 여러 종목 한번에 입력 (UPSERT: 같은 날 최고 기록만 유지)
-router.post('/batch', async (req, res) => {
+router.post('/batch', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { student_id, measured_at, records } = req.body;
         // records: [{ record_type_id, value, notes }, ...]
 
@@ -102,10 +106,10 @@ router.post('/batch', async (req, res) => {
                 );
                 const direction = typeRows[0]?.direction || 'higher';
 
-                // 해당 날짜에 기존 기록이 있는지 확인
+                // 해당 날짜에 기존 기록이 있는지 확인 - 해당 학원만
                 const [existing] = await connection.query(
-                    'SELECT id, value FROM student_records WHERE student_id = ? AND record_type_id = ? AND measured_at = ?',
-                    [student_id, record.record_type_id, measured_at]
+                    'SELECT id, value FROM student_records WHERE academy_id = ? AND student_id = ? AND record_type_id = ? AND measured_at = ?',
+                    [academyId, student_id, record.record_type_id, measured_at]
                 );
 
                 if (existing.length > 0) {
@@ -127,10 +131,10 @@ router.post('/batch', async (req, res) => {
                         results.push({ id: existing[0].id, action: 'skipped', oldValue, newValue });
                     }
                 } else {
-                    // 새 기록 삽입
+                    // 새 기록 삽입 - academy_id 포함
                     const [result] = await connection.query(
-                        'INSERT INTO student_records (student_id, record_type_id, measured_at, value, notes) VALUES (?, ?, ?, ?, ?)',
-                        [student_id, record.record_type_id, measured_at, newValue, record.notes || null]
+                        'INSERT INTO student_records (academy_id, student_id, record_type_id, measured_at, value, notes) VALUES (?, ?, ?, ?, ?, ?)',
+                        [academyId, student_id, record.record_type_id, measured_at, newValue, record.notes || null]
                     );
                     results.push({ id: result.insertId, action: 'inserted', newValue });
                 }
@@ -154,8 +158,9 @@ router.post('/batch', async (req, res) => {
 });
 
 // GET /peak/records/by-date - 특정 날짜의 학생별 기록 (기록측정 페이지에서 사용)
-router.get('/by-date', async (req, res) => {
+router.get('/by-date', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { date, student_ids } = req.query;
         if (!date) {
             return res.status(400).json({ error: '날짜가 필요합니다.' });
@@ -166,9 +171,9 @@ router.get('/by-date', async (req, res) => {
                    rt.name as record_type_name, rt.unit, rt.direction
             FROM student_records r
             JOIN record_types rt ON r.record_type_id = rt.id
-            WHERE r.measured_at = ?
+            WHERE r.academy_id = ? AND r.measured_at = ?
         `;
-        const params = [date];
+        const params = [academyId, date];
 
         // student_ids가 있으면 해당 학생들만
         if (student_ids) {
@@ -188,9 +193,10 @@ router.get('/by-date', async (req, res) => {
 });
 
 // GET /peak/records/latest - 학생별 최신 기록
-router.get('/latest', async (req, res) => {
+router.get('/latest', verifyToken, async (req, res) => {
     try {
-        // 각 학생의 각 종목별 최신 기록
+        const academyId = req.user.academyId;
+        // 각 학생의 각 종목별 최신 기록 - 해당 학원만
         const [records] = await db.query(`
             SELECT r.*, s.name as student_name, s.gender,
                    rt.name as record_type_name, rt.unit, rt.direction
@@ -200,12 +206,14 @@ router.get('/latest', async (req, res) => {
             INNER JOIN (
                 SELECT student_id, record_type_id, MAX(measured_at) as max_date
                 FROM student_records
+                WHERE academy_id = ?
                 GROUP BY student_id, record_type_id
             ) latest ON r.student_id = latest.student_id
                     AND r.record_type_id = latest.record_type_id
                     AND r.measured_at = latest.max_date
+            WHERE r.academy_id = ?
             ORDER BY s.name, rt.display_order
-        `);
+        `, [academyId, academyId]);
         res.json({ success: true, records });
     } catch (error) {
         console.error('Get latest records error:', error);
@@ -214,17 +222,29 @@ router.get('/latest', async (req, res) => {
 });
 
 // GET /peak/records/stats/:student_id - 학생 기록 통계 (그래프용)
-router.get('/stats/:student_id', async (req, res) => {
+router.get('/stats/:student_id', verifyToken, async (req, res) => {
     try {
-        // 종목별 기록 추이
+        const academyId = req.user.academyId;
+        const studentId = req.params.student_id;
+
+        // 학생이 해당 학원 소속인지 확인
+        const [students] = await db.query(
+            'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+            [studentId, academyId]
+        );
+        if (students.length === 0) {
+            return res.status(404).json({ error: 'Student not found' });
+        }
+
+        // 종목별 기록 추이 - 해당 학원만
         const [records] = await db.query(`
             SELECT r.measured_at, r.value, r.record_type_id,
                    rt.name as record_type_name, rt.unit, rt.direction
             FROM student_records r
             JOIN record_types rt ON r.record_type_id = rt.id
-            WHERE r.student_id = ?
+            WHERE r.student_id = ? AND r.academy_id = ?
             ORDER BY rt.display_order, r.measured_at ASC
-        `, [req.params.student_id]);
+        `, [studentId, academyId]);
 
         // 종목별로 그룹화
         const grouped = {};

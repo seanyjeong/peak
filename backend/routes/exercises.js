@@ -5,19 +5,21 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/exercises - 운동 목록 (태그 필터 가능)
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { tag } = req.query;
 
-        let query = 'SELECT * FROM exercises ORDER BY name';
-        let params = [];
+        let query = 'SELECT * FROM exercises WHERE academy_id = ? ORDER BY name';
+        let params = [academyId];
 
         if (tag) {
             // JSON 배열에서 태그 검색
-            query = `SELECT * FROM exercises WHERE JSON_CONTAINS(tags, ?) ORDER BY name`;
-            params = [JSON.stringify(tag)];
+            query = `SELECT * FROM exercises WHERE academy_id = ? AND JSON_CONTAINS(tags, ?) ORDER BY name`;
+            params = [academyId, JSON.stringify(tag)];
         }
 
         const [exercises] = await db.query(query, params);
@@ -36,11 +38,12 @@ router.get('/', async (req, res) => {
 });
 
 // GET /peak/exercises/:id - 운동 상세
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const [exercises] = await db.query(
-            'SELECT * FROM exercises WHERE id = ?',
-            [req.params.id]
+            'SELECT * FROM exercises WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
         );
 
         if (exercises.length === 0) {
@@ -60,8 +63,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /peak/exercises - 운동 추가
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { name, tags = [], default_sets, default_reps, description } = req.body;
 
         if (!name) {
@@ -69,9 +73,9 @@ router.post('/', async (req, res) => {
         }
 
         const [result] = await db.query(
-            `INSERT INTO exercises (name, tags, default_sets, default_reps, description)
-             VALUES (?, ?, ?, ?, ?)`,
-            [name, JSON.stringify(tags), default_sets || null, default_reps || null, description || null]
+            `INSERT INTO exercises (academy_id, name, tags, default_sets, default_reps, description)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [academyId, name, JSON.stringify(tags), default_sets || null, default_reps || null, description || null]
         );
 
         res.status(201).json({
@@ -85,15 +89,16 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /peak/exercises/:id - 운동 수정
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { name, tags, default_sets, default_reps, description } = req.body;
 
         await db.query(
             `UPDATE exercises
              SET name = ?, tags = ?, default_sets = ?, default_reps = ?, description = ?
-             WHERE id = ?`,
-            [name, JSON.stringify(tags), default_sets || null, default_reps || null, description || null, req.params.id]
+             WHERE id = ? AND academy_id = ?`,
+            [name, JSON.stringify(tags), default_sets || null, default_reps || null, description || null, req.params.id, academyId]
         );
 
         res.json({ success: true });
@@ -104,9 +109,10 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /peak/exercises/:id - 운동 삭제
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
     try {
-        await db.query('DELETE FROM exercises WHERE id = ?', [req.params.id]);
+        const academyId = req.user.academyId;
+        await db.query('DELETE FROM exercises WHERE id = ? AND academy_id = ?', [req.params.id, academyId]);
         res.json({ success: true });
     } catch (error) {
         console.error('Delete exercise error:', error);

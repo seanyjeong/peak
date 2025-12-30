@@ -3,8 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
-
-const ACADEMY_ID = 2;
+const { verifyToken } = require('../middleware/auth');
 
 // 세션 삭제
 router.delete('/:sessionId', async (req, res) => {
@@ -19,9 +18,10 @@ router.delete('/:sessionId', async (req, res) => {
 });
 
 // 조 편성 조회 (감독관 + 학생 포함) - P-ACA 자동 동기화
-router.get('/:sessionId/groups', async (req, res) => {
+router.get('/:sessionId/groups', verifyToken, async (req, res) => {
   const conn = await pool.getConnection();
   try {
+    const academyId = req.user.academyId;
     const { sessionId } = req.params;
 
     // 세션 정보
@@ -45,7 +45,7 @@ router.get('/:sessionId/groups', async (req, res) => {
       SELECT id, name, gender, school, grade
       FROM students
       WHERE academy_id = ? AND status = 'active' AND deleted_at IS NULL
-    `, [ACADEMY_ID]);
+    `, [academyId]);
 
     const pacaActiveIds = new Set(pacaActiveStudents.map(s => s.id));
 
@@ -123,13 +123,13 @@ router.get('/:sessionId/groups', async (req, res) => {
     const [instructors] = await pacaPool.query(`
       SELECT id, name FROM instructors
       WHERE academy_id = ? AND deleted_at IS NULL
-    `, [ACADEMY_ID]);
+    `, [academyId]);
 
     // 원장 정보도 조회
     const [owners] = await pacaPool.query(`
       SELECT id, name FROM users
       WHERE academy_id = ? AND role = 'owner' AND deleted_at IS NULL
-    `, [ACADEMY_ID]);
+    `, [academyId]);
 
     // 강사/원장 맵 생성
     const instructorMap = {};
@@ -410,11 +410,12 @@ router.put('/:sessionId/participants/:participantId', async (req, res) => {
 });
 
 // 재원생 동기화 (재원생만, 체험생 제외) - P-ACA 상태 기준으로 조회
-router.post('/:sessionId/participants/sync', async (req, res) => {
+router.post('/:sessionId/participants/sync', verifyToken, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
+    const academyId = req.user.academyId;
     const { sessionId } = req.params;
 
     // 세션의 테스트 ID 조회
@@ -444,7 +445,7 @@ router.post('/:sessionId/participants/sync', async (req, res) => {
       FROM students
       WHERE academy_id = ? AND status = 'active' AND deleted_at IS NULL
       ORDER BY name
-    `, [ACADEMY_ID]);
+    `, [academyId]);
 
     // P-ACA 학생 ID로 P-EAK students에서 매칭되는 학생 찾기
     const pacaIds = pacaStudents.map(s => s.id);
@@ -504,8 +505,9 @@ router.post('/:sessionId/participants/sync', async (req, res) => {
 });
 
 // 추가 가능 학생 목록 (휴원생, 체험생, 테스트신규 - P-ACA에서 조회)
-router.get('/:sessionId/available-students', async (req, res) => {
+router.get('/:sessionId/available-students', verifyToken, async (req, res) => {
   try {
+    const academyId = req.user.academyId;
     const { sessionId } = req.params;
     const { type } = req.query; // 'rest' | 'trial' | 'test_new'
 
@@ -539,7 +541,7 @@ router.get('/:sessionId/available-students', async (req, res) => {
         WHERE academy_id = ? AND status = 'pending'
         ${existingApplicantIds.length > 0 ? `AND id NOT IN (${existingApplicantIds.join(',')})` : ''}
         ORDER BY name
-      `, [ACADEMY_ID]);
+      `, [academyId]);
 
       const students = applicants.map(a => ({
         id: a.id,  // test_applicant_id
@@ -583,7 +585,7 @@ router.get('/:sessionId/available-students', async (req, res) => {
       WHERE academy_id = ? AND ${whereClause} AND deleted_at IS NULL
       ${existingPacaIds.length > 0 ? `AND id NOT IN (${existingPacaIds.join(',')})` : ''}
       ORDER BY name
-    `, [ACADEMY_ID]);
+    `, [academyId]);
 
     // 이름 복호화 + 성별 변환
     const students = pacaStudents.map(s => ({
@@ -691,8 +693,9 @@ router.delete('/:sessionId/participants/:participantId', async (req, res) => {
 });
 
 // 기록 조회
-router.get('/:sessionId/records', async (req, res) => {
+router.get('/:sessionId/records', verifyToken, async (req, res) => {
   try {
+    const academyId = req.user.academyId;
     const { sessionId } = req.params;
 
     // 세션 정보 및 선택된 종목
@@ -797,10 +800,10 @@ router.get('/:sessionId/records', async (req, res) => {
     // P-ACA에서 강사/원장 정보
     const [instructors] = await pacaPool.query(`
       SELECT id, name FROM instructors WHERE academy_id = ? AND deleted_at IS NULL
-    `, [ACADEMY_ID]);
+    `, [academyId]);
     const [owners] = await pacaPool.query(`
       SELECT id, name FROM users WHERE academy_id = ? AND role = 'owner' AND deleted_at IS NULL
-    `, [ACADEMY_ID]);
+    `, [academyId]);
 
     const instructorMap = {};
     instructors.forEach(i => { instructorMap[i.id] = decrypt(i.name); });

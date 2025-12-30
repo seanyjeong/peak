@@ -107,37 +107,38 @@ router.post('/sync', verifyToken, async (req, res) => {
                     UPDATE students SET
                         name = ?, gender = ?, phone = ?, school = ?, grade = ?,
                         class_days = ?, is_trial = ?, trial_total = ?, trial_remaining = ?,
-                        status = ?, updated_at = NOW()
+                        status = ?, academy_id = ?, updated_at = NOW()
                     WHERE paca_student_id = ?
                 `, [decryptedName, gender, decryptedPhone, student.school, student.grade,
                     classDays, isTrial, trialTotal, trialRemaining,
-                    status, student.id]);
+                    status, academyId, student.id]);
                 updated++;
             } else {
                 // 새로 추가
                 await db.query(`
-                    INSERT INTO students (paca_student_id, name, gender, phone, school, grade,
+                    INSERT INTO students (academy_id, paca_student_id, name, gender, phone, school, grade,
                                           class_days, is_trial, trial_total, trial_remaining,
                                           join_date, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `, [student.id, decryptedName, gender, decryptedPhone, student.school, student.grade,
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [academyId, student.id, decryptedName, gender, decryptedPhone, student.school, student.grade,
                     classDays, isTrial, trialTotal, trialRemaining,
                     student.enrollment_date, status]);
                 synced++;
             }
         }
 
-        // P-ACA에 없는 학생(퇴원/졸업) 비활성화
+        // P-ACA에 없는 학생(퇴원/졸업) 비활성화 - 해당 학원만
         const pacaStudentIds = pacaStudents.map(s => s.id);
         let deactivated = 0;
         if (pacaStudentIds.length > 0) {
             const [deactivateResult] = await db.query(`
                 UPDATE students
                 SET status = 'inactive', updated_at = NOW()
-                WHERE paca_student_id IS NOT NULL
+                WHERE academy_id = ?
+                AND paca_student_id IS NOT NULL
                 AND paca_student_id NOT IN (?)
                 AND status = 'active'
-            `, [pacaStudentIds]);
+            `, [academyId, pacaStudentIds]);
             deactivated = deactivateResult.affectedRows || 0;
         }
 
@@ -160,22 +161,24 @@ router.post('/sync', verifyToken, async (req, res) => {
  * GET /peak/students/today
  * 오늘 수업인 학생 목록 (스케줄 기반)
  */
-router.get('/today', async (req, res) => {
+router.get('/today', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+
         // 오늘 요일 구하기 (0=일요일, 1=월요일, ... 6=토요일)
         const today = new Date();
         const dayOfWeek = today.getDay();
 
-        // class_days에 오늘 요일이 포함된 학생만 조회
-        // JSON_CONTAINS를 사용하여 배열에서 요일 확인
+        // class_days에 오늘 요일이 포함된 학생만 조회 - 해당 학원만
         const [students] = await db.query(`
             SELECT *
             FROM students
-            WHERE status = 'active'
+            WHERE academy_id = ?
+              AND status = 'active'
               AND class_days IS NOT NULL
               AND JSON_CONTAINS(class_days, ?)
             ORDER BY name
-        `, [dayOfWeek.toString()]);
+        `, [academyId, dayOfWeek.toString()]);
 
         res.json({
             success: true,
@@ -193,23 +196,25 @@ router.get('/today', async (req, res) => {
  * GET /peak/students/schedule
  * 특정 날짜의 학생 목록 (스케줄 기반)
  */
-router.get('/schedule', async (req, res) => {
+router.get('/schedule', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { date } = req.query;
         const targetDate = date ? new Date(date) : new Date();
         const dayOfWeek = targetDate.getDay();
 
-        // class_days에 해당 요일이 포함된 학생 + 체험생
+        // class_days에 해당 요일이 포함된 학생 + 체험생 - 해당 학원만
         const [students] = await db.query(`
             SELECT *
             FROM students
-            WHERE status = 'active'
+            WHERE academy_id = ?
+              AND status = 'active'
               AND (
                 (class_days IS NOT NULL AND JSON_CONTAINS(class_days, ?))
                 OR is_trial = 1
               )
             ORDER BY is_trial DESC, name
-        `, [dayOfWeek.toString()]);
+        `, [academyId, dayOfWeek.toString()]);
 
         res.json({
             success: true,
@@ -224,14 +229,15 @@ router.get('/schedule', async (req, res) => {
 });
 
 // GET /peak/students - 학생 목록
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { status } = req.query;
-        let query = 'SELECT * FROM students';
-        const params = [];
+        let query = 'SELECT * FROM students WHERE academy_id = ?';
+        const params = [academyId];
 
         if (status) {
-            query += ' WHERE status = ?';
+            query += ' AND status = ?';
             params.push(status);
         }
         query += ' ORDER BY name';
@@ -245,11 +251,12 @@ router.get('/', async (req, res) => {
 });
 
 // GET /peak/students/:id - 학생 상세
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const [students] = await db.query(
-            'SELECT * FROM students WHERE id = ?',
-            [req.params.id]
+            'SELECT * FROM students WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
         );
         if (students.length === 0) {
             return res.status(404).json({ error: 'Not Found' });
@@ -262,15 +269,27 @@ router.get('/:id', async (req, res) => {
 });
 
 // GET /peak/students/:id/records - 학생 기록 히스토리 (동적 종목)
-router.get('/:id/records', async (req, res) => {
+router.get('/:id/records', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+        const studentId = req.params.id;
+
+        // 학생이 해당 학원 소속인지 확인
+        const [students] = await db.query(
+            'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+            [studentId, academyId]
+        );
+        if (students.length === 0) {
+            return res.status(404).json({ error: 'Student not found' });
+        }
+
         const [records] = await db.query(`
             SELECT r.*, rt.name as record_type_name, rt.unit, rt.direction
             FROM student_records r
             JOIN record_types rt ON r.record_type_id = rt.id
-            WHERE r.student_id = ?
+            WHERE r.student_id = ? AND r.academy_id = ?
             ORDER BY r.measured_at DESC, rt.display_order
-        `, [req.params.id]);
+        `, [studentId, academyId]);
 
         // 날짜별로 그룹화해서 반환
         const grouped = {};
@@ -316,12 +335,16 @@ router.get('/:id/records', async (req, res) => {
  * GET /peak/students/:id/stats - 학생 종합 통계
  * 프로필 페이지용 데이터
  */
-router.get('/:id/stats', async (req, res) => {
+router.get('/:id/stats', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const studentId = req.params.id;
 
-        // 1. 학생 정보 조회
-        const [students] = await db.query('SELECT * FROM students WHERE id = ?', [studentId]);
+        // 1. 학생 정보 조회 - 해당 학원 소속인지 확인
+        const [students] = await db.query(
+            'SELECT * FROM students WHERE id = ? AND academy_id = ?',
+            [studentId, academyId]
+        );
         if (students.length === 0) {
             return res.status(404).json({ error: 'Student not found' });
         }
@@ -332,14 +355,14 @@ router.get('/:id/stats', async (req, res) => {
             'SELECT * FROM record_types WHERE is_active = 1 ORDER BY display_order'
         );
 
-        // 3. 학생의 모든 기록 조회
+        // 3. 학생의 모든 기록 조회 - 해당 학원만
         const [allRecords] = await db.query(`
             SELECT r.*, rt.direction
             FROM student_records r
             JOIN record_types rt ON r.record_type_id = rt.id
-            WHERE r.student_id = ?
+            WHERE r.student_id = ? AND r.academy_id = ?
             ORDER BY r.measured_at DESC
-        `, [studentId]);
+        `, [studentId, academyId]);
 
         // 4. 종목별 배점표 조회
         const [scoreTables] = await db.query(`

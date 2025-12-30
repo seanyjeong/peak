@@ -3,19 +3,19 @@ const router = express.Router();
 const pool = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { encrypt, decrypt } = require('../utils/encryption');
-
-const ACADEMY_ID = 2;
+const { verifyToken } = require('../middleware/auth');
 
 // 테스트 신규 학생 목록 조회
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
+    const academyId = req.user.academyId;
     const { month, status } = req.query;
 
     let query = `
       SELECT * FROM test_applicants
       WHERE academy_id = ?
     `;
-    const params = [ACADEMY_ID];
+    const params = [academyId];
 
     if (month) {
       query += ' AND test_month = ?';
@@ -47,8 +47,9 @@ router.get('/', async (req, res) => {
 });
 
 // 테스트 신규 학생 등록
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
+    const academyId = req.user.academyId;
     const { name, gender, phone, school, grade, test_month, test_date, notes } = req.body;
 
     // 이름/전화번호 암호화
@@ -61,7 +62,7 @@ router.post('/', async (req, res) => {
       INSERT INTO test_applicants
       (academy_id, name, gender, phone, school, grade, test_month, test_date, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [ACADEMY_ID, encryptedName, dbGender, encryptedPhone, school, grade, test_month, test_date, notes]);
+    `, [academyId, encryptedName, dbGender, encryptedPhone, school, grade, test_month, test_date, notes]);
 
     res.json({
       success: true,
@@ -75,10 +76,17 @@ router.post('/', async (req, res) => {
 });
 
 // 테스트 신규 학생 수정
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
   try {
+    const academyId = req.user.academyId;
     const { id } = req.params;
     const { name, gender, phone, school, grade, notes, status } = req.body;
+
+    // 해당 학원 소속 확인
+    const [check] = await pacaPool.query('SELECT id FROM test_applicants WHERE id = ? AND academy_id = ?', [id, academyId]);
+    if (check.length === 0) {
+      return res.status(404).json({ success: false, message: '테스트 신규 학생을 찾을 수 없습니다.' });
+    }
 
     const updates = [];
     const params = [];
@@ -136,9 +144,16 @@ router.put('/:id', async (req, res) => {
 });
 
 // 테스트 신규 학생 삭제
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
   try {
+    const academyId = req.user.academyId;
     const { id } = req.params;
+
+    // 해당 학원 소속 확인
+    const [check] = await pacaPool.query('SELECT id FROM test_applicants WHERE id = ? AND academy_id = ?', [id, academyId]);
+    if (check.length === 0) {
+      return res.status(404).json({ success: false, message: '테스트 신규 학생을 찾을 수 없습니다.' });
+    }
 
     // 참가자에서도 제거
     await pool.query('DELETE FROM test_participants WHERE test_applicant_id = ?', [id]);
@@ -147,7 +162,7 @@ router.delete('/:id', async (req, res) => {
     await pool.query('DELETE FROM test_records WHERE test_applicant_id = ?', [id]);
 
     // 테스트신규 삭제
-    await pacaPool.query('DELETE FROM test_applicants WHERE id = ?', [id]);
+    await pacaPool.query('DELETE FROM test_applicants WHERE id = ? AND academy_id = ?', [id, academyId]);
 
     res.json({ success: true, message: '테스트 신규 학생이 삭제되었습니다.' });
   } catch (error) {
@@ -157,7 +172,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // 정식 등록 전환
-router.post('/:id/convert', async (req, res) => {
+router.post('/:id/convert', verifyToken, async (req, res) => {
   const pacaConn = await pacaPool.getConnection();
   const peakConn = await pool.getConnection();
 
@@ -165,6 +180,7 @@ router.post('/:id/convert', async (req, res) => {
     await pacaConn.beginTransaction();
     await peakConn.beginTransaction();
 
+    const academyId = req.user.academyId;
     const { id } = req.params;
 
     // 테스트신규 정보 조회
@@ -189,7 +205,7 @@ router.post('/:id/convert', async (req, res) => {
         status, enrollment_type, enrollment_date, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, 'active', 'regular', CURDATE(), NOW())
     `, [
-      ACADEMY_ID,
+      academyId,
       applicant.name, // 이미 암호화됨
       applicant.gender,
       applicant.phone,
@@ -202,9 +218,10 @@ router.post('/:id/convert', async (req, res) => {
     // P-EAK students 테이블에 추가
     const [peakResult] = await peakConn.query(`
       INSERT INTO students (
-        paca_student_id, name, gender, phone, school, grade, status, join_date
-      ) VALUES (?, ?, ?, ?, ?, ?, 'active', CURDATE())
+        academy_id, paca_student_id, name, gender, phone, school, grade, status, join_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', CURDATE())
     `, [
+      academyId,
       pacaStudentId,
       decrypt(applicant.name),
       applicant.gender === 'male' ? 'M' : 'F',
@@ -263,14 +280,15 @@ router.post('/:id/convert', async (req, res) => {
 });
 
 // 휴원생 목록 조회 (수동 추가용)
-router.get('/rest-students', async (req, res) => {
+router.get('/rest-students', verifyToken, async (req, res) => {
   try {
+    const academyId = req.user.academyId;
     const [students] = await pool.query(`
       SELECT id, name, gender, school, grade
       FROM students
-      WHERE status = 'inactive'
+      WHERE academy_id = ? AND status = 'inactive'
       ORDER BY name
-    `);
+    `, [academyId]);
 
     res.json({ success: true, students });
   } catch (error) {

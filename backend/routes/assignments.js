@@ -81,14 +81,14 @@ router.get('/', verifyToken, async (req, res) => {
             }
         });
 
-        // 반에 배치된 강사 조회
+        // 반에 배치된 강사 조회 - 해당 학원만
         const [classInstructors] = await db.query(`
             SELECT * FROM class_instructors
-            WHERE date = ?
+            WHERE academy_id = ? AND date = ?
             ORDER BY time_slot, class_num, order_num
-        `, [targetDate]);
+        `, [academyId, targetDate]);
 
-        // 배치된 학생 조회
+        // 배치된 학생 조회 - 해당 학원만
         const [assignments] = await db.query(`
             SELECT
                 a.*,
@@ -102,9 +102,9 @@ router.get('/', verifyToken, async (req, res) => {
                 s.paca_student_id
             FROM daily_assignments a
             JOIN students s ON a.student_id = s.id
-            WHERE a.date = ?
+            WHERE a.academy_id = ? AND a.date = ?
             ORDER BY a.time_slot, a.class_id, a.order_num
-        `, [targetDate]);
+        `, [academyId, targetDate]);
 
         // P-ACA에서 출결 상태 조회
         const [pacaAttendance] = await pacaPool.query(`
@@ -278,11 +278,11 @@ router.post('/instructor', async (req, res) => {
             orderNum = existingInsts.length;
         }
 
-        // 새 배치 추가
+        // 새 배치 추가 - academy_id 포함
         await db.query(`
-            INSERT INTO class_instructors (date, time_slot, class_num, instructor_id, is_main, order_num)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [targetDate, time_slot, to_class_num, instructor_id, isMainFlag ? 1 : 0, orderNum]);
+            INSERT INTO class_instructors (academy_id, date, time_slot, class_num, instructor_id, is_main, order_num)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [academyId, targetDate, time_slot, to_class_num, instructor_id, isMainFlag ? 1 : 0, orderNum]);
 
         // 빈 반 정리
         await cleanupEmptyClasses(targetDate, time_slot);
@@ -361,11 +361,11 @@ router.post('/sync', verifyToken, async (req, res) => {
         const targetDate = date || new Date().toISOString().split('T')[0];
         const academyId = req.user.academyId;  // 토큰에서 학원 ID
 
-        // 기존 배치 조회 (class_id 유지를 위해)
+        // 기존 배치 조회 (class_id 유지를 위해) - 해당 학원만
         const [existingAssignments] = await db.query(`
             SELECT id, student_id, time_slot, class_id, paca_attendance_id
-            FROM daily_assignments WHERE date = ?
-        `, [targetDate]);
+            FROM daily_assignments WHERE academy_id = ? AND date = ?
+        `, [academyId, targetDate]);
 
         // 기존 배치를 student_id+time_slot로 맵핑
         const existingMap = new Map();
@@ -475,11 +475,11 @@ router.post('/sync', verifyToken, async (req, res) => {
                 `, [ps.attendance_id, existing.id]);
                 updatedCount++;
             } else {
-                // 새 학생 추가 - class_id는 NULL (대기)
+                // 새 학생 추가 - class_id는 NULL (대기), academy_id 포함
                 await db.query(`
-                    INSERT INTO daily_assignments (date, time_slot, student_id, paca_attendance_id, class_id, status, order_num)
-                    VALUES (?, ?, ?, ?, NULL, 'enrolled', 0)
-                `, [targetDate, ps.time_slot, peakStudentId, ps.attendance_id]);
+                    INSERT INTO daily_assignments (academy_id, date, time_slot, student_id, paca_attendance_id, class_id, status, order_num)
+                    VALUES (?, ?, ?, ?, ?, NULL, 'enrolled', 0)
+                `, [academyId, targetDate, ps.time_slot, peakStudentId, ps.attendance_id]);
                 addedCount++;
             }
         }

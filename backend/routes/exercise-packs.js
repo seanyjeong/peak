@@ -5,18 +5,20 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { requireRole } = require('../middleware/auth');
+const { requireRole, verifyToken } = require('../middleware/auth');
 
 // GET /peak/exercise-packs - 팩 목록
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const [packs] = await db.query(`
             SELECT p.*, COUNT(pi.id) as exercise_count
             FROM exercise_packs p
             LEFT JOIN exercise_pack_items pi ON p.id = pi.pack_id
+            WHERE p.academy_id = ?
             GROUP BY p.id
             ORDER BY p.created_at DESC
-        `);
+        `, [academyId]);
         res.json({ success: true, packs });
     } catch (error) {
         console.error('Get packs error:', error);
@@ -25,11 +27,12 @@ router.get('/', async (req, res) => {
 });
 
 // GET /peak/exercise-packs/:id - 팩 상세 (운동 목록 포함)
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const [packs] = await db.query(
-            'SELECT * FROM exercise_packs WHERE id = ?',
-            [req.params.id]
+            'SELECT * FROM exercise_packs WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
         );
 
         if (packs.length === 0) {
@@ -98,10 +101,11 @@ router.post('/', requireRole('admin', 'owner'), async (req, res) => {
             };
         }
 
+        const academyId = req.user.academyId;
         const [result] = await db.query(
-            `INSERT INTO exercise_packs (name, description, author, snapshot_data)
-             VALUES (?, ?, ?, ?)`,
-            [name, description || null, req.user?.name || 'Unknown', JSON.stringify(snapshotData)]
+            `INSERT INTO exercise_packs (academy_id, name, description, author, snapshot_data)
+             VALUES (?, ?, ?, ?, ?)`,
+            [academyId, name, description || null, req.user?.name || 'Unknown', JSON.stringify(snapshotData)]
         );
 
         const packId = result.insertId;
@@ -126,10 +130,17 @@ router.post('/', requireRole('admin', 'owner'), async (req, res) => {
 });
 
 // PUT /peak/exercise-packs/:id - 팩 수정
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { name, description, exercise_ids } = req.body;
         const packId = req.params.id;
+
+        // 팩이 해당 학원 소속인지 확인
+        const [packCheck] = await db.query('SELECT id FROM exercise_packs WHERE id = ? AND academy_id = ?', [packId, academyId]);
+        if (packCheck.length === 0) {
+            return res.status(404).json({ error: 'Pack not found' });
+        }
 
         // 팩 정보 수정
         if (name || description !== undefined) {
@@ -172,7 +183,8 @@ router.put('/:id', async (req, res) => {
 // DELETE /peak/exercise-packs/:id - 팩 삭제 [관리자 전용]
 router.delete('/:id', requireRole('admin', 'owner'), async (req, res) => {
     try {
-        await db.query('DELETE FROM exercise_packs WHERE id = ?', [req.params.id]);
+        const academyId = req.user.academyId;
+        await db.query('DELETE FROM exercise_packs WHERE id = ? AND academy_id = ?', [req.params.id, academyId]);
         res.json({ success: true });
     } catch (error) {
         console.error('Delete pack error:', error);
@@ -181,11 +193,12 @@ router.delete('/:id', requireRole('admin', 'owner'), async (req, res) => {
 });
 
 // GET /peak/exercise-packs/:id/export - 팩 내보내기 (JSON)
-router.get('/:id/export', async (req, res) => {
+router.get('/:id/export', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const [packs] = await db.query(
-            'SELECT * FROM exercise_packs WHERE id = ?',
-            [req.params.id]
+            'SELECT * FROM exercise_packs WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
         );
 
         if (packs.length === 0) {
@@ -268,10 +281,12 @@ router.post('/import', requireRole('admin', 'owner'), async (req, res) => {
         }
 
         // 2. 팩 생성
+        const academyId = req.user.academyId;
         const [packResult] = await connection.query(`
-            INSERT INTO exercise_packs (name, description, version, author)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO exercise_packs (academy_id, name, description, version, author)
+            VALUES (?, ?, ?, ?, ?)
         `, [
+            academyId,
             importData.pack.name + ' (가져옴)',
             importData.pack.description,
             importData.pack.version,
@@ -293,9 +308,10 @@ router.post('/import', requireRole('admin', 'owner'), async (req, res) => {
                 exerciseId = existing[0].id;
             } else {
                 const [exResult] = await connection.query(`
-                    INSERT INTO exercises (name, tags, default_sets, default_reps, description)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO exercises (academy_id, name, tags, default_sets, default_reps, description)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 `, [
+                    academyId,
                     ex.name,
                     JSON.stringify(ex.tags || []),
                     ex.default_sets,
@@ -341,12 +357,13 @@ router.post('/:id/apply', requireRole('admin', 'owner'), async (req, res) => {
     const connection = await db.getConnection();
 
     try {
+        const academyId = req.user.academyId;
         const packId = req.params.id;
 
-        // 팩 조회
+        // 팩 조회 - 해당 학원 소속인지 확인
         const [packs] = await connection.query(
-            'SELECT * FROM exercise_packs WHERE id = ?',
-            [packId]
+            'SELECT * FROM exercise_packs WHERE id = ? AND academy_id = ?',
+            [packId, academyId]
         );
 
         if (packs.length === 0) {
@@ -398,15 +415,16 @@ router.post('/:id/apply', requireRole('admin', 'owner'), async (req, res) => {
             }
         }
 
-        // 2. 기존 운동 삭제
-        await connection.query('DELETE FROM exercises');
+        // 2. 기존 운동 삭제 - 해당 학원만
+        await connection.query('DELETE FROM exercises WHERE academy_id = ?', [academyId]);
 
         // 3. 팩의 운동으로 대체
         for (const ex of snapshotData.exercises) {
             await connection.query(`
-                INSERT INTO exercises (name, tags, default_sets, default_reps, description)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO exercises (academy_id, name, tags, default_sets, default_reps, description)
+                VALUES (?, ?, ?, ?, ?, ?)
             `, [
+                academyId,
                 ex.name,
                 JSON.stringify(ex.tags || []),
                 ex.default_sets,
