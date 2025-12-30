@@ -5,12 +5,16 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/exercise-tags - 태그 목록
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+
         const [tags] = await db.query(
-            'SELECT * FROM exercise_tags WHERE is_active = TRUE ORDER BY display_order, id'
+            'SELECT * FROM exercise_tags WHERE academy_id = ? AND is_active = TRUE ORDER BY display_order, id',
+            [academyId]
         );
         res.json({ success: true, tags });
     } catch (error) {
@@ -20,10 +24,13 @@ router.get('/', async (req, res) => {
 });
 
 // GET /peak/exercise-tags/all - 전체 태그 목록 (비활성 포함)
-router.get('/all', async (req, res) => {
+router.get('/all', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+
         const [tags] = await db.query(
-            'SELECT * FROM exercise_tags ORDER BY display_order, id'
+            'SELECT * FROM exercise_tags WHERE academy_id = ? ORDER BY display_order, id',
+            [academyId]
         );
         res.json({ success: true, tags });
     } catch (error) {
@@ -33,24 +40,26 @@ router.get('/all', async (req, res) => {
 });
 
 // POST /peak/exercise-tags - 태그 추가
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { tag_id, label, color } = req.body;
 
         if (!tag_id || !label) {
             return res.status(400).json({ error: 'tag_id and label are required' });
         }
 
-        // 최대 display_order 조회
+        // 최대 display_order 조회 (해당 학원만)
         const [maxOrder] = await db.query(
-            'SELECT MAX(display_order) as max_order FROM exercise_tags'
+            'SELECT MAX(display_order) as max_order FROM exercise_tags WHERE academy_id = ?',
+            [academyId]
         );
         const newOrder = (maxOrder[0].max_order || 0) + 1;
 
         const [result] = await db.query(
-            `INSERT INTO exercise_tags (tag_id, label, color, display_order)
-             VALUES (?, ?, ?, ?)`,
-            [tag_id, label, color || 'bg-slate-100 text-slate-700', newOrder]
+            `INSERT INTO exercise_tags (academy_id, tag_id, label, color, display_order)
+             VALUES (?, ?, ?, ?, ?)`,
+            [academyId, tag_id, label, color || 'bg-slate-100 text-slate-700', newOrder]
         );
 
         res.status(201).json({
@@ -67,9 +76,20 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /peak/exercise-tags/:id - 태그 수정
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { label, color, is_active, display_order } = req.body;
+
+        // 해당 태그가 이 학원 소유인지 확인
+        const [tagCheck] = await db.query(
+            'SELECT id FROM exercise_tags WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
+        );
+
+        if (tagCheck.length === 0) {
+            return res.status(404).json({ error: '태그를 찾을 수 없습니다.' });
+        }
 
         const updates = [];
         const params = [];
@@ -96,8 +116,9 @@ router.put('/:id', async (req, res) => {
         }
 
         params.push(req.params.id);
+        params.push(academyId);
         await db.query(
-            `UPDATE exercise_tags SET ${updates.join(', ')} WHERE id = ?`,
+            `UPDATE exercise_tags SET ${updates.join(', ')} WHERE id = ? AND academy_id = ?`,
             params
         );
 
@@ -109,12 +130,19 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /peak/exercise-tags/:id - 태그 삭제 (비활성화)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
     try {
-        await db.query(
-            'UPDATE exercise_tags SET is_active = FALSE WHERE id = ?',
-            [req.params.id]
+        const academyId = req.user.academyId;
+
+        const [result] = await db.query(
+            'UPDATE exercise_tags SET is_active = FALSE WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
         );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: '태그를 찾을 수 없습니다.' });
+        }
+
         res.json({ success: true });
     } catch (error) {
         console.error('Delete tag error:', error);

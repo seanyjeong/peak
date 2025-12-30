@@ -78,6 +78,7 @@ router.get('/', verifyToken, async (req, res) => {
 // POST /peak/attendance/checkin - 출근 체크
 router.post('/checkin', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { trainer_id } = req.body;
         const today = new Date().toISOString().split('T')[0];
         const now = new Date().toTimeString().split(' ')[0];
@@ -93,10 +94,10 @@ router.post('/checkin', verifyToken, async (req, res) => {
             });
         }
 
-        // 이미 출근했는지 확인
+        // 이미 출근했는지 확인 (해당 학원만)
         const [existing] = await db.query(
-            'SELECT id FROM daily_attendance WHERE date = ? AND trainer_id = ?',
-            [today, trainer_id]
+            'SELECT id FROM daily_attendance WHERE academy_id = ? AND date = ? AND trainer_id = ?',
+            [academyId, today, trainer_id]
         );
 
         if (existing.length > 0) {
@@ -107,8 +108,8 @@ router.post('/checkin', verifyToken, async (req, res) => {
         }
 
         const [result] = await db.query(
-            'INSERT INTO daily_attendance (date, trainer_id, check_in_time) VALUES (?, ?, ?)',
-            [today, trainer_id, now]
+            'INSERT INTO daily_attendance (academy_id, date, trainer_id, check_in_time) VALUES (?, ?, ?, ?)',
+            [academyId, today, trainer_id, now]
         );
 
         res.status(201).json({

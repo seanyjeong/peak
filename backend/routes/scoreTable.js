@@ -6,16 +6,20 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/score-tables - 배점표 목록
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+
         const [tables] = await db.query(`
             SELECT st.*, rt.name as record_type_name, rt.unit, rt.direction
             FROM score_tables st
             JOIN record_types rt ON st.record_type_id = rt.id
+            WHERE st.academy_id = ?
             ORDER BY rt.display_order
-        `);
+        `, [academyId]);
         res.json({ success: true, scoreTables: tables });
     } catch (error) {
         console.error('Get score tables error:', error);
@@ -24,14 +28,16 @@ router.get('/', async (req, res) => {
 });
 
 // GET /peak/score-tables/:id - 배점표 상세 (구간 포함)
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+
         const [tables] = await db.query(`
             SELECT st.*, rt.name as record_type_name, rt.unit, rt.direction
             FROM score_tables st
             JOIN record_types rt ON st.record_type_id = rt.id
-            WHERE st.id = ?
-        `, [req.params.id]);
+            WHERE st.id = ? AND st.academy_id = ?
+        `, [req.params.id, academyId]);
 
         if (tables.length === 0) {
             return res.status(404).json({ error: 'Not Found' });
@@ -54,14 +60,16 @@ router.get('/:id', async (req, res) => {
 });
 
 // GET /peak/score-tables/by-type/:recordTypeId - 종목별 배점표
-router.get('/by-type/:recordTypeId', async (req, res) => {
+router.get('/by-type/:recordTypeId', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+
         const [tables] = await db.query(`
             SELECT st.*, rt.name as record_type_name, rt.unit, rt.direction
             FROM score_tables st
             JOIN record_types rt ON st.record_type_id = rt.id
-            WHERE st.record_type_id = ?
-        `, [req.params.recordTypeId]);
+            WHERE st.record_type_id = ? AND st.academy_id = ?
+        `, [req.params.recordTypeId, academyId]);
 
         if (tables.length === 0) {
             return res.json({ success: true, scoreTable: null, ranges: [] });
@@ -84,8 +92,9 @@ router.get('/by-type/:recordTypeId', async (req, res) => {
 });
 
 // POST /peak/score-tables - 배점표 생성 (자동 구간 생성)
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const {
             record_type_id,
             name,
@@ -98,10 +107,10 @@ router.post('/', async (req, res) => {
             female_perfect    // 여자 만점 기록
         } = req.body;
 
-        // 종목 정보 가져오기
+        // 종목 정보 가져오기 (해당 학원 소유인지 확인)
         const [recordTypes] = await db.query(
-            'SELECT * FROM record_types WHERE id = ?',
-            [record_type_id]
+            'SELECT * FROM record_types WHERE id = ? AND academy_id = ?',
+            [record_type_id, academyId]
         );
 
         if (recordTypes.length === 0) {
@@ -122,8 +131,8 @@ router.post('/', async (req, res) => {
         try {
             // 기존 배점표 삭제 (있으면)
             const [existing] = await connection.query(
-                'SELECT id FROM score_tables WHERE record_type_id = ?',
-                [record_type_id]
+                'SELECT id FROM score_tables WHERE record_type_id = ? AND academy_id = ?',
+                [record_type_id, academyId]
             );
 
             if (existing.length > 0) {
@@ -140,9 +149,9 @@ router.post('/', async (req, res) => {
             // 배점표 생성
             const [result] = await connection.query(`
                 INSERT INTO score_tables
-                (record_type_id, name, max_score, min_score, score_step, value_step, decimal_places, male_perfect, female_perfect)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [record_type_id, name, max_score, min_score, score_step, value_step, decimal_places, male_perfect, female_perfect]);
+                (academy_id, record_type_id, name, max_score, min_score, score_step, value_step, decimal_places, male_perfect, female_perfect)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [academyId, record_type_id, name, max_score, min_score, score_step, value_step, decimal_places, male_perfect, female_perfect]);
 
             const scoreTableId = result.insertId;
 
@@ -253,9 +262,21 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /peak/score-tables/ranges/:id - 개별 구간 수정
-router.put('/ranges/:id', async (req, res) => {
+router.put('/ranges/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { male_min, male_max, female_min, female_max } = req.body;
+
+        // 해당 구간이 이 학원 소유인지 확인
+        const [rangeCheck] = await db.query(`
+            SELECT sr.id FROM score_ranges sr
+            JOIN score_tables st ON sr.score_table_id = st.id
+            WHERE sr.id = ? AND st.academy_id = ?
+        `, [req.params.id, academyId]);
+
+        if (rangeCheck.length === 0) {
+            return res.status(404).json({ error: '구간을 찾을 수 없습니다.' });
+        }
 
         await db.query(`
             UPDATE score_ranges
@@ -271,8 +292,20 @@ router.put('/ranges/:id', async (req, res) => {
 });
 
 // DELETE /peak/score-tables/:id - 배점표 삭제
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+
+        // 해당 배점표가 이 학원 소유인지 확인
+        const [tableCheck] = await db.query(
+            'SELECT id FROM score_tables WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
+        );
+
+        if (tableCheck.length === 0) {
+            return res.status(404).json({ error: '배점표를 찾을 수 없습니다.' });
+        }
+
         await db.query('DELETE FROM score_ranges WHERE score_table_id = ?', [req.params.id]);
         await db.query('DELETE FROM score_tables WHERE id = ?', [req.params.id]);
         res.json({ success: true, message: '배점표가 삭제되었습니다.' });
@@ -283,13 +316,14 @@ router.delete('/:id', async (req, res) => {
 });
 
 // POST /peak/score-tables/calculate - 기록으로 점수 계산
-router.post('/calculate', async (req, res) => {
+router.post('/calculate', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { record_type_id, value, gender } = req.body;
 
         const [tables] = await db.query(
-            'SELECT id FROM score_tables WHERE record_type_id = ? AND is_active = 1',
-            [record_type_id]
+            'SELECT id FROM score_tables WHERE record_type_id = ? AND academy_id = ? AND is_active = 1',
+            [record_type_id, academyId]
         );
 
         if (tables.length === 0) {

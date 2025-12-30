@@ -45,13 +45,15 @@ router.get('/:slug', async (req, res) => {
     const academy = academies[0];
 
     // 2. 현재 active인 월말테스트 조회
+    const academyId = academy.id;
+
     const [tests] = await pool.query(`
       SELECT id, test_month, test_name, status
       FROM monthly_tests
-      WHERE status = 'active'
+      WHERE status = 'active' AND academy_id = ?
       ORDER BY created_at DESC
       LIMIT 1
-    `);
+    `, [academyId]);
 
     if (tests.length === 0) {
       return res.json({

@@ -286,7 +286,7 @@ router.post('/instructor', verifyToken, async (req, res) => {
         `, [academyId, targetDate, time_slot, to_class_num, instructor_id, isMainFlag ? 1 : 0, orderNum]);
 
         // 빈 반 정리
-        await cleanupEmptyClasses(targetDate, time_slot);
+        await cleanupEmptyClasses(targetDate, time_slot, academyId);
 
         res.json({ success: true, action: 'assigned', class_num: to_class_num });
     } catch (error) {
@@ -296,35 +296,36 @@ router.post('/instructor', verifyToken, async (req, res) => {
 });
 
 // 빈 반 정리 함수 (강사 없는 반의 학생들 미배치로)
-async function cleanupEmptyClasses(date, time_slot) {
-    // 강사가 있는 반 목록
+async function cleanupEmptyClasses(date, time_slot, academyId) {
+    // 강사가 있는 반 목록 (해당 학원만)
     const [classesWithInstructors] = await db.query(`
         SELECT DISTINCT class_num FROM class_instructors
-        WHERE date = ? AND time_slot = ?
-    `, [date, time_slot]);
+        WHERE academy_id = ? AND date = ? AND time_slot = ?
+    `, [academyId, date, time_slot]);
 
     const validClassNums = classesWithInstructors.map(c => c.class_num);
 
     if (validClassNums.length === 0) {
-        // 모든 학생 미배치로
+        // 모든 학생 미배치로 (해당 학원만)
         await db.query(`
             UPDATE daily_assignments
             SET class_id = NULL
-            WHERE date = ? AND time_slot = ? AND class_id IS NOT NULL
-        `, [date, time_slot]);
+            WHERE academy_id = ? AND date = ? AND time_slot = ? AND class_id IS NOT NULL
+        `, [academyId, date, time_slot]);
     } else {
-        // 유효하지 않은 반의 학생 미배치로
+        // 유효하지 않은 반의 학생 미배치로 (해당 학원만)
         await db.query(`
             UPDATE daily_assignments
             SET class_id = NULL
-            WHERE date = ? AND time_slot = ? AND class_id IS NOT NULL AND class_id NOT IN (?)
-        `, [date, time_slot, validClassNums]);
+            WHERE academy_id = ? AND date = ? AND time_slot = ? AND class_id IS NOT NULL AND class_id NOT IN (?)
+        `, [academyId, date, time_slot, validClassNums]);
     }
 }
 
 // PUT /peak/assignments/:id - 학생 배치 변경
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { class_id, status, order_num, time_slot } = req.body;
 
         let query = 'UPDATE daily_assignments SET class_id = ?';
@@ -343,10 +344,15 @@ router.put('/:id', async (req, res) => {
             params.push(time_slot);
         }
 
-        query += ' WHERE id = ?';
+        query += ' WHERE id = ? AND academy_id = ?';
         params.push(req.params.id);
+        params.push(academyId);
 
-        await db.query(query, params);
+        const [result] = await db.query(query, params);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: '배치를 찾을 수 없습니다.' });
+        }
 
         res.json({ success: true });
     } catch (error) {

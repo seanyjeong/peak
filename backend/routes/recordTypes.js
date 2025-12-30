@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { verifyToken } = require('../middleware/auth');
 
 // 자동 줄임말 생성
 // 4글자 이하는 그대로, 그 이상은 null (수동 설정 필요)
@@ -17,17 +18,19 @@ const generateShortName = (name) => {
 };
 
 // GET /peak/record-types - 종목 목록
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { active } = req.query;
-        let query = 'SELECT * FROM record_types';
+        let query = 'SELECT * FROM record_types WHERE academy_id = ?';
+        const params = [academyId];
 
         if (active === 'true') {
-            query += ' WHERE is_active = 1';
+            query += ' AND is_active = 1';
         }
         query += ' ORDER BY display_order, id';
 
-        const [types] = await db.query(query);
+        const [types] = await db.query(query, params);
         res.json({ success: true, recordTypes: types });
     } catch (error) {
         console.error('Get record types error:', error);
@@ -36,8 +39,9 @@ router.get('/', async (req, res) => {
 });
 
 // POST /peak/record-types - 종목 추가
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { name, unit, direction, display_order, short_name } = req.body;
 
         if (!name || !unit) {
@@ -48,8 +52,8 @@ router.post('/', async (req, res) => {
         const finalShortName = short_name || generateShortName(name);
 
         const [result] = await db.query(
-            'INSERT INTO record_types (name, short_name, unit, direction, display_order) VALUES (?, ?, ?, ?, ?)',
-            [name, finalShortName, unit, direction || 'higher', display_order || 0]
+            'INSERT INTO record_types (academy_id, name, short_name, unit, direction, display_order) VALUES (?, ?, ?, ?, ?, ?)',
+            [academyId, name, finalShortName, unit, direction || 'higher', display_order || 0]
         );
 
         res.status(201).json({
@@ -65,8 +69,9 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /peak/record-types/:id - 종목 수정
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { name, short_name, unit, direction, is_active, display_order } = req.body;
 
         // 줄임말이 없고 이름이 바뀌면 자동 생성
@@ -75,10 +80,14 @@ router.put('/:id', async (req, res) => {
             finalShortName = generateShortName(name);
         }
 
-        await db.query(
-            'UPDATE record_types SET name = ?, short_name = ?, unit = ?, direction = ?, is_active = ?, display_order = ? WHERE id = ?',
-            [name, finalShortName, unit, direction, is_active, display_order, req.params.id]
+        const [result] = await db.query(
+            'UPDATE record_types SET name = ?, short_name = ?, unit = ?, direction = ?, is_active = ?, display_order = ? WHERE id = ? AND academy_id = ?',
+            [name, finalShortName, unit, direction, is_active, display_order, req.params.id, academyId]
         );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: '종목을 찾을 수 없습니다.' });
+        }
 
         res.json({ success: true, short_name: finalShortName });
     } catch (error) {
@@ -88,13 +97,19 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /peak/record-types/:id - 종목 삭제 (비활성화)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+
         // 실제 삭제 대신 비활성화
-        await db.query(
-            'UPDATE record_types SET is_active = 0 WHERE id = ?',
-            [req.params.id]
+        const [result] = await db.query(
+            'UPDATE record_types SET is_active = 0 WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
         );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: '종목을 찾을 수 없습니다.' });
+        }
 
         res.json({ success: true, message: '종목이 비활성화되었습니다.' });
     } catch (error) {

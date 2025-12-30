@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo, use } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -87,10 +87,13 @@ interface ScoreTable {
   max_score: number;
 }
 
-export default function StudentProfilePage() {
-  const params = useParams();
+export default function StudentProfilePage({
+  params
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id: studentId } = use(params);
   const router = useRouter();
-  const studentId = params.id as string;
 
   const [student, setStudent] = useState<Student | null>(null);
   const [stats, setStats] = useState<StudentStats | null>(null);
