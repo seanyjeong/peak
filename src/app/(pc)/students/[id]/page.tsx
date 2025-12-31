@@ -624,7 +624,7 @@ export default function StudentProfilePage({
           </div>
 
           {/* Radar Chart */}
-          <div className="bg-white rounded-xl shadow-sm p-4 h-[244px] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl shadow-sm p-4 h-[300px] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-semibold text-gray-800">능력치 비교</h3>
               <div className="flex items-center gap-3 text-xs">
@@ -633,8 +633,8 @@ export default function StudentProfilePage({
               </div>
             </div>
             <div className="flex-1">
-              <ResponsiveContainer width="100%" height={145}>
-                <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
+              <ResponsiveContainer width="100%" height={200}>
+                <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="75%">
                   <PolarGrid />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
                   <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 8 }} />
