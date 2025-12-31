@@ -7,7 +7,7 @@ const router = express.Router();
 const db = require('../config/database');
 const { requireRole, verifyToken } = require('../middleware/auth');
 
-// GET /peak/exercise-packs - 팩 목록
+// GET /peak/exercise-packs - 팩 목록 (시스템 팩 + 학원 팩)
 router.get('/', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
@@ -15,9 +15,9 @@ router.get('/', verifyToken, async (req, res) => {
             SELECT p.*, COUNT(pi.id) as exercise_count
             FROM exercise_packs p
             LEFT JOIN exercise_pack_items pi ON p.id = pi.pack_id
-            WHERE p.academy_id = ?
+            WHERE p.is_system = TRUE OR p.academy_id = ?
             GROUP BY p.id
-            ORDER BY p.created_at DESC
+            ORDER BY p.is_system DESC, p.created_at DESC
         `, [academyId]);
         res.json({ success: true, packs });
     } catch (error) {
@@ -31,7 +31,7 @@ router.get('/:id', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const [packs] = await db.query(
-            'SELECT * FROM exercise_packs WHERE id = ? AND academy_id = ?',
+            'SELECT * FROM exercise_packs WHERE id = ? AND (is_system = TRUE OR academy_id = ?)',
             [req.params.id, academyId]
         );
 
@@ -360,9 +360,9 @@ router.post('/:id/apply', requireRole('admin', 'owner'), async (req, res) => {
         const academyId = req.user.academyId;
         const packId = req.params.id;
 
-        // 팩 조회 - 해당 학원 소속인지 확인
+        // 팩 조회 - 시스템 팩 또는 해당 학원 소속
         const [packs] = await connection.query(
-            'SELECT * FROM exercise_packs WHERE id = ? AND academy_id = ?',
+            'SELECT * FROM exercise_packs WHERE id = ? AND (is_system = TRUE OR academy_id = ?)',
             [packId, academyId]
         );
 
