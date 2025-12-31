@@ -75,6 +75,77 @@ router.get('/', verifyToken, async (req, res) => {
     }
 });
 
+// GET /peak/attendance/current - 현재 시간대 강사 현황
+router.get('/current', verifyToken, async (req, res) => {
+    try {
+        const academyId = req.user.academyId;
+        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const currentHour = now.getHours();
+
+        // 현재 시간대 판단 (기본값 사용, 추후 academy_settings에서 가져올 수 있음)
+        let currentSlot;
+        if (currentHour < 12) {
+            currentSlot = 'morning';
+        } else if (currentHour < 18) {
+            currentSlot = 'afternoon';
+        } else {
+            currentSlot = 'evening';
+        }
+
+        const slotLabels = {
+            morning: '오전반',
+            afternoon: '오후반',
+            evening: '저녁반'
+        };
+
+        // P-ACA에서 해당 시간대 스케줄된 강사 조회
+        const [scheduledInstructors] = await pacaPool.query(`
+            SELECT
+                i.id,
+                i.name,
+                ins.time_slot,
+                ia.check_in_time
+            FROM instructor_schedules ins
+            JOIN instructors i ON ins.instructor_id = i.id
+            LEFT JOIN instructor_attendance ia
+                ON ia.instructor_id = ins.instructor_id
+                AND ia.work_date = ins.work_date
+                AND ia.time_slot = ins.time_slot
+            WHERE ins.academy_id = ?
+              AND ins.work_date = ?
+              AND ins.time_slot = ?
+            ORDER BY i.name
+        `, [academyId, today, currentSlot]);
+
+        // 이름 복호화 및 출근 여부 판단
+        const instructors = scheduledInstructors.map(inst => ({
+            id: inst.id,
+            name: inst.name ? decrypt(inst.name) : inst.name,
+            checkedIn: !!inst.check_in_time,
+            checkInTime: inst.check_in_time
+        }));
+
+        const checkedInCount = instructors.filter(i => i.checkedIn).length;
+
+        res.json({
+            success: true,
+            currentSlot,
+            currentSlotLabel: slotLabels[currentSlot],
+            date: today,
+            instructors,
+            stats: {
+                scheduled: instructors.length,
+                checkedIn: checkedInCount,
+                notCheckedIn: instructors.length - checkedInCount
+            }
+        });
+    } catch (error) {
+        console.error('Get current attendance error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 // POST /peak/attendance/checkin - 출근 체크
 router.post('/checkin', verifyToken, async (req, res) => {
     try {

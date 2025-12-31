@@ -74,6 +74,24 @@ interface Instructor {
   isMain?: boolean;
 }
 
+interface CurrentInstructor {
+  id: number;
+  name: string;
+  checkedIn: boolean;
+  checkInTime: string | null;
+}
+
+interface CurrentAttendance {
+  currentSlot: string;
+  currentSlotLabel: string;
+  instructors: CurrentInstructor[];
+  stats: {
+    scheduled: number;
+    checkedIn: number;
+    notCheckedIn: number;
+  };
+}
+
 interface ClassData {
   class_num: number;
   instructors: Instructor[];
@@ -114,6 +132,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [slotsData, setSlotsData] = useState<SlotsData | null>(null);
+  const [currentAttendance, setCurrentAttendance] = useState<CurrentAttendance | null>(null);
   const [timeSlots, setTimeSlots] = useState<TimeSlots>({
     morning: '09:00-12:00',
     afternoon: '13:00-17:00',
@@ -137,10 +156,20 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         const dateStr = getLocalDateString();
-        const res = await apiClient.get(`/assignments?date=${dateStr}`);
-        setSlotsData(res.data.slots);
-        if (res.data.timeSlots) {
-          setTimeSlots(res.data.timeSlots);
+
+        // 반 배치 데이터와 현재 강사 출근 현황 동시 조회
+        const [assignmentsRes, attendanceRes] = await Promise.all([
+          apiClient.get(`/assignments?date=${dateStr}`),
+          apiClient.get('/attendance/current')
+        ]);
+
+        setSlotsData(assignmentsRes.data.slots);
+        if (assignmentsRes.data.timeSlots) {
+          setTimeSlots(assignmentsRes.data.timeSlots);
+        }
+
+        if (attendanceRes.data.success) {
+          setCurrentAttendance(attendanceRes.data);
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -214,42 +243,7 @@ export default function DashboardPage() {
     }).filter(s => s.students > 0 || (slotsData[s.slot as keyof SlotsData].classes?.length || 0) > 0);
   };
 
-  // 트레이너별 현황
-  const getTrainerData = () => {
-    if (!slotsData) return [];
-
-    const trainerMap = new Map<number, { name: string; students: number }>();
-
-    (['morning', 'afternoon', 'evening'] as const).forEach(slot => {
-      const slotData = slotsData[slot];
-      // 반에 배치된 강사와 학생 수 계산
-      slotData.classes?.forEach(cls => {
-        const studentCount = cls.students?.length || 0;
-        cls.instructors?.forEach(inst => {
-          if (!trainerMap.has(inst.id)) {
-            trainerMap.set(inst.id, { name: inst.name, students: 0 });
-          }
-          // 주강사에게만 학생 수 할당
-          if (inst.isMain) {
-            const existing = trainerMap.get(inst.id);
-            if (existing) {
-              existing.students += studentCount;
-            }
-          }
-        });
-      });
-    });
-
-    return Array.from(trainerMap.entries()).map(([id, data]) => ({
-      id,
-      name: data.name,
-      status: 'present' as const,
-      students: data.students,
-    }));
-  };
-
   const scheduleData = getScheduleData();
-  const trainerData = getTrainerData();
 
   if (loading) {
     return (
@@ -361,10 +355,17 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Trainer Status */}
+        {/* Trainer Status - 현재 시간대 기준 */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-800">강사 현황</h2>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800">강사 현황</h2>
+              {currentAttendance && (
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {currentAttendance.currentSlotLabel} 기준
+                </p>
+              )}
+            </div>
             <button
               onClick={() => router.push('/attendance')}
               className="text-orange-500 text-sm font-medium flex items-center gap-1 hover:text-orange-600"
@@ -372,30 +373,51 @@ export default function DashboardPage() {
               출근 관리 <ChevronRight size={16} />
             </button>
           </div>
-          {trainerData.length === 0 ? (
+          {!currentAttendance || currentAttendance.instructors.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
-              <p>오늘 출근한 강사가 없습니다</p>
+              <p>현재 시간대에 배정된 강사가 없습니다</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {trainerData.map((trainer) => (
+              {/* 통계 배지 */}
+              <div className="flex gap-2 mb-4">
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                  출근 {currentAttendance.stats.checkedIn}명
+                </span>
+                {currentAttendance.stats.notCheckedIn > 0 && (
+                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                    미출근 {currentAttendance.stats.notCheckedIn}명
+                  </span>
+                )}
+              </div>
+              {currentAttendance.instructors.map((instructor) => (
                 <div
-                  key={trainer.id}
-                  className="flex items-center justify-between p-4 rounded-xl bg-green-50"
+                  key={instructor.id}
+                  className={`flex items-center justify-between p-4 rounded-xl ${
+                    instructor.checkedIn ? 'bg-green-50' : 'bg-red-50'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium bg-green-500">
-                      {trainer.name.charAt(0)}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${
+                      instructor.checkedIn ? 'bg-green-500' : 'bg-red-400'
+                    }`}>
+                      {instructor.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">{trainer.name}</p>
-                      <p className="text-xs text-slate-500">출근</p>
+                      <p className="font-medium text-slate-800">{instructor.name}</p>
+                      <p className={`text-xs ${instructor.checkedIn ? 'text-green-600' : 'text-red-500'}`}>
+                        {instructor.checkedIn ? '출근 완료' : '미출근'}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-slate-800">{trainer.students}</p>
-                    <p className="text-xs text-slate-500">배정 학생</p>
-                  </div>
+                  {instructor.checkedIn && instructor.checkInTime && (
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-slate-600">
+                        {instructor.checkInTime.slice(0, 5)}
+                      </p>
+                      <p className="text-xs text-slate-400">출근 시간</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
