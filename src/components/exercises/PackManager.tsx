@@ -65,7 +65,7 @@ export function PackManager({
   const openEditForm = async (pack: ExercisePack) => {
     // 팩 상세 정보 가져오기
     try {
-      const response = await apiClient.get(`/peak/exercise-packs/${pack.id}`);
+      const response = await apiClient.get(`/exercise-packs/${pack.id}`);
       const packExerciseIds = response.data.exercises.map((ex: PackExercise) => ex.id);
       setEditingPack(pack);
       setForm({
@@ -83,7 +83,7 @@ export function PackManager({
     if (editingPack) {
       // 수정 모드
       try {
-        await apiClient.put(`/peak/exercise-packs/${editingPack.id}`, {
+        await apiClient.put(`/exercise-packs/${editingPack.id}`, {
           name: form.name,
           description: form.description,
           exercise_ids: form.exercise_ids
@@ -121,7 +121,7 @@ export function PackManager({
     // 팩 운동 목록 로드
     setLoadingPackId(packId);
     try {
-      const response = await apiClient.get(`/peak/exercise-packs/${packId}`);
+      const response = await apiClient.get(`/exercise-packs/${packId}`);
       setPackExercises(prev => ({
         ...prev,
         [packId]: response.data.exercises
