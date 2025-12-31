@@ -100,11 +100,13 @@ router.get('/current', verifyToken, async (req, res) => {
         };
 
         // P-ACA에서 해당 시간대 스케줄된 강사 조회
+        // attendance_status = 'present'면 출근한 것으로 판단 (check_in_time은 선택적)
         const [scheduledInstructors] = await pacaPool.query(`
             SELECT
                 i.id,
                 i.name,
                 ins.time_slot,
+                ia.attendance_status,
                 ia.check_in_time
             FROM instructor_schedules ins
             JOIN instructors i ON ins.instructor_id = i.id
@@ -118,11 +120,11 @@ router.get('/current', verifyToken, async (req, res) => {
             ORDER BY i.name
         `, [academyId, today, currentSlot]);
 
-        // 이름 복호화 및 출근 여부 판단
+        // 이름 복호화 및 출근 여부 판단 (attendance_status = 'present' 또는 'late'면 출근)
         const instructors = scheduledInstructors.map(inst => ({
             id: inst.id,
             name: inst.name ? decrypt(inst.name) : inst.name,
-            checkedIn: !!inst.check_in_time,
+            checkedIn: inst.attendance_status === 'present' || inst.attendance_status === 'late',
             checkInTime: inst.check_in_time
         }));
 
