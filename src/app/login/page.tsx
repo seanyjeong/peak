@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api/auth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,7 +14,10 @@ export default function LoginPage() {
 
   // P-ACA에서 토큰으로 자동 로그인
   useEffect(() => {
-    const token = searchParams.get('token');
+    // URL에서 token 파라미터 추출
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
     if (token) {
       setAutoLoginLoading(true);
       // 토큰 저장 후 검증
@@ -24,7 +26,8 @@ export default function LoginPage() {
         .then((user) => {
           if (user) {
             localStorage.setItem('peak_user', JSON.stringify(user));
-            router.push('/dashboard');
+            // URL에서 token 파라미터 제거 후 이동
+            window.location.href = '/dashboard';
           } else {
             // 토큰 검증 실패 시 제거
             localStorage.removeItem('peak_token');
@@ -36,7 +39,7 @@ export default function LoginPage() {
           setAutoLoginLoading(false);
         });
     }
-  }, [searchParams, router]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
