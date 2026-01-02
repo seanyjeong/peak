@@ -18,14 +18,16 @@ npm run dev
 npm run build && git add -A && git commit -m "..." && git push
 
 # 백엔드 재시작
-echo 'q141171616!' | sudo -S systemctl restart peak
+echo '$SUDO_PASSWORD' | sudo -S systemctl restart peak
 
 # 로그 확인
-echo 'q141171616!' | sudo -S journalctl -u peak -f
+echo '$SUDO_PASSWORD' | sudo -S journalctl -u peak -f
 
 # DB 접속
-mysql -u paca -pq141171616! peak
+mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE
 ```
+
+> 비밀번호는 `.secrets` 파일 참조 (gitignore됨)
 
 ### 버전 업데이트 위치
 - `package.json` → `"version"`
@@ -203,8 +205,5 @@ daily_assignments: uk_date_slot_student (date, time_slot, student_id)
 
 ## Login
 
-```
-Email: sean8320@naver.com
-Password: q141171616!
-Role: admin
-```
+> `.secrets` 파일의 `LOGIN_EMAIL`, `LOGIN_PASSWORD` 참조
+> Role: admin
