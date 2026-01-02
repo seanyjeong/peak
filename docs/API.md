@@ -1,8 +1,8 @@
 # P-EAK API 명세서
 
-**버전**: v4.3.4
+**버전**: v4.3.9
 **Base URL**: `https://chejump.com/peak` (Production) / `http://localhost:8330/peak` (Development)
-**최종 업데이트**: 2025-12-30
+**최종 업데이트**: 2025-01-02
 
 ---
 
