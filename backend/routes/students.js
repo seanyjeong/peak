@@ -162,26 +162,35 @@ router.post('/sync', verifyToken, async (req, res) => {
             const synced = upsertResult.affectedRows - upsertResult.changedRows;
             const updated = upsertResult.changedRows;
 
-            // P-ACA에 없는 학생 비활성화
+            // P-ACA에 없는 학생 삭제 (graduated, withdrawn, orphan 등)
             const pacaStudentIds = processedStudents.map(s => s.pacaId);
-            const [deactivateResult] = await connection.query(`
-                UPDATE students
-                SET status = 'inactive', updated_at = NOW()
+
+            // 먼저 관련 기록 삭제
+            await connection.query(`
+                DELETE sr FROM student_records sr
+                JOIN students s ON sr.student_id = s.id
+                WHERE s.academy_id = ?
+                AND s.paca_student_id IS NOT NULL
+                AND s.paca_student_id NOT IN (?)
+            `, [academyId, pacaStudentIds]);
+
+            // 학생 삭제
+            const [deleteResult] = await connection.query(`
+                DELETE FROM students
                 WHERE academy_id = ?
                 AND paca_student_id IS NOT NULL
                 AND paca_student_id NOT IN (?)
-                AND status != 'inactive'
             `, [academyId, pacaStudentIds]);
-            const deactivated = deactivateResult.affectedRows || 0;
+            const deleted = deleteResult.affectedRows || 0;
 
             await connection.commit();
 
             res.json({
                 success: true,
-                message: `동기화 완료: ${synced}명 추가, ${updated}명 업데이트, ${deactivated}명 비활성화`,
+                message: `동기화 완료: ${synced}명 추가, ${updated}명 업데이트, ${deleted}명 삭제`,
                 synced,
                 updated,
-                deactivated,
+                deleted,
                 total: pacaStudents.length
             });
 

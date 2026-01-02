@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-const APP_VERSION = 'v4.3.8';
+const APP_VERSION = 'v4.3.9';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -61,6 +61,30 @@ export default function PCLayout({ children }: { children: React.ReactNode }) {
   const [showAlertPopup, setShowAlertPopup] = useState(false);
 
   useEffect(() => {
+    // 태블릿 감지 (클라이언트 사이드 fallback)
+    const checkTablet = () => {
+      const ua = navigator.userAgent;
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const screenWidth = window.screen.width;
+      const screenHeight = window.screen.height;
+      const minDimension = Math.min(screenWidth, screenHeight);
+      const maxDimension = Math.max(screenWidth, screenHeight);
+
+      // 태블릿 조건: 터치 지원 + 화면 크기 700px~1400px (가로 또는 세로)
+      const isTabletSize = isTouch && minDimension >= 600 && minDimension <= 1400 && maxDimension <= 2000;
+      const isTabletUA = /iPad|IMUZ|im-h\d|H091|SM-T\d|GT-P\d|Tab|tablet/i.test(ua) ||
+        (/Android/i.test(ua) && !/Mobile/i.test(ua));
+
+      if ((isTabletSize || isTabletUA) && !window.location.pathname.startsWith('/tablet')) {
+        const path = window.location.pathname === '/' ? '/tablet/dashboard' : `/tablet${window.location.pathname}`;
+        window.location.href = path;
+        return true;
+      }
+      return false;
+    };
+
+    if (checkTablet()) return;
+
     const currentUser = authAPI.getCurrentUser();
     if (!currentUser) {
       window.location.href = '/login';
