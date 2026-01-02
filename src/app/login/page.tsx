@@ -1,15 +1,42 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { authAPI } from '@/lib/api/auth';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [autoLoginLoading, setAutoLoginLoading] = useState(false);
+
+  // P-ACA에서 토큰으로 자동 로그인
+  useEffect(() => {
+    const token = searchParams.get('token');
+    if (token) {
+      setAutoLoginLoading(true);
+      // 토큰 저장 후 검증
+      localStorage.setItem('peak_token', token);
+      authAPI.verifyToken()
+        .then((user) => {
+          if (user) {
+            localStorage.setItem('peak_user', JSON.stringify(user));
+            router.push('/dashboard');
+          } else {
+            // 토큰 검증 실패 시 제거
+            localStorage.removeItem('peak_token');
+            setAutoLoginLoading(false);
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('peak_token');
+          setAutoLoginLoading(false);
+        });
+    }
+  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +55,21 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // 자동 로그인 중 로딩 화면
+  if (autoLoginLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 p-4">
+        <div className="text-center">
+          <h1 className="text-5xl font-bold text-white mb-4">P-EAK</h1>
+          <div className="flex items-center justify-center gap-2 text-white">
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <span>P-ACA에서 로그인 중...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 p-4">
