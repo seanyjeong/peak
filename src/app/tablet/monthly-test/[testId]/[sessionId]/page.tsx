@@ -507,7 +507,7 @@ export default function TabletSessionGroupPage({
             {/* 학생 대기 */}
             <div
               ref={setWaitingParticipantsRef}
-              className={`flex-1 max-h-[200px] overflow-hidden flex flex-col rounded-lg border bg-white shadow-sm transition-colors ${
+              className={`flex-[2] max-h-[400px] overflow-hidden flex flex-col rounded-lg border bg-white shadow-sm transition-colors ${
                 isOverWaitingP ? 'ring-2 ring-green-400 bg-green-50' : ''
               }`}
             >
