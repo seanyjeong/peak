@@ -482,7 +482,7 @@ export default function TabletSessionGroupPage({
         {/* 메인 영역 - 좌측 대기 / 우측 조 (가로 배치) */}
         <div className="flex-1 flex gap-4 overflow-hidden">
           {/* 좌측: 대기 영역 (세로로 길게) */}
-          <div className="w-72 flex-shrink-0 flex flex-col gap-3">
+          <div className="w-56 flex-shrink-0 flex flex-col gap-3">
             {/* 감독관 대기 */}
             <Card className="flex-shrink-0">
               <div className="p-3 border-b bg-gray-50 font-medium">
