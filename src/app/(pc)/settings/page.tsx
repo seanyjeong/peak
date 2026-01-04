@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check } from 'lucide-react';
+import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check, ToggleLeft, ToggleRight } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 
 interface RecordType {
@@ -111,13 +111,21 @@ export default function SettingsPage() {
     }
   };
 
-  const deleteType = async (id: number) => {
-    if (!confirm('이 종목을 비활성화하시겠습니까?')) return;
+  const toggleTypeActive = async (type: RecordType) => {
+    const newStatus = !type.is_active;
+    const action = newStatus ? '활성화' : '비활성화';
+    if (!confirm(`"${type.name}" 종목을 ${action}하시겠습니까?`)) return;
     try {
-      await apiClient.delete(`/record-types/${id}`);
+      await apiClient.put(`/record-types/${type.id}`, {
+        name: type.name,
+        unit: type.unit,
+        direction: type.direction,
+        is_active: newStatus,
+        display_order: type.display_order
+      });
       fetchData();
     } catch (error) {
-      console.error('Failed to delete type:', error);
+      console.error('Failed to toggle type:', error);
     }
   };
 
@@ -409,10 +417,11 @@ export default function SettingsPage() {
                         <Edit2 size={16} />
                       </button>
                       <button
-                        onClick={() => deleteType(type.id)}
-                        className="p-2 text-slate-400 hover:text-red-500"
+                        onClick={() => toggleTypeActive(type)}
+                        className={`p-2 ${type.is_active ? 'text-green-500 hover:text-red-500' : 'text-slate-400 hover:text-green-500'}`}
+                        title={type.is_active ? '비활성화' : '활성화'}
                       >
-                        <Trash2 size={16} />
+                        {type.is_active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
                       </button>
                     </td>
                   </tr>
