@@ -303,4 +303,154 @@ router.get('/:testId/sessions', verifyToken, async (req, res) => {
   }
 });
 
+// ===== 충돌 종목 관리 =====
+
+// 충돌 목록 조회
+router.get('/:testId/conflicts', verifyToken, async (req, res) => {
+  try {
+    const academyId = req.user.academyId;
+    const { testId } = req.params;
+
+    // 테스트 소유권 확인
+    const [testCheck] = await pool.query(
+      'SELECT id FROM monthly_tests WHERE id = ? AND academy_id = ?',
+      [testId, academyId]
+    );
+    if (testCheck.length === 0) {
+      return res.status(404).json({ success: false, message: '테스트를 찾을 수 없습니다.' });
+    }
+
+    const [conflicts] = await pool.query(`
+      SELECT
+        c.id,
+        c.record_type_id_1,
+        c.record_type_id_2,
+        rt1.name as type1_name,
+        rt1.short_name as type1_short,
+        rt2.name as type2_name,
+        rt2.short_name as type2_short
+      FROM record_type_conflicts c
+      JOIN record_types rt1 ON c.record_type_id_1 = rt1.id
+      JOIN record_types rt2 ON c.record_type_id_2 = rt2.id
+      WHERE c.monthly_test_id = ?
+    `, [testId]);
+
+    res.json({ success: true, conflicts });
+  } catch (error) {
+    console.error('충돌 목록 조회 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 충돌 추가
+router.post('/:testId/conflicts', verifyToken, async (req, res) => {
+  try {
+    const academyId = req.user.academyId;
+    const { testId } = req.params;
+    let { record_type_id_1, record_type_id_2 } = req.body;
+
+    // id_1 < id_2 보장
+    if (record_type_id_1 > record_type_id_2) {
+      [record_type_id_1, record_type_id_2] = [record_type_id_2, record_type_id_1];
+    }
+
+    if (record_type_id_1 === record_type_id_2) {
+      return res.status(400).json({ success: false, message: '같은 종목은 충돌 설정할 수 없습니다.' });
+    }
+
+    // 테스트 소유권 확인
+    const [testCheck] = await pool.query(
+      'SELECT id FROM monthly_tests WHERE id = ? AND academy_id = ?',
+      [testId, academyId]
+    );
+    if (testCheck.length === 0) {
+      return res.status(404).json({ success: false, message: '테스트를 찾을 수 없습니다.' });
+    }
+
+    const [result] = await pool.query(`
+      INSERT INTO record_type_conflicts (academy_id, monthly_test_id, record_type_id_1, record_type_id_2)
+      VALUES (?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE id = id
+    `, [academyId, testId, record_type_id_1, record_type_id_2]);
+
+    res.json({ success: true, id: result.insertId });
+  } catch (error) {
+    console.error('충돌 추가 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 충돌 삭제
+router.delete('/:testId/conflicts/:conflictId', verifyToken, async (req, res) => {
+  try {
+    const academyId = req.user.academyId;
+    const { testId, conflictId } = req.params;
+
+    // 테스트 소유권 확인
+    const [testCheck] = await pool.query(
+      'SELECT id FROM monthly_tests WHERE id = ? AND academy_id = ?',
+      [testId, academyId]
+    );
+    if (testCheck.length === 0) {
+      return res.status(404).json({ success: false, message: '테스트를 찾을 수 없습니다.' });
+    }
+
+    await pool.query(
+      'DELETE FROM record_type_conflicts WHERE id = ? AND monthly_test_id = ?',
+      [conflictId, testId]
+    );
+
+    res.json({ success: true, message: '충돌이 삭제되었습니다.' });
+  } catch (error) {
+    console.error('충돌 삭제 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 충돌 일괄 설정 (종목 수정 시 함께 저장)
+router.put('/:testId/conflicts', verifyToken, async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const academyId = req.user.academyId;
+    const { testId } = req.params;
+    const { conflicts } = req.body; // [[id1, id2], [id3, id4], ...]
+
+    // 테스트 소유권 확인
+    const [testCheck] = await conn.query(
+      'SELECT id FROM monthly_tests WHERE id = ? AND academy_id = ?',
+      [testId, academyId]
+    );
+    if (testCheck.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: '테스트를 찾을 수 없습니다.' });
+    }
+
+    // 기존 충돌 삭제
+    await conn.query('DELETE FROM record_type_conflicts WHERE monthly_test_id = ?', [testId]);
+
+    // 새 충돌 추가
+    if (conflicts && conflicts.length > 0) {
+      const values = conflicts.map(([id1, id2]) => {
+        const [min, max] = id1 < id2 ? [id1, id2] : [id2, id1];
+        return [academyId, testId, min, max];
+      });
+      await conn.query(`
+        INSERT INTO record_type_conflicts (academy_id, monthly_test_id, record_type_id_1, record_type_id_2)
+        VALUES ?
+      `, [values]);
+    }
+
+    await conn.commit();
+    res.json({ success: true, message: '충돌 설정이 저장되었습니다.' });
+  } catch (error) {
+    await conn.rollback();
+    console.error('충돌 일괄 설정 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    conn.release();
+  }
+});
+
 module.exports = router;

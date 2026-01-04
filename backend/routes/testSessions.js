@@ -1039,4 +1039,280 @@ router.delete('/:sessionId/records', async (req, res) => {
   }
 });
 
+// ===== 스케줄 관리 =====
+
+// 스케줄 알고리즘: 라운드로빈 + 충돌 회피
+function generateScheduleAlgorithm(groups, recordTypes, conflicts) {
+  const numGroups = groups.length;
+  const numTypes = recordTypes.length;
+
+  if (numGroups === 0 || numTypes === 0) {
+    return [];
+  }
+
+  const numSlots = Math.max(numGroups, numTypes);
+
+  // 충돌 Set 생성 (O(1) 검색)
+  const conflictSet = new Set(
+    conflicts.map(c => {
+      const [min, max] = c.record_type_id_1 < c.record_type_id_2
+        ? [c.record_type_id_1, c.record_type_id_2]
+        : [c.record_type_id_2, c.record_type_id_1];
+      return `${min}-${max}`;
+    })
+  );
+
+  const isConflict = (type1, type2) => {
+    if (!type1 || !type2) return false;
+    const [min, max] = type1 < type2 ? [type1, type2] : [type2, type1];
+    return conflictSet.has(`${min}-${max}`);
+  };
+
+  const schedule = [];
+
+  for (let time = 0; time < numSlots; time++) {
+    const assignments = [];
+    const usedTypes = new Set();
+
+    for (let g = 0; g < numGroups; g++) {
+      const group = groups[g];
+
+      // 라운드로빈 기본 인덱스
+      const baseIdx = (g + time) % numSlots;
+
+      // 종목 개수보다 크면 휴식
+      if (baseIdx >= numTypes) {
+        assignments.push({ group_id: group.id, record_type_id: null });
+        continue;
+      }
+
+      let typeId = recordTypes[baseIdx].record_type_id;
+
+      // 충돌 체크
+      let hasConflict = false;
+      for (const usedType of usedTypes) {
+        if (isConflict(typeId, usedType)) {
+          hasConflict = true;
+          break;
+        }
+      }
+
+      if (hasConflict) {
+        // 대체 종목 찾기
+        let found = false;
+        for (let alt = 0; alt < numTypes; alt++) {
+          const altTypeId = recordTypes[alt].record_type_id;
+          if (usedTypes.has(altTypeId)) continue;
+
+          let altConflict = false;
+          for (const usedType of usedTypes) {
+            if (isConflict(altTypeId, usedType)) {
+              altConflict = true;
+              break;
+            }
+          }
+
+          if (!altConflict) {
+            typeId = altTypeId;
+            found = true;
+            break;
+          }
+        }
+
+        if (!found) {
+          // 대체 불가 - 휴식
+          assignments.push({ group_id: group.id, record_type_id: null });
+          continue;
+        }
+      }
+
+      usedTypes.add(typeId);
+      assignments.push({ group_id: group.id, record_type_id: typeId });
+    }
+
+    schedule.push({ time_order: time, assignments });
+  }
+
+  return schedule;
+}
+
+// 스케줄 조회
+router.get('/:sessionId/schedule', verifyToken, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    // 세션 및 테스트 정보
+    const [sessions] = await pool.query(`
+      SELECT ts.*, mt.id as monthly_test_id
+      FROM test_sessions ts
+      JOIN monthly_tests mt ON ts.monthly_test_id = mt.id
+      WHERE ts.id = ?
+    `, [sessionId]);
+
+    if (sessions.length === 0) {
+      return res.status(404).json({ success: false, message: '세션을 찾을 수 없습니다.' });
+    }
+
+    const session = sessions[0];
+
+    // 조 목록
+    const [groups] = await pool.query(`
+      SELECT * FROM test_groups WHERE test_session_id = ? ORDER BY group_num
+    `, [sessionId]);
+
+    // 종목 목록
+    const [recordTypes] = await pool.query(`
+      SELECT mtt.record_type_id, rt.name, rt.short_name, rt.unit
+      FROM monthly_test_types mtt
+      JOIN record_types rt ON mtt.record_type_id = rt.id
+      WHERE mtt.monthly_test_id = ?
+      ORDER BY mtt.display_order
+    `, [session.monthly_test_id]);
+
+    // 저장된 스케줄 조회
+    const [savedSchedule] = await pool.query(`
+      SELECT ss.*, rt.name as record_type_name, rt.short_name
+      FROM session_schedules ss
+      LEFT JOIN record_types rt ON ss.record_type_id = rt.id
+      WHERE ss.test_session_id = ?
+      ORDER BY ss.time_order, ss.group_id
+    `, [sessionId]);
+
+    // 스케줄을 타임별로 그룹화
+    const scheduleByTime = {};
+    savedSchedule.forEach(s => {
+      if (!scheduleByTime[s.time_order]) {
+        scheduleByTime[s.time_order] = [];
+      }
+      scheduleByTime[s.time_order].push({
+        group_id: s.group_id,
+        record_type_id: s.record_type_id,
+        record_type_name: s.record_type_name,
+        short_name: s.short_name
+      });
+    });
+
+    // 타임 수 계산
+    const numSlots = Math.max(groups.length, recordTypes.length);
+    const timeSlots = [];
+    for (let t = 0; t < numSlots; t++) {
+      timeSlots.push({
+        order: t,
+        assignments: scheduleByTime[t] || []
+      });
+    }
+
+    res.json({
+      success: true,
+      schedule: {
+        groups,
+        recordTypes,
+        timeSlots,
+        hasSchedule: savedSchedule.length > 0
+      }
+    });
+  } catch (error) {
+    console.error('스케줄 조회 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 스케줄 생성/재생성
+router.post('/:sessionId/schedule/generate', verifyToken, async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { sessionId } = req.params;
+
+    // 세션 및 테스트 정보
+    const [sessions] = await conn.query(`
+      SELECT ts.*, mt.id as monthly_test_id
+      FROM test_sessions ts
+      JOIN monthly_tests mt ON ts.monthly_test_id = mt.id
+      WHERE ts.id = ?
+    `, [sessionId]);
+
+    if (sessions.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: '세션을 찾을 수 없습니다.' });
+    }
+
+    const session = sessions[0];
+
+    // 조 목록
+    const [groups] = await conn.query(`
+      SELECT * FROM test_groups WHERE test_session_id = ? ORDER BY group_num
+    `, [sessionId]);
+
+    if (groups.length === 0) {
+      await conn.rollback();
+      return res.status(400).json({ success: false, message: '조가 없습니다. 먼저 조를 편성하세요.' });
+    }
+
+    // 종목 목록
+    const [recordTypes] = await conn.query(`
+      SELECT mtt.record_type_id, rt.name, rt.short_name
+      FROM monthly_test_types mtt
+      JOIN record_types rt ON mtt.record_type_id = rt.id
+      WHERE mtt.monthly_test_id = ?
+      ORDER BY mtt.display_order
+    `, [session.monthly_test_id]);
+
+    if (recordTypes.length === 0) {
+      await conn.rollback();
+      return res.status(400).json({ success: false, message: '종목이 없습니다.' });
+    }
+
+    // 충돌 목록
+    const [conflicts] = await conn.query(`
+      SELECT record_type_id_1, record_type_id_2
+      FROM record_type_conflicts
+      WHERE monthly_test_id = ?
+    `, [session.monthly_test_id]);
+
+    // 스케줄 생성
+    const schedule = generateScheduleAlgorithm(groups, recordTypes, conflicts);
+
+    // 기존 스케줄 삭제
+    await conn.query('DELETE FROM session_schedules WHERE test_session_id = ?', [sessionId]);
+
+    // 새 스케줄 저장
+    const values = [];
+    schedule.forEach(slot => {
+      slot.assignments.forEach(a => {
+        values.push([sessionId, a.group_id, slot.time_order, a.record_type_id]);
+      });
+    });
+
+    if (values.length > 0) {
+      await conn.query(`
+        INSERT INTO session_schedules (test_session_id, group_id, time_order, record_type_id)
+        VALUES ?
+      `, [values]);
+    }
+
+    await conn.commit();
+
+    res.json({
+      success: true,
+      message: '스케줄이 생성되었습니다.',
+      schedule: {
+        groups,
+        recordTypes,
+        timeSlots: schedule.map(s => ({
+          order: s.time_order,
+          assignments: s.assignments
+        }))
+      }
+    });
+  } catch (error) {
+    await conn.rollback();
+    console.error('스케줄 생성 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    conn.release();
+  }
+});
+
 module.exports = router;

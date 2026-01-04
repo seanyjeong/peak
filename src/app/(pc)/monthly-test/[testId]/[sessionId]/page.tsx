@@ -55,6 +55,22 @@ interface Session {
   test_month: string;
 }
 
+interface ScheduleItem {
+  group_id: number;
+  group_num: number;
+  group_name: string | null;
+  time_order: number;
+  record_type_id: number | null;
+  record_type_name: string | null;
+  record_type_short: string | null;
+}
+
+interface RecordType {
+  id: number;
+  name: string;
+  short_name: string;
+}
+
 // 드래그 가능한 참가자 카드
 function DraggableParticipant({ participant }: { participant: Participant }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -239,6 +255,7 @@ export default function SessionGroupPage({
 }) {
   const { testId, sessionId } = use(params);
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'grouping' | 'schedule'>('grouping');
   const [session, setSession] = useState<Session | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [waitingParticipants, setWaitingParticipants] = useState<Participant[]>([]);
@@ -247,6 +264,11 @@ export default function SessionGroupPage({
   const [activeItem, setActiveItem] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // 순서표 관련 상태
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
+  const [generatingSchedule, setGeneratingSchedule] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -257,6 +279,12 @@ export default function SessionGroupPage({
   useEffect(() => {
     fetchData();
   }, [sessionId]);
+
+  useEffect(() => {
+    if (activeTab === 'schedule') {
+      fetchSchedule();
+    }
+  }, [activeTab, sessionId]);
 
   const fetchData = async () => {
     try {
@@ -270,6 +298,33 @@ export default function SessionGroupPage({
       console.error('데이터 로드 오류:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSchedule = async () => {
+    try {
+      const res = await apiClient.get(`/test-sessions/${sessionId}/schedule`);
+      setSchedule(res.data.schedule || []);
+      setRecordTypes(res.data.recordTypes || []);
+    } catch (error) {
+      console.error('스케줄 로드 오류:', error);
+    }
+  };
+
+  const handleGenerateSchedule = async () => {
+    if (groups.length === 0) {
+      alert('조가 없습니다. 먼저 조를 편성해주세요.');
+      return;
+    }
+
+    try {
+      setGeneratingSchedule(true);
+      await apiClient.post(`/test-sessions/${sessionId}/schedule/generate`);
+      await fetchSchedule();
+    } catch (error: any) {
+      alert(error.response?.data?.message || '스케줄 생성 실패');
+    } finally {
+      setGeneratingSchedule(false);
     }
   };
 
@@ -411,48 +466,84 @@ export default function SessionGroupPage({
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={pointerWithin}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="p-4 h-screen flex flex-col">
-        {/* 헤더 */}
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <button
-              onClick={() => router.push(`/monthly-test/${testId}`)}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              ← 테스트로 돌아가기
-            </button>
-            <h1 className="text-xl font-bold">
-              {session?.test_name} - 조 편성
-            </h1>
-            <div className="text-sm text-gray-500">
-              {session && new Date(session.test_date).toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                weekday: 'short'
-              })}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSync} disabled={syncing}>
-              {syncing ? '동기화 중...' : '재원생 동기화'}
-            </Button>
-            {groups.length > 0 && waitingParticipants.length > 0 && (
-              <Button variant="outline" onClick={handleAutoAssignAll}>
-                ⚡ 전체 균일 배치
-              </Button>
-            )}
-            <Button onClick={() => setShowAddModal(true)}>
-              + 참가자 추가
-            </Button>
+    <div className="p-4 h-screen flex flex-col">
+      {/* 헤더 */}
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <button
+            onClick={() => router.push(`/monthly-test/${testId}`)}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            ← 테스트로 돌아가기
+          </button>
+          <h1 className="text-xl font-bold">
+            {session?.test_name}
+          </h1>
+          <div className="text-sm text-gray-500">
+            {session && new Date(session.test_date).toLocaleDateString('ko-KR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              weekday: 'short'
+            })}
           </div>
         </div>
+        <div className="flex gap-2">
+          {activeTab === 'grouping' && (
+            <>
+              <Button variant="outline" onClick={handleSync} disabled={syncing}>
+                {syncing ? '동기화 중...' : '재원생 동기화'}
+              </Button>
+              {groups.length > 0 && waitingParticipants.length > 0 && (
+                <Button variant="outline" onClick={handleAutoAssignAll}>
+                  ⚡ 전체 균일 배치
+                </Button>
+              )}
+              <Button onClick={() => setShowAddModal(true)}>
+                + 참가자 추가
+              </Button>
+            </>
+          )}
+          {activeTab === 'schedule' && (
+            <Button onClick={handleGenerateSchedule} disabled={generatingSchedule || groups.length === 0}>
+              {generatingSchedule ? '생성 중...' : '🔄 스케줄 재생성'}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* 탭 */}
+      <div className="flex border-b mb-4">
+        <button
+          onClick={() => setActiveTab('grouping')}
+          className={`px-6 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'grouping'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          조 편성
+        </button>
+        <button
+          onClick={() => setActiveTab('schedule')}
+          className={`px-6 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'schedule'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          순서표
+        </button>
+      </div>
+
+      {/* 조 편성 탭 */}
+      {activeTab === 'grouping' && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={pointerWithin}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
 
         {/* 메인 영역 */}
         <div className="flex-1 flex gap-4 overflow-hidden">
@@ -517,28 +608,111 @@ export default function SessionGroupPage({
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 드래그 오버레이 */}
-      <DragOverlay>
-        {activeItem?.type === 'participant' && (
-          <div className="bg-white border rounded-lg p-2 shadow-lg">
-            <div className="flex items-center gap-2">
-              <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center ${
-                activeItem.participant.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
-              }`}>
-                {activeItem.participant.gender === 'M' ? '남' : '여'}
-              </span>
-              <span className="font-medium text-sm">{activeItem.participant.name}</span>
+        {/* 드래그 오버레이 */}
+        <DragOverlay>
+          {activeItem?.type === 'participant' && (
+            <div className="bg-white border rounded-lg p-2 shadow-lg">
+              <div className="flex items-center gap-2">
+                <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center ${
+                  activeItem.participant.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+                }`}>
+                  {activeItem.participant.gender === 'M' ? '남' : '여'}
+                </span>
+                <span className="font-medium text-sm">{activeItem.participant.name}</span>
+              </div>
             </div>
-          </div>
-        )}
-        {activeItem?.type === 'supervisor' && (
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm bg-blue-100 text-blue-700 shadow-lg">
-            {activeItem.supervisor.name}
-          </div>
-        )}
-      </DragOverlay>
+          )}
+          {activeItem?.type === 'supervisor' && (
+            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm bg-blue-100 text-blue-700 shadow-lg">
+              {activeItem.supervisor.name}
+            </div>
+          )}
+        </DragOverlay>
+        </DndContext>
+      )}
+
+      {/* 순서표 탭 */}
+      {activeTab === 'schedule' && (
+        <div className="flex-1 overflow-auto">
+          {groups.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+              <p className="mb-4">먼저 조를 편성해주세요.</p>
+              <Button onClick={() => setActiveTab('grouping')}>
+                조 편성으로 이동
+              </Button>
+            </div>
+          ) : schedule.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+              <p className="mb-4">아직 생성된 스케줄이 없습니다.</p>
+              <Button onClick={handleGenerateSchedule} disabled={generatingSchedule}>
+                {generatingSchedule ? '생성 중...' : '스케줄 생성'}
+              </Button>
+            </div>
+          ) : (
+            <Card className="p-4">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border p-3 bg-gray-100 text-left w-24">타임</th>
+                      {groups.map(group => {
+                        const mainSupervisor = group.supervisors.find(s => s.is_main);
+                        return (
+                          <th key={group.id} className="border p-3 bg-gray-100 text-center min-w-[120px]">
+                            {mainSupervisor ? `${mainSupervisor.name}T` : `${group.group_num}조`}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const timeSlots = [...new Set(schedule.map(s => s.time_order))].sort((a, b) => a - b);
+                      return timeSlots.map(timeOrder => (
+                        <tr key={timeOrder}>
+                          <td className="border p-3 bg-gray-50 font-medium">
+                            타임 {timeOrder + 1}
+                          </td>
+                          {groups.map(group => {
+                            const item = schedule.find(
+                              s => s.group_id === group.id && s.time_order === timeOrder
+                            );
+                            return (
+                              <td key={group.id} className="border p-3 text-center">
+                                {item?.record_type_id ? (
+                                  <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                                    {item.record_type_short || item.record_type_name}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400 text-sm">휴식</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+
+              {recordTypes.length > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                  <div className="text-sm text-gray-600 mb-2">종목 안내</div>
+                  <div className="flex flex-wrap gap-2">
+                    {recordTypes.map(type => (
+                      <span key={type.id} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                        {type.short_name || type.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* 참가자 추가 모달 */}
       <AddParticipantModal
@@ -548,7 +722,7 @@ export default function SessionGroupPage({
         testMonth={session?.test_month || ''}
         onAdded={fetchData}
       />
-    </DndContext>
+    </div>
   );
 }
 
