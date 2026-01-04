@@ -479,12 +479,12 @@ export default function TabletSessionGroupPage({
           </Button>
         </div>
 
-        {/* 메인 영역 - 세로로 배치 (태블릿 최적화) */}
-        <div className="flex-1 flex flex-col gap-4">
-          {/* 대기 영역 */}
-          <div className="flex gap-4">
+        {/* 메인 영역 - 좌측 대기 / 우측 조 (가로 배치) */}
+        <div className="flex-1 flex gap-4 overflow-hidden">
+          {/* 좌측: 대기 영역 (세로로 길게) */}
+          <div className="w-72 flex-shrink-0 flex flex-col gap-3">
             {/* 감독관 대기 */}
-            <Card className="flex-1">
+            <Card className="flex-shrink-0">
               <div className="p-3 border-b bg-gray-50 font-medium">
                 감독관 대기 ({waitingInstructors.length})
               </div>
@@ -495,7 +495,7 @@ export default function TabletSessionGroupPage({
                 }`}
               >
                 {waitingInstructors.length === 0 ? (
-                  <span className="text-sm text-gray-400">감독관을 여기로 드롭하면 미배치</span>
+                  <span className="text-sm text-gray-400">감독관을 여기로 드롭</span>
                 ) : (
                   waitingInstructors.map(s => (
                     <DraggableSupervisor key={s.instructor_id} supervisor={s} />
@@ -504,14 +504,14 @@ export default function TabletSessionGroupPage({
               </div>
             </Card>
 
-            {/* 학생 대기 */}
+            {/* 미배치 학생 - 남은 공간 전체 사용 */}
             <div
               ref={setWaitingParticipantsRef}
-              className={`flex-[2] max-h-[400px] overflow-hidden flex flex-col rounded-lg border bg-white shadow-sm transition-colors ${
+              className={`flex-1 overflow-hidden flex flex-col rounded-xl border bg-white shadow-sm transition-colors ${
                 isOverWaitingP ? 'ring-2 ring-green-400 bg-green-50' : ''
               }`}
             >
-              <div className="p-3 border-b bg-gray-50 font-medium rounded-t-lg">
+              <div className="p-3 border-b bg-gray-50 font-medium rounded-t-xl">
                 미배치 학생 ({waitingParticipants.length})
               </div>
               <div className={`flex-1 p-3 overflow-y-auto ${isOverWaitingP ? 'bg-green-100' : ''}`}>
@@ -528,9 +528,9 @@ export default function TabletSessionGroupPage({
             </div>
           </div>
 
-          {/* 조 영역 - 가로 스크롤 */}
-          <div className="flex-1 overflow-x-auto pb-4">
-            <div className="flex gap-4 min-h-[350px]">
+          {/* 우측: 조 영역 - 가로 스크롤 */}
+          <div className="flex-1 overflow-x-auto">
+            <div className="flex gap-4 h-full pb-4">
               {groups.map(group => (
                 <GroupColumn
                   key={group.id}
