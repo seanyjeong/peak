@@ -304,8 +304,28 @@ export default function SessionGroupPage({
   const fetchSchedule = async () => {
     try {
       const res = await apiClient.get(`/test-sessions/${sessionId}/schedule`);
-      setSchedule(res.data.schedule || []);
-      setRecordTypes(res.data.recordTypes || []);
+      const scheduleData = res.data.schedule || {};
+      // 백엔드에서 { groups, recordTypes, timeSlots } 형태로 반환
+      // 프론트엔드용 flat 배열로 변환
+      const flatSchedule: ScheduleItem[] = [];
+      if (scheduleData.timeSlots) {
+        scheduleData.timeSlots.forEach((slot: any) => {
+          (slot.assignments || []).forEach((a: any) => {
+            const group = scheduleData.groups?.find((g: any) => g.id === a.group_id);
+            flatSchedule.push({
+              group_id: a.group_id,
+              group_num: group?.group_num || 0,
+              group_name: group?.group_name || null,
+              time_order: slot.order,
+              record_type_id: a.record_type_id,
+              record_type_name: a.record_type_name || null,
+              record_type_short: a.short_name || null
+            });
+          });
+        });
+      }
+      setSchedule(flatSchedule);
+      setRecordTypes(scheduleData.recordTypes || []);
     } catch (error) {
       console.error('스케줄 로드 오류:', error);
     }

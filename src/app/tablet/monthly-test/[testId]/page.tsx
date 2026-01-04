@@ -62,6 +62,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
   const [allRecordTypes, setAllRecordTypes] = useState<AllRecordType[]>([]);
   const [editName, setEditName] = useState('');
   const [editSelectedTypes, setEditSelectedTypes] = useState<number[]>([]);
+  const [editConflicts, setEditConflicts] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -103,12 +104,46 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
     }
   };
 
-  const openEditModal = () => {
+  const fetchConflicts = async () => {
+    try {
+      const res = await apiClient.get(`/monthly-tests/${testId}/conflicts`);
+      const conflicts = res.data.conflicts || [];
+      const conflictSet = new Set<string>();
+      conflicts.forEach((c: { record_type_id_1: number; record_type_id_2: number }) => {
+        conflictSet.add(`${c.record_type_id_1}-${c.record_type_id_2}`);
+      });
+      setEditConflicts(conflictSet);
+    } catch (error) {
+      console.error('충돌 목록 로드 오류:', error);
+    }
+  };
+
+  const openEditModal = async () => {
     if (test) {
       setEditName(test.test_name);
       setEditSelectedTypes(test.record_types.map(t => t.record_type_id));
+      await fetchConflicts();
       setShowEditModal(true);
     }
+  };
+
+  const toggleConflict = (id1: number, id2: number) => {
+    const [smaller, larger] = id1 < id2 ? [id1, id2] : [id2, id1];
+    const key = `${smaller}-${larger}`;
+    setEditConflicts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+  };
+
+  const isConflict = (id1: number, id2: number): boolean => {
+    const [smaller, larger] = id1 < id2 ? [id1, id2] : [id2, id1];
+    return editConflicts.has(`${smaller}-${larger}`);
   };
 
   const toggleEditType = (typeId: number) => {
@@ -131,12 +166,29 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
 
     try {
       setSaving(true);
+
       await apiClient.put(`/monthly-tests/${testId}`, {
         test_name: editName.trim(),
         status: test?.status,
         notes: test?.notes,
         record_type_ids: editSelectedTypes
       });
+
+      // 충돌 정보 저장
+      const conflictsToSave = Array.from(editConflicts)
+        .map(key => {
+          const [id1, id2] = key.split('-').map(Number);
+          return { record_type_id_1: id1, record_type_id_2: id2 };
+        })
+        .filter(c =>
+          editSelectedTypes.includes(c.record_type_id_1) &&
+          editSelectedTypes.includes(c.record_type_id_2)
+        );
+
+      await apiClient.put(`/monthly-tests/${testId}/conflicts`, {
+        conflicts: conflictsToSave
+      });
+
       setShowEditModal(false);
       fetchTest();
     } catch (error: any) {
@@ -350,6 +402,69 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
               </p>
             )}
           </div>
+
+          {/* 충돌 종목 설정 매트릭스 */}
+          {editSelectedTypes.length >= 2 && (
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                충돌 종목 설정 <span className="text-gray-400 font-normal">(같은 장소/장비)</span>
+              </label>
+              <div className="border rounded-xl p-3 bg-gray-50 max-h-48 overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      {editSelectedTypes.slice(1).map(id => {
+                        const type = allRecordTypes.find(t => t.id === id);
+                        return (
+                          <th key={id} className="text-center px-2 py-1 text-xs font-medium text-gray-600">
+                            {type?.short_name || type?.name}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {editSelectedTypes.slice(0, -1).map((rowId, rowIndex) => {
+                      const rowType = allRecordTypes.find(t => t.id === rowId);
+                      return (
+                        <tr key={rowId}>
+                          <td className="pr-3 py-1 text-xs font-medium text-gray-600 whitespace-nowrap">
+                            {rowType?.short_name || rowType?.name}
+                          </td>
+                          {editSelectedTypes.slice(1).map((colId, colIndex) => {
+                            if (colIndex < rowIndex) {
+                              return <td key={colId}></td>;
+                            }
+                            return (
+                              <td key={colId} className="text-center px-2 py-1">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleConflict(rowId, colId)}
+                                  className={`w-8 h-8 rounded-lg border-2 transition-colors ${
+                                    isConflict(rowId, colId)
+                                      ? 'bg-red-500 border-red-600 text-white'
+                                      : 'bg-white border-gray-300'
+                                  }`}
+                                >
+                                  {isConflict(rowId, colId) && '✕'}
+                                </button>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {editConflicts.size > 0 && (
+                <p className="text-sm text-red-600 mt-2">
+                  {editConflicts.size}개 충돌 설정됨
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <Button

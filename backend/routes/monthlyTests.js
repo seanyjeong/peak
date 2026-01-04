@@ -432,7 +432,10 @@ router.put('/:testId/conflicts', verifyToken, async (req, res) => {
 
     // 새 충돌 추가
     if (conflicts && conflicts.length > 0) {
-      const values = conflicts.map(([id1, id2]) => {
+      const values = conflicts.map(c => {
+        // 객체 형식 { record_type_id_1, record_type_id_2 } 또는 배열 형식 [id1, id2] 모두 지원
+        const id1 = Array.isArray(c) ? c[0] : c.record_type_id_1;
+        const id2 = Array.isArray(c) ? c[1] : c.record_type_id_2;
         const [min, max] = id1 < id2 ? [id1, id2] : [id2, id1];
         return [academyId, testId, min, max];
       });

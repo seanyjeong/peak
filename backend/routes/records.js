@@ -114,22 +114,12 @@ router.post('/batch', verifyToken, async (req, res) => {
 
                 if (existing.length > 0) {
                     const oldValue = parseFloat(existing[0].value);
-                    // direction에 따라 더 좋은 기록인지 비교
-                    const isBetter = direction === 'higher'
-                        ? newValue > oldValue
-                        : newValue < oldValue;
-
-                    if (isBetter) {
-                        // 더 좋은 기록이면 업데이트
-                        await connection.query(
-                            'UPDATE student_records SET value = ?, notes = ?, created_at = NOW() WHERE id = ?',
-                            [newValue, record.notes || null, existing[0].id]
-                        );
-                        results.push({ id: existing[0].id, action: 'updated', oldValue, newValue });
-                    } else {
-                        // 기존 기록이 더 좋으면 스킵
-                        results.push({ id: existing[0].id, action: 'skipped', oldValue, newValue });
-                    }
+                    // 항상 새 값으로 업데이트 (수정 가능하도록)
+                    await connection.query(
+                        'UPDATE student_records SET value = ?, notes = ?, created_at = NOW() WHERE id = ?',
+                        [newValue, record.notes || null, existing[0].id]
+                    );
+                    results.push({ id: existing[0].id, action: 'updated', oldValue, newValue });
                 } else {
                     // 새 기록 삽입 - academy_id 포함
                     const [result] = await connection.query(
