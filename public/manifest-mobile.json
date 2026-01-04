@@ -1,0 +1,24 @@
+{
+  "name": "P-EAK Mobile",
+  "short_name": "P-EAK",
+  "description": "Physical Excellence Achievement Keeper - 강사용 모바일 앱",
+  "start_url": "/mobile/records",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ea6a3a",
+  "theme_color": "#ea6a3a",
+  "icons": [
+    {
+      "src": "/peak-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/peak-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
