@@ -195,18 +195,38 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
                 <tbody>
                   {currentTable.ranges.map((range, idx) => {
                     const isTop = range.score === currentTable.maxScore;
+                    const isHigher = currentTable.recordType.direction === 'higher';
+
+                    // 만점 행: "이상" 또는 "이하"로 표시
+                    if (isTop) {
+                      return (
+                        <tr
+                          key={range.score}
+                          className="border-b border-white/5 bg-gradient-to-r from-yellow-500/10 to-orange-500/10"
+                        >
+                          <td className="px-4 py-3 text-center font-bold text-yellow-400">
+                            {range.score}
+                            <span className="ml-1 text-xs">🏆</span>
+                          </td>
+                          <td colSpan={2} className="px-3 py-3 text-center text-blue-300 font-medium">
+                            {formatValue(isHigher ? range.male.min : range.male.max, currentTable.decimalPlaces)}
+                            <span className="text-blue-400/60 ml-1">{isHigher ? '이상' : '이하'}</span>
+                          </td>
+                          <td colSpan={2} className="px-3 py-3 text-center text-pink-300 font-medium">
+                            {formatValue(isHigher ? range.female.min : range.female.max, currentTable.decimalPlaces)}
+                            <span className="text-pink-400/60 ml-1">{isHigher ? '이상' : '이하'}</span>
+                          </td>
+                        </tr>
+                      );
+                    }
+
                     return (
                       <tr
                         key={range.score}
-                        className={`border-b border-white/5 hover:bg-white/5 transition ${
-                          isTop ? 'bg-gradient-to-r from-yellow-500/10 to-orange-500/10' : ''
-                        }`}
+                        className="border-b border-white/5 hover:bg-white/5 transition"
                       >
-                        <td className={`px-4 py-3 text-center font-bold ${
-                          isTop ? 'text-yellow-400' : 'text-white'
-                        }`}>
+                        <td className="px-4 py-3 text-center font-bold text-white">
                           {range.score}
-                          {isTop && <span className="ml-1 text-xs">🏆</span>}
                         </td>
                         <td className="px-3 py-3 text-center text-blue-300">
                           {formatValue(range.male.min, currentTable.decimalPlaces)}

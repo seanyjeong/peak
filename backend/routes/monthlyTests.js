@@ -46,12 +46,19 @@ router.get('/:id', verifyToken, async (req, res) => {
 
     const test = tests[0];
 
-    // 학원 정보 (slug 포함)
+    // 학원 정보 (P-ACA에서 이름, peak_settings에서 slug)
     const [academies] = await pacaPool.query(`
-      SELECT id, name, slug FROM academies WHERE id = ?
+      SELECT id, name FROM academies WHERE id = ?
+    `, [academyId]);
+    const [peakSettings] = await pool.query(`
+      SELECT slug, academy_name FROM peak_settings WHERE academy_id = ?
     `, [academyId]);
 
-    const academy = academies[0] || {};
+    const academy = {
+      id: academies[0]?.id,
+      name: academies[0]?.name,
+      slug: peakSettings[0]?.slug || ''
+    };
 
     // 선택된 종목
     const [types] = await pool.query(`
@@ -230,7 +237,7 @@ router.post('/:testId/sessions', verifyToken, async (req, res) => {
   }
 });
 
-// 학원 슬러그 업데이트 (전광판 URL용)
+// 학원 슬러그 업데이트 (전광판 URL용) - peak_settings 사용
 router.put('/academy/slug', verifyToken, async (req, res) => {
   try {
     const academyId = req.user.academyId;
@@ -248,9 +255,9 @@ router.put('/academy/slug', verifyToken, async (req, res) => {
       });
     }
 
-    // 중복 체크 (다른 학원이 사용 중인지)
-    const [existing] = await pacaPool.query(
-      'SELECT id FROM academies WHERE slug = ? AND id != ?',
+    // 중복 체크 (다른 학원이 사용 중인지) - peak_settings에서
+    const [existing] = await pool.query(
+      'SELECT id FROM peak_settings WHERE slug = ? AND academy_id != ?',
       [slug, academyId]
     );
 
@@ -261,11 +268,19 @@ router.put('/academy/slug', verifyToken, async (req, res) => {
       });
     }
 
-    // 슬러그 업데이트
-    await pacaPool.query(
-      'UPDATE academies SET slug = ? WHERE id = ?',
-      [slug, academyId]
+    // P-ACA에서 학원명 조회
+    const [academyInfo] = await pacaPool.query(
+      'SELECT name FROM academies WHERE id = ?',
+      [academyId]
     );
+    const academyName = academyInfo[0]?.name || '학원';
+
+    // peak_settings에 UPSERT
+    await pool.query(`
+      INSERT INTO peak_settings (academy_id, slug, academy_name)
+      VALUES (?, ?, ?)
+      ON DUPLICATE KEY UPDATE slug = VALUES(slug)
+    `, [academyId, slug, academyName]);
 
     res.json({ success: true, message: '슬러그가 업데이트되었습니다.', slug });
   } catch (error) {
