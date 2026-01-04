@@ -253,6 +253,7 @@ export default function TabletSessionGroupPage({
   const [activeItem, setActiveItem] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   // 터치 센서 (태블릿 최적화)
   const sensors = useSensors(
@@ -467,15 +468,23 @@ export default function TabletSessionGroupPage({
           </div>
         </div>
 
-        {/* 기록측정 버튼 */}
-        <div className="mb-4">
+        {/* 기록측정 / 순서표 버튼 */}
+        <div className="mb-4 flex gap-3">
           <Button
             variant="primary"
             size="lg"
-            className="w-full min-h-14 text-lg"
+            className="flex-1 min-h-14 text-lg"
             onClick={() => router.push(`/tablet/monthly-test/${testId}/${sessionId}/records`)}
           >
             📝 기록 측정
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            className="flex-1 min-h-14 text-lg"
+            onClick={() => setShowScheduleModal(true)}
+          >
+            📋 순서표
           </Button>
         </div>
 
@@ -572,6 +581,14 @@ export default function TabletSessionGroupPage({
         sessionId={sessionId}
         testMonth={session?.test_month || ''}
         onAdded={fetchData}
+      />
+
+      {/* 순서표 모달 */}
+      <ScheduleModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        sessionId={sessionId}
+        groups={groups}
       />
     </DndContext>
   );
@@ -849,6 +866,166 @@ function AddParticipantModal({
             </Button>
           </div>
         </div>
+      </div>
+    </Modal>
+  );
+}
+
+// 순서표 모달 컴포넌트
+function ScheduleModal({
+  isOpen,
+  onClose,
+  sessionId,
+  groups
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  sessionId: string;
+  groups: Group[];
+}) {
+  const [schedule, setSchedule] = useState<any[]>([]);
+  const [recordTypes, setRecordTypes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchSchedule();
+    }
+  }, [isOpen]);
+
+  const fetchSchedule = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get(`/test-sessions/${sessionId}/schedule`);
+      const scheduleData = res.data.schedule || {};
+
+      // timeSlots를 flat array로 변환
+      const flatSchedule: any[] = [];
+      if (scheduleData.timeSlots) {
+        scheduleData.timeSlots.forEach((slot: any) => {
+          (slot.assignments || []).forEach((a: any) => {
+            const group = scheduleData.groups?.find((g: any) => g.id === a.group_id);
+            flatSchedule.push({
+              group_id: a.group_id,
+              group_num: group?.group_num || 0,
+              time_order: slot.order,
+              record_type_id: a.record_type_id,
+              record_type_name: a.record_type_name || null,
+              record_type_short: a.short_name || null
+            });
+          });
+        });
+      }
+      setSchedule(flatSchedule);
+      setRecordTypes(scheduleData.recordTypes || []);
+    } catch (error) {
+      console.error('스케줄 로드 오류:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!confirm('스케줄을 새로 생성하시겠습니까? 기존 스케줄은 삭제됩니다.')) return;
+
+    setGenerating(true);
+    try {
+      await apiClient.post(`/test-sessions/${sessionId}/schedule/generate`);
+      await fetchSchedule();
+    } catch (error: any) {
+      alert(error.response?.data?.message || '스케줄 생성 실패');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // 타임별로 그룹화
+  const timeOrders = [...new Set(schedule.map(s => s.time_order))].sort((a, b) => a - b);
+  const groupList = [...new Set(schedule.map(s => s.group_id))];
+
+  // 그룹 정보 매핑 (groups prop에서)
+  const getGroupName = (groupId: number) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return `${groupId}조`;
+    const mainSupervisor = group.supervisors.find(s => s.is_main);
+    return mainSupervisor ? `${mainSupervisor.name}T` : `${group.group_num}조`;
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="순서표">
+      <div className="min-h-[400px]">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Spinner />
+          </div>
+        ) : schedule.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500 mb-4">스케줄이 없습니다.</p>
+            <Button onClick={handleGenerate} disabled={generating || groups.length === 0}>
+              {generating ? '생성 중...' : '스케줄 생성'}
+            </Button>
+            {groups.length === 0 && (
+              <p className="text-sm text-red-500 mt-2">먼저 조를 생성해주세요.</p>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* 스케줄 테이블 */}
+            <div className="overflow-x-auto mb-4">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border px-3 py-2 text-left">타임</th>
+                    {groupList.map(gId => (
+                      <th key={gId} className="border px-3 py-2 text-center">
+                        {getGroupName(gId)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {timeOrders.map(time => (
+                    <tr key={time} className="hover:bg-gray-50">
+                      <td className="border px-3 py-2 font-medium bg-gray-50">
+                        {time + 1}타임
+                      </td>
+                      {groupList.map(gId => {
+                        const item = schedule.find(s => s.time_order === time && s.group_id === gId);
+                        const typeName = item?.record_type_id
+                          ? (item.record_type_short || item.record_type_name || '?')
+                          : '휴식';
+                        const isRest = !item?.record_type_id;
+                        return (
+                          <td
+                            key={gId}
+                            className={`border px-3 py-2 text-center ${
+                              isRest ? 'bg-gray-200 text-gray-500' : ''
+                            }`}
+                          >
+                            {typeName}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 재생성 버튼 */}
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={handleGenerate}
+                disabled={generating}
+                className="min-h-12"
+              >
+                {generating ? '생성 중...' : '🔄 스케줄 재생성'}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );

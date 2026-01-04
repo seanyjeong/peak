@@ -1048,18 +1048,28 @@ router.delete('/:sessionId/records', async (req, res) => {
 
 // ===== 스케줄 관리 =====
 
-// 스케줄 알고리즘: 라운드로빈 + 충돌 회피
+/**
+ * 스케줄 알고리즘: 동적 타임슬롯 + 충돌 회피 + 공평한 휴식
+ *
+ * 요구사항:
+ * 1. 충돌 종목은 같은 타임에 배치 안됨
+ * 2. 같은 종목을 같은 타임에 여러 조가 할 수 없음
+ * 3. 각 조가 모든 종목을 정확히 한 번씩
+ * 4. 휴식은 최소화
+ * 5. 휴식이 필요하면 모든 조가 공평하게 (각 조당 동일 횟수)
+ * 6. 휴식 타임은 조별로 겹치지 않음
+ */
 function generateScheduleAlgorithm(groups, recordTypes, conflicts) {
-  const numGroups = groups.length;
-  const numTypes = recordTypes.length;
+  const G = groups.length;
+  const T = recordTypes.length;
 
-  if (numGroups === 0 || numTypes === 0) {
+  if (G === 0 || T === 0) {
     return [];
   }
 
-  const numSlots = Math.max(numGroups, numTypes);
+  console.log(`[스케줄] 시작: ${G}개 조, ${T}개 종목, ${conflicts.length}개 충돌`);
 
-  // 충돌 Set 생성 (O(1) 검색)
+  // 충돌 Set 생성 (record_type_id 기준)
   const conflictSet = new Set(
     conflicts.map(c => {
       const [min, max] = c.record_type_id_1 < c.record_type_id_2
@@ -1068,76 +1078,119 @@ function generateScheduleAlgorithm(groups, recordTypes, conflicts) {
       return `${min}-${max}`;
     })
   );
+  console.log(`[스케줄] 충돌 세트:`, [...conflictSet]);
 
-  const isConflict = (type1, type2) => {
-    if (!type1 || !type2) return false;
-    const [min, max] = type1 < type2 ? [type1, type2] : [type2, type1];
+  // 종목 인덱스로 충돌 체크
+  const isConflict = (idx1, idx2) => {
+    if (idx1 === null || idx2 === null || idx1 === idx2) return false;
+    const id1 = recordTypes[idx1].record_type_id;
+    const id2 = recordTypes[idx2].record_type_id;
+    const [min, max] = id1 < id2 ? [id1, id2] : [id2, id1];
     return conflictSet.has(`${min}-${max}`);
   };
 
-  const schedule = [];
+  // 각 조가 완료한 종목 추적
+  const groupDone = Array.from({ length: G }, () => new Set());
+  // 각 조의 휴식 횟수
+  const groupRestCount = Array(G).fill(0);
 
-  for (let time = 0; time < numSlots; time++) {
-    const assignments = [];
-    const usedTypes = new Set();
+  // matrix[time][group] = 종목 인덱스 (null = 휴식)
+  const matrix = [];
 
-    for (let g = 0; g < numGroups; g++) {
-      const group = groups[g];
+  // 최대 슬롯 수 (무한루프 방지)
+  const maxSlots = G + T + conflicts.length * G;
 
-      // 라운드로빈 기본 인덱스
-      const baseIdx = (g + time) % numSlots;
+  let time = 0;
+  while (time < maxSlots) {
+    // 모든 조가 모든 종목을 완료했는지 확인
+    const allDone = groupDone.every(done => done.size === T);
+    if (allDone) {
+      console.log(`[스케줄] 모든 조 완료! 총 ${time}개 타임`);
+      break;
+    }
 
-      // 종목 개수보다 크면 휴식
-      if (baseIdx >= numTypes) {
-        assignments.push({ group_id: group.id, record_type_id: null });
+    const row = Array(G).fill(null);
+    const usedInThisSlot = new Set(); // 이 타임에 사용된 종목 인덱스
+
+    // 휴식이 가장 적은 조부터 배정 (공평성)
+    const groupOrder = [...Array(G).keys()].sort((a, b) => {
+      // 이미 완료한 조는 뒤로
+      const aDone = groupDone[a].size === T;
+      const bDone = groupDone[b].size === T;
+      if (aDone !== bDone) return aDone ? 1 : -1;
+      // 휴식 적은 조 우선
+      return groupRestCount[a] - groupRestCount[b];
+    });
+
+    for (const g of groupOrder) {
+      // 이미 모든 종목 완료한 조는 휴식
+      if (groupDone[g].size === T) {
+        row[g] = null;
+        groupRestCount[g]++;
         continue;
       }
 
-      let typeId = recordTypes[baseIdx].record_type_id;
+      // 가능한 종목 찾기
+      let assigned = false;
+      for (let typeIdx = 0; typeIdx < T; typeIdx++) {
+        // 이미 한 종목이면 스킵
+        if (groupDone[g].has(typeIdx)) continue;
 
-      // 충돌 체크
-      let hasConflict = false;
-      for (const usedType of usedTypes) {
-        if (isConflict(typeId, usedType)) {
-          hasConflict = true;
-          break;
-        }
-      }
+        // 이 타임에 이미 다른 조가 하고 있으면 스킵
+        if (usedInThisSlot.has(typeIdx)) continue;
 
-      if (hasConflict) {
-        // 대체 종목 찾기
-        let found = false;
-        for (let alt = 0; alt < numTypes; alt++) {
-          const altTypeId = recordTypes[alt].record_type_id;
-          if (usedTypes.has(altTypeId)) continue;
-
-          let altConflict = false;
-          for (const usedType of usedTypes) {
-            if (isConflict(altTypeId, usedType)) {
-              altConflict = true;
-              break;
-            }
-          }
-
-          if (!altConflict) {
-            typeId = altTypeId;
-            found = true;
+        // 충돌 체크: 이 타임의 다른 종목과 충돌하면 스킵
+        let hasConflict = false;
+        for (const usedIdx of usedInThisSlot) {
+          if (isConflict(typeIdx, usedIdx)) {
+            hasConflict = true;
             break;
           }
         }
+        if (hasConflict) continue;
 
-        if (!found) {
-          // 대체 불가 - 휴식
-          assignments.push({ group_id: group.id, record_type_id: null });
-          continue;
-        }
+        // 배정!
+        row[g] = typeIdx;
+        usedInThisSlot.add(typeIdx);
+        groupDone[g].add(typeIdx);
+        assigned = true;
+        break;
       }
 
-      usedTypes.add(typeId);
-      assignments.push({ group_id: group.id, record_type_id: typeId });
+      // 못 찾으면 휴식
+      if (!assigned) {
+        row[g] = null;
+        groupRestCount[g]++;
+      }
     }
 
-    schedule.push({ time_order: time, assignments });
+    matrix.push(row);
+    time++;
+  }
+
+  // 디버그: 매트릭스 출력
+  console.log('[스케줄] 결과 매트릭스:');
+  matrix.forEach((row, t) => {
+    const rowStr = row.map((v, g) => {
+      if (v === null) return `${g+1}조:휴식`;
+      return `${g+1}조:${recordTypes[v].short_name || recordTypes[v].name}`;
+    }).join(', ');
+    console.log(`  타임${t}: ${rowStr}`);
+  });
+  console.log(`[스케줄] 휴식 횟수: ${groupRestCount.map((c, g) => `${g+1}조:${c}회`).join(', ')}`);
+
+  // 결과 변환
+  const schedule = [];
+  for (let t = 0; t < matrix.length; t++) {
+    const assignments = [];
+    for (let g = 0; g < G; g++) {
+      const typeIdx = matrix[t][g];
+      assignments.push({
+        group_id: groups[g].id,
+        record_type_id: typeIdx !== null ? recordTypes[typeIdx].record_type_id : null
+      });
+    }
+    schedule.push({ time_order: t, assignments });
   }
 
   return schedule;
@@ -1187,6 +1240,7 @@ router.get('/:sessionId/schedule', verifyToken, async (req, res) => {
 
     // 스케줄을 타임별로 그룹화
     const scheduleByTime = {};
+    let maxTimeOrder = -1;
     savedSchedule.forEach(s => {
       if (!scheduleByTime[s.time_order]) {
         scheduleByTime[s.time_order] = [];
@@ -1197,10 +1251,13 @@ router.get('/:sessionId/schedule', verifyToken, async (req, res) => {
         record_type_name: s.record_type_name,
         short_name: s.short_name
       });
+      if (s.time_order > maxTimeOrder) {
+        maxTimeOrder = s.time_order;
+      }
     });
 
-    // 타임 수 계산
-    const numSlots = Math.max(groups.length, recordTypes.length);
+    // 타임 수 계산 (저장된 스케줄 기준, 없으면 기본값)
+    const numSlots = maxTimeOrder >= 0 ? maxTimeOrder + 1 : Math.max(groups.length, recordTypes.length);
     const timeSlots = [];
     for (let t = 0; t < numSlots; t++) {
       timeSlots.push({
@@ -1277,6 +1334,11 @@ router.post('/:sessionId/schedule/generate', verifyToken, async (req, res) => {
       FROM record_type_conflicts
       WHERE monthly_test_id = ?
     `, [session.monthly_test_id]);
+
+    console.log(`[스케줄 생성] 조: ${groups.length}개, 종목: ${recordTypes.length}개, 충돌: ${conflicts.length}개`);
+    if (conflicts.length > 0) {
+      console.log('[스케줄 생성] 충돌 목록:', conflicts.map(c => `${c.record_type_id_1}-${c.record_type_id_2}`).join(', '));
+    }
 
     // 스케줄 생성
     const schedule = generateScheduleAlgorithm(groups, recordTypes, conflicts);

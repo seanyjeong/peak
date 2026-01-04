@@ -92,6 +92,7 @@ app.use('/peak/exercise-packs', verifyToken, require('./routes/exercise-packs'))
 app.use('/peak/record-types', verifyToken, require('./routes/recordTypes'));
 app.use('/peak/score-tables', verifyToken, require('./routes/scoreTable'));
 app.use('/peak/stats', verifyToken, require('./routes/stats'));
+app.use('/peak/settings', verifyToken, require('./routes/peakSettings'));
 
 // 월말테스트
 app.use('/peak/monthly-tests', verifyToken, require('./routes/monthlyTests'));

@@ -33,16 +33,20 @@ router.get('/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
 
-    // 1. P-ACA에서 학원 정보 조회
-    const [academies] = await pacaPool.query(`
-      SELECT id, name, slug FROM academies WHERE slug = ?
+    // 1. P-EAK 설정에서 학원 정보 조회 (P-ACA와 분리된 slug)
+    const [settings] = await pool.query(`
+      SELECT academy_id, slug, academy_name FROM peak_settings WHERE slug = ?
     `, [slug]);
 
-    if (academies.length === 0) {
+    if (settings.length === 0) {
       return res.status(404).json({ success: false, message: '학원을 찾을 수 없습니다.' });
     }
 
-    const academy = academies[0];
+    const academy = {
+      id: settings[0].academy_id,
+      name: settings[0].academy_name,
+      slug: settings[0].slug
+    };
 
     // 2. 현재 active인 월말테스트 조회
     const academyId = academy.id;
@@ -58,7 +62,7 @@ router.get('/:slug', async (req, res) => {
     if (tests.length === 0) {
       return res.json({
         success: true,
-        academy: { name: decrypt(academy.name), slug: academy.slug },
+        academy: { name: academy.name, slug: academy.slug },
         test: null,
         message: '현재 진행 중인 테스트가 없습니다.'
       });
@@ -114,7 +118,7 @@ router.get('/:slug', async (req, res) => {
     if (sessionIds.length === 0) {
       return res.json({
         success: true,
-        academy: { name: decrypt(academy.name), slug: academy.slug },
+        academy: { name: academy.name, slug: academy.slug },
         test: { name: test.test_name, month: test.test_month },
         ranking: { male: [], female: [] },
         events: []
@@ -296,7 +300,7 @@ router.get('/:slug', async (req, res) => {
 
     res.json({
       success: true,
-      academy: { name: decrypt(academy.name), slug: academy.slug },
+      academy: { name: academy.name, slug: academy.slug },
       test: { name: test.test_name, month: test.test_month },
       ranking: { male: maleRanking, female: femaleRanking },
       events
@@ -304,6 +308,89 @@ router.get('/:slug', async (req, res) => {
 
   } catch (error) {
     console.error('전광판 데이터 조회 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 배점표 조회 (인증 불필요)
+router.get('/:slug/scores', async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    // 1. P-EAK 설정에서 학원 정보 조회
+    const [settings] = await pool.query(`
+      SELECT academy_id, slug, academy_name FROM peak_settings WHERE slug = ?
+    `, [slug]);
+
+    if (settings.length === 0) {
+      return res.status(404).json({ success: false, message: '학원을 찾을 수 없습니다.' });
+    }
+
+    const academy = {
+      id: settings[0].academy_id,
+      name: settings[0].academy_name,
+      slug: settings[0].slug
+    };
+
+    // 2. 배점표 조회 (활성화된 종목만)
+    const [scoreTables] = await pool.query(`
+      SELECT st.*, rt.name as record_type_name, rt.short_name, rt.unit, rt.direction
+      FROM score_tables st
+      JOIN record_types rt ON st.record_type_id = rt.id
+      WHERE st.academy_id = ? AND st.is_active = 1
+      ORDER BY rt.display_order
+    `, [academy.id]);
+
+    // 3. 각 배점표의 점수 범위 조회
+    const scoreTableIds = scoreTables.map(st => st.id);
+    let rangesMap = {};
+
+    if (scoreTableIds.length > 0) {
+      const [ranges] = await pool.query(`
+        SELECT * FROM score_ranges
+        WHERE score_table_id IN (?)
+        ORDER BY score DESC
+      `, [scoreTableIds]);
+
+      ranges.forEach(r => {
+        if (!rangesMap[r.score_table_id]) {
+          rangesMap[r.score_table_id] = [];
+        }
+        rangesMap[r.score_table_id].push(r);
+      });
+    }
+
+    // 4. 응답 데이터 구성
+    const tables = scoreTables.map(st => ({
+      id: st.id,
+      recordType: {
+        id: st.record_type_id,
+        name: st.record_type_name,
+        shortName: st.short_name,
+        unit: st.unit,
+        direction: st.direction
+      },
+      maxScore: st.max_score,
+      minScore: st.min_score,
+      scoreStep: st.score_step,
+      decimalPlaces: st.decimal_places,
+      malePerfect: parseFloat(st.male_perfect),
+      femalePerfect: parseFloat(st.female_perfect),
+      ranges: (rangesMap[st.id] || []).map(r => ({
+        score: r.score,
+        male: { min: parseFloat(r.male_min), max: parseFloat(r.male_max) },
+        female: { min: parseFloat(r.female_min), max: parseFloat(r.female_max) }
+      }))
+    }));
+
+    res.json({
+      success: true,
+      academy: { name: academy.name, slug: academy.slug },
+      scoreTables: tables
+    });
+
+  } catch (error) {
+    console.error('배점표 조회 오류:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
