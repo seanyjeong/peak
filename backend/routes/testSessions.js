@@ -93,9 +93,16 @@ router.get('/:sessionId/groups', verifyToken, async (req, res) => {
       }
     }
 
-    // 4. test_participants에 있지만 P-ACA에서 더 이상 active가 아닌 학생 → 자동 제거
-    const thisSessionParticipants = allParticipants.filter(p => p.test_session_id == sessionId);
-    const toRemove = thisSessionParticipants.filter(p => p.paca_student_id && !pacaActiveIds.has(p.paca_student_id));
+    // 4. test_participants에 있지만 P-ACA에서 더 이상 active가 아닌 enrolled 학생만 자동 제거
+    // (휴원생/체험생은 수동 추가이므로 자동 제거하지 않음)
+    const [thisSessionEnrolled] = await conn.query(`
+      SELECT tp.id, s.paca_student_id
+      FROM test_participants tp
+      JOIN students s ON tp.student_id = s.id
+      WHERE tp.test_session_id = ? AND tp.participant_type = 'enrolled' AND s.paca_student_id IS NOT NULL
+    `, [sessionId]);
+
+    const toRemove = thisSessionEnrolled.filter(p => !pacaActiveIds.has(p.paca_student_id));
 
     if (toRemove.length > 0) {
       const toRemoveIds = toRemove.map(p => p.id);
