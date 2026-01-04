@@ -45,6 +45,12 @@ export default function MonthlyTestListPage() {
   const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
   const [creating, setCreating] = useState(false);
 
+  // 전광판 설정 상태
+  const [showSlugModal, setShowSlugModal] = useState(false);
+  const [slugInput, setSlugInput] = useState('');
+  const [currentSlug, setCurrentSlug] = useState('');
+  const [savingSlug, setSavingSlug] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -52,12 +58,17 @@ export default function MonthlyTestListPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [testsRes, typesRes] = await Promise.all([
+      const [testsRes, typesRes, settingsRes] = await Promise.all([
         apiClient.get('/monthly-tests'),
-        apiClient.get('/record-types')
+        apiClient.get('/record-types'),
+        apiClient.get('/settings')
       ]);
       setTests(testsRes.data.tests || []);
       setRecordTypes((typesRes.data.recordTypes || []).filter((t: RecordType) => t.is_active));
+      if (settingsRes.data.settings?.slug) {
+        setCurrentSlug(settingsRes.data.settings.slug);
+        setSlugInput(settingsRes.data.settings.slug);
+      }
     } catch (error) {
       console.error('데이터 로드 오류:', error);
     } finally {
@@ -104,6 +115,39 @@ export default function MonthlyTestListPage() {
     }
   };
 
+  const handleSaveSlug = async () => {
+    if (!slugInput.trim()) {
+      alert('슬러그를 입력해주세요.');
+      return;
+    }
+    if (!/^[a-z0-9-]+$/.test(slugInput)) {
+      alert('슬러그는 영문 소문자, 숫자, 하이픈(-)만 사용 가능합니다.');
+      return;
+    }
+    try {
+      setSavingSlug(true);
+      await apiClient.put('/monthly-tests/academy/slug', { slug: slugInput.trim() });
+      setCurrentSlug(slugInput.trim());
+      setShowSlugModal(false);
+      alert('슬러그가 저장되었습니다.');
+    } catch (error: any) {
+      alert(error.response?.data?.message || '저장 실패');
+    } finally {
+      setSavingSlug(false);
+    }
+  };
+
+  const copyBoardUrl = () => {
+    if (!currentSlug) {
+      alert('전광판 슬러그를 먼저 설정해주세요.');
+      setShowSlugModal(true);
+      return;
+    }
+    const url = `${window.location.origin}/board/${currentSlug}`;
+    navigator.clipboard.writeText(url);
+    alert(`전광판 URL이 복사되었습니다.\n${url}`);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'draft':
@@ -137,9 +181,25 @@ export default function MonthlyTestListPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">월말테스트</h1>
-        <Button onClick={() => setShowCreateModal(true)}>
-          + 새 테스트 만들기
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowSlugModal(true)}>
+            ⚙️ 전광판 설정
+          </Button>
+          <Button variant="outline" onClick={copyBoardUrl}>
+            📋 URL 복사
+          </Button>
+          {currentSlug && (
+            <Button
+              variant="outline"
+              onClick={() => window.open(`/board/${currentSlug}`, '_blank')}
+            >
+              📺 전광판 보기
+            </Button>
+          )}
+          <Button onClick={() => setShowCreateModal(true)}>
+            + 새 테스트 만들기
+          </Button>
+        </div>
       </div>
 
       {tests.length === 0 ? (
@@ -257,6 +317,58 @@ export default function MonthlyTestListPage() {
               disabled={creating || selectedTypes.length === 0}
             >
               {creating ? '생성 중...' : '생성'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 전광판 설정 모달 */}
+      <Modal
+        isOpen={showSlugModal}
+        onClose={() => setShowSlugModal(false)}
+        title="전광판 설정"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">전광판 URL 슬러그</label>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-sm">/board/</span>
+              <input
+                type="text"
+                value={slugInput}
+                onChange={e => setSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                placeholder="ilsanmax"
+                className="flex-1 px-3 py-2 border rounded-lg font-mono"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              영문 소문자, 숫자, 하이픈(-) 만 사용 가능
+            </p>
+          </div>
+
+          {currentSlug && (
+            <div className="p-3 bg-gray-50 rounded-lg space-y-2">
+              <div>
+                <div className="text-sm text-gray-600">전광판 URL:</div>
+                <div className="font-mono text-sm text-blue-600">
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/board/{currentSlug}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">배점표 URL:</div>
+                <div className="font-mono text-sm text-blue-600">
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/board/{currentSlug}/scores
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setShowSlugModal(false)}>
+              취소
+            </Button>
+            <Button onClick={handleSaveSlug} disabled={savingSlug}>
+              {savingSlug ? '저장 중...' : '저장'}
             </Button>
           </div>
         </div>

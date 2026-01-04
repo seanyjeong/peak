@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check, ToggleLeft, ToggleRight, Globe, Link2, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check, ToggleLeft, ToggleRight } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 
 interface RecordType {
@@ -39,14 +39,8 @@ interface ScoreRange {
   female_max: number;
 }
 
-interface PeakSettings {
-  academy_id: number;
-  slug: string;
-  academy_name: string;
-}
-
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'general' | 'types' | 'scores'>('general');
+  const [activeTab, setActiveTab] = useState<'types' | 'scores'>('types');
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
   const [scoreTables, setScoreTables] = useState<ScoreTable[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,28 +69,15 @@ export default function SettingsPage() {
   const [savingRange, setSavingRange] = useState<number | null>(null);
   const [currentTable, setCurrentTable] = useState<ScoreTable | null>(null);
 
-  // 일반 설정 상태
-  const [peakSettings, setPeakSettings] = useState<PeakSettings>({ academy_id: 2, slug: '', academy_name: '' });
-  const [settingsForm, setSettingsForm] = useState({ slug: '', academy_name: '' });
-  const [savingSettings, setSavingSettings] = useState(false);
-
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [typesRes, tablesRes, settingsRes] = await Promise.all([
+      const [typesRes, tablesRes] = await Promise.all([
         apiClient.get('/record-types'),
-        apiClient.get('/score-tables'),
-        apiClient.get('/settings')
+        apiClient.get('/score-tables')
       ]);
       setRecordTypes(typesRes.data.recordTypes || []);
       setScoreTables(tablesRes.data.scoreTables || []);
-      if (settingsRes.data.settings) {
-        setPeakSettings(settingsRes.data.settings);
-        setSettingsForm({
-          slug: settingsRes.data.settings.slug || '',
-          academy_name: settingsRes.data.settings.academy_name || ''
-        });
-      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -152,30 +133,6 @@ export default function SettingsPage() {
     setEditingType(type);
     setTypeForm({ name: type.name, unit: type.unit, direction: type.direction });
     setShowTypeForm(true);
-  };
-
-  // 일반 설정 저장
-  const saveSettings = async () => {
-    if (!settingsForm.slug || !settingsForm.academy_name) {
-      alert('slug와 학원명을 입력해주세요.');
-      return;
-    }
-    if (!/^[a-z0-9-]+$/.test(settingsForm.slug)) {
-      alert('slug는 영문 소문자, 숫자, 하이픈(-)만 사용할 수 있습니다.');
-      return;
-    }
-    try {
-      setSavingSettings(true);
-      await apiClient.post('/settings', settingsForm);
-      setPeakSettings({ ...peakSettings, ...settingsForm });
-      alert('설정이 저장되었습니다.');
-    } catch (error: unknown) {
-      console.error('Failed to save settings:', error);
-      const err = error as { response?: { data?: { message?: string } } };
-      alert(err.response?.data?.message || '저장에 실패했습니다.');
-    } finally {
-      setSavingSettings(false);
-    }
   };
 
   // 배점표 생성
@@ -314,16 +271,6 @@ export default function SettingsPage() {
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
         <button
-          onClick={() => setActiveTab('general')}
-          className={`px-6 py-3 rounded-lg font-medium transition ${
-            activeTab === 'general'
-              ? 'bg-orange-500 text-white'
-              : 'bg-white text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          일반
-        </button>
-        <button
           onClick={() => setActiveTab('types')}
           className={`px-6 py-3 rounded-lg font-medium transition ${
             activeTab === 'types'
@@ -348,96 +295,6 @@ export default function SettingsPage() {
       {loading ? (
         <div className="flex items-center justify-center h-64 bg-white rounded-2xl shadow-sm">
           <RefreshCw size={32} className="animate-spin text-slate-400" />
-        </div>
-      ) : activeTab === 'general' ? (
-        /* 일반 설정 탭 */
-        <div className="space-y-6">
-          {/* 공개 URL 설정 */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Globe size={20} className="text-orange-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-800">공개 URL 설정</h3>
-                <p className="text-sm text-slate-500">전광판, 배점표 등 공개 페이지의 URL을 설정합니다.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">학원명 (표시용)</label>
-                <input
-                  type="text"
-                  value={settingsForm.academy_name}
-                  onChange={e => setSettingsForm({ ...settingsForm, academy_name: e.target.value })}
-                  placeholder="예: 일산맥스"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                />
-                <p className="text-xs text-slate-400 mt-1">전광판, 배점표에 표시될 학원명</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Slug (URL용)</label>
-                <input
-                  type="text"
-                  value={settingsForm.slug}
-                  onChange={e => setSettingsForm({ ...settingsForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                  placeholder="예: ilsanmax"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 font-mono"
-                />
-                <p className="text-xs text-slate-400 mt-1">영문 소문자, 숫자, 하이픈(-) 만 사용 가능</p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-between">
-              <button
-                onClick={saveSettings}
-                disabled={savingSettings}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50"
-              >
-                {savingSettings ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-                저장
-              </button>
-            </div>
-          </div>
-
-          {/* 공개 URL 미리보기 */}
-          {peakSettings.slug && (
-            <div className="bg-slate-50 rounded-xl p-6">
-              <h4 className="font-medium text-slate-700 mb-4 flex items-center gap-2">
-                <Link2 size={18} />
-                공개 URL 미리보기
-              </h4>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-slate-200">
-                  <div>
-                    <p className="text-sm text-slate-500">전광판</p>
-                    <code className="text-sm text-slate-800">/board/{peakSettings.slug}</code>
-                  </div>
-                  <a
-                    href={`/board/${peakSettings.slug}`}
-                    target="_blank"
-                    className="p-2 text-slate-400 hover:text-orange-500 transition"
-                  >
-                    <ExternalLink size={18} />
-                  </a>
-                </div>
-                <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-slate-200">
-                  <div>
-                    <p className="text-sm text-slate-500">배점표</p>
-                    <code className="text-sm text-slate-800">/board/{peakSettings.slug}/scores</code>
-                  </div>
-                  <a
-                    href={`/board/${peakSettings.slug}/scores`}
-                    target="_blank"
-                    className="p-2 text-slate-400 hover:text-orange-500 transition"
-                  >
-                    <ExternalLink size={18} />
-                  </a>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       ) : activeTab === 'types' ? (
         /* 종목 관리 탭 */
