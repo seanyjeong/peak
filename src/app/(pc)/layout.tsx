@@ -33,7 +33,7 @@ const navigation = [
   { name: '수업 계획', href: '/plans', icon: ClipboardList },
   { name: '수업 기록', href: '/training', icon: Activity },
   { name: '기록 측정', href: '/records', icon: Medal },
-  { name: '월말테스트', href: '/monthly-test', icon: Trophy, adminOnly: true },
+  { name: '월말테스트', href: '/monthly-test', icon: Trophy },
   { name: '학생 관리', href: '/students', icon: Calendar },
   { name: '실기측정설정', href: '/settings', icon: Settings, adminOnly: true },
 ];
