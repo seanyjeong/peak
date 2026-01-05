@@ -460,11 +460,18 @@ export default function SessionGroupPage({
     setActiveItem(null);
     setIsDragging(false);
 
-    if (!over) return;
+    console.log('[DragEnd] over:', over?.id, 'overData:', over?.data.current);
+
+    if (!over) {
+      console.log('[DragEnd] over가 null - 유효한 드롭 영역 아님');
+      return;
+    }
 
     const activeData = active.data.current;
     const overData = over.data.current;
     const overId = String(over.id);
+
+    console.log('[DragEnd] activeType:', activeData?.type, 'overId:', overId, 'overData.type:', overData?.type);
 
     try {
       if (activeData?.type === 'participant') {
