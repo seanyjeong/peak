@@ -11,11 +11,13 @@ import {
   DndContext,
   DragOverlay,
   pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
   PointerSensor,
   DragStartEvent,
-  DragEndEvent
+  DragEndEvent,
+  CollisionDetection
 } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 
@@ -275,6 +277,37 @@ export default function SessionGroupPage({
       activationConstraint: { distance: 8 }
     })
   );
+
+  // 커스텀 충돌 감지: waiting 영역 우선
+  const customCollisionDetection: CollisionDetection = (args) => {
+    // 먼저 pointerWithin으로 감지
+    const pointerCollisions = pointerWithin(args);
+
+    // waiting 영역이 감지되면 그것을 우선
+    const waitingCollision = pointerCollisions.find(
+      c => c.id === 'waiting-participants' || c.id === 'waiting-supervisors'
+    );
+    if (waitingCollision) {
+      return [waitingCollision];
+    }
+
+    // group 영역이 감지되면 그것을 반환
+    const groupCollision = pointerCollisions.find(
+      c => String(c.id).startsWith('group-')
+    );
+    if (groupCollision) {
+      return [groupCollision];
+    }
+
+    // new-group 영역
+    const newGroupCollision = pointerCollisions.find(c => c.id === 'new-group');
+    if (newGroupCollision) {
+      return [newGroupCollision];
+    }
+
+    // 그 외에는 rectIntersection 사용
+    return rectIntersection(args);
+  };
 
   useEffect(() => {
     fetchData();
@@ -564,7 +597,7 @@ export default function SessionGroupPage({
       {activeTab === 'grouping' && (
         <DndContext
           sensors={sensors}
-          collisionDetection={pointerWithin}
+          collisionDetection={customCollisionDetection}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragCancel={() => { setActiveItem(null); setIsDragging(false); }}
@@ -590,16 +623,11 @@ export default function SessionGroupPage({
                     {isDragging ? '여기에 드롭하여 미배치' : '감독관을 여기로 드롭'}
                   </div>
                 ) : (
-                  <>
-                    {isDragging && (
-                      <div className="w-full mb-1 p-1 border border-dashed border-blue-400 rounded text-center text-blue-500 text-xs bg-blue-50">
-                        드롭하여 미배치
-                      </div>
-                    )}
+                  <div className="flex flex-wrap gap-1 items-start">
                     {waitingInstructors.map(s => (
                       <DraggableSupervisor key={s.instructor_id} supervisor={s} />
                     ))}
-                  </>
+                  </div>
                 )}
               </div>
             </Card>
@@ -620,16 +648,9 @@ export default function SessionGroupPage({
                     {isDragging ? '여기에 드롭하여 미배치' : '학생을 여기로 드롭하면 미배치'}
                   </div>
                 ) : (
-                  <>
-                    {isDragging && (
-                      <div className="mb-2 p-2 border-2 border-dashed border-green-400 rounded-lg text-center text-green-600 text-sm font-medium bg-green-50">
-                        여기에 드롭하여 미배치
-                      </div>
-                    )}
-                    {waitingParticipants.map(p => (
-                      <DraggableParticipant key={p.id} participant={p} />
-                    ))}
-                  </>
+                  waitingParticipants.map(p => (
+                    <DraggableParticipant key={p.id} participant={p} />
+                  ))
                 )}
               </div>
             </div>

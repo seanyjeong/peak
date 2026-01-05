@@ -11,12 +11,14 @@ import {
   DndContext,
   DragOverlay,
   pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
   TouchSensor,
   PointerSensor,
   DragStartEvent,
-  DragEndEvent
+  DragEndEvent,
+  CollisionDetection
 } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 
@@ -265,6 +267,27 @@ export default function TabletSessionGroupPage({
     })
   );
 
+  const [isDragging, setIsDragging] = useState(false);
+
+  // 커스텀 충돌 감지: waiting 영역 우선
+  const customCollisionDetection: CollisionDetection = (args) => {
+    const pointerCollisions = pointerWithin(args);
+    const waitingCollision = pointerCollisions.find(
+      c => c.id === 'waiting-participants' || c.id === 'waiting-supervisors'
+    );
+    if (waitingCollision) return [waitingCollision];
+
+    const groupCollision = pointerCollisions.find(
+      c => String(c.id).startsWith('group-')
+    );
+    if (groupCollision) return [groupCollision];
+
+    const newGroupCollision = pointerCollisions.find(c => c.id === 'new-group');
+    if (newGroupCollision) return [newGroupCollision];
+
+    return rectIntersection(args);
+  };
+
   useEffect(() => {
     fetchData();
   }, [sessionId]);
@@ -323,11 +346,13 @@ export default function TabletSessionGroupPage({
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveItem(event.active.data.current);
+    setIsDragging(true);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveItem(null);
+    setIsDragging(false);
 
     if (!over) return;
 
@@ -415,9 +440,10 @@ export default function TabletSessionGroupPage({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={pointerWithin}
+      collisionDetection={customCollisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={() => { setActiveItem(null); setIsDragging(false); }}
     >
       <div className="p-4 min-h-screen flex flex-col">
         {/* 헤더 */}
@@ -493,22 +519,26 @@ export default function TabletSessionGroupPage({
           {/* 좌측: 대기 영역 (세로로 길게) */}
           <div className="w-56 flex-shrink-0 flex flex-col gap-3">
             {/* 감독관 대기 */}
-            <Card className="flex-shrink-0">
+            <Card className={`flex-shrink-0 transition-all ${isDragging ? 'ring-2 ring-dashed ring-blue-300' : ''}`}>
               <div className="p-3 border-b bg-gray-50 font-medium">
                 감독관 대기 ({waitingInstructors.length})
               </div>
               <div
                 ref={setWaitingSupervisorsRef}
-                className={`p-3 min-h-[70px] flex flex-wrap gap-2 transition-colors ${
-                  isOverWaitingS ? 'bg-blue-100 ring-2 ring-blue-400' : ''
+                className={`p-3 min-h-[80px] flex flex-wrap gap-2 transition-colors ${
+                  isOverWaitingS ? 'bg-blue-100 ring-2 ring-blue-400' : isDragging ? 'bg-blue-50' : ''
                 }`}
               >
                 {waitingInstructors.length === 0 ? (
-                  <span className="text-sm text-gray-400">감독관을 여기로 드롭</span>
+                  <div className={`w-full h-full flex items-center justify-center text-sm ${isDragging ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
+                    {isDragging ? '여기에 드롭하여 미배치' : '감독관을 여기로 드롭'}
+                  </div>
                 ) : (
-                  waitingInstructors.map(s => (
-                    <DraggableSupervisor key={s.instructor_id} supervisor={s} />
-                  ))
+                  <div className="flex flex-wrap gap-2 items-start">
+                    {waitingInstructors.map(s => (
+                      <DraggableSupervisor key={s.instructor_id} supervisor={s} />
+                    ))}
+                  </div>
                 )}
               </div>
             </Card>
@@ -516,17 +546,17 @@ export default function TabletSessionGroupPage({
             {/* 미배치 학생 - 남은 공간 전체 사용 */}
             <div
               ref={setWaitingParticipantsRef}
-              className={`flex-1 overflow-hidden flex flex-col rounded-xl border bg-white shadow-sm transition-colors ${
-                isOverWaitingP ? 'ring-2 ring-green-400 bg-green-50' : ''
+              className={`flex-1 overflow-hidden flex flex-col rounded-xl border bg-white shadow-sm transition-all ${
+                isOverWaitingP ? 'ring-2 ring-green-400 bg-green-50' : isDragging ? 'ring-2 ring-dashed ring-green-300' : ''
               }`}
             >
               <div className="p-3 border-b bg-gray-50 font-medium rounded-t-xl">
                 미배치 학생 ({waitingParticipants.length})
               </div>
-              <div className={`flex-1 p-3 overflow-y-auto ${isOverWaitingP ? 'bg-green-100' : ''}`}>
+              <div className={`flex-1 p-3 overflow-y-auto transition-colors ${isOverWaitingP ? 'bg-green-100' : isDragging ? 'bg-green-50' : ''}`}>
                 {waitingParticipants.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-                    학생을 여기로 드롭하면 미배치
+                  <div className={`h-full flex items-center justify-center text-sm ${isDragging ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                    {isDragging ? '여기에 드롭하여 미배치' : '학생을 여기로 드롭하면 미배치'}
                   </div>
                 ) : (
                   waitingParticipants.map(p => (
