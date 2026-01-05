@@ -391,7 +391,13 @@ export default function SessionGroupPage({
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveItem(event.active.data.current);
+    const data = event.active.data.current;
+    console.log('🟢 드래그 시작:', {
+      id: event.active.id,
+      type: data?.type,
+      name: data?.participant?.name || data?.supervisor?.name
+    });
+    setActiveItem(data);
     setIsDragging(true);
   };
 
@@ -400,7 +406,16 @@ export default function SessionGroupPage({
     setActiveItem(null);
     setIsDragging(false);
 
-    if (!over) return;
+    console.log('🔴 드래그 끝:', {
+      activeId: active.id,
+      overId: over?.id || 'NULL (드롭 영역 없음)',
+      overType: over?.data.current?.type || 'N/A'
+    });
+
+    if (!over) {
+      console.log('❌ over가 null - 유효한 드롭 영역에 드롭하지 않음');
+      return;
+    }
 
     const activeData = active.data.current;
     const overData = over.data.current;
@@ -414,24 +429,29 @@ export default function SessionGroupPage({
         // 조의 학생 영역에 드롭
         if (overData?.type === 'group-participants') {
           toGroupId = overData.groupId;
+          console.log('✅ 조로 이동:', toGroupId);
         }
         // 미배치 영역에 드롭
         else if (overId === 'waiting-participants' || overData?.type === 'waiting-participants') {
           toGroupId = null;
+          console.log('✅ 미배치로 이동');
         }
         // 유효하지 않은 드롭 위치면 무시
         else {
+          console.log('⚠️ 학생: 유효하지 않은 드롭 위치 - overId:', overId, 'overType:', overData?.type);
           return;
         }
 
+        console.log('📤 API 호출: PUT /test-sessions/' + sessionId + '/participants/' + participant.id, { test_group_id: toGroupId });
         await apiClient.put(`/test-sessions/${sessionId}/participants/${participant.id}`, {
           test_group_id: toGroupId
         });
+        console.log('✅ API 성공');
       } else if (activeData?.type === 'supervisor') {
         const supervisor = activeData.supervisor as Supervisor;
 
         if (overId === 'new-group' || overData?.type === 'new-group') {
-          // 새 조 생성 + 감독관 배치
+          console.log('✅ 감독관: 새 조 생성');
           const newGroupRes = await apiClient.post(`/test-sessions/${sessionId}/groups`);
           await apiClient.post(`/test-sessions/${sessionId}/supervisor`, {
             instructor_id: supervisor.instructor_id,
@@ -439,24 +459,29 @@ export default function SessionGroupPage({
             is_main: true
           });
         } else if (overData?.type === 'group-supervisors') {
+          console.log('✅ 감독관: 조로 이동:', overData.groupId);
           await apiClient.post(`/test-sessions/${sessionId}/supervisor`, {
             instructor_id: supervisor.instructor_id,
             to_group_id: overData.groupId,
             is_main: false
           });
         } else if (overId === 'waiting-supervisors' || overData?.type === 'waiting-supervisors') {
+          console.log('✅ 감독관: 대기로 이동');
           await apiClient.post(`/test-sessions/${sessionId}/supervisor`, {
             instructor_id: supervisor.instructor_id,
             to_group_id: null
           });
         } else {
+          console.log('⚠️ 감독관: 유효하지 않은 드롭 위치 - overId:', overId, 'overType:', overData?.type);
           return;
         }
+      } else {
+        console.log('⚠️ 알 수 없는 타입:', activeData?.type);
       }
 
       fetchData();
     } catch (error) {
-      console.error('배치 오류:', error);
+      console.error('❌ 배치 오류:', error);
     }
   };
 
