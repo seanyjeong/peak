@@ -248,6 +248,79 @@ function NewGroupZone() {
   );
 }
 
+// 대기 영역 컴포넌트 (DndContext 안에서 useDroppable 호출해야 함)
+function WaitingArea({
+  waitingParticipants,
+  waitingInstructors,
+  isDragging
+}: {
+  waitingParticipants: Participant[];
+  waitingInstructors: Supervisor[];
+  isDragging: boolean;
+}) {
+  const { setNodeRef: setWaitingParticipantsRef, isOver: isOverWaitingP } = useDroppable({
+    id: 'waiting-participants',
+    data: { type: 'waiting-participants' }
+  });
+
+  const { setNodeRef: setWaitingSupervisorsRef, isOver: isOverWaitingS } = useDroppable({
+    id: 'waiting-supervisors',
+    data: { type: 'waiting-supervisors' }
+  });
+
+  return (
+    <div className="w-72 flex-shrink-0 flex flex-col gap-4">
+      {/* 감독관 대기 */}
+      <Card className={`flex-shrink-0 transition-all ${isDragging ? 'ring-2 ring-dashed ring-blue-300' : ''}`}>
+        <div className="p-2 border-b bg-gray-50 font-medium text-sm">
+          감독관 대기 ({waitingInstructors.length})
+        </div>
+        <div
+          ref={setWaitingSupervisorsRef}
+          className={`p-3 min-h-[80px] flex flex-wrap gap-1 transition-colors ${
+            isOverWaitingS ? 'bg-blue-100 ring-2 ring-blue-400' : isDragging ? 'bg-blue-50' : ''
+          }`}
+        >
+          {waitingInstructors.length === 0 ? (
+            <div className={`w-full h-full flex items-center justify-center text-sm ${isDragging ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
+              {isDragging ? '여기에 드롭하여 미배치' : '감독관을 여기로 드롭'}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1 items-start">
+              {waitingInstructors.map(s => (
+                <DraggableSupervisor key={s.instructor_id} supervisor={s} />
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* 학생 대기 */}
+      <div
+        ref={setWaitingParticipantsRef}
+        className={`flex-1 overflow-hidden flex flex-col rounded-lg border bg-white shadow-sm transition-all ${
+          isOverWaitingP ? 'ring-2 ring-green-400 bg-green-50' : isDragging ? 'ring-2 ring-dashed ring-green-300' : ''
+        }`}
+      >
+        <div className="p-2 border-b bg-gray-50 font-medium text-sm rounded-t-lg">
+          미배치 학생 ({waitingParticipants.length})
+        </div>
+        <div className={`flex-1 p-3 overflow-y-auto min-h-[200px] transition-colors ${isOverWaitingP ? 'bg-green-100' : isDragging ? 'bg-green-50' : ''}`}>
+          {waitingParticipants.length === 0 ? (
+            <div className={`h-full flex items-center justify-center text-sm ${isDragging ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+              {isDragging ? '여기에 드롭하여 미배치' : '학생을 여기로 드롭하면 미배치'}
+            </div>
+          ) : (
+            waitingParticipants.map(p => (
+              <DraggableParticipant key={p.id} participant={p} />
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SessionGroupPage({
   params
 }: {
@@ -496,16 +569,6 @@ export default function SessionGroupPage({
     }
   };
 
-  const { setNodeRef: setWaitingParticipantsRef, isOver: isOverWaitingP } = useDroppable({
-    id: 'waiting-participants',
-    data: { type: 'waiting-participants' }
-  });
-
-  const { setNodeRef: setWaitingSupervisorsRef, isOver: isOverWaitingS } = useDroppable({
-    id: 'waiting-supervisors',
-    data: { type: 'waiting-supervisors' }
-  });
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -597,56 +660,12 @@ export default function SessionGroupPage({
 
         {/* 메인 영역 */}
         <div className="flex-1 flex gap-4 overflow-hidden">
-          {/* 대기 영역 */}
-          <div className="w-72 flex-shrink-0 flex flex-col gap-4">
-            {/* 감독관 대기 */}
-            <Card className={`flex-shrink-0 transition-all ${isDragging ? 'ring-2 ring-dashed ring-blue-300' : ''}`}>
-              <div className="p-2 border-b bg-gray-50 font-medium text-sm">
-                감독관 대기 ({waitingInstructors.length})
-              </div>
-              <div
-                ref={setWaitingSupervisorsRef}
-                className={`p-3 min-h-[80px] flex flex-wrap gap-1 transition-colors ${
-                  isOverWaitingS ? 'bg-blue-100 ring-2 ring-blue-400' : isDragging ? 'bg-blue-50' : ''
-                }`}
-              >
-                {waitingInstructors.length === 0 ? (
-                  <div className={`w-full h-full flex items-center justify-center text-sm ${isDragging ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
-                    {isDragging ? '여기에 드롭하여 미배치' : '감독관을 여기로 드롭'}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-1 items-start">
-                    {waitingInstructors.map(s => (
-                      <DraggableSupervisor key={s.instructor_id} supervisor={s} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* 학생 대기 - 크기 확대 */}
-            <div
-              ref={setWaitingParticipantsRef}
-              className={`flex-1 overflow-hidden flex flex-col rounded-lg border bg-white shadow-sm transition-all ${
-                isOverWaitingP ? 'ring-2 ring-green-400 bg-green-50' : isDragging ? 'ring-2 ring-dashed ring-green-300' : ''
-              }`}
-            >
-              <div className="p-2 border-b bg-gray-50 font-medium text-sm rounded-t-lg">
-                미배치 학생 ({waitingParticipants.length})
-              </div>
-              <div className={`flex-1 p-3 overflow-y-auto min-h-[200px] transition-colors ${isOverWaitingP ? 'bg-green-100' : isDragging ? 'bg-green-50' : ''}`}>
-                {waitingParticipants.length === 0 ? (
-                  <div className={`h-full flex items-center justify-center text-sm ${isDragging ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                    {isDragging ? '여기에 드롭하여 미배치' : '학생을 여기로 드롭하면 미배치'}
-                  </div>
-                ) : (
-                  waitingParticipants.map(p => (
-                    <DraggableParticipant key={p.id} participant={p} />
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
+          {/* 대기 영역 - 별도 컴포넌트로 분리 (useDroppable이 DndContext 안에서 호출되도록) */}
+          <WaitingArea
+            waitingParticipants={waitingParticipants}
+            waitingInstructors={waitingInstructors}
+            isDragging={isDragging}
+          />
 
           {/* 조 영역 */}
           <div className="flex-1 overflow-x-auto">
