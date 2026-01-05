@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
+import { BarChart2 } from 'lucide-react';
 
 interface RecordType {
   id: number;
@@ -245,6 +246,14 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
           <button onClick={() => setShowStatusModal(true)} title="클릭하여 상태 변경">
             {getStatusBadge(test.status, true)}
           </button>
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/tablet/monthly-test/${testId}/rankings`)}
+            className="min-h-12 flex items-center gap-2"
+          >
+            <BarChart2 size={18} />
+            전체 순위
+          </Button>
           {test.status === 'draft' && (
             <Button variant="outline" onClick={openEditModal} className="min-h-12">
               ✏️ 수정

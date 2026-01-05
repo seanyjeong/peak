@@ -19,7 +19,8 @@ import {
   Menu,
   X,
   Dumbbell,
-  Trophy
+  Trophy,
+  TableProperties
 } from 'lucide-react';
 
 const APP_VERSION = 'v4.3.21';
@@ -42,6 +43,7 @@ const navigation = [
   { name: '월말테스트', href: '/tablet/monthly-test', icon: Trophy },
   { name: '학생 관리', href: '/tablet/students', icon: Calendar },
   { name: '운동 관리', href: '/tablet/exercises', icon: Dumbbell },
+  { name: '배점표', href: '/board/ilsanmax/scores', icon: TableProperties },
   { name: '실기측정설정', href: '/tablet/settings', icon: Settings, adminOnly: true },
 ];
 

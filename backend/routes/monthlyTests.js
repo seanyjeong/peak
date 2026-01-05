@@ -422,6 +422,242 @@ router.delete('/:testId/conflicts/:conflictId', verifyToken, async (req, res) =>
   }
 });
 
+// 전체 기록/순위 조회 (모든 세션 통합)
+router.get('/:testId/all-records', verifyToken, async (req, res) => {
+  try {
+    const academyId = req.user.academyId;
+    const { testId } = req.params;
+
+    // 테스트 정보 조회
+    const [tests] = await pool.query(`
+      SELECT * FROM monthly_tests WHERE id = ? AND academy_id = ?
+    `, [testId, academyId]);
+
+    if (tests.length === 0) {
+      return res.status(404).json({ success: false, message: '테스트를 찾을 수 없습니다.' });
+    }
+
+    const test = tests[0];
+
+    // 선택된 종목
+    const [types] = await pool.query(`
+      SELECT mtt.*, rt.name, rt.short_name, rt.unit, rt.direction
+      FROM monthly_test_types mtt
+      JOIN record_types rt ON mtt.record_type_id = rt.id
+      WHERE mtt.monthly_test_id = ?
+      ORDER BY mtt.display_order
+    `, [testId]);
+
+    // 모든 세션 조회
+    const [sessions] = await pool.query(`
+      SELECT id, test_date FROM test_sessions WHERE monthly_test_id = ?
+    `, [testId]);
+
+    if (sessions.length === 0) {
+      return res.json({
+        success: true,
+        test: { id: test.id, test_name: test.test_name, test_month: test.test_month, status: test.status },
+        record_types: types,
+        participants: [],
+        score_ranges: {}
+      });
+    }
+
+    const sessionIds = sessions.map(s => s.id);
+    const testDates = [...new Set(sessions.map(s => s.test_date))];
+
+    // 모든 세션의 참가자 조회 (중복 제거: student_id 또는 test_applicant_id 기준)
+    const [allParticipants] = await pool.query(`
+      SELECT DISTINCT
+        tp.student_id,
+        tp.test_applicant_id,
+        tp.participant_type,
+        s.name as student_name,
+        s.gender,
+        s.school,
+        s.grade
+      FROM test_participants tp
+      LEFT JOIN students s ON tp.student_id = s.id
+      WHERE tp.test_session_id IN (?)
+    `, [sessionIds]);
+
+    // 테스트신규 정보 조회 (P-ACA)
+    const testApplicantIds = allParticipants
+      .filter(p => p.test_applicant_id)
+      .map(p => p.test_applicant_id);
+
+    let applicantMap = {};
+    if (testApplicantIds.length > 0) {
+      const [applicants] = await pacaPool.query(`
+        SELECT id, name, gender, school, grade FROM test_applicants WHERE id IN (?)
+      `, [testApplicantIds]);
+
+      applicants.forEach(a => {
+        applicantMap[a.id] = {
+          name: decrypt(a.name),
+          gender: a.gender === 'male' ? 'M' : 'F',
+          school: a.school,
+          grade: a.grade
+        };
+      });
+    }
+
+    // 재원생 기록 조회 (해당 테스트 날짜들 기준, 종목별 최고 기록)
+    const studentIds = allParticipants.filter(p => p.student_id).map(p => p.student_id);
+    let studentRecords = {};
+
+    if (studentIds.length > 0 && testDates.length > 0) {
+      const [records] = await pool.query(`
+        SELECT student_id, record_type_id, MAX(value) as value
+        FROM student_records
+        WHERE student_id IN (?) AND measured_at IN (?)
+        GROUP BY student_id, record_type_id
+      `, [studentIds, testDates]);
+
+      records.forEach(r => {
+        if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
+        studentRecords[r.student_id][r.record_type_id] = parseFloat(r.value);
+      });
+    }
+
+    // 테스트신규 기록 조회 (test_records)
+    let applicantRecords = {};
+    if (testApplicantIds.length > 0) {
+      const [records] = await pool.query(`
+        SELECT test_applicant_id, record_type_id, MAX(value) as value
+        FROM test_records
+        WHERE test_session_id IN (?) AND test_applicant_id IN (?)
+        GROUP BY test_applicant_id, record_type_id
+      `, [sessionIds, testApplicantIds]);
+
+      records.forEach(r => {
+        if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
+        applicantRecords[r.test_applicant_id][r.record_type_id] = parseFloat(r.value);
+      });
+    }
+
+    // 배점표 조회
+    const recordTypeIds = types.map(t => t.record_type_id);
+    let scoreRangesMap = {};
+
+    if (recordTypeIds.length > 0) {
+      const [scoreTables] = await pool.query(`
+        SELECT id, record_type_id FROM score_tables WHERE academy_id = ? AND record_type_id IN (?)
+      `, [academyId, recordTypeIds]);
+
+      const scoreTableIds = scoreTables.map(st => st.id);
+
+      if (scoreTableIds.length > 0) {
+        const [scoreRanges] = await pool.query(`
+          SELECT sr.*, st.record_type_id
+          FROM score_ranges sr
+          JOIN score_tables st ON sr.score_table_id = st.id
+          WHERE sr.score_table_id IN (?)
+          ORDER BY sr.score DESC
+        `, [scoreTableIds]);
+
+        scoreRanges.forEach(sr => {
+          if (!scoreRangesMap[sr.record_type_id]) {
+            scoreRangesMap[sr.record_type_id] = [];
+          }
+          scoreRangesMap[sr.record_type_id].push({
+            score: sr.score,
+            male_min: parseFloat(sr.male_min),
+            male_max: parseFloat(sr.male_max),
+            female_min: parseFloat(sr.female_min),
+            female_max: parseFloat(sr.female_max)
+          });
+        });
+      }
+    }
+
+    // 점수 계산 함수
+    const calculateScore = (value, gender, recordTypeId) => {
+      const ranges = scoreRangesMap[recordTypeId];
+      if (!ranges || ranges.length === 0 || value === null || value === undefined) return null;
+
+      const genderKey = gender === 'M' ? 'male' : 'female';
+      for (const range of ranges) {
+        const min = range[`${genderKey}_min`];
+        const max = range[`${genderKey}_max`];
+        if (min !== null && max !== null && value >= min && value <= max) {
+          return range.score;
+        }
+      }
+      return null;
+    };
+
+    // 참가자 데이터 구성 (점수 계산 포함)
+    const participantsWithScores = allParticipants.map(p => {
+      let info, records;
+
+      if (p.student_id) {
+        info = {
+          student_id: p.student_id,
+          name: p.student_name,
+          gender: p.gender,
+          school: p.school,
+          grade: p.grade,
+          participant_type: p.participant_type
+        };
+        records = studentRecords[p.student_id] || {};
+      } else if (p.test_applicant_id && applicantMap[p.test_applicant_id]) {
+        const a = applicantMap[p.test_applicant_id];
+        info = {
+          test_applicant_id: p.test_applicant_id,
+          name: a.name,
+          gender: a.gender,
+          school: a.school,
+          grade: a.grade,
+          participant_type: 'test_new'
+        };
+        records = applicantRecords[p.test_applicant_id] || {};
+      } else {
+        return null;
+      }
+
+      // 종목별 점수 계산
+      const scores = {};
+      let totalScore = 0;
+      let scoredCount = 0;
+
+      types.forEach(t => {
+        const value = records[t.record_type_id];
+        const score = calculateScore(value, info.gender, t.record_type_id);
+        scores[t.record_type_id] = score;
+        if (score !== null) {
+          totalScore += score;
+          scoredCount++;
+        }
+      });
+
+      return {
+        ...info,
+        records,
+        scores,
+        total_score: totalScore,
+        scored_count: scoredCount
+      };
+    }).filter(Boolean);
+
+    res.json({
+      success: true,
+      test: {
+        id: test.id,
+        test_name: test.test_name,
+        test_month: test.test_month,
+        status: test.status
+      },
+      record_types: types,
+      participants: participantsWithScores,
+      score_ranges: scoreRangesMap
+    });
+  } catch (error) {
+    console.error('전체 기록 조회 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 충돌 일괄 설정 (종목 수정 시 함께 저장)
 router.put('/:testId/conflicts', verifyToken, async (req, res) => {
   const conn = await pool.getConnection();
