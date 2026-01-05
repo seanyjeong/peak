@@ -11,13 +11,11 @@ import {
   DndContext,
   DragOverlay,
   pointerWithin,
-  rectIntersection,
   useSensor,
   useSensors,
   PointerSensor,
   DragStartEvent,
-  DragEndEvent,
-  CollisionDetection
+  DragEndEvent
 } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 
@@ -250,35 +248,6 @@ function NewGroupZone() {
   );
 }
 
-// 미배치로 빼기 드롭존
-function UnassignZone({ type }: { type: 'participant' | 'supervisor' }) {
-  const id = type === 'participant' ? 'unassign-participant' : 'unassign-supervisor';
-  const { setNodeRef, isOver } = useDroppable({
-    id,
-    data: { type: id }
-  });
-
-  const isParticipant = type === 'participant';
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`w-48 flex-shrink-0 border-2 border-dashed rounded-lg flex items-center justify-center min-h-[300px] transition-colors ${
-        isOver
-          ? isParticipant ? 'border-green-500 bg-green-100 ring-2 ring-green-400' : 'border-blue-500 bg-blue-100 ring-2 ring-blue-400'
-          : isParticipant ? 'border-green-300 bg-green-50' : 'border-blue-300 bg-blue-50'
-      }`}
-    >
-      <div className={`text-center ${isParticipant ? 'text-green-600' : 'text-blue-600'}`}>
-        <div className="text-3xl mb-2">←</div>
-        <div className="text-sm font-medium">
-          {isParticipant ? '학생 미배치로' : '감독관 대기로'}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function SessionGroupPage({
   params
 }: {
@@ -306,35 +275,6 @@ export default function SessionGroupPage({
       activationConstraint: { distance: 8 }
     })
   );
-
-  // 커스텀 충돌 감지: unassign/waiting 영역 우선
-  const customCollisionDetection: CollisionDetection = (args) => {
-    const pointerCollisions = pointerWithin(args);
-
-    // unassign 영역 최우선
-    const unassignCollision = pointerCollisions.find(
-      c => c.id === 'unassign-participant' || c.id === 'unassign-supervisor'
-    );
-    if (unassignCollision) return [unassignCollision];
-
-    // waiting 영역 우선
-    const waitingCollision = pointerCollisions.find(
-      c => c.id === 'waiting-participants' || c.id === 'waiting-supervisors'
-    );
-    if (waitingCollision) return [waitingCollision];
-
-    // group 영역
-    const groupCollision = pointerCollisions.find(
-      c => String(c.id).startsWith('group-')
-    );
-    if (groupCollision) return [groupCollision];
-
-    // new-group 영역
-    const newGroupCollision = pointerCollisions.find(c => c.id === 'new-group');
-    if (newGroupCollision) return [newGroupCollision];
-
-    return rectIntersection(args);
-  };
 
   useEffect(() => {
     fetchData();
@@ -460,18 +400,11 @@ export default function SessionGroupPage({
     setActiveItem(null);
     setIsDragging(false);
 
-    console.log('[DragEnd] over:', over?.id, 'overData:', over?.data.current);
-
-    if (!over) {
-      console.log('[DragEnd] over가 null - 유효한 드롭 영역 아님');
-      return;
-    }
+    if (!over) return;
 
     const activeData = active.data.current;
     const overData = over.data.current;
     const overId = String(over.id);
-
-    console.log('[DragEnd] activeType:', activeData?.type, 'overId:', overId, 'overData.type:', overData?.type);
 
     try {
       if (activeData?.type === 'participant') {
@@ -482,13 +415,8 @@ export default function SessionGroupPage({
         if (overData?.type === 'group-participants') {
           toGroupId = overData.groupId;
         }
-        // 미배치 영역에 드롭 (미배치로 빼기) - 여러 방식 지원
-        else if (
-          overId === 'waiting-participants' ||
-          overData?.type === 'waiting-participants' ||
-          overId === 'unassign-participant' ||
-          overData?.type === 'unassign-participant'
-        ) {
+        // 미배치 영역에 드롭
+        else if (overId === 'waiting-participants' || overData?.type === 'waiting-participants') {
           toGroupId = null;
         }
         // 유효하지 않은 드롭 위치면 무시
@@ -516,12 +444,7 @@ export default function SessionGroupPage({
             to_group_id: overData.groupId,
             is_main: false
           });
-        } else if (
-          overId === 'waiting-supervisors' ||
-          overData?.type === 'waiting-supervisors' ||
-          overId === 'unassign-supervisor' ||
-          overData?.type === 'unassign-supervisor'
-        ) {
+        } else if (overId === 'waiting-supervisors' || overData?.type === 'waiting-supervisors') {
           await apiClient.post(`/test-sessions/${sessionId}/supervisor`, {
             instructor_id: supervisor.instructor_id,
             to_group_id: null
@@ -641,7 +564,7 @@ export default function SessionGroupPage({
       {activeTab === 'grouping' && (
         <DndContext
           sensors={sensors}
-          collisionDetection={customCollisionDetection}
+          collisionDetection={pointerWithin}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragCancel={() => { setActiveItem(null); setIsDragging(false); }}
@@ -703,13 +626,6 @@ export default function SessionGroupPage({
           {/* 조 영역 */}
           <div className="flex-1 overflow-x-auto">
             <div className="flex gap-4 h-full pb-4">
-              {/* 드래그 중일 때 미배치 드롭존 표시 */}
-              {isDragging && groups.length > 0 && (
-                <>
-                  <UnassignZone type="participant" />
-                  <UnassignZone type="supervisor" />
-                </>
-              )}
               {groups.map(group => (
                 <GroupColumn
                   key={group.id}
