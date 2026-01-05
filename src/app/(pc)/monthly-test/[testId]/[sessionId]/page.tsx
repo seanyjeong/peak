@@ -388,13 +388,17 @@ export default function SessionGroupPage({
     }
   };
 
+  const [isDragging, setIsDragging] = useState(false);
+
   const handleDragStart = (event: DragStartEvent) => {
     setActiveItem(event.active.data.current);
+    setIsDragging(true);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveItem(null);
+    setIsDragging(false);
 
     if (!over) return;
 
@@ -563,6 +567,7 @@ export default function SessionGroupPage({
           collisionDetection={pointerWithin}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onDragCancel={() => { setActiveItem(null); setIsDragging(false); }}
         >
 
         {/* 메인 영역 */}
@@ -570,22 +575,31 @@ export default function SessionGroupPage({
           {/* 대기 영역 */}
           <div className="w-72 flex-shrink-0 flex flex-col gap-4">
             {/* 감독관 대기 */}
-            <Card className="flex-shrink-0">
+            <Card className={`flex-shrink-0 transition-all ${isDragging ? 'ring-2 ring-dashed ring-blue-300' : ''}`}>
               <div className="p-2 border-b bg-gray-50 font-medium text-sm">
                 감독관 대기 ({waitingInstructors.length})
               </div>
               <div
                 ref={setWaitingSupervisorsRef}
-                className={`p-3 min-h-[60px] flex flex-wrap gap-1 transition-colors ${
-                  isOverWaitingS ? 'bg-blue-100 ring-2 ring-blue-400' : ''
+                className={`p-3 min-h-[80px] flex flex-wrap gap-1 transition-colors ${
+                  isOverWaitingS ? 'bg-blue-100 ring-2 ring-blue-400' : isDragging ? 'bg-blue-50' : ''
                 }`}
               >
                 {waitingInstructors.length === 0 ? (
-                  <span className="text-xs text-gray-400">감독관을 여기로 드롭하면 미배치</span>
+                  <div className={`w-full h-full flex items-center justify-center text-sm ${isDragging ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
+                    {isDragging ? '여기에 드롭하여 미배치' : '감독관을 여기로 드롭'}
+                  </div>
                 ) : (
-                  waitingInstructors.map(s => (
-                    <DraggableSupervisor key={s.instructor_id} supervisor={s} />
-                  ))
+                  <>
+                    {isDragging && (
+                      <div className="w-full mb-1 p-1 border border-dashed border-blue-400 rounded text-center text-blue-500 text-xs bg-blue-50">
+                        드롭하여 미배치
+                      </div>
+                    )}
+                    {waitingInstructors.map(s => (
+                      <DraggableSupervisor key={s.instructor_id} supervisor={s} />
+                    ))}
+                  </>
                 )}
               </div>
             </Card>
@@ -593,22 +607,29 @@ export default function SessionGroupPage({
             {/* 학생 대기 - 크기 확대 */}
             <div
               ref={setWaitingParticipantsRef}
-              className={`flex-1 overflow-hidden flex flex-col rounded-lg border bg-white shadow-sm transition-colors ${
-                isOverWaitingP ? 'ring-2 ring-green-400 bg-green-50' : ''
+              className={`flex-1 overflow-hidden flex flex-col rounded-lg border bg-white shadow-sm transition-all ${
+                isOverWaitingP ? 'ring-2 ring-green-400 bg-green-50' : isDragging ? 'ring-2 ring-dashed ring-green-300' : ''
               }`}
             >
               <div className="p-2 border-b bg-gray-50 font-medium text-sm rounded-t-lg">
                 미배치 학생 ({waitingParticipants.length})
               </div>
-              <div className={`flex-1 p-3 overflow-y-auto min-h-[200px] ${isOverWaitingP ? 'bg-green-100' : ''}`}>
+              <div className={`flex-1 p-3 overflow-y-auto min-h-[200px] transition-colors ${isOverWaitingP ? 'bg-green-100' : isDragging ? 'bg-green-50' : ''}`}>
                 {waitingParticipants.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-                    학생을 여기로 드롭하면 미배치
+                  <div className={`h-full flex items-center justify-center text-sm ${isDragging ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                    {isDragging ? '여기에 드롭하여 미배치' : '학생을 여기로 드롭하면 미배치'}
                   </div>
                 ) : (
-                  waitingParticipants.map(p => (
-                    <DraggableParticipant key={p.id} participant={p} />
-                  ))
+                  <>
+                    {isDragging && (
+                      <div className="mb-2 p-2 border-2 border-dashed border-green-400 rounded-lg text-center text-green-600 text-sm font-medium bg-green-50">
+                        여기에 드롭하여 미배치
+                      </div>
+                    )}
+                    {waitingParticipants.map(p => (
+                      <DraggableParticipant key={p.id} participant={p} />
+                    ))}
+                  </>
                 )}
               </div>
             </div>
