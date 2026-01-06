@@ -42,6 +42,8 @@ interface Exercise {
 interface PlanExercise {
   exercise_id: number;
   note?: string;
+  weight?: string;
+  reps?: number;
 }
 
 interface ExtraExercise {
@@ -600,6 +602,11 @@ export default function TrainingPage() {
                             <span className={`font-medium ${isCompleted ? 'line-through text-slate-400' : 'text-slate-800'}`}>
                               {getExerciseName(ex)}
                             </span>
+                            {(ex.weight || ex.reps) && (
+                              <span className={`ml-2 font-medium ${isCompleted ? 'text-slate-300' : 'text-orange-600'}`}>
+                                {ex.weight && ex.weight}{ex.weight && ex.reps && ' × '}{ex.reps && `${ex.reps}회`}
+                              </span>
+                            )}
                             {ex.note && (
                               <span className={`ml-2 text-sm ${isCompleted ? 'text-slate-300' : 'text-slate-500'}`}>
                                 ({ex.note})

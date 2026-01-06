@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
+import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight, Settings2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 import { authAPI, User } from '@/lib/api/auth';
@@ -34,6 +34,8 @@ interface Exercise {
 interface SelectedExercise {
   exercise_id: number;
   note: string;
+  weight?: string;
+  reps?: number;
 }
 
 interface Plan {
@@ -174,6 +176,14 @@ export default function TabletPlansPage() {
     setSelectedExercises(prev => prev.map(e => e.exercise_id === exerciseId ? { ...e, note } : e));
   };
 
+  const updateExerciseWeight = (exerciseId: number, weight: string) => {
+    setSelectedExercises(prev => prev.map(e => e.exercise_id === exerciseId ? { ...e, weight } : e));
+  };
+
+  const updateExerciseReps = (exerciseId: number, reps: number | undefined) => {
+    setSelectedExercises(prev => prev.map(e => e.exercise_id === exerciseId ? { ...e, reps } : e));
+  };
+
   const isExerciseSelected = (exerciseId: number) => selectedExercises.some(e => e.exercise_id === exerciseId);
 
   const resetForm = () => {
@@ -228,6 +238,23 @@ export default function TabletPlansPage() {
     setSelectedExercises(plan.exercises || []);
     setDescription(plan.description || '');
     setShowAddForm(true);
+  };
+
+  const handleDelete = async (plan: Plan) => {
+    if (!isOwner && plan.instructor_id !== myInstructorId) {
+      alert('자신의 계획만 삭제할 수 있습니다.');
+      return;
+    }
+    if (!confirm(`${plan.instructor_name}의 ${TIME_SLOT_INFO[plan.time_slot].label} 계획을 삭제하시겠습니까?`)) {
+      return;
+    }
+    try {
+      await apiClient.delete(`/plans/${plan.id}`);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete plan:', error);
+      alert('삭제에 실패했습니다.');
+    }
   };
 
   const getExerciseName = (exerciseId: number) => {
@@ -426,22 +453,44 @@ export default function TabletPlansPage() {
                       const ex = exercises.find(e => e.id === sel.exercise_id);
                       if (!ex) return null;
                       return (
-                        <div key={sel.exercise_id} className="flex items-center gap-2 bg-orange-50 p-3 rounded-xl">
-                          <button
-                            onClick={() => toggleExercise(sel.exercise_id)}
-                            className="text-slate-400 hover:text-red-500 p-1"
-                          >
-                            <X size={18} />
-                          </button>
-                          <span className="font-medium text-slate-700 min-w-[100px]">{ex.name}</span>
-                          <input
-                            type="text"
-                            value={sel.note}
-                            onChange={e => updateExerciseNote(sel.exercise_id, e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                            placeholder="세부사항..."
-                            className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-1 focus:ring-orange-500"
-                          />
+                        <div key={sel.exercise_id} className="bg-orange-50 p-3 rounded-xl">
+                          <div className="flex items-center gap-2 mb-2">
+                            <button
+                              onClick={() => toggleExercise(sel.exercise_id)}
+                              className="text-slate-400 hover:text-red-500 p-1"
+                            >
+                              <X size={18} />
+                            </button>
+                            <span className="font-medium text-slate-700">{ex.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 ml-8">
+                            <input
+                              type="text"
+                              value={sel.weight || ''}
+                              onChange={e => updateExerciseWeight(sel.exercise_id, e.target.value)}
+                              onClick={e => e.stopPropagation()}
+                              placeholder="무게/갯수"
+                              className="w-24 px-2 py-2 text-sm border border-slate-200 rounded-lg focus:ring-1 focus:ring-orange-500"
+                            />
+                            <span className="text-slate-400 text-sm">×</span>
+                            <input
+                              type="number"
+                              value={sel.reps || ''}
+                              onChange={e => updateExerciseReps(sel.exercise_id, e.target.value ? parseInt(e.target.value) : undefined)}
+                              onClick={e => e.stopPropagation()}
+                              placeholder="횟수"
+                              className="w-20 px-2 py-2 text-sm border border-slate-200 rounded-lg focus:ring-1 focus:ring-orange-500"
+                            />
+                            <span className="text-slate-400 text-sm">회</span>
+                            <input
+                              type="text"
+                              value={sel.note}
+                              onChange={e => updateExerciseNote(sel.exercise_id, e.target.value)}
+                              onClick={e => e.stopPropagation()}
+                              placeholder="세부사항..."
+                              className="flex-1 px-2 py-2 text-sm border border-slate-200 rounded-lg focus:ring-1 focus:ring-orange-500"
+                            />
+                          </div>
                         </div>
                       );
                     })}
@@ -528,12 +577,20 @@ export default function TabletPlansPage() {
                       {expandedPlanId === plan.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
                     {(isOwner || plan.instructor_id === myInstructorId) && (
-                      <button
-                        onClick={() => startEdit(plan)}
-                        className="p-3 text-slate-400 hover:text-slate-600"
-                      >
-                        <Edit2 size={20} />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => startEdit(plan)}
+                          className="p-3 text-slate-400 hover:text-slate-600"
+                        >
+                          <Edit2 size={20} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(plan)}
+                          className="p-3 text-slate-400 hover:text-red-500"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -553,6 +610,11 @@ export default function TabletPlansPage() {
                         <div key={idx} className="flex items-center gap-2 text-sm">
                           <Dumbbell size={16} className="text-orange-500 flex-shrink-0" />
                           <span className="font-medium text-slate-700">{getExerciseName(sel.exercise_id)}</span>
+                          {(sel.weight || sel.reps) && (
+                            <span className="text-orange-600 font-medium">
+                              {sel.weight && sel.weight}{sel.weight && sel.reps && ' × '}{sel.reps && `${sel.reps}회`}
+                            </span>
+                          )}
                           {sel.note && <span className="text-slate-500">- {sel.note}</span>}
                         </div>
                       ))}

@@ -375,10 +375,39 @@ router.put('/:id', verifyToken, async (req, res) => {
 });
 
 // DELETE /peak/plans/:id - 훈련 계획 삭제
+// 본인이 작성한 계획 또는 owner/admin만 삭제 가능
 router.delete('/:id', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-        await db.query('DELETE FROM daily_plans WHERE id = ? AND academy_id = ?', [req.params.id, academyId]);
+        const userId = req.user.userId;
+        const userRole = req.user.role;
+        const instructorId = req.user.instructorId;
+        const planId = req.params.id;
+
+        // 계획 조회
+        const [plans] = await db.query(
+            'SELECT id, instructor_id FROM daily_plans WHERE id = ? AND academy_id = ?',
+            [planId, academyId]
+        );
+
+        if (plans.length === 0) {
+            return res.status(404).json({ error: 'Plan not found' });
+        }
+
+        const plan = plans[0];
+
+        // 권한 체크: 본인 계획이거나 owner/admin인 경우만 삭제 가능
+        const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
+        const isMyPlan = plan.instructor_id === instructorId || plan.instructor_id === -userId;
+
+        if (!isOwnerOrAdmin && !isMyPlan) {
+            return res.status(403).json({
+                error: 'Forbidden',
+                message: '본인의 계획만 삭제할 수 있습니다.'
+            });
+        }
+
+        await db.query('DELETE FROM daily_plans WHERE id = ? AND academy_id = ?', [planId, academyId]);
         res.json({ success: true });
     } catch (error) {
         console.error('Delete plan error:', error);
