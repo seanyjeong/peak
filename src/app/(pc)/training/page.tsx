@@ -12,6 +12,8 @@ interface Student {
   student_name: string;
   gender: 'M' | 'F';
   status: string;
+  attendance_status?: 'scheduled' | 'present' | 'absent' | 'late' | 'early_leave';
+  absence_reason?: string | null;
 }
 
 interface ClassInstructor {
@@ -726,16 +728,25 @@ export default function TrainingPage() {
                   <div className="divide-y divide-slate-100">
                     {myStudents.map(student => {
                       const log = getStudentLog(student.student_id);
+                      const isAbsent = student.attendance_status === 'absent';
                       return (
-                        <div key={student.id} className="p-4">
+                        <div key={student.id} className={`p-4 ${isAbsent ? 'bg-red-50 opacity-60' : ''}`}>
                           <div className="flex items-center gap-3 mb-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              isAbsent ? 'bg-red-100 text-red-600' :
                               student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
                             }`}>
                               <User size={16} />
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-slate-800">{student.student_name}</span>
+                              <span className={`font-medium ${isAbsent ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                                {student.student_name}
+                              </span>
+                              {isAbsent && (
+                                <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-600">
+                                  결석
+                                </span>
+                              )}
                               <Link
                                 href={`/students/${student.student_id}`}
                                 className="p-1 hover:bg-orange-100 rounded transition"
@@ -744,41 +755,50 @@ export default function TrainingPage() {
                                 <ExternalLink size={12} className="text-orange-500" />
                               </Link>
                             </div>
-                            {log?.condition_score && (
+                            {!isAbsent && log?.condition_score && (
                               <span className="ml-auto flex items-center gap-1 text-green-600 text-sm">
                                 <Check size={14} /> 저장됨
                               </span>
                             )}
                           </div>
 
-                          {/* 컨디션 버튼 */}
-                          <div className="flex gap-2 mb-3">
-                            {CONDITION_OPTIONS.map(option => {
-                              const Icon = option.icon;
-                              const isSelected = log?.condition_score === option.score;
-                              return (
-                                <button
-                                  key={option.score}
-                                  onClick={() => saveCondition(student.student_id, isSelected ? null : option.score)}
-                                  className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg border transition ${
-                                    isSelected ? option.color : 'border-slate-200 text-slate-400 hover:border-slate-300'
-                                  }`}
-                                >
-                                  <Icon size={18} />
-                                  <span className="text-xs">{option.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
+                          {isAbsent ? (
+                            /* 결석 학생 - 컨디션 체크 비활성화 */
+                            <div className="text-center py-4 text-slate-400 text-sm">
+                              {student.absence_reason ? `사유: ${student.absence_reason}` : '결석한 학생입니다'}
+                            </div>
+                          ) : (
+                            <>
+                              {/* 컨디션 버튼 */}
+                              <div className="flex gap-2 mb-3">
+                                {CONDITION_OPTIONS.map(option => {
+                                  const Icon = option.icon;
+                                  const isSelected = log?.condition_score === option.score;
+                                  return (
+                                    <button
+                                      key={option.score}
+                                      onClick={() => saveCondition(student.student_id, isSelected ? null : option.score)}
+                                      className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg border transition ${
+                                        isSelected ? option.color : 'border-slate-200 text-slate-400 hover:border-slate-300'
+                                      }`}
+                                    >
+                                      <Icon size={18} />
+                                      <span className="text-xs">{option.label}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
 
-                          {/* 메모 */}
-                          <input
-                            type="text"
-                            defaultValue={log?.notes || ''}
-                            onBlur={e => saveNotes(student.student_id, e.target.value)}
-                            placeholder="메모..."
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                          />
+                              {/* 메모 */}
+                              <input
+                                type="text"
+                                defaultValue={log?.notes || ''}
+                                onBlur={e => saveNotes(student.student_id, e.target.value)}
+                                placeholder="메모..."
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                              />
+                            </>
+                          )}
                         </div>
                       );
                     })}

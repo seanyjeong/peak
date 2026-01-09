@@ -88,7 +88,7 @@ router.get('/', verifyToken, async (req, res) => {
             ORDER BY time_slot, class_num, order_num
         `, [academyId, targetDate]);
 
-        // 배치된 학생 조회 - 해당 학원만
+        // 배치된 학생 조회 - 해당 학원만 (체험 정보는 daily_assignments에서 가져옴)
         const [assignments] = await db.query(`
             SELECT
                 a.*,
@@ -96,9 +96,6 @@ router.get('/', verifyToken, async (req, res) => {
                 s.gender,
                 s.school,
                 s.grade,
-                s.is_trial,
-                s.trial_total,
-                s.trial_remaining,
                 s.paca_student_id
             FROM daily_assignments a
             JOIN students s ON a.student_id = s.id
@@ -166,6 +163,7 @@ router.get('/', verifyToken, async (req, res) => {
                         };
                     });
 
+                // 반에 배치된 학생 중 결석이 아닌 학생만 표시 (결석 학생은 대기 영역으로)
                 const classStudents = assignments
                     .filter(a => a.time_slot === slot && a.class_id === classNum)
                     .map(a => {
@@ -185,7 +183,8 @@ router.get('/', verifyToken, async (req, res) => {
                             attendance_status: attInfo.attendance_status || 'scheduled',
                             absence_reason: attInfo.absence_reason || null
                         };
-                    });
+                    })
+                    .filter(s => s.attendance_status !== 'absent');  // 결석 학생 제외
 
                 result[slot].classes.push({
                     class_num: classNum,
@@ -194,8 +193,8 @@ router.get('/', verifyToken, async (req, res) => {
                 });
             });
 
-            // 대기 중인 학생 (class_id가 NULL)
-            result[slot].waitingStudents = assignments
+            // 대기 중인 학생: 미배치 학생(결석 아닌) + 결석 학생(배치 여부 무관)
+            const waitingNonAbsent = assignments
                 .filter(a => a.time_slot === slot && a.class_id === null)
                 .map(a => {
                     const attInfo = attendanceMap[`${a.paca_student_id}-${slot}`] || {};
@@ -213,7 +212,32 @@ router.get('/', verifyToken, async (req, res) => {
                         attendance_status: attInfo.attendance_status || 'scheduled',
                         absence_reason: attInfo.absence_reason || null
                     };
-                });
+                })
+                .filter(s => s.attendance_status !== 'absent');
+
+            // 결석 학생 (배치 여부 무관하게 모두 대기 영역에 표시)
+            const absentStudents = assignments
+                .filter(a => a.time_slot === slot)
+                .map(a => {
+                    const attInfo = attendanceMap[`${a.paca_student_id}-${slot}`] || {};
+                    return {
+                        id: a.id,
+                        student_id: a.student_id,
+                        student_name: a.student_name,
+                        gender: a.gender,
+                        school: a.school,
+                        grade: a.grade,
+                        is_trial: a.is_trial,
+                        trial_total: a.trial_total,
+                        trial_remaining: a.trial_remaining,
+                        status: a.status,
+                        attendance_status: attInfo.attendance_status || 'scheduled',
+                        absence_reason: attInfo.absence_reason || null
+                    };
+                })
+                .filter(s => s.attendance_status === 'absent');
+
+            result[slot].waitingStudents = [...waitingNonAbsent, ...absentStudents];
         });
 
         res.json({
@@ -368,9 +392,9 @@ router.post('/sync', verifyToken, async (req, res) => {
         const targetDate = date || new Date().toISOString().split('T')[0];
         const academyId = req.user.academyId;  // 토큰에서 학원 ID
 
-        // 기존 배치 조회 (class_id 유지를 위해) - 해당 학원만
+        // 기존 배치 조회 (class_id 유지를 위해) - 해당 학원만, 체험 정보 포함
         const [existingAssignments] = await db.query(`
-            SELECT id, student_id, time_slot, class_id, paca_attendance_id
+            SELECT id, student_id, time_slot, class_id, paca_attendance_id, is_trial, trial_total, trial_remaining
             FROM daily_assignments WHERE academy_id = ? AND date = ?
         `, [academyId, targetDate]);
 
@@ -476,17 +500,24 @@ router.post('/sync', verifyToken, async (req, res) => {
 
             if (existing) {
                 // 기존 배치 있음 - class_id 유지
+                // 체험 정보: 이미 체험으로 등록된 경우 유지 (출석체크로 is_trial이 false가 되어도 해당일에는 체험 유지)
+                const keepTrialInfo = existing.is_trial === 1;
+                const newIsTrial = keepTrialInfo ? 1 : (ps.is_trial ? 1 : 0);
+                const newTrialTotal = keepTrialInfo ? existing.trial_total : trialTotal;
+                const newTrialRemaining = keepTrialInfo ? existing.trial_remaining : (ps.trial_remaining || 0);
+
                 await db.query(`
-                    UPDATE daily_assignments SET paca_attendance_id = ?
+                    UPDATE daily_assignments
+                    SET paca_attendance_id = ?, is_trial = ?, trial_total = ?, trial_remaining = ?
                     WHERE id = ?
-                `, [ps.attendance_id, existing.id]);
+                `, [ps.attendance_id, newIsTrial, newTrialTotal, newTrialRemaining, existing.id]);
                 updatedCount++;
             } else {
-                // 새 학생 추가 - class_id는 NULL (대기), academy_id 포함
+                // 새 학생 추가 - class_id는 NULL (대기), academy_id 포함, 체험 정보 포함
                 await db.query(`
-                    INSERT INTO daily_assignments (academy_id, date, time_slot, student_id, paca_attendance_id, class_id, status, order_num)
-                    VALUES (?, ?, ?, ?, ?, NULL, 'enrolled', 0)
-                `, [academyId, targetDate, ps.time_slot, peakStudentId, ps.attendance_id]);
+                    INSERT INTO daily_assignments (academy_id, date, time_slot, student_id, paca_attendance_id, class_id, status, order_num, is_trial, trial_total, trial_remaining)
+                    VALUES (?, ?, ?, ?, ?, NULL, 'enrolled', 0, ?, ?, ?)
+                `, [academyId, targetDate, ps.time_slot, peakStudentId, ps.attendance_id, ps.is_trial ? 1 : 0, trialTotal, ps.trial_remaining || 0]);
                 addedCount++;
             }
         }

@@ -326,19 +326,34 @@ router.put('/:id/toggle-extra', verifyToken, async (req, res) => {
     }
 });
 
-// PUT /peak/plans/:id/conditions - 온습도 저장
+// PUT /peak/plans/:id/conditions - 온습도 저장 (같은 시간대 모든 강사에게 공유)
 router.put('/:id/conditions', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const { temperature, humidity, checked } = req.body;
         const planId = req.params.id;
 
+        // 현재 plan의 날짜와 시간대 조회
+        const [plans] = await db.query(
+            'SELECT date, time_slot FROM daily_plans WHERE id = ? AND academy_id = ?',
+            [planId, academyId]
+        );
+
+        if (plans.length === 0) {
+            return res.status(404).json({ error: 'Plan not found' });
+        }
+
+        const { date, time_slot } = plans[0];
+
         // checked가 true면 현재 시간(KST) 저장, false면 null
         const checkedAt = checked ? new Date() : null;
 
+        // 같은 날짜, 같은 시간대의 모든 plan에 온습도 공유
         await db.query(
-            'UPDATE daily_plans SET temperature = ?, humidity = ?, conditions_checked = ?, conditions_checked_at = ? WHERE id = ? AND academy_id = ?',
-            [temperature ?? null, humidity ?? null, checked ? 1 : 0, checkedAt, planId, academyId]
+            `UPDATE daily_plans
+             SET temperature = ?, humidity = ?, conditions_checked = ?, conditions_checked_at = ?
+             WHERE academy_id = ? AND date = ? AND time_slot = ?`,
+            [temperature ?? null, humidity ?? null, checked ? 1 : 0, checkedAt, academyId, date, time_slot]
         );
 
         res.json({ success: true, checked_at: checkedAt });
