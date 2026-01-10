@@ -236,14 +236,31 @@ export default function TabletTrainingPage() {
     return trainers;
   })();
 
-  // 내 반의 학생들 가져오기
+  // 내 반의 학생들 가져오기 (전체 보기 시 모든 학생)
   const myStudents = (() => {
-    if (!currentSlotData || !selectedTrainerId) return [];
+    if (!currentSlotData) return [];
+    // 전체 보기 (관리자 + 강사 미선택)
+    if (isAdmin && !selectedTrainerId) {
+      const allStudents: typeof currentSlotData.classes[0]['students'] = [];
+      currentSlotData.classes?.forEach(cls => {
+        cls.students?.forEach(s => {
+          if (!allStudents.some(existing => existing.student_id === s.student_id)) {
+            allStudents.push(s);
+          }
+        });
+      });
+      return allStudents;
+    }
+    // 특정 강사 선택
+    if (!selectedTrainerId) return [];
     const myClass = currentSlotData.classes?.find(cls =>
       cls.instructors?.some(inst => inst.id === selectedTrainerId)
     );
     return myClass?.students || [];
   })();
+
+  // 전체 보기용 온습도 (같은 시간대의 아무 plan에서)
+  const slotConditions = plans.find(p => p.time_slot === selectedSlot);
 
   // 운동 이름 조회 (exercise_id 또는 id 둘 다 지원)
   const getExerciseName = (exercise: PlanExercise | { id?: number; name?: string; exercise_id?: number }): string => {
@@ -266,9 +283,12 @@ export default function TabletTrainingPage() {
         humidity: humidity ? parseInt(humidity) : null,
         checked
       });
+      // 같은 시간대의 모든 plan에 온습도 공유
+      const newTemp = temperature ? parseFloat(temperature) : null;
+      const newHumid = humidity ? parseInt(humidity) : null;
       setPlans(prev => prev.map(p =>
-        p.id === currentPlan.id
-          ? { ...p, conditions_checked: checked ? 1 : 0, conditions_checked_at: res.data.checked_at }
+        p.time_slot === currentPlan.time_slot
+          ? { ...p, temperature: newTemp, humidity: newHumid, conditions_checked: checked ? 1 : 0, conditions_checked_at: res.data.checked_at }
           : p
       ));
     } catch (error) {
@@ -287,13 +307,20 @@ export default function TabletTrainingPage() {
         humidity: humidity ? parseInt(humidity) : null,
         checked: shouldCheck
       });
-      if (hasValues && !currentPlan.conditions_checked) {
-        setPlans(prev => prev.map(p =>
-          p.id === currentPlan.id
-            ? { ...p, conditions_checked: 1, conditions_checked_at: res.data.checked_at }
-            : p
-        ));
-      }
+      // 같은 시간대의 모든 plan에 온습도 공유
+      const newTemp = temperature ? parseFloat(temperature) : null;
+      const newHumid = humidity ? parseInt(humidity) : null;
+      setPlans(prev => prev.map(p =>
+        p.time_slot === currentPlan.time_slot
+          ? {
+              ...p,
+              temperature: newTemp,
+              humidity: newHumid,
+              conditions_checked: shouldCheck ? 1 : 0,
+              conditions_checked_at: res.data.checked_at
+            }
+          : p
+      ));
     } catch (error) {
       console.error('Failed to save conditions:', error);
     }
@@ -461,7 +488,7 @@ export default function TabletTrainingPage() {
                 onChange={e => setSelectedTrainerId(Number(e.target.value) || null)}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base"
               >
-                <option value="">강사 선택</option>
+                <option value="">전체 보기</option>
                 {currentTrainers.map(t => (
                   <option key={t.trainer_id} value={t.trainer_id!}>{t.trainer_name} ({t.students.length}명)</option>
                 ))}
@@ -469,7 +496,109 @@ export default function TabletTrainingPage() {
             </div>
           )}
 
-          {!selectedTrainerId ? (
+          {/* 전체 보기 (관리자 + 강사 미선택) */}
+          {isAdmin && !selectedTrainerId ? (
+            <div className="space-y-4">
+              {/* 온습도만 표시 */}
+              {slotConditions && (
+                <div className="bg-white rounded-2xl shadow-sm p-5">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <Thermometer size={20} className="text-orange-500" />
+                      <span className="text-slate-600">온도</span>
+                      <span className="font-bold text-slate-800 text-lg">
+                        {slotConditions.temperature ?? '-'}°C
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Droplets size={20} className="text-blue-500" />
+                      <span className="text-slate-600">습도</span>
+                      <span className="font-bold text-slate-800 text-lg">
+                        {slotConditions.humidity ?? '-'}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 학생 컨디션 (전체) */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="bg-slate-100 px-5 py-4">
+                  <h2 className="font-bold text-slate-800 flex items-center gap-2 text-lg">
+                    <User size={22} />
+                    전체 학생 ({myStudents.length}명)
+                  </h2>
+                </div>
+
+                {myStudents.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400">
+                    <p className="text-lg">배정된 학생이 없습니다.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 max-h-[calc(100vh-320px)] overflow-y-auto">
+                    {myStudents.map(student => {
+                      const log = getStudentLog(student.student_id);
+                      return (
+                        <div key={student.id} className="p-4">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+                            }`}>
+                              <User size={20} />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-slate-800 text-lg">{student.student_name}</span>
+                              <Link
+                                href={`/tablet/students/${student.student_id}`}
+                                className="p-2 hover:bg-orange-100 rounded-lg transition"
+                                title="프로필 보기"
+                              >
+                                <ExternalLink size={16} className="text-orange-500" />
+                              </Link>
+                            </div>
+                            {log?.condition_score && (
+                              <span className="ml-auto flex items-center gap-1 text-green-600 text-sm">
+                                <Check size={16} /> 저장됨
+                              </span>
+                            )}
+                          </div>
+
+                          {/* 컨디션 버튼 */}
+                          <div className="flex gap-2 mb-4">
+                            {CONDITION_OPTIONS.map(option => {
+                              const Icon = option.icon;
+                              const isSelected = log?.condition_score === option.score;
+                              return (
+                                <button
+                                  key={option.score}
+                                  onClick={() => saveCondition(student.student_id, isSelected ? null : option.score)}
+                                  className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition ${
+                                    isSelected ? option.color : 'border-slate-200 text-slate-400 active:border-slate-300'
+                                  }`}
+                                >
+                                  <Icon size={24} />
+                                  <span className="text-xs">{option.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* 메모 */}
+                          <input
+                            type="text"
+                            defaultValue={log?.notes || ''}
+                            onBlur={e => saveNotes(student.student_id, e.target.value)}
+                            placeholder="메모..."
+                            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : !selectedTrainerId ? (
             <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
               <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
               <p className="text-slate-500 text-lg">강사를 선택하세요.</p>
@@ -482,7 +611,7 @@ export default function TabletTrainingPage() {
                 <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-4">
                   <h2 className="text-white font-bold flex items-center gap-2 text-lg">
                     <ClipboardList size={22} />
-                    오늘의 수업 체크리스트
+                    {currentPlan.instructor_name} 체크리스트
                   </h2>
                 </div>
 

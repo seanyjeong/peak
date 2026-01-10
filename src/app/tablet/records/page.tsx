@@ -19,6 +19,7 @@ interface Student {
   student_id: number;
   student_name: string;
   gender: 'M' | 'F';
+  attendance_status?: string;
 }
 
 interface ClassInstructor {
@@ -195,6 +196,7 @@ export default function TabletRecordsPage() {
     // 현재 유저 정보
     const userInstructorId = currentUser?.instructorId;
     const userNegativeId = currentUser?.role === 'owner' ? -(currentUser?.id || 0) : null;
+    const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin';
 
     // v2.0.0: 내가 배정된 반의 학생만 반환 (원장/관리자도 동일)
     const myStudents: Student[] = [];
@@ -206,6 +208,21 @@ export default function TabletRecordsPage() {
         myStudents.push(...cls.students);
       }
     });
+
+    // 결석 학생 추가 (waitingStudents에서 absent 학생)
+    const absentStudents = currentSlotData.waitingStudents?.filter(
+      s => s.attendance_status === 'absent'
+    ) || [];
+
+    // 관리자는 전체 결석 학생, 일반 강사는 자기 반 학생 중 결석만 (현재는 전체 결석 학생 표시)
+    if (isAdmin || myStudents.length > 0) {
+      absentStudents.forEach(s => {
+        if (!myStudents.some(ms => ms.student_id === s.student_id)) {
+          myStudents.push(s);
+        }
+      });
+    }
+
     return myStudents;
   };
 
@@ -383,11 +400,12 @@ export default function TabletRecordsPage() {
                     const inputCount = getInputCount(student.student_id);
                     const totalScore = getTotalScore(student.student_id);
                     const isSaved = savedStudents.has(student.student_id);
+                    const isAbsent = student.attendance_status === 'absent';
 
                     return (
                       <div
                         key={student.student_id}
-                        className={`bg-white rounded-2xl shadow-sm overflow-hidden ${isSaved ? 'ring-2 ring-green-400' : ''}`}
+                        className={`bg-white rounded-2xl shadow-sm overflow-hidden ${isSaved ? 'ring-2 ring-green-400' : ''} ${isAbsent ? 'opacity-60' : ''}`}
                       >
                         <button
                           className="w-full p-4 flex items-center justify-between text-left"
@@ -395,18 +413,23 @@ export default function TabletRecordsPage() {
                         >
                           <div className="flex items-center gap-4">
                             <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg ${
+                              isAbsent ? 'bg-slate-200 text-slate-400' :
                               student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
                             }`}>
                               {student.student_name.charAt(0)}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="font-semibold text-slate-800 text-lg">{student.student_name}</span>
-                                <span className={`text-xs px-2 py-1 rounded ${
-                                  student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
-                                }`}>
-                                  {student.gender === 'M' ? '남' : '여'}
-                                </span>
+                                <span className={`font-semibold text-lg ${isAbsent ? 'line-through text-slate-400' : 'text-slate-800'}`}>{student.student_name}</span>
+                                {isAbsent ? (
+                                  <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-600">결석</span>
+                                ) : (
+                                  <span className={`text-xs px-2 py-1 rounded ${
+                                    student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+                                  }`}>
+                                    {student.gender === 'M' ? '남' : '여'}
+                                  </span>
+                                )}
                                 {isSaved && (
                                   <span className="flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
                                     <Check size={12} /> 저장됨
@@ -479,18 +502,21 @@ export default function TabletRecordsPage() {
                           const inputData = inputs[student.student_id]?.[currentRecordType.id] || { value: '', score: null };
                           const decimalPlaces = getDecimalPlaces(currentRecordType.id);
                           const isSaved = savedStudents.has(student.student_id);
+                          const isAbsent = student.attendance_status === 'absent';
 
                           return (
-                            <div key={student.student_id} className={`p-4 ${isSaved ? 'bg-green-50' : ''}`}>
+                            <div key={student.student_id} className={`p-4 ${isSaved ? 'bg-green-50' : ''} ${isAbsent ? 'opacity-60' : ''}`}>
                               <div className="flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-3 flex-1">
                                   <span className="text-slate-400 w-6">{idx + 1}</span>
                                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                                    isAbsent ? 'bg-slate-200 text-slate-400' :
                                     student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
                                   }`}>
                                     {student.student_name.charAt(0)}
                                   </div>
-                                  <span className="font-medium text-slate-800">{student.student_name}</span>
+                                  <span className={`font-medium ${isAbsent ? 'line-through text-slate-400' : 'text-slate-800'}`}>{student.student_name}</span>
+                                  {isAbsent && <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-600">결석</span>}
                                 </div>
                                 <input
                                   type="number"

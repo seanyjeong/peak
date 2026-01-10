@@ -555,7 +555,7 @@ export default function TabletPlansPage() {
             <p className="text-lg">아직 작성된 수업 계획이 없습니다.</p>
           </div>
         ) : (
-          <div className={`divide-y divide-slate-100 ${orientation === 'landscape' ? 'max-h-[400px] overflow-y-auto' : ''}`}>
+          <div className="divide-y divide-slate-100 max-h-[calc(100vh-280px)] overflow-y-auto">
             {currentPlans.map(plan => (
               <div key={plan.id} className="p-5">
                 {/* Plan Header */}

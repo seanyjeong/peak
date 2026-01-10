@@ -285,10 +285,12 @@ export default function TrainingPage() {
         humidity: humidity ? parseInt(humidity) : null,
         checked
       });
-      // 로컬 상태 업데이트 (스크롤 유지)
+      // 같은 시간대의 모든 plan에 온습도 공유
+      const newTemp = temperature ? parseFloat(temperature) : null;
+      const newHumid = humidity ? parseInt(humidity) : null;
       setPlans(prev => prev.map(p =>
-        p.id === currentPlan.id
-          ? { ...p, conditions_checked: checked ? 1 : 0, conditions_checked_at: res.data.checked_at }
+        p.time_slot === currentPlan.time_slot
+          ? { ...p, temperature: newTemp, humidity: newHumid, conditions_checked: checked ? 1 : 0, conditions_checked_at: res.data.checked_at }
           : p
       ));
     } catch (error) {
@@ -308,14 +310,20 @@ export default function TrainingPage() {
         humidity: humidity ? parseInt(humidity) : null,
         checked: shouldCheck
       });
-      // 로컬 상태 업데이트 (자동 체크 반영)
-      if (hasValues && !currentPlan.conditions_checked) {
-        setPlans(prev => prev.map(p =>
-          p.id === currentPlan.id
-            ? { ...p, conditions_checked: 1, conditions_checked_at: res.data.checked_at }
-            : p
-        ));
-      }
+      // 같은 시간대의 모든 plan에 온습도 공유
+      const newTemp = temperature ? parseFloat(temperature) : null;
+      const newHumid = humidity ? parseInt(humidity) : null;
+      setPlans(prev => prev.map(p =>
+        p.time_slot === currentPlan.time_slot
+          ? {
+              ...p,
+              temperature: newTemp,
+              humidity: newHumid,
+              conditions_checked: shouldCheck ? 1 : 0,
+              conditions_checked_at: res.data.checked_at
+            }
+          : p
+      ));
     } catch (error) {
       console.error('Failed to save conditions:', error);
     }
@@ -526,7 +534,7 @@ export default function TrainingPage() {
                 <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
                   <h2 className="text-white font-bold flex items-center gap-2">
                     <ClipboardList size={20} />
-                    오늘의 수업 체크리스트
+                    {currentPlan.instructor_name} 체크리스트
                   </h2>
                 </div>
 

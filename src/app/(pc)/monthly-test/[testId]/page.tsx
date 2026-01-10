@@ -287,6 +287,9 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.push(`/monthly-test/${testId}/rankings`)}>
+            📊 전체 순위
+          </Button>
           {test.status === 'draft' && (
             <Button variant="outline" onClick={openEditModal}>
               ✏️ 수정
