@@ -11,6 +11,7 @@ export interface Student {
   student_id: number;
   student_name: string;
   gender: 'M' | 'F';
+  attendance_status?: string;
 }
 
 export interface ClassInstructor {

@@ -29,24 +29,31 @@ export function StudentRecordCard({
   const inputCount = Object.values(inputs).filter(d => d.value && d.value.trim() !== '').length;
   const scores = Object.values(inputs).filter(d => d.score !== null).map(d => d.score as number);
   const totalScore = scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) : null;
+  const isAbsent = student.attendance_status === 'absent';
 
   return (
     <div
       className={`bg-white rounded-lg shadow-sm overflow-hidden transition ${
         isSaved ? 'ring-2 ring-green-400' : ''
-      }`}
+      } ${isAbsent ? 'opacity-60' : ''}`}
     >
       <div
         className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-50"
         onClick={onToggle}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${
-            student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
-          }`}>
-            {student.gender === 'M' ? '남' : '여'}
-          </span>
-          <span className="font-medium text-slate-800 truncate">{student.student_name}</span>
+          {isAbsent ? (
+            <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0 bg-red-100 text-red-600">
+              결석
+            </span>
+          ) : (
+            <span className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${
+              student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+            }`}>
+              {student.gender === 'M' ? '남' : '여'}
+            </span>
+          )}
+          <span className={`font-medium truncate ${isAbsent ? 'line-through text-slate-400' : 'text-slate-800'}`}>{student.student_name}</span>
           {isSaved && <Check size={14} className="text-green-500 flex-shrink-0" />}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
