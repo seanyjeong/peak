@@ -10,16 +10,16 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variantStyles = {
-  default: 'bg-white border border-slate-200',
-  outlined: 'bg-transparent border border-slate-300',
-  elevated: 'bg-white shadow-lg border-0',
+  default: 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700',
+  outlined: 'bg-transparent border border-slate-300 dark:border-slate-600',
+  elevated: 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700',
 };
 
 const paddingStyles = {
   none: '',
-  sm: 'p-3',
-  md: 'p-4',
-  lg: 'p-6',
+  sm: 'p-4',
+  md: 'p-6',
+  lg: 'p-8',
 };
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
@@ -41,7 +41,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
           rounded-xl transition
           ${variantStyles[variant]}
           ${paddingStyles[padding]}
-          ${hoverable ? 'hover:shadow-md hover:border-slate-300 cursor-pointer' : ''}
+          ${hoverable ? 'hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer' : ''}
           ${className}
         `}
         {...props}
@@ -62,7 +62,7 @@ export interface CardHeaderProps {
 
 export function CardHeader({ children, className = '' }: CardHeaderProps) {
   return (
-    <div className={`pb-3 border-b border-slate-100 mb-3 ${className}`}>
+    <div className={`pb-4 border-b border-slate-200 dark:border-slate-700 mb-6 ${className}`}>
       {children}
     </div>
   );
@@ -76,7 +76,7 @@ export interface CardTitleProps {
 
 export function CardTitle({ children, className = '' }: CardTitleProps) {
   return (
-    <h3 className={`font-semibold text-slate-800 ${className}`}>
+    <h3 className={`font-semibold text-slate-900 dark:text-slate-100 text-base tracking-tight ${className}`}>
       {children}
     </h3>
   );
@@ -100,7 +100,7 @@ export interface CardFooterProps {
 
 export function CardFooter({ children, className = '' }: CardFooterProps) {
   return (
-    <div className={`pt-3 border-t border-slate-100 mt-3 ${className}`}>
+    <div className={`pt-4 border-t border-slate-200 dark:border-slate-700 mt-6 ${className}`}>
       {children}
     </div>
   );

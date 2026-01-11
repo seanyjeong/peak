@@ -86,23 +86,48 @@ router.get('/:sessionId/groups', verifyToken, async (req, res) => {
       const peakStudentMap = {};
       peakStudents.forEach(s => { peakStudentMap[s.paca_student_id] = s.id; });
 
+      // Bulk Insert 최적화
+      const studentsToCreate = [];
+      const participantsToAdd = [];
+
       for (const ps of toAdd) {
         let peakStudentId = peakStudentMap[ps.id];
 
-        // P-EAK에 없으면 생성
+        // P-EAK에 없으면 생성 대기열에 추가
         if (!peakStudentId) {
-          const [insertResult] = await conn.query(`
-            INSERT INTO students (paca_student_id, name, gender, school, grade, status, is_trial)
-            VALUES (?, ?, ?, ?, ?, 'active', 0)
-          `, [ps.id, decrypt(ps.name), ps.gender === 'male' ? 'M' : 'F', ps.school, ps.grade]);
-          peakStudentId = insertResult.insertId;
+          studentsToCreate.push([
+            ps.id,
+            decrypt(ps.name),
+            ps.gender === 'male' ? 'M' : 'F',
+            ps.school,
+            ps.grade
+          ]);
+        } else {
+          // 이미 있는 학생은 바로 참가자로 추가
+          participantsToAdd.push([sessionId, peakStudentId, 'enrolled']);
         }
+      }
 
-        // test_participants에 추가
+      // Bulk Insert: 새 학생 생성
+      if (studentsToCreate.length > 0) {
+        const [insertResult] = await conn.query(`
+          INSERT INTO students (paca_student_id, name, gender, school, grade, status, is_trial)
+          VALUES ?
+        `, [studentsToCreate.map(s => [...s, 'active', 0])]);
+
+        // 새로 생성된 학생들을 참가자로 추가
+        const startId = insertResult.insertId;
+        for (let i = 0; i < studentsToCreate.length; i++) {
+          participantsToAdd.push([sessionId, startId + i, 'enrolled']);
+        }
+      }
+
+      // Bulk Insert: 참가자 추가
+      if (participantsToAdd.length > 0) {
         await conn.query(`
           INSERT INTO test_participants (test_session_id, student_id, participant_type)
-          VALUES (?, ?, 'enrolled')
-        `, [sessionId, peakStudentId]);
+          VALUES ?
+        `, [participantsToAdd]);
       }
     }
 
@@ -480,33 +505,54 @@ router.post('/:sessionId/participants/sync', verifyToken, async (req, res) => {
       });
     }
 
-    let added = 0;
+    // N+1 쿼리 최적화: Bulk Insert
+    const studentsToCreate = [];
+    const participantsToAdd = [];
+
     for (const ps of pacaStudents) {
       const peakStudentId = peakStudentMap[ps.id];
 
-      // P-EAK에 없는 학생이면 생성
+      // P-EAK에 없는 학생이면 생성 대기열에 추가
       if (!peakStudentId) {
-        const [insertResult] = await conn.query(`
-          INSERT INTO students (paca_student_id, name, gender, school, grade, status, is_trial)
-          VALUES (?, ?, ?, ?, ?, 'active', 0)
-        `, [ps.id, decrypt(ps.name), ps.gender === 'male' ? 'M' : 'F', ps.school, ps.grade]);
-
-        const newStudentId = insertResult.insertId;
-        if (!existingIds.has(newStudentId)) {
-          await conn.query(`
-            INSERT INTO test_participants (test_session_id, student_id, participant_type)
-            VALUES (?, ?, 'enrolled')
-          `, [sessionId, newStudentId]);
-          added++;
-        }
+        studentsToCreate.push([
+          ps.id,
+          decrypt(ps.name),
+          ps.gender === 'male' ? 'M' : 'F',
+          ps.school,
+          ps.grade
+        ]);
       } else if (!existingIds.has(peakStudentId)) {
-        // 기존 P-EAK 학생이 이미 등록되지 않았으면 추가
-        await conn.query(`
-          INSERT INTO test_participants (test_session_id, student_id, participant_type)
-          VALUES (?, ?, 'enrolled')
-        `, [sessionId, peakStudentId]);
-        added++;
+        // 기존 P-EAK 학생이 이미 등록되지 않았으면 추가 대기열에 추가
+        participantsToAdd.push([sessionId, peakStudentId, 'enrolled']);
       }
+    }
+
+    let added = 0;
+
+    // Bulk Insert: 새 학생 생성
+    if (studentsToCreate.length > 0) {
+      const [insertResult] = await conn.query(`
+        INSERT INTO students (paca_student_id, name, gender, school, grade, status, is_trial)
+        VALUES ?
+      `, [studentsToCreate.map(s => [...s, 'active', 0])]);
+
+      // 새로 생성된 학생들을 참가자로 추가
+      const startId = insertResult.insertId;
+      for (let i = 0; i < studentsToCreate.length; i++) {
+        const newStudentId = startId + i;
+        if (!existingIds.has(newStudentId)) {
+          participantsToAdd.push([sessionId, newStudentId, 'enrolled']);
+        }
+      }
+    }
+
+    // Bulk Insert: 참가자 추가
+    if (participantsToAdd.length > 0) {
+      await conn.query(`
+        INSERT INTO test_participants (test_session_id, student_id, participant_type)
+        VALUES ?
+      `, [participantsToAdd]);
+      added = participantsToAdd.length;
     }
 
     await conn.commit();

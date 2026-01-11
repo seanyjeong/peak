@@ -14,31 +14,31 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
   return (
     <div
       onClick={onSelect}
-      className={`p-4 flex items-center justify-between cursor-pointer transition ${
+      className={`p-5 flex items-center justify-between cursor-pointer transition ${
         isSelected
-          ? 'bg-orange-50 border-l-4 border-orange-500'
+          ? 'bg-slate-50 border-l-4 border-slate-900'
           : 'hover:bg-slate-50'
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-          student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+          student.gender === 'M' ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-600'
         }`}>
           <User size={20} />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-medium text-slate-800">{student.name}</p>
+            <p className="font-medium text-slate-900">{student.name}</p>
             <Link
               href={`/students/${student.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="p-1 hover:bg-orange-100 rounded transition"
+              className="p-1 hover:bg-slate-200 rounded transition"
               title="프로필 보기"
             >
-              <ExternalLink size={14} className="text-orange-500" />
+              <ExternalLink size={14} className="text-slate-600" />
             </Link>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 mt-0.5">
             {student.gender === 'M' ? '남' : '여'}
             {student.school && ` · ${student.school}`}
             {student.grade && ` ${student.grade}`}
@@ -47,11 +47,11 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
       </div>
       <div className="flex items-center gap-2">
         {!!student.is_trial && (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+          <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700">
             체험 {student.trial_total - student.trial_remaining}/{student.trial_total}
           </span>
         )}
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_MAP[student.status].color}`}>
+        <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${STATUS_MAP[student.status].color}`}>
           {STATUS_MAP[student.status].label}
         </span>
         <ChevronRight size={18} className="text-slate-400" />

@@ -433,9 +433,28 @@ router.post('/sync', verifyToken, async (req, res) => {
             return 'M';
         };
 
+        // N+1 쿼리 최적화: 한 번에 모든 학생 조회
+        const pacaStudentIds = pacaStudents.map(ps => ps.paca_student_id);
+        const [existingPeakStudents] = await db.query(
+            'SELECT id, paca_student_id FROM students WHERE paca_student_id IN (?)',
+            [pacaStudentIds]
+        );
+
+        // paca_student_id로 매핑
+        const peakStudentMap = new Map();
+        existingPeakStudents.forEach(s => {
+            peakStudentMap.set(s.paca_student_id, s.id);
+        });
+
         let addedCount = 0;
         let updatedCount = 0;
         const syncedStudentKeys = new Set();
+
+        // 새로 추가할 학생과 업데이트할 학생 분리
+        const studentsToInsert = [];
+        const studentsToUpdate = [];
+        const assignmentsToInsert = [];
+        const assignmentsToUpdate = [];
 
         for (const ps of pacaStudents) {
             const decryptedName = ps.student_name ? decrypt(ps.student_name) : ps.student_name;
@@ -453,18 +472,11 @@ router.post('/sync', verifyToken, async (req, res) => {
                 }
             }
 
-            let [peakStudents] = await db.query(
-                'SELECT id FROM students WHERE paca_student_id = ?',
-                [ps.paca_student_id]
-            );
+            let peakStudentId = peakStudentMap.get(ps.paca_student_id);
 
-            let peakStudentId;
-
-            if (peakStudents.length === 0) {
-                const [insertResult] = await db.query(`
-                    INSERT INTO students (paca_student_id, name, gender, school, grade, is_trial, trial_total, trial_remaining, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
-                `, [
+            if (!peakStudentId) {
+                // 새 학생 추가 대기열에 추가
+                studentsToInsert.push([
                     ps.paca_student_id,
                     decryptedName,
                     gender,
@@ -474,14 +486,12 @@ router.post('/sync', verifyToken, async (req, res) => {
                     trialTotal,
                     ps.trial_remaining || 0
                 ]);
-                peakStudentId = insertResult.insertId;
+                // 임시 ID (나중에 실제 ID로 교체)
+                peakStudentId = `temp_${ps.paca_student_id}`;
+                peakStudentMap.set(ps.paca_student_id, peakStudentId);
             } else {
-                peakStudentId = peakStudents[0].id;
-                await db.query(`
-                    UPDATE students SET name = ?, gender = ?, school = ?, grade = ?,
-                           is_trial = ?, trial_total = ?, trial_remaining = ?
-                    WHERE id = ?
-                `, [
+                // 기존 학생 업데이트 대기열에 추가
+                studentsToUpdate.push([
                     decryptedName,
                     gender,
                     ps.school,
@@ -493,33 +503,104 @@ router.post('/sync', verifyToken, async (req, res) => {
                 ]);
             }
 
+            // 실제 student_id를 사용하여 existing 조회 (임시 ID는 아직 확정 안됨)
+            let actualStudentId = peakStudentId;
+            if (typeof peakStudentId === 'string' && peakStudentId.startsWith('temp_')) {
+                // 임시 ID의 경우, existing에서 조회할 수 없으므로 null
+                actualStudentId = null;
+            }
+
             const studentKey = `${peakStudentId}-${ps.time_slot}`;
             syncedStudentKeys.add(studentKey);
 
-            const existing = existingMap.get(studentKey);
+            const existing = actualStudentId ? existingMap.get(`${actualStudentId}-${ps.time_slot}`) : null;
 
             if (existing) {
                 // 기존 배치 있음 - class_id 유지
-                // 체험 정보: 이미 체험으로 등록된 경우 유지 (출석체크로 is_trial이 false가 되어도 해당일에는 체험 유지)
                 const keepTrialInfo = existing.is_trial === 1;
                 const newIsTrial = keepTrialInfo ? 1 : (ps.is_trial ? 1 : 0);
                 const newTrialTotal = keepTrialInfo ? existing.trial_total : trialTotal;
                 const newTrialRemaining = keepTrialInfo ? existing.trial_remaining : (ps.trial_remaining || 0);
 
+                assignmentsToUpdate.push([
+                    ps.attendance_id,
+                    newIsTrial,
+                    newTrialTotal,
+                    newTrialRemaining,
+                    existing.id
+                ]);
+                updatedCount++;
+            } else {
+                // 새 학생 배치 추가 대기열
+                assignmentsToInsert.push({
+                    pacaStudentId: ps.paca_student_id,
+                    timeSlot: ps.time_slot,
+                    attendanceId: ps.attendance_id,
+                    isTrial: ps.is_trial ? 1 : 0,
+                    trialTotal: trialTotal,
+                    trialRemaining: ps.trial_remaining || 0
+                });
+                addedCount++;
+            }
+        }
+
+        // Bulk Insert: 새 학생들
+        if (studentsToInsert.length > 0) {
+            const [insertResult] = await db.query(`
+                INSERT INTO students (paca_student_id, name, gender, school, grade, is_trial, trial_total, trial_remaining, status)
+                VALUES ?
+            `, [studentsToInsert.map(s => [...s, 'active'])]);
+
+            // 새로 생성된 ID로 매핑 업데이트
+            const startId = insertResult.insertId;
+            studentsToInsert.forEach((s, idx) => {
+                const pacaStudentId = s[0];
+                peakStudentMap.set(pacaStudentId, startId + idx);
+            });
+        }
+
+        // Bulk Update: 기존 학생들
+        if (studentsToUpdate.length > 0) {
+            for (const updateData of studentsToUpdate) {
+                await db.query(`
+                    UPDATE students SET name = ?, gender = ?, school = ?, grade = ?,
+                           is_trial = ?, trial_total = ?, trial_remaining = ?
+                    WHERE id = ?
+                `, updateData);
+            }
+        }
+
+        // Bulk Update: 기존 배치
+        if (assignmentsToUpdate.length > 0) {
+            for (const updateData of assignmentsToUpdate) {
                 await db.query(`
                     UPDATE daily_assignments
                     SET paca_attendance_id = ?, is_trial = ?, trial_total = ?, trial_remaining = ?
                     WHERE id = ?
-                `, [ps.attendance_id, newIsTrial, newTrialTotal, newTrialRemaining, existing.id]);
-                updatedCount++;
-            } else {
-                // 새 학생 추가 - class_id는 NULL (대기), academy_id 포함, 체험 정보 포함
-                await db.query(`
-                    INSERT INTO daily_assignments (academy_id, date, time_slot, student_id, paca_attendance_id, class_id, status, order_num, is_trial, trial_total, trial_remaining)
-                    VALUES (?, ?, ?, ?, ?, NULL, 'enrolled', 0, ?, ?, ?)
-                `, [academyId, targetDate, ps.time_slot, peakStudentId, ps.attendance_id, ps.is_trial ? 1 : 0, trialTotal, ps.trial_remaining || 0]);
-                addedCount++;
+                `, updateData);
             }
+        }
+
+        // Bulk Insert: 새 배치
+        if (assignmentsToInsert.length > 0) {
+            const assignmentValues = assignmentsToInsert.map(a => [
+                academyId,
+                targetDate,
+                a.timeSlot,
+                peakStudentMap.get(a.pacaStudentId),
+                a.attendanceId,
+                null, // class_id
+                'enrolled', // status
+                0, // order_num
+                a.isTrial,
+                a.trialTotal,
+                a.trialRemaining
+            ]);
+
+            await db.query(`
+                INSERT INTO daily_assignments (academy_id, date, time_slot, student_id, paca_attendance_id, class_id, status, order_num, is_trial, trial_total, trial_remaining)
+                VALUES ?
+            `, [assignmentValues]);
         }
 
         // P-ACA에서 제거된 학생 삭제

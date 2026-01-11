@@ -256,14 +256,14 @@ export default function DashboardPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-12">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">대시보드</h1>
-          <p className="text-slate-500 mt-1">{today}</p>
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">대시보드</h1>
+          <p className="text-slate-500 mt-2 text-sm">{today}</p>
         </div>
         <button
           onClick={() => router.push('/assignments')}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition text-sm font-medium"
         >
           <Calendar size={18} />
           <span>반 배치 관리</span>
@@ -271,49 +271,49 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards with Circular Progress */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-        <h2 className="text-sm font-medium text-slate-500 mb-6">오늘 현황</h2>
-        <div className="grid grid-cols-2 gap-8">
-          <div className="flex items-center gap-6">
+      <div className="bg-white rounded-xl border border-slate-200 p-8 mb-8">
+        <h2 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-8">오늘 현황</h2>
+        <div className="grid grid-cols-2 gap-12">
+          <div className="flex items-center gap-8">
             <CircularProgress
               value={stats.trainersPresent}
               max={Math.max(stats.totalTrainers, 1)}
-              color="#f97316"
+              color="#0a0a0a"
               label="출근 강사"
             />
             <div>
-              <p className="text-2xl font-bold text-slate-800">
+              <p className="text-3xl font-semibold text-slate-900 tracking-tight">
                 {stats.trainersPresent}명
               </p>
-              <p className="text-sm text-slate-500">오늘 출근 강사</p>
+              <p className="text-sm text-slate-500 mt-1">오늘 출근 강사</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             <CircularProgress
               value={stats.studentsToday}
               max={Math.max(stats.studentsToday, 1)}
-              color="#14b8a6"
+              color="#525252"
               label="수업 학생"
             />
             <div>
-              <p className="text-2xl font-bold text-slate-800">
+              <p className="text-3xl font-semibold text-slate-900 tracking-tight">
                 {stats.studentsToday}명
               </p>
-              <p className="text-sm text-slate-500">오늘 수업 학생</p>
+              <p className="text-sm text-slate-500 mt-1">오늘 수업 학생</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-8">
         {/* Today's Schedule by Time Slot */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-800">오늘 스케줄</h2>
+        <div className="bg-white rounded-xl border border-slate-200 p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-base font-semibold text-slate-900">오늘 스케줄</h2>
             <button
               onClick={() => router.push('/assignments')}
-              className="text-orange-500 text-sm font-medium flex items-center gap-1 hover:text-orange-600"
+              className="text-slate-600 text-sm font-medium flex items-center gap-1 hover:text-slate-900 transition"
             >
               전체 보기 <ChevronRight size={16} />
             </button>
@@ -329,24 +329,24 @@ export default function DashboardPage() {
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {scheduleData.map((schedule) => {
                 const Icon = schedule.icon;
                 return (
                   <div
                     key={schedule.slot}
                     onClick={() => router.push('/assignments')}
-                    className="flex items-center gap-4 p-4 border border-slate-100 rounded-xl hover:border-orange-200 transition cursor-pointer"
+                    className="flex items-center gap-5 p-5 border border-slate-200 rounded-lg hover:bg-slate-50 transition cursor-pointer"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center">
-                      <Icon size={24} className="text-slate-600" />
+                    <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                      <Icon size={22} className="text-slate-600" />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-800">{schedule.label}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900 mb-0.5">{schedule.label}</p>
                       <p className="text-sm text-slate-500">{schedule.trainer} · {schedule.students}명</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-400">{schedule.time}</p>
+                      <p className="text-xs text-slate-400 font-medium">{schedule.time}</p>
                     </div>
                   </div>
                 );
@@ -356,19 +356,19 @@ export default function DashboardPage() {
         </div>
 
         {/* Trainer Status - 현재 시간대 기준 */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-xl border border-slate-200 p-8">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-slate-800">강사 현황</h2>
+              <h2 className="text-base font-semibold text-slate-900">강사 현황</h2>
               {currentAttendance && (
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 mt-1">
                   {currentAttendance.currentSlotLabel} 기준
                 </p>
               )}
             </div>
             <button
               onClick={() => router.push('/attendance')}
-              className="text-orange-500 text-sm font-medium flex items-center gap-1 hover:text-orange-600"
+              className="text-slate-600 text-sm font-medium flex items-center gap-1 hover:text-slate-900 transition"
             >
               출근 관리 <ChevronRight size={16} />
             </button>
@@ -378,14 +378,14 @@ export default function DashboardPage() {
               <p>현재 시간대에 배정된 강사가 없습니다</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {/* 통계 배지 */}
-              <div className="flex gap-2 mb-4">
-                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+              <div className="flex gap-2 mb-6">
+                <span className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium">
                   출근 {currentAttendance.stats.checkedIn}명
                 </span>
                 {currentAttendance.stats.notCheckedIn > 0 && (
-                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                  <span className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium">
                     미출근 {currentAttendance.stats.notCheckedIn}명
                   </span>
                 )}
@@ -393,29 +393,29 @@ export default function DashboardPage() {
               {currentAttendance.instructors.map((instructor) => (
                 <div
                   key={instructor.id}
-                  className={`flex items-center justify-between p-4 rounded-xl ${
-                    instructor.checkedIn ? 'bg-green-50' : 'bg-red-50'
+                  className={`flex items-center justify-between p-5 rounded-lg border ${
+                    instructor.checkedIn ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-200'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${
-                      instructor.checkedIn ? 'bg-green-500' : 'bg-red-400'
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+                      instructor.checkedIn ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'
                     }`}>
                       {instructor.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">{instructor.name}</p>
-                      <p className={`text-xs ${instructor.checkedIn ? 'text-green-600' : 'text-red-500'}`}>
+                      <p className="font-medium text-slate-900 mb-0.5">{instructor.name}</p>
+                      <p className={`text-xs ${instructor.checkedIn ? 'text-slate-500' : 'text-slate-400'}`}>
                         {instructor.checkedIn ? '출근 완료' : '미출근'}
                       </p>
                     </div>
                   </div>
                   {instructor.checkedIn && instructor.checkInTime && (
                     <div className="text-right">
-                      <p className="text-sm font-medium text-slate-600">
+                      <p className="text-sm font-medium text-slate-900">
                         {instructor.checkInTime.slice(0, 5)}
                       </p>
-                      <p className="text-xs text-slate-400">출근 시간</p>
+                      <p className="text-xs text-slate-400 mt-0.5">출근 시간</p>
                     </div>
                   )}
                 </div>
@@ -426,17 +426,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Summary Banner */}
-      <div className="mt-6 bg-gradient-to-r from-[#1a2b4a] to-[#243a5e] rounded-2xl p-6 text-white">
+      <div className="mt-8 bg-slate-900 rounded-xl p-8 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold mb-1">오늘 요약</h3>
-            <p className="text-slate-300 text-sm">
+            <h3 className="text-base font-semibold mb-2">오늘 요약</h3>
+            <p className="text-slate-400 text-sm">
               강사 {stats.trainersPresent}명 출근 · 학생 {stats.studentsToday}명 수업 예정
             </p>
           </div>
           <button
             onClick={() => router.push('/assignments')}
-            className="px-4 py-2 bg-orange-500 rounded-lg hover:bg-orange-600 transition text-sm font-medium"
+            className="px-5 py-2.5 bg-white text-slate-900 rounded-lg hover:bg-slate-100 transition text-sm font-medium"
           >
             반 배치 보기
           </button>
