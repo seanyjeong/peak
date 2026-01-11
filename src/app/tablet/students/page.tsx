@@ -1,121 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, RefreshCw, Search, User, ChevronRight, Download, ExternalLink } from 'lucide-react';
-import { authAPI } from '@/lib/api/auth';
-import apiClient from '@/lib/api/client';
+import { Users, RefreshCw, Search, User, ChevronRight, Download } from 'lucide-react';
 import { useOrientation } from '../layout';
-
-interface Student {
-  id: number;
-  paca_student_id: number;
-  name: string;
-  gender: 'M' | 'F';
-  phone: string | null;
-  school: string | null;
-  grade: string | null;
-  class_days: number[] | null;
-  is_trial: boolean;
-  trial_total: number;
-  trial_remaining: number;
-  join_date: string | null;
-  status: 'active' | 'inactive' | 'injury' | 'paused' | 'pending';
-}
-
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  active: { label: '재원', color: 'bg-green-100 text-green-700' },
-  inactive: { label: '퇴원', color: 'bg-slate-100 text-slate-600' },
-  injury: { label: '부상', color: 'bg-red-100 text-red-700' },
-  paused: { label: '휴원', color: 'bg-yellow-100 text-yellow-700' },
-  pending: { label: '미등록', color: 'bg-amber-100 text-amber-700' },
-};
+import { useStudentList, STATUS_MAP } from '@/features/students';
 
 export default function TabletStudentsPage() {
   const orientation = useOrientation();
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [syncing, setSyncing] = useState(false);
-
-  // 탭별 인원수 계산
-  const statusCounts = {
-    all: students.length,
-    active: students.filter(s => s.status === 'active' && !s.is_trial).length,
-    inactive: students.filter(s => s.status === 'inactive').length,
-    injury: students.filter(s => s.status === 'injury').length,
-    paused: students.filter(s => s.status === 'paused').length,
-    pending: students.filter(s => s.status === 'pending').length,
-    trial: students.filter(s => s.is_trial).length,
-  };
-
-  // P-ACA 학생 동기화
-  const syncStudents = async () => {
-    const user = authAPI.getCurrentUser();
-    if (!user?.academyId) {
-      alert('학원 정보를 찾을 수 없습니다.');
-      return;
-    }
-
-    try {
-      setSyncing(true);
-      const response = await apiClient.post('/students/sync', { academyId: user.academyId });
-      alert(response.data.message);
-      fetchStudents();
-    } catch (error) {
-      console.error('Sync error:', error);
-      alert('동기화에 실패했습니다.');
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const fetchStudents = async () => {
-    try {
-      setLoading(true);
-      const studentsRes = await apiClient.get('/students');
-      setStudents(studentsRes.data.students || []);
-    } catch (error) {
-      console.error('Failed to fetch students:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStudents();
-  }, []);
-
-  // 필터링
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
-
-    let matchesFilter = false;
-    switch (statusFilter) {
-      case 'all':
-        matchesFilter = true;
-        break;
-      case 'trial':
-        matchesFilter = student.is_trial;
-        break;
-      case 'active':
-        matchesFilter = student.status === 'active' && !student.is_trial;
-        break;
-      default:
-        matchesFilter = student.status === statusFilter;
-    }
-
-    return matchesSearch && matchesFilter;
-  });
+  const {
+    filteredStudents,
+    loading,
+    syncing,
+    searchTerm,
+    statusFilter,
+    setSearchTerm,
+    setStatusFilter,
+    statusCounts,
+    fetchStudents,
+    syncStudents,
+  } = useStudentList();
 
   return (
     <div className="tablet-scroll">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">학생 관리</h1>
-          <p className="text-slate-500 text-sm mt-1">총 {students.length}명</p>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">학생 관리</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">총 {statusCounts.all}명</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -129,7 +40,7 @@ export default function TabletStudentsPage() {
           <button
             onClick={fetchStudents}
             disabled={loading}
-            className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
+            className="p-3 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -137,7 +48,7 @@ export default function TabletStudentsPage() {
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-4">
         {/* Search */}
         <div className="relative mb-4">
           <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -146,7 +57,7 @@ export default function TabletStudentsPage() {
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="이름 검색..."
-            className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent text-base"
+            className="w-full pl-12 pr-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent text-base bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
           />
         </div>
 
@@ -157,7 +68,7 @@ export default function TabletStudentsPage() {
             className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
               statusFilter === 'all'
                 ? 'bg-orange-500 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
             }`}
           >
             전체 {statusCounts.all}
@@ -169,7 +80,7 @@ export default function TabletStudentsPage() {
               className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
                 statusFilter === key
                   ? 'bg-orange-500 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
               }`}
             >
               {value.label} {statusCounts[key as keyof typeof statusCounts] ?? 0}
@@ -180,7 +91,7 @@ export default function TabletStudentsPage() {
             className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
               statusFilter === 'trial'
                 ? 'bg-purple-500 text-white'
-                : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                : 'bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/30'
             }`}
           >
             체험생 {statusCounts.trial}
@@ -190,38 +101,40 @@ export default function TabletStudentsPage() {
 
       {/* Student List */}
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-white rounded-2xl shadow-sm">
+        <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
           <RefreshCw size={40} className="animate-spin text-slate-400" />
         </div>
       ) : filteredStudents.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-          <Users size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500 text-lg">학생이 없습니다.</p>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
+          <Users size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+          <p className="text-slate-500 dark:text-slate-400 text-lg">학생이 없습니다.</p>
         </div>
       ) : (
-        <div className={`bg-white rounded-2xl shadow-sm overflow-hidden ${
+        <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden ${
           orientation === 'landscape' ? 'max-h-[calc(100vh-320px)] overflow-y-auto' : ''
         }`}>
-          <div className={`divide-y divide-slate-100 ${
+          <div className={`divide-y divide-slate-100 dark:divide-slate-700 ${
             orientation === 'landscape' ? 'grid grid-cols-2' : ''
           }`}>
             {filteredStudents.map(student => (
               <Link
                 key={student.id}
                 href={`/tablet/students/${student.id}`}
-                className={`p-4 flex items-center justify-between hover:bg-slate-50 transition ${
-                  orientation === 'landscape' ? 'border-b border-slate-100' : ''
+                className={`p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition ${
+                  orientation === 'landscape' ? 'border-b border-slate-100 dark:border-slate-700' : ''
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+                    student.gender === 'M'
+                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                      : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400'
                   }`}>
                     <User size={24} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-800 text-lg">{student.name}</p>
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-lg">{student.name}</p>
                     </div>
                     <p className="text-sm text-slate-400">
                       {student.gender === 'M' ? '남' : '여'}
@@ -232,11 +145,11 @@ export default function TabletStudentsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   {!!student.is_trial && (
-                    <span className="px-2 py-1 rounded-lg text-xs font-medium bg-purple-100 text-purple-700">
+                    <span className="px-2 py-1 rounded-lg text-xs font-medium bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400">
                       체험 {student.trial_total - student.trial_remaining}/{student.trial_total}
                     </span>
                   )}
-                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${STATUS_MAP[student.status].color}`}>
+                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${STATUS_MAP[student.status].color} ${STATUS_MAP[student.status].darkColor}`}>
                     {STATUS_MAP[student.status].label}
                   </span>
                   <ChevronRight size={20} className="text-slate-400" />

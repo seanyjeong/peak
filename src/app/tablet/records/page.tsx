@@ -1,283 +1,52 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { RefreshCw, Calendar, Users, Trophy, ChevronDown, ChevronUp, Check, List, AlertCircle } from 'lucide-react';
-import apiClient from '@/lib/api/client';
-import { authAPI } from '@/lib/api/auth';
 import { useOrientation } from '../layout';
-
-interface RecordType {
-  id: number;
-  name: string;
-  unit: string;
-  direction: 'higher' | 'lower';
-  is_active: boolean;
-}
-
-interface Student {
-  id: number;
-  student_id: number;
-  student_name: string;
-  gender: 'M' | 'F';
-  attendance_status?: string;
-}
-
-interface ClassInstructor {
-  id: number;
-  name: string;
-  isOwner?: boolean;
-  isMain?: boolean;
-}
-
-interface ClassData {
-  class_num: number;
-  instructors: ClassInstructor[];
-  students: Student[];
-}
-
-interface SlotData {
-  waitingStudents: Student[];
-  waitingInstructors: ClassInstructor[];
-  classes: ClassData[];
-}
-
-interface ScoreRange {
-  score: number;
-  male_min: number;
-  male_max: number;
-  female_min: number;
-  female_max: number;
-}
-
-interface ScoreTableData {
-  scoreTable: { id: number; decimal_places: number } | null;
-  ranges: ScoreRange[];
-}
-
-interface RecordInput {
-  value: string;
-  score: number | null;
-}
-
-type InputMode = 'student' | 'event';
-
-const SLOT_LABELS: Record<string, string> = {
-  morning: '오전반',
-  afternoon: '오후반',
-  evening: '저녁반'
-};
+import { useRecords, useRecordInput, SLOT_LABELS } from '@/features/records';
+import type { InputMode } from '@/components/records';
 
 export default function TabletRecordsPage() {
   const orientation = useOrientation();
-  const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
-  const [slots, setSlots] = useState<Record<string, SlotData>>({});
-  const [selectedSlot, setSelectedSlot] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [measuredAt, setMeasuredAt] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+
+  const {
+    recordTypes,
+    slots,
+    availableSlots,
+    myStudents,
+    selectedSlot,
+    measuredAt,
+    loading,
+    setSelectedSlot,
+    setMeasuredAt,
+    fetchData,
+    calculateScore,
+    getDecimalPlaces,
+  } = useRecords({ ownClassOnly: true });
+
+  const {
+    inputs,
+    expandedStudents,
+    savedStudents,
+    saving,
+    handleInputChange,
+    handleInputBlur,
+    toggleStudent,
+    getInputCount,
+    getTotalScore,
+  } = useRecordInput({
+    measuredAt,
+    slots,
+    calculateScore,
   });
 
-  const [currentUser, setCurrentUser] = useState<{ id: number; name: string; role?: string; instructorId?: number } | null>(null);
   const [inputMode, setInputMode] = useState<InputMode>('student');
   const [selectedRecordType, setSelectedRecordType] = useState<number | null>(null);
-  const [scoreTablesCache, setScoreTablesCache] = useState<{ [key: number]: ScoreTableData }>({});
-  const [inputs, setInputs] = useState<{ [key: number]: { [key: number]: RecordInput } }>({});
-  const [expandedStudents, setExpandedStudents] = useState<Set<number>>(new Set());
-  const [savedStudents, setSavedStudents] = useState<Set<number>>(new Set());
 
-
-  const loadExistingRecords = useCallback(async (studentIds: number[], date: string) => {
-    if (studentIds.length === 0) return;
-    try {
-      const res = await apiClient.get(`/records/by-date?date=${date}&student_ids=${studentIds.join(',')}`);
-      const records = res.data.records || [];
-      const newInputs: { [key: number]: { [key: number]: RecordInput } } = {};
-      records.forEach((r: { student_id: number; record_type_id: number; value: number }) => {
-        if (!newInputs[r.student_id]) newInputs[r.student_id] = {};
-        newInputs[r.student_id][r.record_type_id] = { value: r.value.toString(), score: null };
-      });
-      setInputs(newInputs);
-      setSavedStudents(new Set(Object.keys(newInputs).map(Number)));
-    } catch (error) {
-      console.error('Failed to load existing records:', error);
-    }
-  }, []);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const user = authAPI.getCurrentUser();
-      setCurrentUser(user);
-
-      const typesRes = await apiClient.get('/record-types');
-      const activeTypes = (typesRes.data.recordTypes || []).filter((t: RecordType) => t.is_active);
-      setRecordTypes(activeTypes);
-      setSelectedRecordType(prev => {
-        if (prev && activeTypes.some((t: RecordType) => t.id === prev)) return prev;
-        return activeTypes.length > 0 ? activeTypes[0].id : null;
-      });
-
-      const assignRes = await apiClient.get(`/assignments?date=${measuredAt}`);
-      const slotsData = assignRes.data.slots || {};
-      setSlots(slotsData);
-
-      const myInstructorId = user?.instructorId;
-      // 원장의 경우 음수 ID 사용 (-user.id)
-      const myNegativeId = user?.role === 'owner' ? -(user?.id || 0) : null;
-      const availableSlots: string[] = [];
-      let mySlot: string | null = null;
-
-      ['morning', 'afternoon', 'evening'].forEach(slot => {
-        const slotData = slotsData[slot] as SlotData;
-        if (!slotData) return;
-        // v2.0.0: classes 구조 사용
-        const hasClasses = slotData.classes?.some(c => c.instructors?.length > 0 || c.students?.length > 0);
-        if (hasClasses) {
-          availableSlots.push(slot);
-          // 내가 배정된 반 찾기
-          const myClass = slotData.classes?.find(c =>
-            c.instructors?.some(inst => inst.id === myInstructorId || inst.id === myNegativeId)
-          );
-          if (myClass) {
-            mySlot = slot;
-          }
-        }
-      });
-
-      // 기존 선택이 유효하면 유지, 없으면 새로 설정
-      setSelectedSlot(prev => {
-        if (prev && availableSlots.includes(prev)) return prev;
-        // 내가 배치된 시간대가 있으면 해당 슬롯 선택
-        if (mySlot) return mySlot;
-        return availableSlots[0] || '';
-      });
-
-      const scoreTablesData: { [key: number]: ScoreTableData } = {};
-      for (const type of activeTypes) {
-        try {
-          const res = await apiClient.get(`/score-tables/by-type/${type.id}`);
-          scoreTablesData[type.id] = res.data;
-        } catch { scoreTablesData[type.id] = { scoreTable: null, ranges: [] }; }
-      }
-      setScoreTablesCache(scoreTablesData);
-
-      const allStudentIds: number[] = [];
-      Object.values(slotsData).forEach((slotData) => {
-        const sd = slotData as SlotData;
-        // v2.0.0: classes 구조에서 학생 ID 수집
-        sd.classes?.forEach(c => c.students?.forEach(s => {
-          if (!allStudentIds.includes(s.student_id)) allStudentIds.push(s.student_id);
-        }));
-      });
-      if (allStudentIds.length > 0) await loadExistingRecords(allStudentIds, measuredAt);
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [measuredAt, loadExistingRecords]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const availableSlots = ['morning', 'afternoon', 'evening'].filter(slot => {
-    const slotData = slots[slot] as SlotData;
-    if (!slotData) return false;
-    // v2.0.0: classes 구조 사용
-    return slotData.classes?.some(c => c.instructors?.length > 0 || c.students?.length > 0);
-  });
-
-  const currentSlotData = slots[selectedSlot] as SlotData | undefined;
-
-  const getMyStudents = (): Student[] => {
-    if (!currentSlotData) return [];
-
-    // 현재 유저 정보
-    const userInstructorId = currentUser?.instructorId;
-    const userNegativeId = currentUser?.role === 'owner' ? -(currentUser?.id || 0) : null;
-    const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin';
-
-    // v2.0.0: 내가 배정된 반의 학생만 반환 (원장/관리자도 동일)
-    const myStudents: Student[] = [];
-    currentSlotData.classes?.forEach(cls => {
-      const isMyClass = cls.instructors?.some(inst =>
-        inst.id === userInstructorId || inst.id === userNegativeId
-      );
-      if (isMyClass && cls.students) {
-        myStudents.push(...cls.students);
-      }
-    });
-
-    // 결석 학생 추가 (waitingStudents에서 absent 학생)
-    const absentStudents = currentSlotData.waitingStudents?.filter(
-      s => s.attendance_status === 'absent'
-    ) || [];
-
-    // 관리자는 전체 결석 학생, 일반 강사는 자기 반 학생 중 결석만 (현재는 전체 결석 학생 표시)
-    if (isAdmin || myStudents.length > 0) {
-      absentStudents.forEach(s => {
-        if (!myStudents.some(ms => ms.student_id === s.student_id)) {
-          myStudents.push(s);
-        }
-      });
-    }
-
-    return myStudents;
-  };
-
-  const myStudents = getMyStudents();
-
-  const calculateScore = (value: number, gender: 'M' | 'F', recordTypeId: number): number | null => {
-    const tableData = scoreTablesCache[recordTypeId];
-    if (!tableData?.scoreTable || tableData.ranges.length === 0) return null;
-    for (const range of tableData.ranges) {
-      const min = gender === 'M' ? range.male_min : range.female_min;
-      const max = gender === 'M' ? range.male_max : range.female_max;
-      if (value >= min && value <= max) return range.score;
-    }
-    return null;
-  };
-
-  const handleInputChange = (studentId: number, recordTypeId: number, value: string, gender: 'M' | 'F') => {
-    const numValue = parseFloat(value);
-    const score = !isNaN(numValue) ? calculateScore(numValue, gender, recordTypeId) : null;
-    setInputs(prev => ({ ...prev, [studentId]: { ...prev[studentId], [recordTypeId]: { value, score } } }));
-    setSavedStudents(prev => { const newSet = new Set(prev); newSet.delete(studentId); return newSet; });
-  };
-
-  const handleInputBlur = async (studentId: number, recordTypeId: number) => {
-    const inputData = inputs[studentId]?.[recordTypeId];
-    if (!inputData?.value?.trim() || saving) return;
-    try {
-      setSaving(true);
-      await apiClient.post('/records/batch', {
-        student_id: studentId,
-        measured_at: measuredAt,
-        records: [{ record_type_id: recordTypeId, value: parseFloat(inputData.value), notes: null }]
-      });
-      setSavedStudents(prev => new Set([...prev, studentId]));
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const toggleStudent = (studentId: number) => {
-    setExpandedStudents(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(studentId)) newSet.delete(studentId); else newSet.add(studentId);
-      return newSet;
-    });
-  };
-
-  const getDecimalPlaces = (recordTypeId: number): number => scoreTablesCache[recordTypeId]?.scoreTable?.decimal_places || 0;
-  const getInputCount = (studentId: number): number => Object.values(inputs[studentId] || {}).filter(d => d.value?.trim()).length;
-  const getTotalScore = (studentId: number): number | null => {
-    const scores = Object.values(inputs[studentId] || {}).filter(d => d.score !== null).map(d => d.score as number);
-    return scores.length === 0 ? null : scores.reduce((sum, s) => sum + s, 0);
-  };
+  // 첫 번째 종목 자동 선택
+  if (selectedRecordType === null && recordTypes.length > 0) {
+    setSelectedRecordType(recordTypes[0].id);
+  }
 
   const currentRecordType = recordTypes.find(t => t.id === selectedRecordType);
 

@@ -3,27 +3,35 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Users, RefreshCw, Search, User, X, Activity, Plus, Download, ExternalLink } from 'lucide-react';
-import { authAPI } from '@/lib/api/auth';
 import apiClient from '@/lib/api/client';
 import {
   StudentListItem,
   RecordAddForm,
   RecordTypeCard,
   RecordChart,
-  Student,
   RecordType,
   StudentRecord,
   ScoreTableData,
   RecordInput,
-  STATUS_MAP,
 } from '@/components/students';
+import { useStudentList, STATUS_MAP } from '@/features/students';
+import type { Student } from '@/features/students';
 
 export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>([]);
+  const {
+    filteredStudents,
+    loading,
+    syncing,
+    searchTerm,
+    statusFilter,
+    setSearchTerm,
+    setStatusFilter,
+    statusCounts,
+    fetchStudents,
+    syncStudents,
+  } = useStudentList();
+
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [studentRecords, setStudentRecords] = useState<StudentRecord[]>([]);
   const [loadingRecords, setLoadingRecords] = useState(false);
@@ -33,41 +41,15 @@ export default function StudentsPage() {
   const [recordInputs, setRecordInputs] = useState<{ [key: number]: RecordInput }>({});
   const [scoreTables, setScoreTables] = useState<{ [key: number]: ScoreTableData }>({});
   const [savingRecord, setSavingRecord] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [selectedRecordType, setSelectedRecordType] = useState<number | null>(null);
 
-  const statusCounts = {
-    all: students.length,
-    active: students.filter(s => s.status === 'active' && !s.is_trial).length,
-    inactive: students.filter(s => s.status === 'inactive').length,
-    injury: students.filter(s => s.status === 'injury').length,
-    paused: students.filter(s => s.status === 'paused').length,
-    pending: students.filter(s => s.status === 'pending').length,
-    trial: students.filter(s => s.is_trial).length,
-  };
+  useEffect(() => {
+    fetchRecordTypesAndTables();
+  }, []);
 
-  const syncStudents = async () => {
-    const user = authAPI.getCurrentUser();
-    if (!user?.academyId) { alert('학원 정보를 찾을 수 없습니다.'); return; }
+  const fetchRecordTypesAndTables = async () => {
     try {
-      setSyncing(true);
-      const response = await apiClient.post('/students/sync', { academyId: user.academyId });
-      alert(response.data.message);
-      fetchStudents();
-    } catch (error) {
-      console.error('Sync error:', error);
-      alert('동기화에 실패했습니다.');
-    } finally { setSyncing(false); }
-  };
-
-  const fetchStudents = async () => {
-    try {
-      setLoading(true);
-      const [studentsRes, typesRes] = await Promise.all([
-        apiClient.get('/students'),
-        apiClient.get('/record-types?active=true')
-      ]);
-      setStudents(studentsRes.data.students || []);
+      const typesRes = await apiClient.get('/record-types?active=true');
       const types = typesRes.data.recordTypes || [];
       setRecordTypes(types);
 
@@ -79,8 +61,9 @@ export default function StudentsPage() {
         } catch { tables[type.id] = { scoreTable: null, ranges: [] }; }
       }
       setScoreTables(tables);
-    } catch (error) { console.error('Failed to fetch students:', error); }
-    finally { setLoading(false); }
+    } catch (error) {
+      console.error('Failed to fetch record types:', error);
+    }
   };
 
   const calculateScore = (value: number, gender: 'M' | 'F', recordTypeId: number): number | null => {
@@ -139,20 +122,7 @@ export default function StudentsPage() {
     finally { setLoadingRecords(false); }
   };
 
-  useEffect(() => { fetchStudents(); }, []);
   useEffect(() => { if (selectedStudent) fetchStudentRecords(selectedStudent.id); }, [selectedStudent]);
-
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
-    let matchesFilter = false;
-    switch (statusFilter) {
-      case 'all': matchesFilter = true; break;
-      case 'trial': matchesFilter = student.is_trial; break;
-      case 'active': matchesFilter = student.status === 'active' && !student.is_trial; break;
-      default: matchesFilter = student.status === statusFilter;
-    }
-    return matchesSearch && matchesFilter;
-  });
 
   const getLatestRecordByType = (typeId: number) => {
     if (studentRecords.length === 0) return { value: null, trend: null };
@@ -200,43 +170,43 @@ export default function StudentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-12">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">학생 관리</h1>
-          <p className="text-slate-500 mt-2 text-sm">총 {students.length}명</p>
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">학생 관리</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">총 {statusCounts.all}명</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={syncStudents} disabled={syncing}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition disabled:opacity-50 text-sm font-medium">
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-800 dark:hover:bg-slate-600 transition disabled:opacity-50 text-sm font-medium">
             <Download size={18} className={syncing ? 'animate-spin' : ''} />
             <span>{syncing ? '동기화 중...' : 'P-ACA 동기화'}</span>
           </button>
           <button onClick={fetchStudents} disabled={loading}
-            className="flex items-center gap-2 px-4 py-2.5 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50">
+            className="flex items-center gap-2 px-4 py-2.5 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-8">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 mb-8">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              placeholder="이름 검색..." className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+              placeholder="이름 검색..." className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" />
           </div>
           <div className="flex gap-2 flex-wrap">
             <button onClick={() => setStatusFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${statusFilter === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${statusFilter === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}>
               전체 <span className="ml-1 opacity-80">{statusCounts.all}</span>
             </button>
             {Object.entries(STATUS_MAP).map(([key, value]) => (
               <button key={key} onClick={() => setStatusFilter(key)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${statusFilter === key ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${statusFilter === key ? 'bg-orange-500 text-white' : `bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600`}`}>
                 {value.label} <span className="ml-1 opacity-80">{statusCounts[key as keyof typeof statusCounts] ?? 0}</span>
               </button>
             ))}
             <button onClick={() => setStatusFilter('trial')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${statusFilter === 'trial' ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}>
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${statusFilter === 'trial' ? 'bg-purple-500 text-white' : 'bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/30'}`}>
               체험생 <span className="ml-1 opacity-80">{statusCounts.trial}</span>
             </button>
           </div>
@@ -248,17 +218,17 @@ export default function StudentsPage() {
         {/* Student List */}
         <div className={`${selectedStudent ? 'w-1/2' : 'w-full'} transition-all`}>
           {loading ? (
-            <div className="flex items-center justify-center h-64 bg-white rounded-xl border border-slate-200">
+            <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
               <RefreshCw size={32} className="animate-spin text-slate-400" />
             </div>
           ) : filteredStudents.length === 0 ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-16 text-center">
-              <Users size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500">학생이 없습니다.</p>
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-16 text-center">
+              <Users size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+              <p className="text-slate-500 dark:text-slate-400">학생이 없습니다.</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <div className="divide-y divide-slate-200">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="divide-y divide-slate-200 dark:divide-slate-700">
                 {filteredStudents.map(student => (
                   <StudentListItem key={student.id} student={student}
                     isSelected={selectedStudent?.id === student.id}
@@ -272,8 +242,8 @@ export default function StudentsPage() {
         {/* Student Detail */}
         {selectedStudent && (
           <div className="w-1/2">
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden sticky top-8">
-              <div className="bg-slate-900 p-8 text-white relative">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden sticky top-8">
+              <div className="bg-slate-900 dark:bg-slate-950 p-8 text-white relative">
                 <button onClick={() => setSelectedStudent(null)} className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-lg transition">
                   <X size={20} />
                 </button>
@@ -298,11 +268,11 @@ export default function StudentsPage() {
 
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-semibold text-slate-900 flex items-center gap-2 text-base">
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2 text-base">
                     <Activity size={18} /> 측정 종목 기록
                   </h3>
                   <button onClick={() => { setShowAddRecord(!showAddRecord); setRecordInputs({}); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${showAddRecord ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${showAddRecord ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600' : 'bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600'}`}>
                     {showAddRecord ? <X size={16} /> : <Plus size={16} />}
                     {showAddRecord ? '취소' : '기록 추가'}
                   </button>
