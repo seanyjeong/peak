@@ -343,10 +343,10 @@ export default function ExercisesPage() {
           </div>
 
           {/* Tag Filter Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedTagFilter('all')}
-              className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                 selectedTagFilter === 'all'
                   ? 'bg-orange-500 text-white'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
@@ -360,7 +360,7 @@ export default function ExercisesPage() {
                 <button
                   key={tag.tag_id}
                   onClick={() => setSelectedTagFilter(tag.tag_id)}
-                  className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                     selectedTagFilter === tag.tag_id
                       ? tag.color
                       : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
@@ -372,7 +372,7 @@ export default function ExercisesPage() {
             })}
             <button
               onClick={() => setSelectedTagFilter('no-tag')}
-              className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                 selectedTagFilter === 'no-tag'
                   ? 'bg-slate-500 text-white'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
