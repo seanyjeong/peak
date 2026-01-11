@@ -249,18 +249,18 @@ export default function ExercisesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Link href="/plans" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition">
+          <Link href="/plans" className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">운동 관리</h1>
-            <p className="text-slate-500 mt-1">수업에서 사용할 운동 목록</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">운동 관리</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">수업에서 사용할 운동 목록</p>
           </div>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           <span>새로고침</span>
@@ -268,11 +268,11 @@ export default function ExercisesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm mb-6">
+      <div className="flex gap-2 bg-white dark:bg-slate-800 rounded-lg p-1 shadow-sm mb-6">
         <button
           onClick={() => setActiveTab('list')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-            activeTab === 'list' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 hover:bg-slate-100'
+            activeTab === 'list' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
           }`}
         >
           <Dumbbell size={16} />
@@ -282,7 +282,7 @@ export default function ExercisesPage() {
           <button
             onClick={() => setActiveTab('tags')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              activeTab === 'tags' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 hover:bg-slate-100'
+              activeTab === 'tags' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
             <Tag size={16} />
@@ -293,7 +293,7 @@ export default function ExercisesPage() {
           <button
             onClick={() => setActiveTab('packs')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              activeTab === 'packs' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 hover:bg-slate-100'
+              activeTab === 'packs' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
             <Package size={16} />
@@ -303,7 +303,7 @@ export default function ExercisesPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-white rounded-2xl shadow-sm">
+        <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
           <RefreshCw size={32} className="animate-spin text-slate-400" />
         </div>
       ) : activeTab === 'list' ? (

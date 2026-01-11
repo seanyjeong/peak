@@ -255,13 +255,13 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">실기측정설정</h1>
-          <p className="text-slate-500 mt-1">종목 및 배점표 관리</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">실기측정설정</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">종목 및 배점표 관리</p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           <span>새로고침</span>
@@ -275,7 +275,7 @@ export default function SettingsPage() {
           className={`px-6 py-3 rounded-lg font-medium transition ${
             activeTab === 'types'
               ? 'bg-orange-500 text-white'
-              : 'bg-white text-slate-600 hover:bg-slate-50'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
           }`}
         >
           측정 종목
@@ -285,7 +285,7 @@ export default function SettingsPage() {
           className={`px-6 py-3 rounded-lg font-medium transition ${
             activeTab === 'scores'
               ? 'bg-orange-500 text-white'
-              : 'bg-white text-slate-600 hover:bg-slate-50'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
           }`}
         >
           배점표
@@ -293,7 +293,7 @@ export default function SettingsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-white rounded-2xl shadow-sm">
+        <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
           <RefreshCw size={32} className="animate-spin text-slate-400" />
         </div>
       ) : activeTab === 'types' ? (
@@ -314,42 +314,42 @@ export default function SettingsPage() {
 
           {/* Type Form */}
           {showTypeForm && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-800">
+                <h3 className="font-semibold text-slate-800 dark:text-slate-100">
                   {editingType ? '종목 수정' : '새 종목 추가'}
                 </h3>
-                <button onClick={() => setShowTypeForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                <button onClick={() => setShowTypeForm(false)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
                   <X size={20} />
                 </button>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">종목명</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">종목명</label>
                   <input
                     type="text"
                     value={typeForm.name}
                     onChange={e => setTypeForm({ ...typeForm, name: e.target.value })}
                     placeholder="제자리멀리뛰기"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">단위</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">단위</label>
                   <input
                     type="text"
                     value={typeForm.unit}
                     onChange={e => setTypeForm({ ...typeForm, unit: e.target.value })}
                     placeholder="cm, m, 초"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">방향</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">방향</label>
                   <select
                     value={typeForm.direction}
                     onChange={e => setTypeForm({ ...typeForm, direction: e.target.value as 'higher' | 'lower' })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                   >
                     <option value="higher">높을수록 좋음 ↑</option>
                     <option value="lower">낮을수록 좋음 ↓</option>
@@ -359,7 +359,7 @@ export default function SettingsPage() {
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   onClick={() => setShowTypeForm(false)}
-                  className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+                  className="px-4 py-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
                 >
                   취소
                 </button>
@@ -375,22 +375,22 @@ export default function SettingsPage() {
           )}
 
           {/* Types List */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
             <table className="w-full">
-              <thead className="bg-slate-50">
+              <thead className="bg-slate-50 dark:bg-slate-900">
                 <tr>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">종목명</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600">단위</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600">방향</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600">상태</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-600">관리</th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600 dark:text-slate-300">종목명</th>
+                  <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">단위</th>
+                  <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">방향</th>
+                  <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">상태</th>
+                  <th className="text-right py-3 px-4 font-medium text-slate-600 dark:text-slate-300">관리</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {recordTypes.map(type => (
                   <tr key={type.id} className={type.is_active ? '' : 'opacity-50'}>
-                    <td className="py-3 px-4 font-medium text-slate-800">{type.name}</td>
-                    <td className="py-3 px-4 text-center text-slate-600">{type.unit}</td>
+                    <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-100">{type.name}</td>
+                    <td className="py-3 px-4 text-center text-slate-600 dark:text-slate-300">{type.unit}</td>
                     <td className="py-3 px-4 text-center">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         type.direction === 'higher'
@@ -412,13 +412,13 @@ export default function SettingsPage() {
                     <td className="py-3 px-4 text-right">
                       <button
                         onClick={() => startEditType(type)}
-                        className="p-2 text-slate-400 hover:text-orange-500"
+                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-orange-500"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => toggleTypeActive(type)}
-                        className={`p-2 ${type.is_active ? 'text-green-500 hover:text-red-500' : 'text-slate-400 hover:text-green-500'}`}
+                        className={`p-2 ${type.is_active ? 'text-green-500 hover:text-red-500' : 'text-slate-400 dark:text-slate-500 hover:text-green-500'}`}
                         title={type.is_active ? '비활성화' : '활성화'}
                       >
                         {type.is_active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
@@ -446,21 +446,21 @@ export default function SettingsPage() {
 
           {/* Score Form */}
           {showScoreForm && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-800">배점표 생성</h3>
-                <button onClick={() => setShowScoreForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                <h3 className="font-semibold text-slate-800 dark:text-slate-100">배점표 생성</h3>
+                <button onClick={() => setShowScoreForm(false)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
                   <X size={20} />
                 </button>
               </div>
 
               {/* 종목 선택 */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 mb-1">종목 선택</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">종목 선택</label>
                 <select
                   value={selectedTypeForScore || ''}
                   onChange={e => setSelectedTypeForScore(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                 >
                   <option value="">선택하세요</option>
                   {typesWithoutScore.map(t => (

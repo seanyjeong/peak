@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind 4: class 기반 다크모드 활성화 */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f8fafc;
   --foreground: #1e293b;
@@ -15,9 +18,15 @@
   --peak-green: #22c55e;
 }
 
-/* Dark Mode */
+/* Dark Mode - class 기반 (.dark 클래스가 있을 때) */
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+}
+
+/* Dark Mode - 시스템 설정 fallback */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light) {
     --background: #0f172a;
     --foreground: #f1f5f9;
   }
@@ -55,17 +64,30 @@ body {
   background: #94a3b8;
 }
 
-/* Dark scrollbar */
+/* Dark scrollbar - class 기반 */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Dark scrollbar - 시스템 설정 fallback */
 @media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-track {
+  :root:not(.light) ::-webkit-scrollbar-track {
     background: #1e293b;
   }
 
-  ::-webkit-scrollbar-thumb {
+  :root:not(.light) ::-webkit-scrollbar-thumb {
     background: #475569;
   }
 
-  ::-webkit-scrollbar-thumb:hover {
+  :root:not(.light) ::-webkit-scrollbar-thumb:hover {
     background: #64748b;
   }
 }

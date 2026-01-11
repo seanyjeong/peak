@@ -314,30 +314,30 @@ export default function PlansPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">수업 계획</h1>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">수업 계획</h1>
           <div className="flex items-center gap-2 mt-2">
             <button
               onClick={() => changeDate(-1)}
-              className="p-1 text-slate-400 hover:text-slate-600"
+              className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
             >
               <ChevronLeft size={20} />
             </button>
             <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-slate-400" />
+              <Calendar size={16} className="text-slate-400 dark:text-slate-500" />
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-2 py-1 border border-slate-200 rounded text-sm"
+                className="px-2 py-1 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded text-sm"
               />
             </div>
             <button
               onClick={() => changeDate(1)}
-              className="p-1 text-slate-400 hover:text-slate-600"
+              className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
             >
               <ChevronRight size={20} />
             </button>
-            <span className="text-slate-500 text-sm ml-2">{formatDateDisplay(selectedDate)}</span>
+            <span className="text-slate-500 dark:text-slate-400 text-sm ml-2">{formatDateDisplay(selectedDate)}</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -364,7 +364,7 @@ export default function PlansPage() {
           )}
           <Link
             href="/exercises"
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+            className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
           >
             <Settings2 size={18} />
             <span>운동 관리</span>
@@ -372,7 +372,7 @@ export default function PlansPage() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -394,13 +394,13 @@ export default function PlansPage() {
               className={`flex items-center gap-2 px-4 py-3 rounded-lg transition ${
                 isActive
                   ? `${info.bgColor} ${info.color} ring-2 ring-offset-2`
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
+                  : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
               }`}
             >
               <Icon size={20} />
               <span className="font-medium">{info.label}</span>
               <span className={`px-2 py-0.5 rounded-full text-xs ${
-                isActive ? 'bg-white/50' : 'bg-slate-100'
+                isActive ? 'bg-white/50' : 'bg-slate-100 dark:bg-slate-700'
               }`}>
                 {stats.planned}/{stats.scheduled}
               </span>
@@ -411,25 +411,25 @@ export default function PlansPage() {
 
       {/* Add/Edit Form */}
       {showAddForm && (
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-slate-800">
+            <h2 className="font-semibold text-slate-800 dark:text-slate-100">
               {editingId ? '계획 수정' : `${TIME_SLOT_INFO[activeSlot].label} 수업 계획 작성`}
             </h2>
-            <button onClick={resetForm} className="p-2 text-slate-400 hover:text-slate-600">
+            <button onClick={resetForm} className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
               <X size={20} />
             </button>
           </div>
 
           {/* Instructor Select */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">강사</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">강사</label>
             {isOwner ? (
               <select
                 value={selectedInstructor || ''}
                 onChange={e => setSelectedInstructor(Number(e.target.value))}
                 disabled={!!editingId}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-slate-100"
+                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-slate-100 dark:disabled:bg-slate-700"
               >
                 <option value="">선택하세요</option>
                 {(editingId ? currentInstructors : instructorsWithoutPlan).map(i => (
@@ -437,7 +437,7 @@ export default function PlansPage() {
                 ))}
               </select>
             ) : (
-              <div className="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-700">
+              <div className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200">
                 {currentInstructors.find(i => i.id === selectedInstructor)?.name || currentUser?.name}
               </div>
             )}
@@ -445,7 +445,7 @@ export default function PlansPage() {
 
           {/* Tags */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
               <Tag size={16} className="inline mr-1" />
               훈련 태그 (운동 필터)
             </label>
@@ -456,8 +456,8 @@ export default function PlansPage() {
                   onClick={() => toggleTag(tag.id)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition border ${
                     selectedTags.includes(tag.id)
-                      ? tag.color + ' ring-2 ring-offset-1 ring-slate-300'
-                      : 'bg-slate-100 text-slate-500 border-transparent hover:bg-slate-200'
+                      ? tag.color + ' ring-2 ring-offset-1 ring-slate-300 dark:ring-slate-600'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-transparent hover:bg-slate-200 dark:hover:bg-slate-600'
                   }`}
                 >
                   {tag.label}
@@ -468,22 +468,22 @@ export default function PlansPage() {
 
           {/* Exercise Selection */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
               <Dumbbell size={16} className="inline mr-1" />
               운동 선택 {selectedTags.length > 0 && `(${filteredExercises.length}개)`}
             </label>
-            <div className="border border-slate-200 rounded-lg max-h-64 overflow-y-auto">
+            <div className="border border-slate-200 dark:border-slate-700 rounded-lg max-h-64 overflow-y-auto">
               {filteredExercises.length === 0 ? (
-                <div className="p-4 text-center text-slate-400 text-sm">
+                <div className="p-4 text-center text-slate-400 dark:text-slate-500 text-sm">
                   {selectedTags.length === 0 ? '태그를 선택하면 운동이 표시됩니다' : '해당 태그의 운동이 없습니다'}
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-100 dark:divide-slate-700">
                   {filteredExercises.map(ex => (
                     <div
                       key={ex.id}
                       className={`p-3 cursor-pointer transition ${
-                        isExerciseSelected(ex.id) ? 'bg-orange-50' : 'hover:bg-slate-50'
+                        isExerciseSelected(ex.id) ? 'bg-orange-50 dark:bg-orange-900' : 'hover:bg-slate-50 dark:hover:bg-slate-700'
                       }`}
                       onClick={() => toggleExercise(ex.id)}
                     >
@@ -492,18 +492,18 @@ export default function PlansPage() {
                           <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                             isExerciseSelected(ex.id)
                               ? 'bg-orange-500 border-orange-500 text-white'
-                              : 'border-slate-300'
+                              : 'border-slate-300 dark:border-slate-600'
                           }`}>
                             {isExerciseSelected(ex.id) && <Check size={14} />}
                           </div>
-                          <span className="font-medium text-slate-800">{ex.name}</span>
+                          <span className="font-medium text-slate-800 dark:text-slate-100">{ex.name}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           {ex.tags.map(t => <TagBadge key={t} tagId={t} small />)}
                         </div>
                       </div>
                       {ex.description && (
-                        <p className="text-xs text-slate-500 mt-1 ml-7">{ex.description}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 ml-7">{ex.description}</p>
                       )}
                     </div>
                   ))}
@@ -515,7 +515,7 @@ export default function PlansPage() {
           {/* Selected Exercises with Notes */}
           {selectedExercises.length > 0 && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
                 선택된 운동 ({selectedExercises.length}개)
               </label>
               <div className="space-y-2">
@@ -523,15 +523,15 @@ export default function PlansPage() {
                   const ex = exercises.find(e => e.id === sel.exercise_id);
                   if (!ex) return null;
                   return (
-                    <div key={sel.exercise_id} className="bg-orange-50 p-3 rounded-lg">
+                    <div key={sel.exercise_id} className="bg-orange-50 dark:bg-orange-900 p-3 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <button
                           onClick={() => toggleExercise(sel.exercise_id)}
-                          className="text-slate-400 hover:text-red-500"
+                          className="text-slate-400 dark:text-slate-500 hover:text-red-500"
                         >
                           <X size={16} />
                         </button>
-                        <span className="font-medium text-slate-700">{ex.name}</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-200">{ex.name}</span>
                       </div>
                       <div className="flex items-center gap-2 ml-6">
                         <input
@@ -540,25 +540,25 @@ export default function PlansPage() {
                           onChange={e => updateExerciseWeight(sel.exercise_id, e.target.value)}
                           onClick={e => e.stopPropagation()}
                           placeholder="무게/갯수"
-                          className="w-24 px-2 py-1.5 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-orange-500"
+                          className="w-24 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded focus:ring-1 focus:ring-orange-500"
                         />
-                        <span className="text-slate-400 text-sm">×</span>
+                        <span className="text-slate-400 dark:text-slate-500 text-sm">×</span>
                         <input
                           type="number"
                           value={sel.reps || ''}
                           onChange={e => updateExerciseReps(sel.exercise_id, e.target.value ? parseInt(e.target.value) : undefined)}
                           onClick={e => e.stopPropagation()}
                           placeholder="횟수"
-                          className="w-20 px-2 py-1.5 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-orange-500"
+                          className="w-20 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded focus:ring-1 focus:ring-orange-500"
                         />
-                        <span className="text-slate-400 text-sm">회</span>
+                        <span className="text-slate-400 dark:text-slate-500 text-sm">회</span>
                         <input
                           type="text"
                           value={sel.note}
                           onChange={e => updateExerciseNote(sel.exercise_id, e.target.value)}
                           onClick={e => e.stopPropagation()}
                           placeholder="세부사항..."
-                          className="flex-1 px-2 py-1.5 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-orange-500"
+                          className="flex-1 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded focus:ring-1 focus:ring-orange-500"
                         />
                       </div>
                     </div>
@@ -570,13 +570,13 @@ export default function PlansPage() {
 
           {/* Description */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">추가 메모</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">추가 메모</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={2}
               placeholder="수업 방향이나 주의사항..."
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 resize-none"
+              className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 resize-none"
             />
           </div>
 
@@ -584,7 +584,7 @@ export default function PlansPage() {
           <div className="flex justify-end gap-2">
             <button
               onClick={resetForm}
-              className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
             >
               취소
             </button>
@@ -600,30 +600,30 @@ export default function PlansPage() {
       )}
 
       {/* Plans List */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="font-semibold text-slate-800 dark:text-slate-100">
             {TIME_SLOT_INFO[activeSlot].label} 수업 계획 ({currentPlans.length}/{currentInstructors.length}명)
           </h2>
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-slate-400">
+          <div className="p-12 text-center text-slate-400 dark:text-slate-500">
             <RefreshCw size={32} className="animate-spin mx-auto mb-2" />
             <p>로딩 중...</p>
           </div>
         ) : currentInstructors.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">
+          <div className="p-12 text-center text-slate-400 dark:text-slate-500">
             <p>{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 강사가 없습니다.</p>
             <p className="text-sm mt-2">P-ACA에서 강사 스케줄을 등록하세요.</p>
           </div>
         ) : currentPlans.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">
+          <div className="p-12 text-center text-slate-400 dark:text-slate-500">
             <ClipboardList size={48} className="mx-auto mb-4" />
             <p>아직 작성된 수업 계획이 없습니다.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {currentPlans.map(plan => (
               <div key={plan.id} className="p-5">
                 {/* Plan Header */}
@@ -633,14 +633,14 @@ export default function PlansPage() {
                       {plan.instructor_name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-800">{plan.instructor_name}</p>
-                      <p className="text-sm text-slate-500">{plan.exercises?.length || 0}개 운동</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100">{plan.instructor_name}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{plan.exercises?.length || 0}개 운동</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id)}
-                      className="p-2 text-slate-400 hover:text-slate-600"
+                      className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                     >
                       {expandedPlanId === plan.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </button>
@@ -648,13 +648,13 @@ export default function PlansPage() {
                       <>
                         <button
                           onClick={() => startEdit(plan)}
-                          className="p-2 text-slate-400 hover:text-slate-600"
+                          className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                         >
                           <Edit2 size={18} />
                         </button>
                         <button
                           onClick={() => handleDelete(plan)}
-                          className="p-2 text-slate-400 hover:text-red-500"
+                          className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-500"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -677,13 +677,13 @@ export default function PlansPage() {
                       {plan.exercises.map((sel, idx) => (
                         <div key={idx} className="flex items-center gap-2 text-sm">
                           <Dumbbell size={14} className="text-orange-500 flex-shrink-0" />
-                          <span className="font-medium text-slate-700">{getExerciseName(sel.exercise_id)}</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-200">{getExerciseName(sel.exercise_id)}</span>
                           {(sel.weight || sel.reps) && (
                             <span className="text-orange-600 font-medium">
                               {sel.weight && sel.weight}{sel.weight && sel.reps && ' × '}{sel.reps && `${sel.reps}회`}
                             </span>
                           )}
-                          {sel.note && <span className="text-slate-500">- {sel.note}</span>}
+                          {sel.note && <span className="text-slate-500 dark:text-slate-400">- {sel.note}</span>}
                         </div>
                       ))}
                     </div>
@@ -692,7 +692,7 @@ export default function PlansPage() {
 
                 {/* Description */}
                 {plan.description && (
-                  <p className="text-slate-600 text-sm mt-3 pt-3 border-t border-slate-100">
+                  <p className="text-slate-600 dark:text-slate-300 text-sm mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
                     {plan.description}
                   </p>
                 )}
@@ -704,8 +704,8 @@ export default function PlansPage() {
 
       {/* Summary */}
       {currentInstructors.length > 0 && instructorsWithoutPlan.length > 0 && (
-        <div className="mt-6 bg-slate-50 rounded-xl p-4">
-          <p className="text-sm text-slate-500">
+        <div className="mt-6 bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             미작성: {instructorsWithoutPlan.map(i => i.name).join(', ')}
           </p>
         </div>

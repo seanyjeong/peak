@@ -74,16 +74,16 @@ function CompactStudentCard({ student, isDragging }: { student: Student; isDragg
 
   return (
     <div
-      className={`px-2 py-1.5 bg-white rounded-lg border shadow-sm cursor-grab active:cursor-grabbing transition ${
+      className={`px-2 py-1.5 bg-white dark:bg-slate-800 rounded-lg border shadow-sm cursor-grab active:cursor-grabbing transition ${
         isDragging ? 'opacity-50 border-orange-400 shadow-lg scale-105' : ''
-      } ${isAbsent ? 'opacity-60 border-red-200 bg-red-50' : 'hover:border-slate-300'}`}
+      } ${isAbsent ? 'opacity-60 border-red-200 bg-red-50 dark:bg-red-900' : 'hover:border-slate-300 dark:hover:border-slate-600'}`}
     >
       <div className="flex items-center gap-1.5">
         <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${genderColor}`}>
           {student.gender === 'M' ? '남' : '여'}
         </span>
         <span className={`font-medium text-sm truncate max-w-[70px] ${
-          isAbsent ? 'line-through text-slate-400' : 'text-slate-800'
+          isAbsent ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'
         }`}>
           {student.student_name}
         </span>
@@ -185,26 +185,26 @@ function WaitingArea({
   const { setNodeRef: setInstructorRef, isOver: isOverInstructors } = useDroppable({ id: 'waiting-instructors' });
 
   return (
-    <div className="bg-slate-50 rounded-xl p-4 mb-6">
+    <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 mb-6">
       <div className="grid grid-cols-2 gap-4">
         {/* 학생 대기 */}
         <div
           ref={setStudentRef}
-          className={`bg-white rounded-lg p-3 min-h-[80px] transition ${
-            isOverStudents ? 'ring-2 ring-blue-400 bg-blue-50' : ''
+          className={`bg-white dark:bg-slate-800 rounded-lg p-3 min-h-[80px] transition ${
+            isOverStudents ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900' : ''
           }`}
         >
-          <div className="flex items-center gap-2 mb-2 text-slate-600">
+          <div className="flex items-center gap-2 mb-2 text-slate-600 dark:text-slate-300">
             <Users size={16} />
             <span className="text-sm font-medium">학생 대기</span>
-            <span className="px-1.5 py-0.5 bg-slate-100 rounded text-xs">{waitingStudents.length}명</span>
+            <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-xs">{waitingStudents.length}명</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {waitingStudents.map((student) => (
               <DraggableStudent key={student.id} student={student} />
             ))}
             {waitingStudents.length === 0 && (
-              <span className="text-slate-400 text-sm">대기 중인 학생 없음</span>
+              <span className="text-slate-400 dark:text-slate-500 text-sm">대기 중인 학생 없음</span>
             )}
           </div>
         </div>
@@ -212,21 +212,21 @@ function WaitingArea({
         {/* 강사 대기 */}
         <div
           ref={setInstructorRef}
-          className={`bg-white rounded-lg p-3 min-h-[80px] transition ${
-            isOverInstructors ? 'ring-2 ring-orange-400 bg-orange-50' : ''
+          className={`bg-white dark:bg-slate-800 rounded-lg p-3 min-h-[80px] transition ${
+            isOverInstructors ? 'ring-2 ring-orange-400 bg-orange-50 dark:bg-orange-900' : ''
           }`}
         >
-          <div className="flex items-center gap-2 mb-2 text-slate-600">
+          <div className="flex items-center gap-2 mb-2 text-slate-600 dark:text-slate-300">
             <Users size={16} />
             <span className="text-sm font-medium">강사 대기</span>
-            <span className="px-1.5 py-0.5 bg-slate-100 rounded text-xs">{waitingInstructors.length}명</span>
+            <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-xs">{waitingInstructors.length}명</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {waitingInstructors.map((instructor) => (
               <DraggableInstructor key={instructor.id} instructor={instructor} />
             ))}
             {waitingInstructors.length === 0 && (
-              <span className="text-slate-400 text-sm">대기 중인 강사 없음</span>
+              <span className="text-slate-400 dark:text-slate-500 text-sm">대기 중인 강사 없음</span>
             )}
           </div>
         </div>
@@ -249,7 +249,7 @@ function ClassColumn({ classData }: { classData: ClassData }) {
   const className = mainInstructor ? `${mainInstructor.name}T` : `${classData.class_num}반`;
 
   return (
-    <div className="flex flex-col w-48 bg-white rounded-xl shadow-sm border overflow-hidden">
+    <div className="flex flex-col w-48 bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 overflow-hidden">
       {/* 헤더: 반 이름 */}
       <div className="bg-orange-500 text-white px-3 py-2">
         <div className="flex items-center justify-between gap-2">
@@ -263,8 +263,8 @@ function ClassColumn({ classData }: { classData: ClassData }) {
       {/* 강사 영역 */}
       <div
         ref={setInstructorRef}
-        className={`p-2 bg-orange-50 border-b min-h-[40px] transition ${
-          isOverInstructors ? 'ring-2 ring-inset ring-orange-400 bg-orange-100' : ''
+        className={`p-2 bg-orange-50 dark:bg-orange-900 border-b dark:border-slate-700 min-h-[40px] transition ${
+          isOverInstructors ? 'ring-2 ring-inset ring-orange-400 bg-orange-100 dark:bg-orange-800' : ''
         }`}
       >
         <div className="flex flex-wrap gap-1">
@@ -281,7 +281,7 @@ function ClassColumn({ classData }: { classData: ClassData }) {
       <div
         ref={setStudentRef}
         className={`flex-1 p-2 min-h-[120px] max-h-[300px] overflow-y-auto transition ${
-          isOverStudents ? 'ring-2 ring-inset ring-blue-400 bg-blue-50' : ''
+          isOverStudents ? 'ring-2 ring-inset ring-blue-400 bg-blue-50 dark:bg-blue-900' : ''
         }`}
       >
         <div className="space-y-1.5">
@@ -289,7 +289,7 @@ function ClassColumn({ classData }: { classData: ClassData }) {
             <DraggableStudent key={student.id} student={student} />
           ))}
           {classData.students.length === 0 && (
-            <div className="text-slate-400 text-xs text-center py-4">
+            <div className="text-slate-400 dark:text-slate-500 text-xs text-center py-4">
               학생을 드래그하세요
             </div>
           )}
@@ -308,15 +308,15 @@ function NewClassZone() {
       ref={setNodeRef}
       className={`flex flex-col items-center justify-center w-48 min-h-[200px] rounded-xl border-2 border-dashed transition ${
         isOver
-          ? 'border-orange-400 bg-orange-50'
-          : 'border-slate-300 bg-slate-50 hover:border-slate-400'
+          ? 'border-orange-400 bg-orange-50 dark:bg-orange-900'
+          : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500'
       }`}
     >
-      <Plus size={32} className={isOver ? 'text-orange-500' : 'text-slate-400'} />
-      <span className={`mt-2 text-sm font-medium ${isOver ? 'text-orange-600' : 'text-slate-500'}`}>
+      <Plus size={32} className={isOver ? 'text-orange-500' : 'text-slate-400 dark:text-slate-500'} />
+      <span className={`mt-2 text-sm font-medium ${isOver ? 'text-orange-600' : 'text-slate-500 dark:text-slate-400'}`}>
         새 반 생성
       </span>
-      <span className="text-xs text-slate-400 mt-1">강사를 드롭하세요</span>
+      <span className="text-xs text-slate-400 dark:text-slate-500 mt-1">강사를 드롭하세요</span>
     </div>
   );
 }
@@ -510,27 +510,27 @@ export default function AssignmentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">반 배치</h1>
-          <p className="text-slate-500 mt-1">{formatDateKorean(selectedDate)}</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">반 배치</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">{formatDateKorean(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-200">
-            <Calendar size={18} className="text-slate-400" />
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+            <Calendar size={18} className="text-slate-400 dark:text-slate-500" />
             <input
               type="date"
               value={selectedDate}
               onChange={e => setSelectedDate(e.target.value)}
-              className="border-none focus:ring-0 text-slate-700"
+              className="border-none focus:ring-0 text-slate-700 dark:text-slate-200 dark:bg-slate-800"
             />
           </div>
-          <div className="px-4 py-2 bg-white rounded-lg shadow-sm">
-            <span className="text-slate-500 text-sm">배정</span>
+          <div className="px-4 py-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+            <span className="text-slate-500 dark:text-slate-400 text-sm">배정</span>
             <span className="ml-2 font-bold text-orange-500">{assignedStudents}/{totalStudents}명</span>
           </div>
           <button
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -551,12 +551,12 @@ export default function AssignmentsPage() {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
                 isActive
                   ? `${info.bgColor} ${info.color} ring-2 ring-offset-1`
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
+                  : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
               }`}
             >
               <span className="font-medium">{info.label}</span>
               <span className={`px-2 py-0.5 rounded-full text-xs ${
-                isActive ? 'bg-white/50' : 'bg-slate-100'
+                isActive ? 'bg-white/50' : 'bg-slate-100 dark:bg-slate-700'
               }`}>
                 {count}명
               </span>
@@ -607,7 +607,7 @@ export default function AssignmentsPage() {
       )}
 
       {/* 범례 */}
-      <div className="mt-6 flex items-center gap-6 text-sm text-slate-500">
+      <div className="mt-6 flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-2">
           <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">남</span>
           <span>남학생</span>

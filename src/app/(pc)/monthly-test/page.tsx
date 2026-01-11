@@ -180,7 +180,7 @@ export default function MonthlyTestListPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">월말테스트</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">월말테스트</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setShowSlugModal(true)}>
             ⚙️ 전광판 설정
@@ -203,7 +203,7 @@ export default function MonthlyTestListPage() {
       </div>
 
       {tests.length === 0 ? (
-        <Card className="p-8 text-center text-gray-500">
+        <Card className="p-8 text-center text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800">
           <p className="mb-4">아직 등록된 월말테스트가 없습니다.</p>
           <Button onClick={() => setShowCreateModal(true)}>
             첫 테스트 만들기

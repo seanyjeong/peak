@@ -444,24 +444,24 @@ export default function TrainingPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">수업 기록</h1>
-          <p className="text-slate-500 mt-1">{formatDateKorean(selectedDate)}</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">수업 기록</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">{formatDateKorean(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-3">
           {/* 날짜 선택 */}
-          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-200">
-            <Calendar size={18} className="text-slate-400" />
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+            <Calendar size={18} className="text-slate-400 dark:text-slate-500" />
             <input
               type="date"
               value={selectedDate}
               onChange={e => setSelectedDate(e.target.value)}
-              className="border-none focus:ring-0 text-slate-700"
+              className="border-none focus:ring-0 text-slate-700 dark:text-slate-200 dark:bg-slate-800"
             />
           </div>
           <button
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -473,10 +473,10 @@ export default function TrainingPage() {
           <RefreshCw size={32} className="animate-spin text-slate-400" />
         </div>
       ) : availableSlots.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-          <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500">해당 날짜에 배정된 학생이 없습니다.</p>
-          <p className="text-slate-400 text-sm mt-1">반 배치 페이지에서 학생을 배치해주세요.</p>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
+          <AlertCircle size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+          <p className="text-slate-500 dark:text-slate-400">해당 날짜에 배정된 학생이 없습니다.</p>
+          <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">반 배치 페이지에서 학생을 배치해주세요.</p>
         </div>
       ) : (
         <>
@@ -487,7 +487,7 @@ export default function TrainingPage() {
                 key={slot}
                 onClick={() => { setSelectedSlot(slot); if (isAdmin) setSelectedInstructorId(null); }}
                 className={`px-4 py-2 rounded-lg font-medium transition ${
-                  selectedSlot === slot ? 'bg-orange-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  selectedSlot === slot ? 'bg-orange-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
               >
                 {SLOT_LABELS[slot]}
@@ -497,11 +497,11 @@ export default function TrainingPage() {
 
           {/* 강사 선택 (관리자용) */}
           {isAdmin && selectedSlot && currentInstructors.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-4">
               <select
                 value={selectedInstructorId || ''}
                 onChange={e => setSelectedInstructorId(Number(e.target.value) || null)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg"
               >
                 <option value="">전체 보기</option>
                 {currentInstructors.map(inst => (
@@ -515,22 +515,22 @@ export default function TrainingPage() {
 
           {/* 강사가 스케줄되지 않은 경우 (일반 강사만) */}
           {!isAdmin && !selectedInstructorId ? (
-            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-              <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500">해당 시간대에 배정된 반이 없습니다.</p>
-              <p className="text-slate-400 text-sm mt-1">반 배치 페이지에서 반에 배정되어야 합니다.</p>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
+              <AlertCircle size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+              <p className="text-slate-500 dark:text-slate-400">해당 시간대에 배정된 반이 없습니다.</p>
+              <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">반 배치 페이지에서 반에 배정되어야 합니다.</p>
             </div>
           ) : myStudents.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
               <AlertCircle size={48} className="mx-auto text-orange-400 mb-4" />
-              <p className="text-slate-600 font-medium">배정된 학생이 없습니다</p>
-              <p className="text-slate-400 text-sm mt-1">반 배치 페이지에서 학생을 배치해주세요</p>
+              <p className="text-slate-600 dark:text-slate-300 font-medium">배정된 학생이 없습니다</p>
+              <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">반 배치 페이지에서 학생을 배치해주세요</p>
             </div>
           ) : (
             <div className="space-y-4">
               {/* 체크리스트 - 수업 계획이 있을 때만 표시 */}
               {currentPlan ? (
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
                   <h2 className="text-white font-bold flex items-center gap-2">
                     <ClipboardList size={20} />
@@ -538,20 +538,20 @@ export default function TrainingPage() {
                   </h2>
                 </div>
 
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-100 dark:divide-slate-700">
                   {/* 온습도 체크 (첫 번째 항목) */}
                   <div
-                    className={`p-4 cursor-pointer transition ${currentPlan.conditions_checked ? 'bg-green-50' : 'hover:bg-slate-50'}`}
+                    className={`p-4 cursor-pointer transition ${currentPlan.conditions_checked ? 'bg-green-50 dark:bg-green-900' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                     onClick={() => toggleConditions(!currentPlan.conditions_checked)}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
-                        currentPlan.conditions_checked ? 'bg-green-500 border-green-500' : 'border-slate-300'
+                        currentPlan.conditions_checked ? 'bg-green-500 border-green-500' : 'border-slate-300 dark:border-slate-600'
                       }`}>
                         {currentPlan.conditions_checked && <Check size={14} className="text-white" />}
                       </div>
                       <div className="flex-1">
-                        <span className={`font-medium ${currentPlan.conditions_checked ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                        <span className={`font-medium ${currentPlan.conditions_checked ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
                           체육관 환경 체크
                         </span>
                         {currentPlan.conditions_checked && currentPlan.conditions_checked_at && (
@@ -572,9 +572,9 @@ export default function TrainingPage() {
                           onChange={e => setTemperature(e.target.value)}
                           onBlur={saveConditions}
                           placeholder="온도"
-                          className="w-20 px-2 py-1 border border-slate-200 rounded text-sm"
+                          className="w-20 px-2 py-1 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded text-sm"
                         />
-                        <span className="text-slate-500 text-sm">°C</span>
+                        <span className="text-slate-500 dark:text-slate-400 text-sm">°C</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Droplets size={16} className="text-blue-500" />
@@ -584,9 +584,9 @@ export default function TrainingPage() {
                           onChange={e => setHumidity(e.target.value)}
                           onBlur={saveConditions}
                           placeholder="습도"
-                          className="w-20 px-2 py-1 border border-slate-200 rounded text-sm"
+                          className="w-20 px-2 py-1 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded text-sm"
                         />
-                        <span className="text-slate-500 text-sm">%</span>
+                        <span className="text-slate-500 dark:text-slate-400 text-sm">%</span>
                       </div>
                     </div>
                   </div>
@@ -599,26 +599,26 @@ export default function TrainingPage() {
                     return (
                       <div
                         key={exId || Math.random()}
-                        className={`p-4 cursor-pointer transition ${isCompleted ? 'bg-green-50' : 'hover:bg-slate-50'}`}
+                        className={`p-4 cursor-pointer transition ${isCompleted ? 'bg-green-50 dark:bg-green-900' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                         onClick={() => exId && toggleExercise(exId)}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
-                            isCompleted ? 'bg-green-500 border-green-500' : 'border-slate-300'
+                            isCompleted ? 'bg-green-500 border-green-500' : 'border-slate-300 dark:border-slate-600'
                           }`}>
                             {isCompleted && <Check size={14} className="text-white" />}
                           </div>
                           <div className="flex-1">
-                            <span className={`font-medium ${isCompleted ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                            <span className={`font-medium ${isCompleted ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
                               {getExerciseName(ex)}
                             </span>
                             {(ex.weight || ex.reps) && (
-                              <span className={`ml-2 font-medium ${isCompleted ? 'text-slate-300' : 'text-orange-600'}`}>
+                              <span className={`ml-2 font-medium ${isCompleted ? 'text-slate-300 dark:text-slate-600' : 'text-orange-600'}`}>
                                 {ex.weight && ex.weight}{ex.weight && ex.reps && ' × '}{ex.reps && `${ex.reps}회`}
                               </span>
                             )}
                             {ex.note && (
-                              <span className={`ml-2 text-sm ${isCompleted ? 'text-slate-300' : 'text-slate-500'}`}>
+                              <span className={`ml-2 text-sm ${isCompleted ? 'text-slate-300 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'}`}>
                                 ({ex.note})
                               </span>
                             )}
@@ -637,21 +637,21 @@ export default function TrainingPage() {
                   {currentPlan.extra_exercises.map((ex, idx) => (
                     <div
                       key={`extra-${idx}`}
-                      className={`p-4 cursor-pointer transition ${ex.completed ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
+                      className={`p-4 cursor-pointer transition ${ex.completed ? 'bg-blue-50 dark:bg-blue-900' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                       onClick={() => toggleExtraExercise(idx)}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
-                          ex.completed ? 'bg-blue-500 border-blue-500' : 'border-blue-300'
+                          ex.completed ? 'bg-blue-500 border-blue-500' : 'border-blue-300 dark:border-blue-600'
                         }`}>
                           {ex.completed && <Check size={14} className="text-white" />}
                         </div>
                         <div className="flex-1">
-                          <span className={`font-medium ${ex.completed ? 'line-through text-slate-400' : 'text-blue-700'}`}>
+                          <span className={`font-medium ${ex.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-blue-700 dark:text-blue-400'}`}>
                             {ex.name}
                           </span>
                           {ex.note && (
-                            <span className={`ml-2 text-sm ${ex.completed ? 'text-slate-300' : 'text-slate-500'}`}>
+                            <span className={`ml-2 text-sm ${ex.completed ? 'text-slate-300 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'}`}>
                               ({ex.note})
                             </span>
                           )}
@@ -671,12 +671,12 @@ export default function TrainingPage() {
                             value={newExerciseName}
                             onChange={e => setNewExerciseName(e.target.value)}
                             placeholder="운동 이름"
-                            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                            className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg text-sm"
                             autoFocus
                           />
                           <button
                             onClick={() => { setShowAddExercise(false); setNewExerciseName(''); setNewExerciseNote(''); }}
-                            className="p-2 text-slate-400 hover:text-slate-600"
+                            className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                           >
                             <X size={18} />
                           </button>
@@ -688,7 +688,7 @@ export default function TrainingPage() {
                             onChange={e => setNewExerciseNote(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && addExtraExercise()}
                             placeholder="메모 (선택)"
-                            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                            className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg text-sm"
                           />
                           <button
                             onClick={addExtraExercise}
@@ -712,33 +712,33 @@ export default function TrainingPage() {
               </div>
               ) : (
                 /* 수업 계획 없을 때 안내 (원장/관리자는 학생 컨디션은 볼 수 있음) */
-                <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
-                  <ClipboardList size={32} className="mx-auto text-slate-300 mb-3" />
-                  <p className="text-slate-500 text-sm">수업 계획이 없습니다.</p>
-                  <p className="text-slate-400 text-xs mt-1">수업 계획 페이지에서 계획을 작성하면 체크리스트가 표시됩니다.</p>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 text-center">
+                  <ClipboardList size={32} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">수업 계획이 없습니다.</p>
+                  <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">수업 계획 페이지에서 계획을 작성하면 체크리스트가 표시됩니다.</p>
                 </div>
               )}
 
               {/* 학생 컨디션 */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                <div className="bg-slate-100 px-6 py-4">
-                  <h2 className="font-bold text-slate-800 flex items-center gap-2">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
+                <div className="bg-slate-100 dark:bg-slate-900 px-6 py-4">
+                  <h2 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                     <User size={20} />
                     학생 컨디션 ({myStudents.length}명)
                   </h2>
                 </div>
 
                 {myStudents.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400">
+                  <div className="p-8 text-center text-slate-400 dark:text-slate-500">
                     <p>배정된 학생이 없습니다.</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-slate-100 dark:divide-slate-700">
                     {myStudents.map(student => {
                       const log = getStudentLog(student.student_id);
                       const isAbsent = student.attendance_status === 'absent';
                       return (
-                        <div key={student.id} className={`p-4 ${isAbsent ? 'bg-red-50 opacity-60' : ''}`}>
+                        <div key={student.id} className={`p-4 ${isAbsent ? 'bg-red-50 dark:bg-red-900 opacity-60' : ''}`}>
                           <div className="flex items-center gap-3 mb-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                               isAbsent ? 'bg-red-100 text-red-600' :
@@ -747,7 +747,7 @@ export default function TrainingPage() {
                               <User size={16} />
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className={`font-medium ${isAbsent ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                              <span className={`font-medium ${isAbsent ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
                                 {student.student_name}
                               </span>
                               {isAbsent && (
@@ -772,7 +772,7 @@ export default function TrainingPage() {
 
                           {isAbsent ? (
                             /* 결석 학생 - 컨디션 체크 비활성화 */
-                            <div className="text-center py-4 text-slate-400 text-sm">
+                            <div className="text-center py-4 text-slate-400 dark:text-slate-500 text-sm">
                               {student.absence_reason ? `사유: ${student.absence_reason}` : '결석한 학생입니다'}
                             </div>
                           ) : (
@@ -787,7 +787,7 @@ export default function TrainingPage() {
                                       key={option.score}
                                       onClick={() => saveCondition(student.student_id, isSelected ? null : option.score)}
                                       className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg border transition ${
-                                        isSelected ? option.color : 'border-slate-200 text-slate-400 hover:border-slate-300'
+                                        isSelected ? option.color : 'border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
                                       }`}
                                     >
                                       <Icon size={18} />
@@ -803,7 +803,7 @@ export default function TrainingPage() {
                                 defaultValue={log?.notes || ''}
                                 onBlur={e => saveNotes(student.student_id, e.target.value)}
                                 placeholder="메모..."
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg text-sm"
                               />
                             </>
                           )}

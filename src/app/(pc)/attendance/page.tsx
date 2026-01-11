@@ -93,13 +93,13 @@ export default function AttendancePage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">출근 체크</h1>
-          <p className="text-slate-500 mt-1">{today}</p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">출근 체크</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">{today}</p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           <span>새로고침</span>
@@ -107,20 +107,20 @@ export default function AttendancePage() {
       </div>
 
       {/* Stats */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 mb-6">
         <div className="flex items-center gap-6">
-          <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center">
+          <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
             <UserCheck size={36} className="text-orange-500" />
           </div>
           <div>
-            <p className="text-4xl font-bold text-slate-800">
+            <p className="text-4xl font-bold text-slate-800 dark:text-slate-100">
               {stats.checkedIn}
-              <span className="text-slate-400 text-2xl">/{stats.uniqueInstructors}</span>
+              <span className="text-slate-400 dark:text-slate-500 text-2xl">/{stats.uniqueInstructors}</span>
             </p>
-            <p className="text-slate-500 mt-1">강사 출근</p>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">강사 출근</p>
           </div>
           <div className="ml-auto text-right">
-            <p className="text-sm text-slate-500">출근률</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">출근률</p>
             <p className="text-2xl font-bold text-orange-500">
               {stats.uniqueInstructors > 0 ? Math.round((stats.checkedIn / stats.uniqueInstructors) * 100) : 0}%
             </p>
@@ -144,13 +144,13 @@ export default function AttendancePage() {
               className={`flex items-center gap-2 px-4 py-3 rounded-lg transition ${
                 isActive
                   ? `${info.bgColor} ${info.color} ring-2 ring-offset-2`
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
+                  : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
               }`}
             >
               <Icon size={20} />
               <span className="font-medium">{info.label}</span>
               <span className={`px-2 py-0.5 rounded-full text-xs ${
-                isActive ? 'bg-white/50' : 'bg-slate-100'
+                isActive ? 'bg-white/50' : 'bg-slate-100 dark:bg-slate-700'
               }`}>
                 {checkedIn}/{count}
               </span>
@@ -160,25 +160,25 @@ export default function AttendancePage() {
       </div>
 
       {/* Instructor List */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="font-semibold text-slate-800 dark:text-slate-100">
             {TIME_SLOT_INFO[activeSlot].label} 강사 ({currentInstructors.length}명)
           </h2>
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-slate-400">
+          <div className="p-12 text-center text-slate-400 dark:text-slate-500">
             <RefreshCw size={32} className="animate-spin mx-auto mb-2" />
             <p>로딩 중...</p>
           </div>
         ) : currentInstructors.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">
+          <div className="p-12 text-center text-slate-400 dark:text-slate-500">
             <p>{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 강사가 없습니다.</p>
             <p className="text-sm mt-2">P-ACA에서 강사 스케줄을 등록하세요.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {currentInstructors.map((instructor) => {
               const status = STATUS_INFO[instructor.attendance_status] || STATUS_INFO.scheduled;
               const isPresent = instructor.attendance_status === 'present';
@@ -187,20 +187,20 @@ export default function AttendancePage() {
                 <div
                   key={`${instructor.id}-${instructor.time_slot}`}
                   className={`flex items-center justify-between p-5 transition ${
-                    isPresent ? 'bg-green-50' : 'hover:bg-slate-50'
+                    isPresent ? 'bg-green-50 dark:bg-green-900' : 'hover:bg-slate-50 dark:hover:bg-slate-700'
                   }`}
                 >
                   <div className="flex items-center gap-4">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-medium ${
-                        isPresent ? 'bg-green-500' : 'bg-slate-300'
+                        isPresent ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'
                       }`}
                     >
                       {instructor.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">{instructor.name}</p>
-                      <p className="text-sm text-slate-500">
+                      <p className="font-medium text-slate-800 dark:text-slate-100">{instructor.name}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {TIME_SLOT_INFO[instructor.time_slot].label} 근무
                       </p>
                     </div>
@@ -208,7 +208,7 @@ export default function AttendancePage() {
 
                   <div className="flex items-center gap-3">
                     {instructor.check_in_time && (
-                      <div className="flex items-center gap-2 text-slate-600">
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                         <Clock size={16} />
                         <span className="text-sm">{instructor.check_in_time.slice(0, 5)}</span>
                       </div>
@@ -225,7 +225,7 @@ export default function AttendancePage() {
       </div>
 
       {/* Info Banner */}
-      <div className="mt-6 bg-slate-100 rounded-xl p-4 text-sm text-slate-600">
+      <div className="mt-6 bg-slate-100 dark:bg-slate-800 rounded-xl p-4 text-sm text-slate-600 dark:text-slate-300">
         <p>출근 체크는 P-ACA에서 관리됩니다. 출근 상태 변경은 P-ACA에서 진행해주세요.</p>
       </div>
     </div>
