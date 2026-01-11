@@ -7,14 +7,17 @@ const router = express.Router();
 const db = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
 
-// GET /peak/exercise-tags - 태그 목록
+// GET /peak/exercise-tags - 태그 목록 (자기 학원 + 시스템 기본 태그)
 router.get('/', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
+        const SYSTEM_ACADEMY_ID = 2; // 시스템 기본 태그가 있는 학원
 
         const [tags] = await db.query(
-            'SELECT * FROM exercise_tags WHERE academy_id = ? AND is_active = TRUE ORDER BY display_order, id',
-            [academyId]
+            `SELECT * FROM exercise_tags
+             WHERE (academy_id = ? OR academy_id = ?) AND is_active = TRUE
+             ORDER BY display_order, id`,
+            [academyId, SYSTEM_ACADEMY_ID]
         );
         res.json({ success: true, tags });
     } catch (error) {

@@ -7,19 +7,20 @@ const router = express.Router();
 const db = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
 
-// GET /peak/exercises - 운동 목록 (태그 필터 가능)
+// GET /peak/exercises - 운동 목록 (자기 학원 + 시스템 운동, 태그 필터 가능)
 router.get('/', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
+        const SYSTEM_ACADEMY_ID = 2; // 시스템 기본 운동이 있는 학원
         const { tag } = req.query;
 
-        let query = 'SELECT * FROM exercises WHERE academy_id = ? ORDER BY name';
-        let params = [academyId];
+        let query = 'SELECT * FROM exercises WHERE (academy_id = ? OR academy_id = ?) ORDER BY name';
+        let params = [academyId, SYSTEM_ACADEMY_ID];
 
         if (tag) {
             // JSON 배열에서 태그 검색
-            query = `SELECT * FROM exercises WHERE academy_id = ? AND JSON_CONTAINS(tags, ?) ORDER BY name`;
-            params = [academyId, JSON.stringify(tag)];
+            query = `SELECT * FROM exercises WHERE (academy_id = ? OR academy_id = ?) AND JSON_CONTAINS(tags, ?) ORDER BY name`;
+            params = [academyId, SYSTEM_ACADEMY_ID, JSON.stringify(tag)];
         }
 
         const [exercises] = await db.query(query, params);
