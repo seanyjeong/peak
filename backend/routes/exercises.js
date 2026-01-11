@@ -66,16 +66,16 @@ router.get('/:id', verifyToken, async (req, res) => {
 router.post('/', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-        const { name, tags = [], default_sets, default_reps, description } = req.body;
+        const { name, tags = [], default_sets, default_reps, description, video_url } = req.body;
 
         if (!name) {
             return res.status(400).json({ error: 'Name is required' });
         }
 
         const [result] = await db.query(
-            `INSERT INTO exercises (academy_id, name, tags, default_sets, default_reps, description)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [academyId, name, JSON.stringify(tags), default_sets || null, default_reps || null, description || null]
+            `INSERT INTO exercises (academy_id, name, tags, default_sets, default_reps, description, video_url)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [academyId, name, JSON.stringify(tags), default_sets || null, default_reps || null, description || null, video_url || null]
         );
 
         res.status(201).json({
@@ -92,13 +92,13 @@ router.post('/', verifyToken, async (req, res) => {
 router.put('/:id', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-        const { name, tags, default_sets, default_reps, description } = req.body;
+        const { name, tags, default_sets, default_reps, description, video_url } = req.body;
 
         await db.query(
             `UPDATE exercises
-             SET name = ?, tags = ?, default_sets = ?, default_reps = ?, description = ?
+             SET name = ?, tags = ?, default_sets = ?, default_reps = ?, description = ?, video_url = ?
              WHERE id = ? AND academy_id = ?`,
-            [name, JSON.stringify(tags), default_sets || null, default_reps || null, description || null, req.params.id, academyId]
+            [name, JSON.stringify(tags), default_sets || null, default_reps || null, description || null, video_url || null, req.params.id, academyId]
         );
 
         res.json({ success: true });

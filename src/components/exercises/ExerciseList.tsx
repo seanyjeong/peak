@@ -1,6 +1,6 @@
 'use client';
 
-import { Dumbbell, Edit2, Trash2 } from 'lucide-react';
+import { Dumbbell, Edit2, Trash2, Video } from 'lucide-react';
 import { Exercise, ExerciseTag } from './types';
 
 interface ExerciseListProps {
@@ -59,6 +59,17 @@ export function ExerciseList({ exercises, tags, onEdit, onDelete }: ExerciseList
                 )}
               </div>
               <div className="flex items-center gap-1">
+                {exercise.video_url && (
+                  <a
+                    href={exercise.video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-slate-400 hover:text-blue-500 dark:text-slate-500 dark:hover:text-blue-400"
+                    title="영상 보기"
+                  >
+                    <Video size={16} />
+                  </a>
+                )}
                 <button
                   onClick={() => onEdit(exercise)}
                   className="p-2 text-slate-400 hover:text-orange-500 dark:text-slate-500 dark:hover:text-orange-400"

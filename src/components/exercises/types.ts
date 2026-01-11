@@ -5,6 +5,7 @@ export interface Exercise {
   default_sets: number | null;
   default_reps: number | null;
   description: string | null;
+  video_url?: string | null;
 }
 
 export interface ExerciseTag {
@@ -33,6 +34,7 @@ export interface ExerciseFormData {
   default_sets: string;
   default_reps: string;
   description: string;
+  video_url: string;
 }
 
 export interface TagFormData {

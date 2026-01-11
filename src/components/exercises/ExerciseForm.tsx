@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Save } from 'lucide-react';
+import { X, Save, Video } from 'lucide-react';
 import { Exercise, ExerciseTag, ExerciseFormData } from './types';
 
 interface ExerciseFormProps {
@@ -105,6 +105,21 @@ export function ExerciseForm({
             rows={2}
             className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-orange-500"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
+            <Video size={14} />
+            영상 링크 (선택)
+          </label>
+          <input
+            type="url"
+            value={form.video_url}
+            onChange={e => setForm({ ...form, video_url: e.target.value })}
+            placeholder="https://youtube.com/watch?v=..."
+            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-orange-500"
+          />
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">유튜브, 네이버TV, 비메오 등 모든 영상 링크 가능</p>
         </div>
       </div>
 

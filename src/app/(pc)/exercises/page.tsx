@@ -35,7 +35,7 @@ export default function ExercisesPage() {
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [exerciseForm, setExerciseForm] = useState<ExerciseFormData>({
-    name: '', tags: [], default_sets: '', default_reps: '', description: ''
+    name: '', tags: [], default_sets: '', default_reps: '', description: '', video_url: ''
   });
 
   // 태그 관리 상태
@@ -83,7 +83,8 @@ export default function ExercisesPage() {
         tags: exerciseForm.tags,
         default_sets: exerciseForm.default_sets ? parseInt(exerciseForm.default_sets) : null,
         default_reps: exerciseForm.default_reps ? parseInt(exerciseForm.default_reps) : null,
-        description: exerciseForm.description || null
+        description: exerciseForm.description || null,
+        video_url: exerciseForm.video_url || null
       };
       if (editingExercise) {
         await apiClient.put(`/exercises/${editingExercise.id}`, payload);
@@ -92,7 +93,7 @@ export default function ExercisesPage() {
       }
       setShowExerciseForm(false);
       setEditingExercise(null);
-      setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '' });
+      setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '', video_url: '' });
       fetchData();
     } catch (error) {
       console.error('Failed to save exercise:', error);
@@ -117,7 +118,8 @@ export default function ExercisesPage() {
       tags: exercise.tags,
       default_sets: exercise.default_sets?.toString() || '',
       default_reps: exercise.default_reps?.toString() || '',
-      description: exercise.description || ''
+      description: exercise.description || '',
+      video_url: exercise.video_url || ''
     });
     setShowExerciseForm(true);
   };
@@ -240,7 +242,7 @@ export default function ExercisesPage() {
 
   const openNewExerciseForm = () => {
     setEditingExercise(null);
-    setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '' });
+    setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '', video_url: '' });
     setShowExerciseForm(true);
   };
 

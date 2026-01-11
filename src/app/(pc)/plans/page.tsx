@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight, Settings2, Trash2 } from 'lucide-react';
+import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight, Settings2, Trash2, Video } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 import { authAPI, User } from '@/lib/api/auth';
@@ -28,6 +28,7 @@ interface Exercise {
   default_sets: number | null;
   default_reps: number | null;
   description: string | null;
+  video_url?: string | null;
 }
 
 interface SelectedExercise {
@@ -532,6 +533,18 @@ export default function PlansPage() {
                           <X size={16} />
                         </button>
                         <span className="font-medium text-slate-700 dark:text-slate-200">{ex.name}</span>
+                        {ex.video_url && (
+                          <a
+                            href={ex.video_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="p-1 text-blue-500 hover:text-blue-600"
+                            title="영상 보기"
+                          >
+                            <Video size={14} />
+                          </a>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 ml-6">
                         <input

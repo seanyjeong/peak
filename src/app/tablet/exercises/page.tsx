@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Dumbbell, Plus, Edit2, Trash2, Save, X, RefreshCw, Tag, Package, Download, Upload, ArrowLeft } from 'lucide-react';
+import { Dumbbell, Plus, Edit2, Trash2, Save, X, RefreshCw, Tag, Package, Download, Upload, ArrowLeft, Video } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 import { authAPI } from '@/lib/api/auth';
@@ -14,6 +14,7 @@ interface Exercise {
   default_sets: number | null;
   default_reps: number | null;
   description: string | null;
+  video_url?: string | null;
 }
 
 interface ExerciseTag {
@@ -60,8 +61,8 @@ export default function TabletExercisesPage() {
 
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
-  const [exerciseForm, setExerciseForm] = useState<{ name: string; tags: string[]; default_sets: string; default_reps: string; description: string }>({
-    name: '', tags: [], default_sets: '', default_reps: '', description: ''
+  const [exerciseForm, setExerciseForm] = useState<{ name: string; tags: string[]; default_sets: string; default_reps: string; description: string; video_url: string }>({
+    name: '', tags: [], default_sets: '', default_reps: '', description: '', video_url: ''
   });
 
   const [showTagForm, setShowTagForm] = useState(false);
@@ -106,7 +107,8 @@ export default function TabletExercisesPage() {
         tags: exerciseForm.tags,
         default_sets: exerciseForm.default_sets ? parseInt(exerciseForm.default_sets) : null,
         default_reps: exerciseForm.default_reps ? parseInt(exerciseForm.default_reps) : null,
-        description: exerciseForm.description || null
+        description: exerciseForm.description || null,
+        video_url: exerciseForm.video_url || null
       };
 
       if (editingExercise) {
@@ -116,7 +118,7 @@ export default function TabletExercisesPage() {
       }
       setShowExerciseForm(false);
       setEditingExercise(null);
-      setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '' });
+      setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '', video_url: '' });
       fetchData();
     } catch (error) {
       console.error('Failed to save exercise:', error);
@@ -141,7 +143,8 @@ export default function TabletExercisesPage() {
       tags: exercise.tags,
       default_sets: exercise.default_sets?.toString() || '',
       default_reps: exercise.default_reps?.toString() || '',
-      description: exercise.description || ''
+      description: exercise.description || '',
+      video_url: exercise.video_url || ''
     });
     setShowExerciseForm(true);
   };
@@ -348,7 +351,7 @@ export default function TabletExercisesPage() {
             <button
               onClick={() => {
                 setEditingExercise(null);
-                setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '' });
+                setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '', video_url: '' });
                 setShowExerciseForm(true);
               }}
               className="flex items-center gap-2 px-4 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition"
@@ -440,6 +443,20 @@ export default function TabletExercisesPage() {
                       rows={2}
                       className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base resize-none"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                      <Video size={16} />
+                      영상 링크 (선택)
+                    </label>
+                    <input
+                      type="url"
+                      value={exerciseForm.video_url}
+                      onChange={e => setExerciseForm({ ...exerciseForm, video_url: e.target.value })}
+                      placeholder="https://youtube.com/watch?v=..."
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">유튜브, 네이버TV, 비메오 등 모든 영상 링크 가능</p>
                   </div>
                 </div>
                 <div className="sticky bottom-0 bg-white px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
@@ -543,6 +560,17 @@ export default function TabletExercisesPage() {
                         {exercise.description && <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{exercise.description}</p>}
                       </div>
                       <div className="flex items-center gap-1">
+                        {exercise.video_url && (
+                          <a
+                            href={exercise.video_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-3 text-slate-400 hover:text-blue-500 dark:text-slate-300 dark:hover:text-blue-400"
+                            title="영상 보기"
+                          >
+                            <Video size={18} />
+                          </a>
+                        )}
                         <button onClick={() => startEditExercise(exercise)} className="p-3 text-slate-400 hover:text-orange-500">
                           <Edit2 size={18} />
                         </button>
