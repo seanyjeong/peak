@@ -498,6 +498,18 @@ export default function PlansPage() {
                             {isExerciseSelected(ex.id) && <Check size={14} />}
                           </div>
                           <span className="font-medium text-slate-800 dark:text-slate-100">{ex.name}</span>
+                          {ex.video_url && (
+                            <a
+                              href={ex.video_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="p-1 text-blue-500 hover:text-blue-600"
+                              title="영상 보기"
+                            >
+                              <Video size={14} />
+                            </a>
+                          )}
                         </div>
                         <div className="flex items-center gap-1">
                           {ex.tags.map(t => <TagBadge key={t} tagId={t} small />)}
