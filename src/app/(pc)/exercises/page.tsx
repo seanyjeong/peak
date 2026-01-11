@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Dumbbell, Plus, RefreshCw, Tag, Package, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
@@ -52,6 +52,7 @@ export default function ExercisesPage() {
   });
   const [showPackApplyModal, setShowPackApplyModal] = useState(false);
   const [applyingPack, setApplyingPack] = useState(false);
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string>('all');
 
   const fetchData = async () => {
     try {
@@ -74,6 +75,17 @@ export default function ExercisesPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // 태그 필터링된 운동 목록
+  const filteredExercises = useMemo(() => {
+    if (selectedTagFilter === 'all') {
+      return exercises;
+    }
+    if (selectedTagFilter === 'no-tag') {
+      return exercises.filter(ex => ex.tags.length === 0);
+    }
+    return exercises.filter(ex => ex.tags.includes(selectedTagFilter));
+  }, [exercises, selectedTagFilter]);
 
   // 운동 CRUD
   const saveExercise = async () => {
@@ -330,6 +342,46 @@ export default function ExercisesPage() {
             )}
           </div>
 
+          {/* Tag Filter Tabs */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <button
+              onClick={() => setSelectedTagFilter('all')}
+              className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                selectedTagFilter === 'all'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
+              }`}
+            >
+              전체 ({exercises.length})
+            </button>
+            {exerciseTags.map(tag => {
+              const count = exercises.filter(ex => ex.tags.includes(tag.tag_id)).length;
+              return (
+                <button
+                  key={tag.tag_id}
+                  onClick={() => setSelectedTagFilter(tag.tag_id)}
+                  className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                    selectedTagFilter === tag.tag_id
+                      ? tag.color
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
+                  }`}
+                >
+                  {tag.label} ({count})
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setSelectedTagFilter('no-tag')}
+              className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                selectedTagFilter === 'no-tag'
+                  ? 'bg-slate-500 text-white'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
+              }`}
+            >
+              기타 ({exercises.filter(ex => ex.tags.length === 0).length})
+            </button>
+          </div>
+
           {showPackApplyModal && (
             <PackApplyModal
               packs={exercisePacks}
@@ -351,7 +403,7 @@ export default function ExercisesPage() {
           )}
 
           <ExerciseList
-            exercises={exercises}
+            exercises={filteredExercises}
             tags={exerciseTags}
             onEdit={startEditExercise}
             onDelete={deleteExercise}

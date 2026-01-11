@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Dumbbell, Plus, Edit2, Trash2, Save, X, RefreshCw, Tag, Package, Download, Upload, ArrowLeft, Video } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
@@ -77,6 +77,7 @@ export default function TabletExercisesPage() {
   });
   const [showPackApplyModal, setShowPackApplyModal] = useState(false);
   const [applyingPack, setApplyingPack] = useState(false);
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string>('all');
 
   const fetchData = async () => {
     try {
@@ -99,6 +100,17 @@ export default function TabletExercisesPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // 태그 필터링된 운동 목록
+  const filteredExercises = useMemo(() => {
+    if (selectedTagFilter === 'all') {
+      return exercises;
+    }
+    if (selectedTagFilter === 'no-tag') {
+      return exercises.filter(ex => ex.tags.length === 0);
+    }
+    return exercises.filter(ex => ex.tags.includes(selectedTagFilter));
+  }, [exercises, selectedTagFilter]);
 
   const saveExercise = async () => {
     try {
@@ -370,6 +382,46 @@ export default function TabletExercisesPage() {
             )}
           </div>
 
+          {/* Tag Filter Tabs */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button
+              onClick={() => setSelectedTagFilter('all')}
+              className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+                selectedTagFilter === 'all'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
+              }`}
+            >
+              전체 ({exercises.length})
+            </button>
+            {exerciseTags.map(tag => {
+              const count = exercises.filter(ex => ex.tags.includes(tag.tag_id)).length;
+              return (
+                <button
+                  key={tag.tag_id}
+                  onClick={() => setSelectedTagFilter(tag.tag_id)}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+                    selectedTagFilter === tag.tag_id
+                      ? tag.color
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
+                  }`}
+                >
+                  {tag.label} ({count})
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setSelectedTagFilter('no-tag')}
+              className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+                selectedTagFilter === 'no-tag'
+                  ? 'bg-slate-500 text-white'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
+              }`}
+            >
+              기타 ({exercises.filter(ex => ex.tags.length === 0).length})
+            </button>
+          </div>
+
           {/* Exercise Form Modal */}
           {showExerciseForm && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -529,10 +581,16 @@ export default function TabletExercisesPage() {
               <p className="text-slate-500 dark:text-slate-400 text-lg">등록된 운동이 없습니다.</p>
               <p className="text-slate-400 text-sm mt-1">운동 추가 버튼을 눌러 만들어보세요.</p>
             </div>
+          ) : filteredExercises.length === 0 ? (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
+              <Tag size={48} className="mx-auto text-slate-300 mb-4" />
+              <p className="text-slate-500 dark:text-slate-400 text-lg">선택한 태그에 해당하는 운동이 없습니다.</p>
+              <p className="text-slate-400 text-sm mt-1">다른 태그를 선택하거나 운동을 추가해보세요.</p>
+            </div>
           ) : (
-            <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden ${orientation === 'landscape' ? 'max-h-[calc(100vh-320px)] overflow-y-auto' : ''}`}>
+            <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden ${orientation === 'landscape' ? 'max-h-[calc(100vh-360px)] overflow-y-auto' : ''}`}>
               <div className={`divide-y divide-slate-100 ${orientation === 'landscape' ? 'grid grid-cols-2' : ''}`}>
-                {exercises.map(exercise => (
+                {filteredExercises.map(exercise => (
                   <div key={exercise.id} className={`p-4 hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 ${orientation === 'landscape' ? 'border-b border-slate-100' : ''}`}>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
