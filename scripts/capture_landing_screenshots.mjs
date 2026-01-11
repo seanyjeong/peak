@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 
 const SCREENSHOTS_DIR = '/home/sean/ilsanmaxtraining/landing/screenshots';
+const BASE_URL = 'https://peak-rose.vercel.app';
 
 (async () => {
     const browser = await chromium.launch({ headless: true });
@@ -9,7 +10,7 @@ const SCREENSHOTS_DIR = '/home/sean/ilsanmaxtraining/landing/screenshots';
 
     // 테스트 계정으로 로그인
     console.log("1. 테스트 계정으로 로그인...");
-    await page.goto('http://localhost:3001/login');
+    await page.goto(`${BASE_URL}/login`);
     await page.waitForLoadState('networkidle');
 
     await page.fill('input[type="email"]', 'owner@test.com');
@@ -21,7 +22,7 @@ const SCREENSHOTS_DIR = '/home/sean/ilsanmaxtraining/landing/screenshots';
 
     // 2. 대시보드 스크린샷
     console.log("2. 대시보드 스크린샷...");
-    await page.goto('http://localhost:3001/dashboard');
+    await page.goto(`${BASE_URL}/dashboard`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
     // 모달 닫기
@@ -37,23 +38,30 @@ const SCREENSHOTS_DIR = '/home/sean/ilsanmaxtraining/landing/screenshots';
 
     // 3. 학생 관리 스크린샷
     console.log("3. 학생 관리 스크린샷...");
-    await page.goto('http://localhost:3001/students');
+    await page.goto(`${BASE_URL}/students`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1500);
     await page.screenshot({ path: `${SCREENSHOTS_DIR}/students.png` });
     console.log("  -> students.png 저장완료");
 
     // 4. 학생 프로필 (기록 있는 학생 - 박보검 id:9316)
-    console.log("4. 학생 프로필 스크린샷 (박보검)...");
-    await page.goto('http://localhost:3001/students/9316');
+    console.log("4. 학생 프로필 스크린샷 (박보검 - 제자리멀리뛰기)...");
+    await page.goto(`${BASE_URL}/students/9316`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
+    // 기록 추이 차트에서 제자리멀리뛰기 선택
+    try {
+        const chartSelect = page.locator('select').first();
+        if (await chartSelect.count() > 0) {
+            await chartSelect.selectOption({ label: '제자리멀리뛰기' });
+            await page.waitForTimeout(1000);
+        }
+    } catch(e) {}
     await page.screenshot({ path: `${SCREENSHOTS_DIR}/student-profile.png` });
     console.log("  -> student-profile.png 저장완료");
 
     // 날짜를 12일로 변경하는 헬퍼 함수
     async function changeToJan12(page) {
-        // input[type=date] 필드 값 변경
         const dateInput = page.locator('input[type="date"]');
         if (await dateInput.count() > 0) {
             await dateInput.fill('2026-01-12');
@@ -63,7 +71,7 @@ const SCREENSHOTS_DIR = '/home/sean/ilsanmaxtraining/landing/screenshots';
 
     // 5. 반 배치 스크린샷 - 1월 12일
     console.log("5. 반 배치 스크린샷...");
-    await page.goto('http://localhost:3001/assignments');
+    await page.goto(`${BASE_URL}/assignments`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
     await changeToJan12(page);
@@ -72,7 +80,7 @@ const SCREENSHOTS_DIR = '/home/sean/ilsanmaxtraining/landing/screenshots';
 
     // 6. 기록 측정 스크린샷 - 1월 12일
     console.log("6. 기록 측정 스크린샷...");
-    await page.goto('http://localhost:3001/records');
+    await page.goto(`${BASE_URL}/records`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
     await changeToJan12(page);
@@ -81,7 +89,7 @@ const SCREENSHOTS_DIR = '/home/sean/ilsanmaxtraining/landing/screenshots';
 
     // 7. 수업 기록 스크린샷 - 1월 12일
     console.log("7. 수업 기록 스크린샷...");
-    await page.goto('http://localhost:3001/training');
+    await page.goto(`${BASE_URL}/training`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
     await changeToJan12(page);
@@ -90,7 +98,7 @@ const SCREENSHOTS_DIR = '/home/sean/ilsanmaxtraining/landing/screenshots';
 
     // 8. 수업 계획 스크린샷 - 1월 12일
     console.log("8. 수업 계획 스크린샷...");
-    await page.goto('http://localhost:3001/plans');
+    await page.goto(`${BASE_URL}/plans`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
     await changeToJan12(page);

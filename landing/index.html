@@ -937,37 +937,49 @@
       }
     }
 
-    /* ===== SCREENSHOTS SECTION ===== */
+    /* ===== SCREENSHOTS SECTION (Bento Grid) ===== */
     .screenshots {
       padding: 8rem 2rem;
       background: var(--black);
     }
 
-    .screenshots-grid {
+    .screenshots-bento {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(3, auto);
+      gap: 1rem;
       margin-top: 3rem;
     }
 
-    .screenshot-card {
+    .bento-item {
       background: var(--gray-900);
       border: 1px solid var(--gray-800);
       border-radius: 16px;
       overflow: hidden;
-      transition: all 0.4s;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
     }
 
-    .screenshot-card:hover {
+    .bento-item:hover {
       border-color: var(--orange-500);
-      transform: translateY(-8px);
-      box-shadow: 0 20px 40px rgba(255, 107, 0, 0.15);
+      transform: translateY(-4px) scale(1.01);
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.4),
+        0 0 60px rgba(255, 107, 0, 0.12);
     }
 
-    .screenshot-card.main {
+    /* Bento 레이아웃 */
+    .bento-main {
       grid-column: span 2;
       grid-row: span 2;
+    }
+
+    .bento-tall {
+      grid-row: span 2;
+    }
+
+    .bento-wide {
+      grid-column: span 2;
     }
 
     .screenshot-label {
@@ -975,6 +987,7 @@
       top: 1rem;
       left: 1rem;
       background: rgba(10, 10, 10, 0.9);
+      backdrop-filter: blur(8px);
       padding: 0.5rem 1rem;
       border-radius: 8px;
       font-size: 0.875rem;
@@ -984,36 +997,77 @@
       border: 1px solid var(--gray-700);
     }
 
-    .screenshot-card img {
+    .bento-badge {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+      background: linear-gradient(135deg, var(--orange-500), var(--orange-600));
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: white;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+    }
+
+    .bento-item img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       object-position: top left;
       display: block;
+      min-height: 180px;
     }
 
-    .screenshot-card.main img {
+    .bento-main img {
       min-height: 400px;
     }
 
+    .bento-tall img {
+      min-height: 400px;
+    }
+
+    /* 반응형: 태블릿 */
     @media (max-width: 1024px) {
-      .screenshots-grid {
+      .screenshots-bento {
         grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: auto;
       }
 
-      .screenshot-card.main {
+      .bento-main {
         grid-column: span 2;
         grid-row: span 1;
       }
-    }
 
-    @media (max-width: 768px) {
-      .screenshots-grid {
-        grid-template-columns: 1fr;
+      .bento-tall {
+        grid-row: span 1;
       }
 
-      .screenshot-card.main {
+      .bento-main img,
+      .bento-tall img {
+        min-height: 280px;
+      }
+    }
+
+    /* 반응형: 모바일 */
+    @media (max-width: 640px) {
+      .screenshots-bento {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+
+      .bento-main,
+      .bento-wide {
         grid-column: span 1;
+      }
+
+      .bento-item img {
+        min-height: 200px;
+      }
+
+      .bento-main img {
+        min-height: 250px;
       }
     }
 
@@ -1571,7 +1625,7 @@
         <div class="feature-card">
           <div class="feature-icon">📏</div>
           <h3 class="feature-title">기록 측정</h3>
-          <p class="feature-desc">제멀, 메디신, 20m왕복, 좌전굴. 4대 종목 기록을 빠르게 입력하고 변화를 추적합니다.</p>
+          <p class="feature-desc">학원에서 설정한 종목별 기록을 빠르게 입력하고 변화를 추적합니다.</p>
         </div>
 
         <div class="feature-card">
@@ -1610,29 +1664,30 @@
         <p class="section-desc">실제 시스템 화면을 확인해보세요.</p>
       </div>
 
-      <div class="screenshots-grid">
-        <div class="screenshot-card main">
-          <div class="screenshot-label">대시보드</div>
-          <img src="screenshots/dashboard.png" alt="P-EAK 대시보드" loading="lazy">
+      <div class="screenshots-bento">
+        <div class="bento-item bento-main">
+          <div class="screenshot-label">📊 학생 성적 분석</div>
+          <img src="screenshots/student-profile.png" alt="학생 프로필 - B등급 336점" loading="lazy">
+          <div class="bento-badge">B등급 336점</div>
         </div>
-        <div class="screenshot-card">
-          <div class="screenshot-label">학생 프로필</div>
-          <img src="screenshots/student-profile.png" alt="학생 프로필" loading="lazy">
-        </div>
-        <div class="screenshot-card">
-          <div class="screenshot-label">반 배치</div>
+        <div class="bento-item bento-tall">
+          <div class="screenshot-label">📋 반 배치</div>
           <img src="screenshots/assignments.png" alt="반 배치" loading="lazy">
         </div>
-        <div class="screenshot-card">
-          <div class="screenshot-label">기록 측정</div>
+        <div class="bento-item">
+          <div class="screenshot-label">🏠 대시보드</div>
+          <img src="screenshots/dashboard.png" alt="P-EAK 대시보드" loading="lazy">
+        </div>
+        <div class="bento-item">
+          <div class="screenshot-label">📏 기록 측정</div>
           <img src="screenshots/records.png" alt="기록 측정" loading="lazy">
         </div>
-        <div class="screenshot-card">
-          <div class="screenshot-label">수업 기록</div>
+        <div class="bento-item bento-wide">
+          <div class="screenshot-label">📝 수업 기록</div>
           <img src="screenshots/training.png" alt="수업 기록" loading="lazy">
         </div>
-        <div class="screenshot-card">
-          <div class="screenshot-label">학생 관리</div>
+        <div class="bento-item">
+          <div class="screenshot-label">👥 학생 관리</div>
           <img src="screenshots/students.png" alt="학생 관리" loading="lazy">
         </div>
       </div>
@@ -1682,8 +1737,8 @@
     <div class="section-container">
       <div class="section-header">
         <span class="section-label">Performance Tracking</span>
-        <h2 class="section-title">4대 종목 기록 관리</h2>
-        <p class="section-desc">체대입시 핵심 종목의 기록을 체계적으로 측정하고 추적합니다.</p>
+        <h2 class="section-title">맞춤 종목 기록 관리</h2>
+        <p class="section-desc">학원에서 설정한 종목의 기록을 체계적으로 측정하고 추적합니다.</p>
       </div>
 
       <div class="records-showcase">
@@ -1713,10 +1768,10 @@
         <div class="records-info">
           <h3>기록을 측정하고<br>성장을 확인하세요</h3>
           <ul class="records-list">
-            <li><strong>제자리멀리뛰기</strong> - 남 시작 250cm → 만점 <span>300cm</span></li>
-            <li><strong>메디신볼던지기</strong> - 남 시작 8.5m → 만점 <span>12m</span></li>
-            <li><strong>20m왕복달리기</strong> - 남 시작 16.5초 → 만점 <span>14.5초</span></li>
-            <li><strong>좌전굴</strong> - 개인별 시작점 → <span>최대 향상</span> 추적</li>
+            <li><strong>학원 맞춤 종목</strong> - 원하는 종목을 <span>자유롭게 설정</span></li>
+            <li><strong>배점표 설정</strong> - 점수 구간별 <span>등급 자동 계산</span></li>
+            <li><strong>기록 추이</strong> - 날짜별 변화를 <span>그래프로 시각화</span></li>
+            <li><strong>목표 달성률</strong> - 만점 대비 <span>달성률 자동 계산</span></li>
           </ul>
         </div>
       </div>
@@ -1837,7 +1892,7 @@
       });
     }, observerOptions);
 
-    document.querySelectorAll('.feature-card, .workflow-step, .integration-features li, .screenshot-card').forEach(el => {
+    document.querySelectorAll('.feature-card, .workflow-step, .integration-features li, .bento-item').forEach(el => {
       el.style.opacity = '0';
       el.style.transform = 'translateY(30px)';
       el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
@@ -1853,7 +1908,7 @@
       step.style.transitionDelay = `${index * 0.15}s`;
     });
 
-    document.querySelectorAll('.screenshots-grid .screenshot-card').forEach((card, index) => {
+    document.querySelectorAll('.screenshots-bento .bento-item').forEach((card, index) => {
       card.style.transitionDelay = `${index * 0.1}s`;
     });
   </script>
