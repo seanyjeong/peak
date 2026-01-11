@@ -431,11 +431,11 @@ export default function TabletTrainingPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">수업 기록</h1>
-          <p className="text-slate-500 text-sm mt-1">{formatDateKorean(selectedDate)}</p>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">수업 기록</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{formatDateKorean(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
             <Calendar size={18} className="text-slate-400" />
             <input
               type="date"
@@ -447,7 +447,7 @@ export default function TabletTrainingPage() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
+            className="p-3 text-slate-600 dark:text-slate-300 bg-white border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 transition disabled:opacity-50"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -459,9 +459,9 @@ export default function TabletTrainingPage() {
           <RefreshCw size={40} className="animate-spin text-slate-400" />
         </div>
       ) : availableSlots.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
           <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500 text-lg">오늘 수업 스케줄이 없습니다.</p>
+          <p className="text-slate-500 dark:text-slate-400 text-lg">오늘 수업 스케줄이 없습니다.</p>
         </div>
       ) : (
         <>
@@ -472,7 +472,7 @@ export default function TabletTrainingPage() {
                 key={slot}
                 onClick={() => { setSelectedSlot(slot); if (isAdmin) setSelectedTrainerId(null); }}
                 className={`px-5 py-3 rounded-xl font-medium transition text-base ${
-                  selectedSlot === slot ? 'bg-orange-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  selectedSlot === slot ? 'bg-orange-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700'
                 }`}
               >
                 {SLOT_LABELS[slot]}
@@ -482,11 +482,11 @@ export default function TabletTrainingPage() {
 
           {/* 강사 선택 (관리자) */}
           {isAdmin && selectedSlot && (
-            <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-4">
               <select
                 value={selectedTrainerId || ''}
                 onChange={e => setSelectedTrainerId(Number(e.target.value) || null)}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base"
+                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl text-base"
               >
                 <option value="">전체 보기</option>
                 {currentTrainers.map(t => (
@@ -501,19 +501,19 @@ export default function TabletTrainingPage() {
             <div className="space-y-4">
               {/* 온습도만 표시 */}
               {slotConditions && (
-                <div className="bg-white rounded-2xl shadow-sm p-5">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5">
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
                       <Thermometer size={20} className="text-orange-500" />
-                      <span className="text-slate-600">온도</span>
-                      <span className="font-bold text-slate-800 text-lg">
+                      <span className="text-slate-600 dark:text-slate-300">온도</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100 text-lg">
                         {slotConditions.temperature ?? '-'}°C
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Droplets size={20} className="text-blue-500" />
-                      <span className="text-slate-600">습도</span>
-                      <span className="font-bold text-slate-800 text-lg">
+                      <span className="text-slate-600 dark:text-slate-300">습도</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100 text-lg">
                         {slotConditions.humidity ?? '-'}%
                       </span>
                     </div>
@@ -522,9 +522,9 @@ export default function TabletTrainingPage() {
               )}
 
               {/* 학생 컨디션 (전체) */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-slate-100 px-5 py-4">
-                  <h2 className="font-bold text-slate-800 flex items-center gap-2 text-lg">
+                  <h2 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 text-lg">
                     <User size={22} />
                     전체 학생 ({myStudents.length}명)
                   </h2>
@@ -547,7 +547,7 @@ export default function TabletTrainingPage() {
                               <User size={20} />
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-slate-800 text-lg">{student.student_name}</span>
+                              <span className="font-medium text-slate-800 dark:text-slate-100 text-lg">{student.student_name}</span>
                               <Link
                                 href={`/tablet/students/${student.student_id}`}
                                 className="p-2 hover:bg-orange-100 rounded-lg transition"
@@ -589,7 +589,7 @@ export default function TabletTrainingPage() {
                             defaultValue={log?.notes || ''}
                             onBlur={e => saveNotes(student.student_id, e.target.value)}
                             placeholder="메모..."
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base"
+                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl text-base"
                           />
                         </div>
                       );
@@ -599,15 +599,15 @@ export default function TabletTrainingPage() {
               </div>
             </div>
           ) : !selectedTrainerId ? (
-            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
               <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500 text-lg">강사를 선택하세요.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-lg">강사를 선택하세요.</p>
             </div>
           ) : (
             <div className={`${orientation === 'landscape' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>
               {/* 체크리스트 - 수업 계획이 있을 때만 표시 */}
               {currentPlan ? (
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-4">
                   <h2 className="text-white font-bold flex items-center gap-2 text-lg">
                     <ClipboardList size={22} />
@@ -649,9 +649,9 @@ export default function TabletTrainingPage() {
                           onChange={e => setTemperature(e.target.value)}
                           onBlur={saveConditions}
                           placeholder="온도"
-                          className="w-20 px-3 py-2 border border-slate-200 rounded-lg text-base"
+                          className="w-20 px-3 py-2 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-lg text-base"
                         />
-                        <span className="text-slate-500">°C</span>
+                        <span className="text-slate-500 dark:text-slate-400">°C</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Droplets size={18} className="text-blue-500" />
@@ -661,9 +661,9 @@ export default function TabletTrainingPage() {
                           onChange={e => setHumidity(e.target.value)}
                           onBlur={saveConditions}
                           placeholder="습도"
-                          className="w-20 px-3 py-2 border border-slate-200 rounded-lg text-base"
+                          className="w-20 px-3 py-2 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-lg text-base"
                         />
-                        <span className="text-slate-500">%</span>
+                        <span className="text-slate-500 dark:text-slate-400">%</span>
                       </div>
                     </div>
                   </div>
@@ -748,12 +748,12 @@ export default function TabletTrainingPage() {
                             value={newExerciseName}
                             onChange={e => setNewExerciseName(e.target.value)}
                             placeholder="운동 이름"
-                            className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-base"
+                            className="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl text-base"
                             autoFocus
                           />
                           <button
                             onClick={() => { setShowAddExercise(false); setNewExerciseName(''); setNewExerciseNote(''); }}
-                            className="p-3 text-slate-400 hover:text-slate-600"
+                            className="p-3 text-slate-400 hover:text-slate-600 dark:text-slate-300"
                           >
                             <X size={22} />
                           </button>
@@ -765,7 +765,7 @@ export default function TabletTrainingPage() {
                             onChange={e => setNewExerciseNote(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && addExtraExercise()}
                             placeholder="메모 (선택)"
-                            className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-base"
+                            className="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl text-base"
                           />
                           <button
                             onClick={addExtraExercise}
@@ -789,17 +789,17 @@ export default function TabletTrainingPage() {
               </div>
               ) : (
                 /* 수업 계획 없을 때 안내 */
-                <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 text-center">
                   <ClipboardList size={36} className="mx-auto text-slate-300 mb-3" />
-                  <p className="text-slate-500">수업 계획이 없습니다.</p>
+                  <p className="text-slate-500 dark:text-slate-400">수업 계획이 없습니다.</p>
                   <p className="text-slate-400 text-sm mt-1">수업 계획 페이지에서 계획을 작성하면 체크리스트가 표시됩니다.</p>
                 </div>
               )}
 
               {/* 학생 컨디션 */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-slate-100 px-5 py-4">
-                  <h2 className="font-bold text-slate-800 flex items-center gap-2 text-lg">
+                  <h2 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 text-lg">
                     <User size={22} />
                     학생 컨디션 ({myStudents.length}명)
                   </h2>
@@ -822,7 +822,7 @@ export default function TabletTrainingPage() {
                               <User size={20} />
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-slate-800 text-lg">{student.student_name}</span>
+                              <span className="font-medium text-slate-800 dark:text-slate-100 text-lg">{student.student_name}</span>
                               <Link
                                 href={`/tablet/students/${student.student_id}`}
                                 className="p-2 hover:bg-orange-100 rounded-lg transition"
@@ -864,7 +864,7 @@ export default function TabletTrainingPage() {
                             defaultValue={log?.notes || ''}
                             onBlur={e => saveNotes(student.student_id, e.target.value)}
                             placeholder="메모..."
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-base"
+                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl text-base"
                           />
                         </div>
                       );

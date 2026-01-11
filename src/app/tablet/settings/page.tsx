@@ -251,13 +251,13 @@ export default function TabletSettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">실기측정설정</h1>
-          <p className="text-slate-500 text-sm mt-1">종목 및 배점표 관리</p>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">실기측정설정</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">종목 및 배점표 관리</p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
+          className="p-3 text-slate-600 dark:text-slate-300 bg-white border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 transition disabled:opacity-50"
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
@@ -270,7 +270,7 @@ export default function TabletSettingsPage() {
           className={`px-6 py-3 rounded-xl font-medium transition ${
             activeTab === 'types'
               ? 'bg-orange-500 text-white'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 border border-slate-200'
           }`}
         >
           측정 종목
@@ -280,7 +280,7 @@ export default function TabletSettingsPage() {
           className={`px-6 py-3 rounded-xl font-medium transition ${
             activeTab === 'scores'
               ? 'bg-orange-500 text-white'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 border border-slate-200'
           }`}
         >
           배점표
@@ -288,7 +288,7 @@ export default function TabletSettingsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-white rounded-2xl shadow-sm">
+        <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
           <RefreshCw size={40} className="animate-spin text-slate-400" />
         </div>
       ) : activeTab === 'types' ? (
@@ -308,12 +308,12 @@ export default function TabletSettingsPage() {
           {/* Type Form Modal */}
           {showTypeForm && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md">
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-800 text-lg">
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg">
                     {editingType ? '종목 수정' : '새 종목 추가'}
                   </h3>
-                  <button onClick={() => setShowTypeForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                  <button onClick={() => setShowTypeForm(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-300">
                     <X size={24} />
                   </button>
                 </div>
@@ -325,7 +325,7 @@ export default function TabletSettingsPage() {
                       value={typeForm.name}
                       onChange={e => setTypeForm({ ...typeForm, name: e.target.value })}
                       placeholder="제자리멀리뛰기"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                     />
                   </div>
                   <div>
@@ -335,7 +335,7 @@ export default function TabletSettingsPage() {
                       value={typeForm.unit}
                       onChange={e => setTypeForm({ ...typeForm, unit: e.target.value })}
                       placeholder="cm, m, 초"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                     />
                   </div>
                   <div>
@@ -367,7 +367,7 @@ export default function TabletSettingsPage() {
                   </div>
                 </div>
                 <div className="px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
-                  <button onClick={() => setShowTypeForm(false)} className="px-6 py-3 text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200">
+                  <button onClick={() => setShowTypeForm(false)} className="px-6 py-3 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-900 rounded-xl hover:bg-slate-200">
                     취소
                   </button>
                   <button
@@ -383,15 +383,15 @@ export default function TabletSettingsPage() {
           )}
 
           {/* Types List */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
             <div className={`divide-y divide-slate-100 ${orientation === 'landscape' ? 'max-h-[calc(100vh-300px)] overflow-y-auto' : ''}`}>
               {recordTypes.map(type => (
                 <div key={type.id} className={`p-4 flex items-center justify-between ${type.is_active ? '' : 'opacity-50'}`}>
                   <div className="flex items-center gap-4">
                     <div>
-                      <p className="font-medium text-slate-800 text-lg">{type.name}</p>
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-lg">{type.name}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-slate-500">{type.unit}</span>
+                        <span className="text-sm text-slate-500 dark:text-slate-400">{type.unit}</span>
                         <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
                           type.direction === 'higher' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                         }`}>
@@ -437,10 +437,10 @@ export default function TabletSettingsPage() {
           {/* Score Form Modal */}
           {showScoreForm && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-800 text-lg">배점표 생성</h3>
-                  <button onClick={() => setShowScoreForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg">배점표 생성</h3>
+                  <button onClick={() => setShowScoreForm(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-300">
                     <X size={24} />
                   </button>
                 </div>
@@ -450,7 +450,7 @@ export default function TabletSettingsPage() {
                     <select
                       value={selectedTypeForScore || ''}
                       onChange={e => setSelectedTypeForScore(Number(e.target.value))}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                     >
                       <option value="">선택하세요</option>
                       {typesWithoutScore.map(t => (
@@ -468,7 +468,7 @@ export default function TabletSettingsPage() {
                         type="number"
                         value={scoreForm.max_score}
                         onChange={e => setScoreForm({ ...scoreForm, max_score: Number(e.target.value) })}
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                       />
                     </div>
                     <div>
@@ -477,7 +477,7 @@ export default function TabletSettingsPage() {
                         type="number"
                         value={scoreForm.min_score}
                         onChange={e => setScoreForm({ ...scoreForm, min_score: Number(e.target.value) })}
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                       />
                     </div>
                     <div>
@@ -487,7 +487,7 @@ export default function TabletSettingsPage() {
                         min="1"
                         value={scoreForm.score_step}
                         onChange={e => setScoreForm({ ...scoreForm, score_step: Number(e.target.value) })}
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                       />
                     </div>
                     <div>
@@ -497,7 +497,7 @@ export default function TabletSettingsPage() {
                         step="0.01"
                         value={scoreForm.value_step}
                         onChange={e => setScoreForm({ ...scoreForm, value_step: Number(e.target.value) })}
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                       />
                     </div>
                   </div>
@@ -530,7 +530,7 @@ export default function TabletSettingsPage() {
                         step="0.01"
                         value={scoreForm.male_perfect}
                         onChange={e => setScoreForm({ ...scoreForm, male_perfect: Number(e.target.value) })}
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                       />
                     </div>
                     <div>
@@ -540,13 +540,13 @@ export default function TabletSettingsPage() {
                         step="0.01"
                         value={scoreForm.female_perfect}
                         onChange={e => setScoreForm({ ...scoreForm, female_perfect: Number(e.target.value) })}
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                       />
                     </div>
                   </div>
                 </div>
                 <div className="sticky bottom-0 bg-white px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
-                  <button onClick={() => setShowScoreForm(false)} className="px-6 py-3 text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200">
+                  <button onClick={() => setShowScoreForm(false)} className="px-6 py-3 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-900 rounded-xl hover:bg-slate-200">
                     취소
                   </button>
                   <button
@@ -563,26 +563,26 @@ export default function TabletSettingsPage() {
 
           {/* Score Tables List */}
           {scoreTables.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
               <Calculator size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500 text-lg">생성된 배점표가 없습니다.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-lg">생성된 배점표가 없습니다.</p>
               <p className="text-slate-400 text-sm mt-1">배점표 생성 버튼을 눌러 만들어보세요.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {scoreTables.map(table => (
-                <div key={table.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div key={table.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
                   <div
-                    className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50"
+                    className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700"
                     onClick={() => toggleScoreTable(table.id)}
                   >
                     <div>
-                      <h3 className="font-semibold text-slate-800 text-lg">{table.record_type_name}</h3>
+                      <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg">{table.record_type_name}</h3>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-lg">
+                        <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 dark:text-slate-300 rounded-lg">
                           만점 {table.max_score}점
                         </span>
-                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-lg">
+                        <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 dark:text-slate-300 rounded-lg">
                           최소 {table.min_score}점
                         </span>
                         <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-lg">
@@ -619,14 +619,14 @@ export default function TabletSettingsPage() {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="bg-slate-50">
-                                <th className="py-3 px-4 text-center font-bold text-slate-700 border-b border-slate-200">배점</th>
+                                <th className="py-3 px-4 text-center font-bold text-slate-700 border-b border-slate-200 dark:border-slate-700">배점</th>
                                 <th colSpan={2} className="py-3 px-4 text-center font-bold text-blue-600 border-b border-blue-200 bg-blue-50/50">
                                   남자 ({table.unit})
                                 </th>
                                 <th colSpan={2} className="py-3 px-4 text-center font-bold text-pink-600 border-b border-pink-200 bg-pink-50/50">
                                   여자 ({table.unit})
                                 </th>
-                                <th className="py-3 px-4 text-center font-bold text-slate-700 border-b border-slate-200">수정</th>
+                                <th className="py-3 px-4 text-center font-bold text-slate-700 border-b border-slate-200 dark:border-slate-700">수정</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -715,7 +715,7 @@ export default function TabletSettingsPage() {
                                           </button>
                                           <button
                                             onClick={() => cancelEditRange(range.id)}
-                                            className="p-2 text-slate-400 hover:bg-slate-100 rounded"
+                                            className="p-2 text-slate-400 hover:bg-slate-100 dark:bg-slate-900 rounded"
                                           >
                                             <X size={16} />
                                           </button>

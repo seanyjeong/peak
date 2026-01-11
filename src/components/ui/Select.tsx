@@ -24,7 +24,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={selectId} className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor={selectId} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             {label}
           </label>
         )}
@@ -33,11 +33,12 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             className={`
-              w-full px-4 py-2 rounded-xl border transition appearance-none bg-white
+              w-full px-4 py-2 rounded-xl border transition appearance-none bg-white dark:bg-slate-800
+              text-slate-900 dark:text-slate-100
               focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500
-              disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed
+              disabled:bg-slate-50 dark:disabled:bg-slate-900 disabled:text-slate-500 disabled:cursor-not-allowed
               pr-10
-              ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-300'}
+              ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'}
               ${className}
             `}
             aria-invalid={error ? 'true' : 'false'}
@@ -66,7 +67,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </p>
         )}
         {helperText && !error && (
-          <p id={`${selectId}-helper`} className="mt-1 text-sm text-slate-500">
+          <p id={`${selectId}-helper`} className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {helperText}
           </p>
         )}
@@ -90,7 +91,7 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             {label}
           </label>
         )}
@@ -100,9 +101,10 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
           id={inputId}
           className={`
             w-full px-4 py-2 rounded-xl border transition
+            bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
             focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500
-            disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed
-            ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-300'}
+            disabled:bg-slate-50 dark:disabled:bg-slate-900 disabled:text-slate-500 disabled:cursor-not-allowed
+            ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'}
             ${className}
           `}
           {...props}

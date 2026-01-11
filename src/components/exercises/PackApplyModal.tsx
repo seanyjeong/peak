@@ -13,17 +13,17 @@ interface PackApplyModalProps {
 export function PackApplyModal({ packs, applying, onApply, onClose }: PackApplyModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-slate-800">팩 불러오기</h3>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">팩 불러오기</h3>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600"
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
           >
             <X size={20} />
           </button>
         </div>
-        <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg mb-4">
+        <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-3 py-2 rounded-lg mb-4">
           팩을 불러오면 현재 운동 목록이 모두 삭제되고 선택한 팩의 운동으로 대체됩니다.
         </p>
         <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -32,12 +32,12 @@ export function PackApplyModal({ packs, applying, onApply, onClose }: PackApplyM
               key={pack.id}
               onClick={() => onApply(pack.id, pack.name)}
               disabled={applying}
-              className="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-purple-300 transition disabled:opacity-50"
+              className="w-full text-left p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-purple-300 dark:hover:border-purple-600 transition disabled:opacity-50"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium text-slate-800">{pack.name}</h4>
-                  <p className="text-sm text-slate-500">
+                  <h4 className="font-medium text-slate-800 dark:text-slate-100">{pack.name}</h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     {pack.exercise_count}개 운동 · {pack.author}
                   </p>
                   {pack.description && (
@@ -52,7 +52,7 @@ export function PackApplyModal({ packs, applying, onApply, onClose }: PackApplyM
         <div className="flex justify-end mt-4">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+            className="px-4 py-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
           >
             취소
           </button>

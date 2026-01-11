@@ -161,55 +161,55 @@ export function PackManager({
 
       {/* Pack Form */}
       {showForm && (
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-800">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100">
               {editingPack ? '팩 수정' : '새 운동 팩 만들기'}
             </h3>
-            <button onClick={() => { setShowForm(false); setEditingPack(null); }} className="p-2 text-slate-400 hover:text-slate-600">
+            <button onClick={() => { setShowForm(false); setEditingPack(null); }} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
               <X size={20} />
             </button>
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">팩 이름</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">팩 이름</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="하체 훈련 팩"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">설명</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">설명</label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
                   placeholder="제멀, 스쿼트 관련 운동들"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-slate-700">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   포함할 운동 선택 ({form.exercise_ids.length}개)
                 </label>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setForm({ ...form, exercise_ids: exercises.map(e => e.id) })}
-                    className="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded hover:bg-orange-200"
+                    className="text-xs px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800"
                   >
                     전체 선택
                   </button>
                   <button
                     type="button"
                     onClick={() => setForm({ ...form, exercise_ids: [] })}
-                    className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
+                    className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-600"
                   >
                     전체 해제
                   </button>
@@ -232,7 +232,7 @@ export function PackManager({
                         }
                       }}
                       className={`px-2 py-1 rounded-full text-xs font-medium transition ${
-                        allSelected ? tag.color : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                        allSelected ? tag.color : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
                       }`}
                     >
                       {tag.label} ({tagExerciseIds.length})
@@ -240,11 +240,11 @@ export function PackManager({
                   );
                 })}
               </div>
-              <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg divide-y">
+              <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg divide-y divide-slate-200 dark:divide-slate-700">
                 {exercises.map(ex => (
                   <label
                     key={ex.id}
-                    className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer"
+                    className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
                   >
                     <input
                       type="checkbox"
@@ -253,7 +253,7 @@ export function PackManager({
                       className="rounded text-orange-500 focus:ring-orange-500"
                     />
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-700">{ex.name}</span>
+                      <span className="text-slate-700 dark:text-slate-300">{ex.name}</span>
                       {ex.tags.map(tagId => {
                         const tag = tags.find(t => t.tag_id === tagId);
                         return tag ? (
@@ -271,7 +271,7 @@ export function PackManager({
           <div className="flex justify-end gap-2 mt-4">
             <button
               onClick={() => { setShowForm(false); setEditingPack(null); }}
-              className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
             >
               취소
             </button>
@@ -289,14 +289,14 @@ export function PackManager({
 
       {/* Packs List */}
       {packs.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <Package size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500">생성된 운동 팩이 없습니다.</p>
-          <p className="text-slate-400 text-sm mt-1">팩을 만들어 다른 학원과 공유해보세요!</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-12 text-center">
+          <Package size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+          <p className="text-slate-500 dark:text-slate-400">생성된 운동 팩이 없습니다.</p>
+          <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">팩을 만들어 다른 학원과 공유해보세요!</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="divide-y divide-slate-100">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
+          <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {packs.map(pack => {
               const isExpanded = expandedPackId === pack.id;
               const isLoading = loadingPackId === pack.id;
@@ -307,7 +307,7 @@ export function PackManager({
                 <div key={pack.id}>
                   {/* Pack Header */}
                   <div
-                    className="p-4 flex items-center justify-between hover:bg-slate-50 cursor-pointer"
+                    className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
                     onClick={() => toggleExpand(pack.id)}
                   >
                     <div className="flex items-center gap-3">
@@ -316,14 +316,14 @@ export function PackManager({
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-slate-800">{pack.name}</h4>
+                          <h4 className="font-medium text-slate-800 dark:text-slate-100">{pack.name}</h4>
                           {isSystem && (
-                            <span className="px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-600 rounded font-medium">
+                            <span className="px-1.5 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded font-medium">
                               기본
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
                           {pack.exercise_count}개 운동 · {pack.author} · v{pack.version}
                         </p>
                         {pack.description && (
@@ -342,7 +342,7 @@ export function PackManager({
                         </button>
                         <button
                           onClick={() => onExport(pack.id, pack.name)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                          className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50"
                         >
                           <Download size={14} />
                           내보내기
@@ -360,7 +360,7 @@ export function PackManager({
 
                   {/* Pack Exercises (Expanded) */}
                   {isExpanded && (
-                    <div className="bg-slate-50 px-4 py-3 border-t border-slate-100">
+                    <div className="bg-slate-50 dark:bg-slate-900 px-4 py-3 border-t border-slate-100 dark:border-slate-700">
                       {isLoading ? (
                         <div className="text-sm text-slate-400 text-center py-4">로딩 중...</div>
                       ) : exercises.length === 0 ? (
@@ -370,7 +370,7 @@ export function PackManager({
                           {exercises.map(ex => (
                             <div
                               key={ex.id}
-                              className="px-3 py-1.5 bg-white rounded-lg text-sm text-slate-700 border border-slate-200 flex items-center gap-2"
+                              className="px-3 py-1.5 bg-white dark:bg-slate-800 rounded-lg text-sm text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-2"
                             >
                               <span>{ex.name}</span>
                               {ex.tags?.map(tagId => {

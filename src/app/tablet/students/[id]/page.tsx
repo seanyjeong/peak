@@ -383,7 +383,7 @@ export default function TabletStudentProfilePage({
           </div>
           <button
             onClick={loadData}
-            className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+            className="p-3 text-slate-600 dark:text-slate-300 bg-white border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 transition"
           >
             <RefreshCw size={20} />
           </button>
@@ -394,7 +394,7 @@ export default function TabletStudentProfilePage({
           {/* Left: 게이지 + 종합평가 */}
           <div className="col-span-3 flex flex-col gap-3 min-h-0">
             {/* Record Gauges */}
-            <div className="bg-white rounded-xl shadow-sm p-3 flex-[2] overflow-hidden flex flex-col min-h-0">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-[2] overflow-hidden flex flex-col min-h-0">
               <h3 className="text-base font-semibold text-gray-800 mb-2 flex-shrink-0">종목별 기록</h3>
               <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
                 {selectedGaugeTypes.slice(0, 4).map((typeId) => {
@@ -463,7 +463,7 @@ export default function TabletStudentProfilePage({
             </div>
 
             {/* Overall Grade */}
-            <div className="bg-white rounded-xl shadow-sm p-3 flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-1 overflow-hidden flex flex-col min-h-0">
               <h3 className="text-base font-semibold text-gray-800 mb-2 flex-shrink-0">종합평가</h3>
               <div className="flex items-center gap-3 flex-1">
                 <div className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 ${getGradeColor(selectedStats.grade)}`}>
@@ -490,7 +490,7 @@ export default function TabletStudentProfilePage({
           {/* Middle: 기록추이 + 최근기록 */}
           <div className="col-span-5 flex flex-col gap-3 min-h-0">
             {/* Trend Chart */}
-            <div className="bg-white rounded-xl shadow-sm p-3 flex-[3] overflow-hidden flex flex-col min-h-0">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-[3] overflow-hidden flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-2 flex-shrink-0">
                 <h3 className="text-base font-semibold text-gray-800">기록 추이</h3>
                 <select
@@ -528,7 +528,7 @@ export default function TabletStudentProfilePage({
             </div>
 
             {/* Recent Records */}
-            <div className="bg-white rounded-xl shadow-sm p-3 flex-[2] overflow-hidden flex flex-col min-h-0">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-[2] overflow-hidden flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-2 flex-shrink-0">
                 <h3 className="text-base font-semibold text-gray-800">최근 기록</h3>
                 {recordHistory.length > 5 && (
@@ -582,7 +582,7 @@ export default function TabletStudentProfilePage({
           {/* Right: 학원비교 + 레이더 */}
           <div className="col-span-4 flex flex-col gap-3 min-h-0">
             {/* Bar Chart */}
-            <div className="bg-white rounded-xl shadow-sm p-3 flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-1 overflow-hidden flex flex-col min-h-0">
               <div className="flex-shrink-0">
                 <h3 className="text-base font-semibold text-gray-800">학원평균 vs {student.name}</h3>
                 <p className="text-xs text-gray-400 mb-2">만점 대비 달성률 (%)</p>
@@ -608,7 +608,7 @@ export default function TabletStudentProfilePage({
             </div>
 
             {/* Radar Chart */}
-            <div className="bg-white rounded-xl shadow-sm p-3 flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-1 overflow-hidden flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-1 flex-shrink-0">
                 <h3 className="text-base font-semibold text-gray-800">능력치 비교</h3>
                 <div className="flex items-center gap-2 text-xs">
@@ -680,7 +680,7 @@ export default function TabletStudentProfilePage({
         </div>
         <button
           onClick={loadData}
-          className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+          className="p-3 text-slate-600 dark:text-slate-300 bg-white border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 transition"
         >
           <RefreshCw size={18} />
         </button>
@@ -689,7 +689,7 @@ export default function TabletStudentProfilePage({
       {/* 2 Column: 게이지 + 종합평가 */}
       <div className="grid grid-cols-2 gap-4">
         {/* Record Gauges */}
-        <div className="bg-white rounded-2xl shadow-sm p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
           <h3 className="font-semibold text-gray-800 mb-3">종목별 기록</h3>
           <div className="grid grid-cols-2 gap-2">
             {selectedGaugeTypes.slice(0, 4).map((typeId) => {
@@ -758,7 +758,7 @@ export default function TabletStudentProfilePage({
         </div>
 
         {/* Overall Grade */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col justify-center">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4 flex flex-col justify-center">
           <h3 className="font-semibold text-gray-800 mb-3">종합평가</h3>
           <div className="flex items-center gap-4">
             <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getGradeColor(selectedStats.grade)}`}>
@@ -780,7 +780,7 @@ export default function TabletStudentProfilePage({
       </div>
 
       {/* Trend Chart */}
-      <div className="bg-white rounded-2xl shadow-sm p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-gray-800">기록 추이</h3>
           <select
@@ -817,7 +817,7 @@ export default function TabletStudentProfilePage({
       {/* 2 Column: 비교 차트들 */}
       <div className="grid grid-cols-2 gap-4">
         {/* Bar Chart */}
-        <div className="bg-white rounded-2xl shadow-sm p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
           <h3 className="font-semibold text-gray-800 mb-3">학원평균 vs {student.name}</h3>
           <ResponsiveContainer width="100%" height={compareBarData.length * 35 + 40}>
             <BarChart data={compareBarData} layout="vertical">
@@ -838,7 +838,7 @@ export default function TabletStudentProfilePage({
         </div>
 
         {/* Radar Chart */}
-        <div className="bg-white rounded-2xl shadow-sm p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
           <h3 className="font-semibold text-gray-800 mb-3">능력치 비교</h3>
           <ResponsiveContainer width="100%" height={200}>
             <RadarChart data={radarChartData}>
@@ -875,7 +875,7 @@ export default function TabletStudentProfilePage({
       </div>
 
       {/* Recent Records Table */}
-      <div className="bg-white rounded-2xl shadow-sm p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-gray-800">최근 기록</h3>
           {recordHistory.length > 6 && (

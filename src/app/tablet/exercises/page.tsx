@@ -286,26 +286,26 @@ export default function TabletExercisesPage() {
         <div className="flex items-center gap-4">
           <Link
             href="/tablet/plans"
-            className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
+            className="p-3 text-slate-400 hover:text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-900 rounded-xl transition"
           >
             <ArrowLeft size={24} />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">운동 관리</h1>
-            <p className="text-slate-500 text-sm mt-1">수업에서 사용할 운동 목록</p>
+            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">운동 관리</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">수업에서 사용할 운동 목록</p>
           </div>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
+          className="p-3 text-slate-600 dark:text-slate-300 bg-white border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 transition disabled:opacity-50"
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 bg-white rounded-xl p-1 shadow-sm mb-4 overflow-x-auto">
+      <div className="flex gap-2 bg-white dark:bg-slate-800 rounded-xl p-1 shadow-sm mb-4 overflow-x-auto">
         <button
           onClick={() => setActiveTab('list')}
           className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition flex-shrink-0 ${
@@ -338,7 +338,7 @@ export default function TabletExercisesPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-white rounded-2xl shadow-sm">
+        <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
           <RefreshCw size={40} className="animate-spin text-slate-400" />
         </div>
       ) : activeTab === 'list' ? (
@@ -370,12 +370,12 @@ export default function TabletExercisesPage() {
           {/* Exercise Form Modal */}
           {showExerciseForm && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-800 text-lg">
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg">
                     {editingExercise ? '운동 수정' : '새 운동 추가'}
                   </h3>
-                  <button onClick={() => setShowExerciseForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                  <button onClick={() => setShowExerciseForm(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-300">
                     <X size={24} />
                   </button>
                 </div>
@@ -387,7 +387,7 @@ export default function TabletExercisesPage() {
                       value={exerciseForm.name}
                       onChange={e => setExerciseForm({ ...exerciseForm, name: e.target.value })}
                       placeholder="박스점프, 메디신볼 던지기..."
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -398,7 +398,7 @@ export default function TabletExercisesPage() {
                         value={exerciseForm.default_sets}
                         onChange={e => setExerciseForm({ ...exerciseForm, default_sets: e.target.value })}
                         placeholder="3"
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                       />
                     </div>
                     <div>
@@ -408,7 +408,7 @@ export default function TabletExercisesPage() {
                         value={exerciseForm.default_reps}
                         onChange={e => setExerciseForm({ ...exerciseForm, default_reps: e.target.value })}
                         placeholder="10"
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                       />
                     </div>
                   </div>
@@ -438,14 +438,14 @@ export default function TabletExercisesPage() {
                       onChange={e => setExerciseForm({ ...exerciseForm, description: e.target.value })}
                       placeholder="운동 방법이나 주의사항..."
                       rows={2}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base resize-none"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base resize-none"
                     />
                   </div>
                 </div>
                 <div className="sticky bottom-0 bg-white px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
                   <button
                     onClick={() => setShowExerciseForm(false)}
-                    className="px-6 py-3 text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200"
+                    className="px-6 py-3 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-900 rounded-xl hover:bg-slate-200"
                   >
                     취소
                   </button>
@@ -465,10 +465,10 @@ export default function TabletExercisesPage() {
           {/* Pack Apply Modal */}
           {showPackApplyModal && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-slate-800">팩 불러오기</h3>
-                  <button onClick={() => setShowPackApplyModal(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">팩 불러오기</h3>
+                  <button onClick={() => setShowPackApplyModal(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-300">
                     <X size={24} />
                   </button>
                 </div>
@@ -481,12 +481,12 @@ export default function TabletExercisesPage() {
                       key={pack.id}
                       onClick={() => applyPack(pack.id, pack.name)}
                       disabled={applyingPack}
-                      className="w-full text-left p-4 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-purple-300 transition disabled:opacity-50"
+                      className="w-full text-left p-4 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 hover:border-purple-300 transition disabled:opacity-50"
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <h4 className="font-medium text-slate-800">{pack.name}</h4>
-                          <p className="text-sm text-slate-500">{pack.exercise_count}개 운동 · {pack.author}</p>
+                          <h4 className="font-medium text-slate-800 dark:text-slate-100">{pack.name}</h4>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">{pack.exercise_count}개 운동 · {pack.author}</p>
                         </div>
                         <Package size={24} className="text-purple-400" />
                       </div>
@@ -496,7 +496,7 @@ export default function TabletExercisesPage() {
                 <div className="flex justify-end mt-4">
                   <button
                     onClick={() => setShowPackApplyModal(false)}
-                    className="px-6 py-3 text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200"
+                    className="px-6 py-3 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-900 rounded-xl hover:bg-slate-200"
                   >
                     취소
                   </button>
@@ -507,22 +507,22 @@ export default function TabletExercisesPage() {
 
           {/* Exercises List */}
           {exercises.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
               <Dumbbell size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500 text-lg">등록된 운동이 없습니다.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-lg">등록된 운동이 없습니다.</p>
               <p className="text-slate-400 text-sm mt-1">운동 추가 버튼을 눌러 만들어보세요.</p>
             </div>
           ) : (
-            <div className={`bg-white rounded-2xl shadow-sm overflow-hidden ${orientation === 'landscape' ? 'max-h-[calc(100vh-320px)] overflow-y-auto' : ''}`}>
+            <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden ${orientation === 'landscape' ? 'max-h-[calc(100vh-320px)] overflow-y-auto' : ''}`}>
               <div className={`divide-y divide-slate-100 ${orientation === 'landscape' ? 'grid grid-cols-2' : ''}`}>
                 {exercises.map(exercise => (
-                  <div key={exercise.id} className={`p-4 hover:bg-slate-50 ${orientation === 'landscape' ? 'border-b border-slate-100' : ''}`}>
+                  <div key={exercise.id} className={`p-4 hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 ${orientation === 'landscape' ? 'border-b border-slate-100' : ''}`}>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-medium text-slate-800 text-lg">{exercise.name}</h4>
+                          <h4 className="font-medium text-slate-800 dark:text-slate-100 text-lg">{exercise.name}</h4>
                           {(exercise.default_sets || exercise.default_reps) && (
-                            <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-lg">
+                            <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 dark:text-slate-300 rounded-lg">
                               {exercise.default_sets && `${exercise.default_sets}세트`}
                               {exercise.default_sets && exercise.default_reps && ' × '}
                               {exercise.default_reps && `${exercise.default_reps}회`}
@@ -540,7 +540,7 @@ export default function TabletExercisesPage() {
                           })}
                           {exercise.tags.length === 0 && <span className="text-xs text-slate-400">태그 없음</span>}
                         </div>
-                        {exercise.description && <p className="text-sm text-slate-500 mt-1">{exercise.description}</p>}
+                        {exercise.description && <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{exercise.description}</p>}
                       </div>
                       <div className="flex items-center gap-1">
                         <button onClick={() => startEditExercise(exercise)} className="p-3 text-slate-400 hover:text-orange-500">
@@ -574,12 +574,12 @@ export default function TabletExercisesPage() {
           {/* Tag Form Modal */}
           {showTagForm && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md">
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-800 text-lg">
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg">
                     {editingTag ? '태그 수정' : '새 태그 추가'}
                   </h3>
-                  <button onClick={() => setShowTagForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                  <button onClick={() => setShowTagForm(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-300">
                     <X size={24} />
                   </button>
                 </div>
@@ -592,7 +592,7 @@ export default function TabletExercisesPage() {
                       onChange={e => setTagForm({ ...tagForm, tag_id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
                       placeholder="lower-power"
                       disabled={!!editingTag}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base disabled:bg-slate-100"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base disabled:bg-slate-100"
                     />
                   </div>
                   <div>
@@ -602,7 +602,7 @@ export default function TabletExercisesPage() {
                       value={tagForm.label}
                       onChange={e => setTagForm({ ...tagForm, label: e.target.value })}
                       placeholder="하체 파워"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                     />
                   </div>
                   <div>
@@ -621,14 +621,14 @@ export default function TabletExercisesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-sm text-slate-500">미리보기:</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">미리보기:</span>
                     <span className={`px-4 py-2 rounded-xl text-sm font-medium ${tagForm.color}`}>
                       {tagForm.label || '태그'}
                     </span>
                   </div>
                 </div>
                 <div className="px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
-                  <button onClick={() => setShowTagForm(false)} className="px-6 py-3 text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200">
+                  <button onClick={() => setShowTagForm(false)} className="px-6 py-3 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-900 rounded-xl hover:bg-slate-200">
                     취소
                   </button>
                   <button
@@ -645,10 +645,10 @@ export default function TabletExercisesPage() {
           )}
 
           {/* Tags List */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
             <div className="divide-y divide-slate-100">
               {exerciseTags.map(tag => (
-                <div key={tag.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                <div key={tag.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700">
                   <div className="flex items-center gap-4">
                     <span className={`px-4 py-2 rounded-xl text-sm font-medium ${tag.color}`}>{tag.label}</span>
                     <span className="text-xs text-slate-400">{tag.tag_id}</span>
@@ -681,7 +681,7 @@ export default function TabletExercisesPage() {
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition"
+              className="flex items-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 dark:text-slate-300 rounded-xl hover:bg-slate-200 transition"
             >
               <Upload size={18} />
               <span className="font-medium">팩 가져오기</span>
@@ -692,10 +692,10 @@ export default function TabletExercisesPage() {
           {/* Pack Form Modal */}
           {showPackForm && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-800 text-lg">새 운동 팩 만들기</h3>
-                  <button onClick={() => setShowPackForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-lg">새 운동 팩 만들기</h3>
+                  <button onClick={() => setShowPackForm(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-300">
                     <X size={24} />
                   </button>
                 </div>
@@ -707,7 +707,7 @@ export default function TabletExercisesPage() {
                       value={packForm.name}
                       onChange={e => setPackForm({ ...packForm, name: e.target.value })}
                       placeholder="하체 훈련 팩"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                     />
                   </div>
                   <div>
@@ -717,7 +717,7 @@ export default function TabletExercisesPage() {
                       value={packForm.description}
                       onChange={e => setPackForm({ ...packForm, description: e.target.value })}
                       placeholder="제멀, 스쿼트 관련 운동들"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
                     />
                   </div>
                   <div>
@@ -736,15 +736,15 @@ export default function TabletExercisesPage() {
                         <button
                           type="button"
                           onClick={() => setPackForm({ ...packForm, exercise_ids: [] })}
-                          className="text-xs px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"
+                          className="text-xs px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 dark:text-slate-300 rounded-lg hover:bg-slate-200"
                         >
                           전체 해제
                         </button>
                       </div>
                     </div>
-                    <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-xl divide-y">
+                    <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl divide-y">
                       {exercises.map(ex => (
-                        <label key={ex.id} className="flex items-center gap-3 p-4 hover:bg-slate-50 cursor-pointer">
+                        <label key={ex.id} className="flex items-center gap-3 p-4 hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={packForm.exercise_ids.includes(ex.id)}
@@ -758,7 +758,7 @@ export default function TabletExercisesPage() {
                   </div>
                 </div>
                 <div className="sticky bottom-0 bg-white px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
-                  <button onClick={() => setShowPackForm(false)} className="px-6 py-3 text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200">
+                  <button onClick={() => setShowPackForm(false)} className="px-6 py-3 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-900 rounded-xl hover:bg-slate-200">
                     취소
                   </button>
                   <button
@@ -776,19 +776,19 @@ export default function TabletExercisesPage() {
 
           {/* Packs List */}
           {exercisePacks.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
               <Package size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500 text-lg">생성된 운동 팩이 없습니다.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-lg">생성된 운동 팩이 없습니다.</p>
               <p className="text-slate-400 text-sm mt-1">팩을 만들어 다른 학원과 공유해보세요!</p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
               <div className="divide-y divide-slate-100">
                 {exercisePacks.map(pack => (
-                  <div key={pack.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                  <div key={pack.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700">
                     <div>
-                      <h4 className="font-medium text-slate-800 text-lg">{pack.name}</h4>
-                      <p className="text-sm text-slate-500">
+                      <h4 className="font-medium text-slate-800 dark:text-slate-100 text-lg">{pack.name}</h4>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {pack.exercise_count}개 운동 · {pack.author} · v{pack.version}
                       </p>
                       {pack.description && <p className="text-xs text-slate-400 mt-1">{pack.description}</p>}

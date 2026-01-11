@@ -61,7 +61,7 @@ export interface TabsListProps {
 export function TabsList({ children, className = '' }: TabsListProps) {
   return (
     <div
-      className={`flex gap-1 p-1 bg-slate-100 rounded-xl ${className}`}
+      className={`flex gap-1 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl ${className}`}
       role="tablist"
     >
       {children}
@@ -96,8 +96,8 @@ export function TabsTrigger({
         flex-1 px-4 py-2 text-sm font-medium rounded-lg transition
         ${
           isActive
-            ? 'bg-white text-slate-800 shadow-sm'
-            : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+            ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-sm'
+            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700'
         }
         ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}
@@ -139,7 +139,7 @@ export interface SimpleTabsProps {
 
 export function SimpleTabs({ tabs, activeTab, onChange, className = '' }: SimpleTabsProps) {
   return (
-    <div className={`flex gap-1 p-1 bg-slate-100 rounded-xl ${className}`}>
+    <div className={`flex gap-1 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl ${className}`}>
       {tabs.map((tab) => (
         <button
           key={tab.value}
@@ -148,8 +148,8 @@ export function SimpleTabs({ tabs, activeTab, onChange, className = '' }: Simple
             flex-1 px-4 py-2 text-sm font-medium rounded-lg transition flex items-center justify-center gap-2
             ${
               activeTab === tab.value
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700'
             }
           `}
         >
@@ -158,7 +158,7 @@ export function SimpleTabs({ tabs, activeTab, onChange, className = '' }: Simple
             <span
               className={`
                 px-1.5 py-0.5 text-xs rounded-full
-                ${activeTab === tab.value ? 'bg-orange-100 text-orange-600' : 'bg-slate-200 text-slate-500'}
+                ${activeTab === tab.value ? 'bg-orange-100 text-orange-600' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}
               `}
             >
               {tab.count}

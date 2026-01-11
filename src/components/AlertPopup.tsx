@@ -54,7 +54,7 @@ export default function AlertPopup({ onClose }: AlertPopupProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
         {/* 헤더 */}
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -121,14 +121,14 @@ export default function AlertPopup({ onClose }: AlertPopupProps) {
 
           {/* 푸시 알림 권한 요청 */}
           {showPushPrompt && (
-            <div className="rounded-xl p-4 bg-slate-50 border border-slate-200">
+            <div className="rounded-xl p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-slate-100">
-                  <Bell className="text-slate-600" size={20} />
+                <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-900">
+                  <Bell className="text-slate-600 dark:text-slate-400" size={20} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-slate-800">푸시 알림 설정</h3>
-                  <p className="text-sm mt-1 text-slate-600">
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">푸시 알림 설정</h3>
+                  <p className="text-sm mt-1 text-slate-600 dark:text-slate-300">
                     중요한 알림을 놓치지 않도록 푸시 알림을 허용해주세요.
                   </p>
                   <button
@@ -144,10 +144,10 @@ export default function AlertPopup({ onClose }: AlertPopupProps) {
         </div>
 
         {/* 푸터 */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100">
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700">
           <button
             onClick={handleClose}
-            className="w-full py-3 bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-900 transition"
+            className="w-full py-3 bg-slate-800 dark:bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-900 dark:hover:bg-slate-600 transition"
           >
             확인
           </button>

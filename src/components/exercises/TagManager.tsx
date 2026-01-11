@@ -50,43 +50,43 @@ export function TagManager({
 
       {/* Tag Form */}
       {showForm && (
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-800">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100">
               {editingTag ? '태그 수정' : '새 태그 추가'}
             </h3>
-            <button onClick={() => setShowForm(false)} className="p-2 text-slate-400 hover:text-slate-600">
+            <button onClick={() => setShowForm(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
               <X size={20} />
             </button>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">태그 ID</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">태그 ID</label>
               <input
                 type="text"
                 value={form.tag_id}
                 onChange={e => setForm({ ...form, tag_id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
                 placeholder="lower-power"
                 disabled={!!editingTag}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 disabled:bg-slate-100"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-orange-500 disabled:bg-slate-100 dark:disabled:bg-slate-900"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">표시 이름</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">표시 이름</label>
               <input
                 type="text"
                 value={form.label}
                 onChange={e => setForm({ ...form, label: e.target.value })}
                 placeholder="하체 파워"
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-orange-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">색상</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">색상</label>
               <select
                 value={form.color}
                 onChange={e => setForm({ ...form, color: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-orange-500"
               >
                 {TAG_COLORS.map(c => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -95,7 +95,7 @@ export function TagManager({
             </div>
           </div>
           <div className="flex items-center gap-4 mt-4">
-            <span className="text-sm text-slate-500">미리보기:</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">미리보기:</span>
             <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${form.color}`}>
               {form.label || '태그'}
             </span>
@@ -103,7 +103,7 @@ export function TagManager({
           <div className="flex justify-end gap-2 mt-4">
             <button
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
             >
               취소
             </button>
@@ -120,10 +120,10 @@ export function TagManager({
       )}
 
       {/* Tags List */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="divide-y divide-slate-100">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="divide-y divide-slate-100 dark:divide-slate-700">
           {tags.map(tag => (
-            <div key={tag.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
+            <div key={tag.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700">
               <div className="flex items-center gap-4">
                 <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${tag.color}`}>
                   {tag.label}

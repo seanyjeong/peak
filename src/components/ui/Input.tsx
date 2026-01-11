@@ -18,7 +18,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             {label}
           </label>
         )}
@@ -33,11 +33,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             className={`
               w-full px-4 py-2 rounded-xl border transition
+              bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
               focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500
-              disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed
+              disabled:bg-slate-50 dark:disabled:bg-slate-900 disabled:text-slate-500 disabled:cursor-not-allowed
               ${leftIcon ? 'pl-10' : ''}
               ${rightIcon ? 'pr-10' : ''}
-              ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-300'}
+              ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'}
               ${className}
             `}
             aria-invalid={error ? 'true' : 'false'}
@@ -56,7 +57,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           </p>
         )}
         {helperText && !error && (
-          <p id={`${inputId}-helper`} className="mt-1 text-sm text-slate-500">
+          <p id={`${inputId}-helper`} className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {helperText}
           </p>
         )}
@@ -81,7 +82,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={textareaId} className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor={textareaId} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             {label}
           </label>
         )}
@@ -90,9 +91,10 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           id={textareaId}
           className={`
             w-full px-4 py-2 rounded-xl border transition resize-none
+            bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
             focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500
-            disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed
-            ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-300'}
+            disabled:bg-slate-50 dark:disabled:bg-slate-900 disabled:text-slate-500 disabled:cursor-not-allowed
+            ${error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'}
             ${className}
           `}
           aria-invalid={error ? 'true' : 'false'}
@@ -105,7 +107,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           </p>
         )}
         {helperText && !error && (
-          <p id={`${textareaId}-helper`} className="mt-1 text-sm text-slate-500">
+          <p id={`${textareaId}-helper`} className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {helperText}
           </p>
         )}
