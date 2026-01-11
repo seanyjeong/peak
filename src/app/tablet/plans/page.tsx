@@ -272,7 +272,7 @@ export default function TabletPlansPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">수업 계획</h1>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">수업 계획</h1>
           <div className="flex items-center gap-2 mt-2">
             <button onClick={() => changeDate(-1)} className="p-2 text-slate-400 hover:text-slate-600">
               <ChevronLeft size={24} />
@@ -299,7 +299,7 @@ export default function TabletPlansPage() {
           )}
           <Link
             href="/tablet/exercises"
-            className="flex items-center gap-2 px-4 py-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+            className="flex items-center gap-2 px-4 py-3 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 transition"
           >
             <Settings2 size={18} />
             <span className="text-sm font-medium">운동 관리</span>
@@ -307,7 +307,7 @@ export default function TabletPlansPage() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
+            className="p-3 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -329,7 +329,7 @@ export default function TabletPlansPage() {
               className={`flex items-center gap-2 px-5 py-3 rounded-xl transition flex-shrink-0 ${
                 isActive
                   ? `${info.bgColor} ${info.color} ring-2 ring-offset-2`
-                  : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                  : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
               }`}
             >
               <Icon size={20} />
@@ -345,9 +345,9 @@ export default function TabletPlansPage() {
       {/* Add/Edit Form Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="font-semibold text-slate-800 text-lg">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <h2 className="font-semibold text-slate-800 dark:text-slate-100 text-lg">
                 {editingId ? '계획 수정' : `${TIME_SLOT_INFO[activeSlot].label} 수업 계획`}
               </h2>
               <button onClick={resetForm} className="p-2 text-slate-400 hover:text-slate-600">
@@ -392,7 +392,7 @@ export default function TabletPlansPage() {
                       className={`px-4 py-2.5 rounded-xl text-sm font-medium transition border ${
                         selectedTags.includes(tag.id)
                           ? tag.color + ' ring-2 ring-offset-1 ring-slate-300'
-                          : 'bg-slate-100 text-slate-500 border-transparent hover:bg-slate-200'
+                          : 'bg-slate-100 text-slate-500 dark:text-slate-400 border-transparent hover:bg-slate-200'
                       }`}
                     >
                       {tag.label}
@@ -429,7 +429,7 @@ export default function TabletPlansPage() {
                               }`}>
                                 {isExerciseSelected(ex.id) && <Check size={16} />}
                               </div>
-                              <span className="font-medium text-slate-800">{ex.name}</span>
+                              <span className="font-medium text-slate-800 dark:text-slate-100">{ex.name}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               {ex.tags.map(t => <TagBadge key={t} tagId={t} small />)}
@@ -512,10 +512,10 @@ export default function TabletPlansPage() {
             </div>
 
             {/* Submit */}
-            <div className="sticky bottom-0 bg-white px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
+            <div className="sticky bottom-0 bg-white px-5 py-4 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2">
               <button
                 onClick={resetForm}
-                className="px-6 py-3 text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200"
+                className="px-6 py-3 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-900 rounded-xl hover:bg-slate-200"
               >
                 취소
               </button>
@@ -532,9 +532,9 @@ export default function TabletPlansPage() {
       )}
 
       {/* Plans List */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800 text-lg">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="font-semibold text-slate-800 dark:text-slate-100 text-lg">
             {TIME_SLOT_INFO[activeSlot].label} 수업 계획 ({currentPlans.length}/{currentInstructors.length}명)
           </h2>
         </div>
@@ -565,8 +565,8 @@ export default function TabletPlansPage() {
                       {plan.instructor_name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-800 text-lg">{plan.instructor_name}</p>
-                      <p className="text-sm text-slate-500">{plan.exercises?.length || 0}개 운동</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100 text-lg">{plan.instructor_name}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{plan.exercises?.length || 0}개 운동</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -615,7 +615,7 @@ export default function TabletPlansPage() {
                               {sel.weight && sel.weight}{sel.weight && sel.reps && ' × '}{sel.reps && `${sel.reps}회`}
                             </span>
                           )}
-                          {sel.note && <span className="text-slate-500">- {sel.note}</span>}
+                          {sel.note && <span className="text-slate-500 dark:text-slate-400">- {sel.note}</span>}
                         </div>
                       ))}
                     </div>
@@ -624,7 +624,7 @@ export default function TabletPlansPage() {
 
                 {/* Description */}
                 {plan.description && (
-                  <p className="text-slate-600 text-sm mt-3 pt-3 border-t border-slate-100">
+                  <p className="text-slate-600 text-sm mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
                     {plan.description}
                   </p>
                 )}
@@ -637,7 +637,7 @@ export default function TabletPlansPage() {
       {/* Summary */}
       {currentInstructors.length > 0 && instructorsWithoutPlan.length > 0 && (
         <div className="mt-4 bg-slate-100 rounded-xl p-4">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             미작성: {instructorsWithoutPlan.map(i => i.name).join(', ')}
           </p>
         </div>

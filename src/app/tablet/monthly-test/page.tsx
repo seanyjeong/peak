@@ -68,7 +68,7 @@ export default function TabletMonthlyTestListPage() {
       </div>
 
       {tests.length === 0 ? (
-        <Card className="p-8 text-center text-gray-500">
+        <Card className="p-8 text-center text-gray-500 dark:text-slate-400">
           <p>등록된 월말테스트가 없습니다.</p>
           <p className="text-sm mt-2">PC에서 테스트를 생성해주세요.</p>
         </Card>
@@ -77,7 +77,7 @@ export default function TabletMonthlyTestListPage() {
           {tests.map(test => (
             <Card
               key={test.id}
-              className="p-4 cursor-pointer active:bg-gray-50"
+              className="p-4 cursor-pointer active:bg-gray-50 dark:bg-slate-900"
               onClick={() => router.push(`/tablet/monthly-test/${test.id}`)}
             >
               <div className="flex justify-between items-start">
@@ -86,12 +86,12 @@ export default function TabletMonthlyTestListPage() {
                     <h2 className="text-lg font-semibold">{test.test_name}</h2>
                     {getStatusBadge(test.status)}
                   </div>
-                  <div className="text-sm text-gray-500 flex gap-4">
+                  <div className="text-sm text-gray-500 dark:text-slate-400 flex gap-4">
                     <span>세션 {test.session_count}개</span>
                     <span>참가자 {test.participant_count}명</span>
                   </div>
                 </div>
-                <span className="text-gray-400 text-2xl">›</span>
+                <span className="text-gray-400 dark:text-slate-500 text-2xl">›</span>
               </div>
             </Card>
           ))}

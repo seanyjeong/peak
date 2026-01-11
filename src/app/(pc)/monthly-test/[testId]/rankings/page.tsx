@@ -134,9 +134,9 @@ export default function RankingsPage({
   // 순위 아이콘
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="text-yellow-500" size={20} />;
-    if (rank === 2) return <Medal className="text-gray-400" size={20} />;
+    if (rank === 2) return <Medal className="text-gray-400 dark:text-slate-500" size={20} />;
     if (rank === 3) return <Award className="text-amber-600" size={20} />;
-    return <span className="w-5 text-center text-gray-500">{rank}</span>;
+    return <span className="w-5 text-center text-gray-500 dark:text-slate-400">{rank}</span>;
   };
 
   if (loading) {
@@ -152,9 +152,9 @@ export default function RankingsPage({
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-6">
       {/* 헤더 */}
-      <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+      <div className="sticky top-0 z-10 bg-white dark:bg-slate-800 border-b shadow-sm">
         <div className="px-6 py-4 flex items-center gap-3">
           <Button
             variant="ghost"
@@ -166,7 +166,7 @@ export default function RankingsPage({
           </Button>
           <div className="flex-1">
             <h1 className="text-xl font-bold">{test?.test_name || '월말테스트'}</h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-slate-400">
               전체 순위 · {rankedParticipants.length}명
             </p>
           </div>
@@ -215,7 +215,7 @@ export default function RankingsPage({
       <div className="px-6 mt-4">
         <Card className="overflow-hidden">
           {/* 테이블 헤더 */}
-          <div className="bg-gray-100 px-4 py-3 grid grid-cols-12 gap-2 text-sm font-medium text-gray-600 border-b">
+          <div className="bg-gray-100 dark:bg-slate-900 px-4 py-3 grid grid-cols-12 gap-2 text-sm font-medium text-gray-600 dark:text-slate-400 border-b">
             <div className="col-span-1 text-center">순위</div>
             <div className="col-span-3">이름</div>
             <div className="col-span-1 text-center">성별</div>
@@ -236,7 +236,7 @@ export default function RankingsPage({
           {/* 테이블 바디 */}
           <div className="divide-y">
             {rankedParticipants.length === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-500">
+              <div className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                 참가자가 없습니다
               </div>
             ) : (
@@ -270,7 +270,7 @@ export default function RankingsPage({
                   </div>
 
                   {/* 학교 */}
-                  <div className="col-span-2 text-gray-600 truncate text-xs">
+                  <div className="col-span-2 text-gray-600 dark:text-slate-400 truncate text-xs">
                     {p.school || '-'}
                   </div>
 
@@ -281,7 +281,7 @@ export default function RankingsPage({
                         {recordTypes.map(type => (
                           <span
                             key={type.record_type_id}
-                            className="text-xs px-1.5 py-0.5 bg-gray-100 rounded"
+                            className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-slate-900 rounded"
                             title={type.name}
                           >
                             {p.scores[type.record_type_id] ?? '-'}
@@ -294,7 +294,7 @@ export default function RankingsPage({
                         <span className="font-bold text-lg text-indigo-600">
                           {p.total_score}
                         </span>
-                        <span className="text-xs text-gray-400 ml-1">점</span>
+                        <span className="text-xs text-gray-400 dark:text-slate-500 ml-1">점</span>
                       </div>
                     </>
                   ) : (
@@ -302,7 +302,7 @@ export default function RankingsPage({
                       {/* 기록 */}
                       <div className="col-span-2 text-center font-medium">
                         {formatValue(p.records[selectedTypeId], selectedType?.unit || '')}
-                        <span className="text-xs text-gray-400 ml-0.5">
+                        <span className="text-xs text-gray-400 dark:text-slate-500 ml-0.5">
                           {selectedType?.unit}
                         </span>
                       </div>
@@ -313,7 +313,7 @@ export default function RankingsPage({
                           {p.scores[selectedTypeId] ?? '-'}
                         </span>
                         {p.scores[selectedTypeId] !== null && (
-                          <span className="text-xs text-gray-400 ml-1">점</span>
+                          <span className="text-xs text-gray-400 dark:text-slate-500 ml-1">점</span>
                         )}
                       </div>
                     </>

@@ -94,33 +94,33 @@ export default function TabletAttendancePage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">출근 체크</h1>
-          <p className="text-slate-500 text-sm mt-1">{today}</p>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">출근 체크</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{today}</p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
+          className="p-3 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
       {/* Stats Card */}
-      <div className="bg-white rounded-2xl shadow-sm p-5 mb-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 mb-4">
         <div className="flex items-center gap-5">
           <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center">
             <UserCheck size={40} className="text-orange-500" />
           </div>
           <div className="flex-1">
-            <p className="text-4xl font-bold text-slate-800">
+            <p className="text-4xl font-bold text-slate-800 dark:text-slate-100">
               {stats.checkedIn}
               <span className="text-slate-400 text-2xl">/{stats.uniqueInstructors}</span>
             </p>
-            <p className="text-slate-500 mt-1 text-lg">강사 출근</p>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-lg">강사 출근</p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-slate-500">출근률</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">출근률</p>
             <p className="text-3xl font-bold text-orange-500">
               {stats.uniqueInstructors > 0 ? Math.round((stats.checkedIn / stats.uniqueInstructors) * 100) : 0}%
             </p>
@@ -144,7 +144,7 @@ export default function TabletAttendancePage() {
               className={`flex items-center gap-2 px-5 py-3 rounded-xl transition flex-shrink-0 ${
                 isActive
                   ? `${info.bgColor} ${info.color} ring-2 ring-offset-2`
-                  : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                  : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
               }`}
             >
               <Icon size={20} />
@@ -160,9 +160,9 @@ export default function TabletAttendancePage() {
       </div>
 
       {/* Instructor List */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800 text-lg">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="font-semibold text-slate-800 dark:text-slate-100 text-lg">
             {TIME_SLOT_INFO[activeSlot].label} 강사 ({currentInstructors.length}명)
           </h2>
         </div>
@@ -174,8 +174,8 @@ export default function TabletAttendancePage() {
           </div>
         ) : currentInstructors.length === 0 ? (
           <div className="p-12 text-center text-slate-400">
-            <p className="text-lg">{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 강사가 없습니다.</p>
-            <p className="text-sm mt-2">P-ACA에서 강사 스케줄을 등록하세요.</p>
+            <p className="text-lg dark:text-slate-300">{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 강사가 없습니다.</p>
+            <p className="text-sm mt-2 dark:text-slate-400">P-ACA에서 강사 스케줄을 등록하세요.</p>
           </div>
         ) : (
           <div className={`divide-y divide-slate-100 ${orientation === 'landscape' ? 'max-h-[400px] overflow-y-auto' : ''}`}>
@@ -199,8 +199,8 @@ export default function TabletAttendancePage() {
                       {instructor.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800 text-lg">{instructor.name}</p>
-                      <p className="text-sm text-slate-500">
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-lg">{instructor.name}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {TIME_SLOT_INFO[instructor.time_slot].label} 근무
                       </p>
                     </div>
@@ -225,7 +225,7 @@ export default function TabletAttendancePage() {
       </div>
 
       {/* Info Banner */}
-      <div className="mt-4 bg-slate-100 rounded-xl p-4 text-sm text-slate-600">
+      <div className="mt-4 bg-slate-100 dark:bg-slate-900 rounded-xl p-4 text-sm text-slate-600 dark:text-slate-300">
         <p>출근 체크는 P-ACA에서 관리됩니다. 출근 상태 변경은 P-ACA에서 진행해주세요.</p>
       </div>
     </div>

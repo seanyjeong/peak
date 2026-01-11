@@ -75,14 +75,14 @@ function CompactStudentCard({ student, isDragging }: { student: Student; isDragg
 
   return (
     <div
-      className={`flex items-center gap-1 px-2 py-1 bg-white rounded border shadow-sm cursor-grab active:cursor-grabbing transition touch-none ${
+      className={`flex items-center gap-1 px-2 py-1 bg-white dark:bg-slate-800 rounded border shadow-sm cursor-grab active:cursor-grabbing transition touch-none ${
         isDragging ? 'opacity-50 border-orange-400 shadow-lg scale-105' : ''
-      } ${isAbsent ? 'opacity-60 border-red-200 bg-red-50' : 'hover:border-slate-300'}`}
+      } ${isAbsent ? 'opacity-60 border-red-200 bg-red-50 dark:bg-red-900/30 dark:border-red-700' : 'hover:border-slate-300 dark:hover:border-slate-600 dark:border-slate-700'}`}
     >
       <span className={`px-1 py-0.5 rounded text-xs font-medium ${genderColor}`}>
         {student.gender === 'M' ? '남' : '여'}
       </span>
-      <span className={`font-medium text-sm truncate max-w-[60px] ${isAbsent ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+      <span className={`font-medium text-sm truncate max-w-[60px] ${isAbsent ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-100'}`}>
         {student.student_name}
       </span>
       {isAbsent && (
@@ -168,16 +168,16 @@ function WaitingArea({
   const { setNodeRef: setInstructorRef, isOver: isOverInstructors } = useDroppable({ id: 'waiting-instructors' });
 
   return (
-    <div className="bg-slate-50 rounded-xl p-4 mb-4">
+    <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 mb-4">
       <div className={`grid gap-4 ${orientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'}`}>
         {/* 학생 대기 */}
         <div
           ref={setStudentRef}
-          className={`bg-white rounded-lg p-4 min-h-[100px] transition ${
+          className={`bg-white dark:bg-slate-800 rounded-lg p-4 min-h-[100px] transition ${
             isOverStudents ? 'ring-2 ring-blue-400 bg-blue-50' : ''
           }`}
         >
-          <div className="flex items-center gap-2 mb-3 text-slate-600">
+          <div className="flex items-center gap-2 mb-3 text-slate-600 dark:text-slate-300">
             <Users size={18} />
             <span className="text-base font-medium">학생 대기</span>
             <span className="px-2 py-0.5 bg-slate-100 rounded text-sm">{waitingStudents.length}명</span>
@@ -195,11 +195,11 @@ function WaitingArea({
         {/* 강사 대기 */}
         <div
           ref={setInstructorRef}
-          className={`bg-white rounded-lg p-4 min-h-[100px] transition ${
+          className={`bg-white dark:bg-slate-800 rounded-lg p-4 min-h-[100px] transition ${
             isOverInstructors ? 'ring-2 ring-orange-400 bg-orange-50' : ''
           }`}
         >
-          <div className="flex items-center gap-2 mb-3 text-slate-600">
+          <div className="flex items-center gap-2 mb-3 text-slate-600 dark:text-slate-300">
             <Users size={18} />
             <span className="text-base font-medium">강사 대기</span>
             <span className="px-2 py-0.5 bg-slate-100 rounded text-sm">{waitingInstructors.length}명</span>
@@ -234,7 +234,7 @@ function ClassColumn({ classData, orientation }: { classData: ClassData; orienta
   const className = mainInstructor ? `${mainInstructor.name}T` : `${classData.class_num}반`;
 
   return (
-    <div className={`flex flex-col ${columnWidth} bg-white rounded-xl shadow-sm border overflow-hidden`}>
+    <div className={`flex flex-col ${columnWidth} bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 overflow-hidden`}>
       {/* 헤더 */}
       <div className="bg-orange-500 text-white px-4 py-3">
         <div className="flex items-center justify-between gap-2">
@@ -500,27 +500,27 @@ export default function TabletAssignmentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">반 배치</h1>
-          <p className="text-slate-500 text-sm">{formatDateKorean(selectedDate)}</p>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">반 배치</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">{formatDateKorean(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border dark:border-slate-700">
             <Calendar size={16} className="text-slate-400" />
             <input
               type="date"
               value={selectedDate}
               onChange={e => setSelectedDate(e.target.value)}
-              className="border-none focus:ring-0 text-slate-700 text-sm w-32"
+              className="border-none focus:ring-0 text-slate-700 dark:text-slate-300 dark:bg-slate-800 text-sm w-32"
             />
           </div>
-          <div className="px-3 py-2 bg-white rounded-lg shadow-sm">
+          <div className="px-3 py-2 bg-white dark:bg-slate-800 dark:border dark:border-slate-700 rounded-lg shadow-sm">
             <span className="text-slate-500 text-sm">배정</span>
             <span className="ml-2 font-bold text-orange-500">{assignedStudents}/{totalStudents}</span>
           </div>
           <button
             onClick={fetchData}
             disabled={loading}
-            className="p-3 text-slate-600 bg-white border rounded-lg min-h-12"
+            className="p-3 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg min-h-12"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -541,7 +541,7 @@ export default function TabletAssignmentsPage() {
               className={`flex items-center gap-2 px-4 py-3 rounded-lg transition min-h-12 ${
                 isActive
                   ? `${info.bgColor} ${info.color} ring-2 ring-offset-1`
-                  : 'bg-white text-slate-500'
+                  : 'bg-white dark:bg-slate-800 dark:border dark:border-slate-700 text-slate-500 dark:text-slate-400'
               }`}
             >
               <span className="font-medium">{info.label}</span>

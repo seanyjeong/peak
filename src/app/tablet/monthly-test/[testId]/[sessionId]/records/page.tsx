@@ -200,7 +200,7 @@ export default function TabletSessionRecordsPage({
 
   const typeColors: Record<string, string> = {
     enrolled: 'bg-green-100 text-green-700',
-    rest: 'bg-gray-100 text-gray-600',
+    rest: 'bg-gray-100 dark:bg-slate-900 text-gray-600',
     trial: 'bg-purple-100 text-purple-700',
     test_new: 'bg-orange-100 text-orange-700'
   };
@@ -227,12 +227,12 @@ export default function TabletSessionRecordsPage({
         <div>
           <button
             onClick={() => router.back()}
-            className="text-sm text-gray-500 hover:text-gray-700 min-h-12 flex items-center"
+            className="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 min-h-12 flex items-center"
           >
             ← 뒤로가기
           </button>
           <h1 className="text-xl font-bold">기록 측정</h1>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 dark:text-slate-400">
             {session && new Date(session.test_date).toLocaleDateString('ko-KR')} | {filteredParticipants.length}명
           </div>
         </div>
@@ -246,7 +246,7 @@ export default function TabletSessionRecordsPage({
             className={`px-5 py-3 rounded-xl whitespace-nowrap transition-colors min-h-12 text-base font-medium ${
               selectedGroupId === null
                 ? 'bg-gray-800 text-white'
-                : 'bg-gray-100 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-slate-900 hover:bg-gray-200 dark:bg-slate-700'
             }`}
           >
             전체 ({participants.length})
@@ -261,11 +261,11 @@ export default function TabletSessionRecordsPage({
                 className={`px-5 py-3 rounded-xl whitespace-nowrap transition-colors min-h-12 text-base font-medium ${
                   selectedGroupId === group.id
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-slate-900 hover:bg-gray-200 dark:bg-slate-700'
                 }`}
               >
                 {mainInstructor?.name || `${group.group_num}조`}
-                <span className={`text-sm ml-1 ${selectedGroupId === group.id ? 'text-blue-200' : 'text-gray-500'}`}>
+                <span className={`text-sm ml-1 ${selectedGroupId === group.id ? 'text-blue-200' : 'text-gray-500 dark:text-slate-400'}`}>
                   ({groupParticipants.length})
                 </span>
               </button>
@@ -283,7 +283,7 @@ export default function TabletSessionRecordsPage({
             className={`px-5 py-3 rounded-xl whitespace-nowrap transition-colors min-h-12 text-base font-medium ${
               selectedTypeId === type.record_type_id
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-slate-900 hover:bg-gray-200 dark:bg-slate-700'
             }`}
           >
             {type.short_name || type.name}
@@ -343,12 +343,12 @@ export default function TabletSessionRecordsPage({
                           score >= 80 ? 'text-green-600' :
                           score >= 60 ? 'text-blue-600' :
                           score >= 40 ? 'text-yellow-600' :
-                          'text-gray-500'
+                          'text-gray-500 dark:text-slate-400'
                         }`}>
                           {score}
                         </span>
                       ) : (
-                        <span className="text-gray-300">-</span>
+                        <span className="text-gray-300 dark:text-slate-600">-</span>
                       )}
                     </div>
 
@@ -367,7 +367,7 @@ export default function TabletSessionRecordsPage({
           })}
 
           {filteredParticipants.length === 0 && (
-            <Card className="p-8 text-center text-gray-500">
+            <Card className="p-8 text-center text-gray-500 dark:text-slate-400">
               {selectedGroupId === null
                 ? '참가자가 없습니다.'
                 : '이 조에 배치된 학생이 없습니다.'}

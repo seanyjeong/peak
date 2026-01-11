@@ -5,9 +5,10 @@ export function middleware(request: NextRequest) {
   const ua = request.headers.get('user-agent') || '';
   const pathname = request.nextUrl.pathname;
 
-  // 로그인 페이지, API, 정적 파일은 스킵
+  // 로그인 페이지, API, 정적 파일, 랜딩페이지는 스킵
   if (
     pathname.startsWith('/login') ||
+    pathname.startsWith('/landing') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||

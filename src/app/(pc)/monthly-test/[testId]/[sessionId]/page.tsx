@@ -102,7 +102,7 @@ function DraggableParticipant({ participant }: { participant: Participant }) {
       style={style}
       {...listeners}
       {...attributes}
-      className="bg-white border rounded-lg p-2 mb-1 cursor-grab active:cursor-grabbing shadow-sm hover:shadow touch-none"
+      className="bg-white dark:bg-slate-800 border rounded-lg p-2 mb-1 cursor-grab active:cursor-grabbing shadow-sm hover:shadow touch-none"
     >
       <div className="flex items-center gap-2">
         <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center flex-shrink-0 ${
@@ -118,7 +118,7 @@ function DraggableParticipant({ participant }: { participant: Participant }) {
             </span>
           </div>
           {(participant.school || participant.grade) && (
-            <div className="text-xs text-gray-400 truncate">
+            <div className="text-xs text-gray-400 dark:text-slate-500 truncate">
               {participant.school} {participant.grade}
             </div>
           )}
@@ -180,13 +180,13 @@ function GroupColumn({
   const groupTitle = mainSupervisor ? `${mainSupervisor.name}T` : `${group.group_num}조`;
 
   return (
-    <div className="w-56 flex-shrink-0 bg-white rounded-lg border shadow-sm flex flex-col">
+    <div className="w-56 flex-shrink-0 bg-white dark:bg-slate-800 rounded-lg border shadow-sm flex flex-col">
       {/* 조 헤더 */}
-      <div className="flex justify-between items-center px-3 py-2 border-b bg-gray-50 rounded-t-lg">
+      <div className="flex justify-between items-center px-3 py-2 border-b bg-gray-50 dark:bg-slate-900 rounded-t-lg">
         <span className="font-medium">{groupTitle}</span>
-        <div className="flex items-center gap-1 text-xs text-gray-500">
+        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
           <span>{group.participants.length}명</span>
-          <button onClick={onDeleteGroup} className="ml-2 text-gray-400 hover:text-red-500">✕</button>
+          <button onClick={onDeleteGroup} className="ml-2 text-gray-400 dark:text-slate-500 hover:text-red-500">✕</button>
         </div>
       </div>
 
@@ -194,11 +194,11 @@ function GroupColumn({
       <div
         ref={setSupervisorsRef}
         className={`p-2 border-b min-h-[48px] flex flex-wrap gap-1 transition-colors ${
-          isOverSupervisors ? 'bg-blue-100 ring-2 ring-blue-400' : 'bg-gray-50'
+          isOverSupervisors ? 'bg-blue-100 ring-2 ring-blue-400' : 'bg-gray-50 dark:bg-slate-900'
         }`}
       >
         {group.supervisors.length === 0 ? (
-          <span className="text-xs text-gray-400">감독관을 여기에 드롭</span>
+          <span className="text-xs text-gray-400 dark:text-slate-500">감독관을 여기에 드롭</span>
         ) : (
           group.supervisors.map(s => (
             <DraggableSupervisor key={s.instructor_id} supervisor={s} />
@@ -217,7 +217,7 @@ function GroupColumn({
           <DraggableParticipant key={p.id} participant={p} />
         ))}
         {group.participants.length === 0 && (
-          <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+          <div className="h-full flex items-center justify-center text-gray-400 dark:text-slate-500 text-sm">
             학생을 여기에 드롭
           </div>
         )}
@@ -237,10 +237,10 @@ function NewGroupZone() {
     <div
       ref={setNodeRef}
       className={`w-48 flex-shrink-0 border-2 border-dashed rounded-lg flex items-center justify-center min-h-[300px] transition-colors ${
-        isOver ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-400' : 'border-gray-300'
+        isOver ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-400' : 'border-gray-300 dark:border-slate-700'
       }`}
     >
-      <div className="text-center text-gray-400">
+      <div className="text-center text-gray-400 dark:text-slate-500">
         <div className="text-3xl mb-2">+</div>
         <div className="text-sm">감독관 드롭하여<br/>새 조 생성</div>
       </div>
@@ -272,7 +272,7 @@ function WaitingArea({
     <div className="w-72 flex-shrink-0 flex flex-col gap-4">
       {/* 감독관 대기 */}
       <Card className={`flex-shrink-0 transition-all ${isDragging ? 'ring-2 ring-dashed ring-blue-300' : ''}`}>
-        <div className="p-2 border-b bg-gray-50 font-medium text-sm">
+        <div className="p-2 border-b bg-gray-50 dark:bg-slate-900 font-medium text-sm">
           감독관 대기 ({waitingInstructors.length})
         </div>
         <div
@@ -282,7 +282,7 @@ function WaitingArea({
           }`}
         >
           {waitingInstructors.length === 0 ? (
-            <div className={`w-full h-full flex items-center justify-center text-sm ${isDragging ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
+            <div className={`w-full h-full flex items-center justify-center text-sm ${isDragging ? 'text-blue-500 font-medium' : 'text-gray-400 dark:text-slate-500'}`}>
               {isDragging ? '여기에 드롭하여 미배치' : '감독관을 여기로 드롭'}
             </div>
           ) : (
@@ -298,16 +298,16 @@ function WaitingArea({
       {/* 학생 대기 */}
       <div
         ref={setWaitingParticipantsRef}
-        className={`flex-1 overflow-hidden flex flex-col rounded-lg border bg-white shadow-sm transition-all ${
+        className={`flex-1 overflow-hidden flex flex-col rounded-lg border bg-white dark:bg-slate-800 shadow-sm transition-all ${
           isOverWaitingP ? 'ring-2 ring-green-400 bg-green-50' : isDragging ? 'ring-2 ring-dashed ring-green-300' : ''
         }`}
       >
-        <div className="p-2 border-b bg-gray-50 font-medium text-sm rounded-t-lg">
+        <div className="p-2 border-b bg-gray-50 dark:bg-slate-900 font-medium text-sm rounded-t-lg">
           미배치 학생 ({waitingParticipants.length})
         </div>
         <div className={`flex-1 p-3 overflow-y-auto min-h-[200px] transition-colors ${isOverWaitingP ? 'bg-green-100' : isDragging ? 'bg-green-50' : ''}`}>
           {waitingParticipants.length === 0 ? (
-            <div className={`h-full flex items-center justify-center text-sm ${isDragging ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+            <div className={`h-full flex items-center justify-center text-sm ${isDragging ? 'text-green-600 font-medium' : 'text-gray-400 dark:text-slate-500'}`}>
               {isDragging ? '여기에 드롭하여 미배치' : '학생을 여기로 드롭하면 미배치'}
             </div>
           ) : (
@@ -584,14 +584,14 @@ export default function SessionGroupPage({
         <div>
           <button
             onClick={() => router.push(`/monthly-test/${testId}`)}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700"
           >
             ← 테스트로 돌아가기
           </button>
           <h1 className="text-xl font-bold">
             {session?.test_name}
           </h1>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 dark:text-slate-400">
             {session && new Date(session.test_date).toLocaleDateString('ko-KR', {
               year: 'numeric',
               month: 'long',
@@ -631,7 +631,7 @@ export default function SessionGroupPage({
           className={`px-6 py-2 font-medium border-b-2 transition-colors ${
             activeTab === 'grouping'
               ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700'
           }`}
         >
           조 편성
@@ -641,7 +641,7 @@ export default function SessionGroupPage({
           className={`px-6 py-2 font-medium border-b-2 transition-colors ${
             activeTab === 'schedule'
               ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700'
           }`}
         >
           순서표
@@ -685,7 +685,7 @@ export default function SessionGroupPage({
         {/* 드래그 오버레이 */}
         <DragOverlay>
           {activeItem?.type === 'participant' && (
-            <div className="bg-white border rounded-lg p-2 shadow-lg">
+            <div className="bg-white dark:bg-slate-800 border rounded-lg p-2 shadow-lg">
               <div className="flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center ${
                   activeItem.participant.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
@@ -709,14 +709,14 @@ export default function SessionGroupPage({
       {activeTab === 'schedule' && (
         <div className="flex-1 overflow-auto">
           {groups.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+            <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-slate-400">
               <p className="mb-4">먼저 조를 편성해주세요.</p>
               <Button onClick={() => setActiveTab('grouping')}>
                 조 편성으로 이동
               </Button>
             </div>
           ) : schedule.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+            <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-slate-400">
               <p className="mb-4">아직 생성된 스케줄이 없습니다.</p>
               <Button onClick={handleGenerateSchedule} disabled={generatingSchedule}>
                 {generatingSchedule ? '생성 중...' : '스케줄 생성'}
@@ -744,7 +744,7 @@ export default function SessionGroupPage({
                       const timeSlots = [...new Set(schedule.map(s => s.time_order))].sort((a, b) => a - b);
                       return timeSlots.map(timeOrder => (
                         <tr key={timeOrder}>
-                          <td className="border p-3 bg-gray-50 font-medium">
+                          <td className="border p-3 bg-gray-50 dark:bg-slate-900 font-medium">
                             타임 {timeOrder + 1}
                           </td>
                           {groups.map(group => {
@@ -758,7 +758,7 @@ export default function SessionGroupPage({
                                     {item.record_type_short || item.record_type_name}
                                   </span>
                                 ) : (
-                                  <span className="text-gray-400 text-sm">휴식</span>
+                                  <span className="text-gray-400 dark:text-slate-500 text-sm">휴식</span>
                                 )}
                               </td>
                             );
@@ -952,7 +952,7 @@ function AddParticipantModal({
               className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.key
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700'
               }`}
             >
               {tab.label}
@@ -972,12 +972,12 @@ function AddParticipantModal({
                 {!showNewForm ? (
                   <button
                     onClick={() => setShowNewForm(true)}
-                    className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-400 hover:text-blue-500"
+                    className="w-full py-2 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-lg text-gray-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-500"
                   >
                     + 새 테스트신규 등록
                   </button>
                 ) : (
-                  <div className="p-3 border rounded-lg bg-gray-50 space-y-2">
+                  <div className="p-3 border rounded-lg bg-gray-50 dark:bg-slate-900 space-y-2">
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -1025,7 +1025,7 @@ function AddParticipantModal({
             )}
 
             {currentList.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-slate-400">
                 {activeTab === 'rest' && '추가 가능한 휴원생이 없습니다.'}
                 {activeTab === 'trial' && '추가 가능한 체험생이 없습니다.'}
                 {activeTab === 'pending' && '추가 가능한 미등록학생이 없습니다.'}
@@ -1037,7 +1037,7 @@ function AddParticipantModal({
                   <label
                     key={item.id}
                     className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
-                      selected.has(item.id) ? 'bg-blue-50' : 'hover:bg-gray-50'
+                      selected.has(item.id) ? 'bg-blue-50' : 'hover:bg-gray-50 dark:bg-slate-900'
                     }`}
                   >
                     <input
@@ -1052,7 +1052,7 @@ function AddParticipantModal({
                       {item.gender === 'M' ? '남' : '여'}
                     </span>
                     <span className="font-medium flex-1">{item.name}</span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 dark:text-slate-400">
                       {item.school || ''} {item.grade || ''}
                     </span>
                   </label>
@@ -1064,7 +1064,7 @@ function AddParticipantModal({
 
         {/* 하단 버튼 */}
         <div className="flex justify-between items-center mt-4 pt-4 border-t">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 dark:text-slate-400">
             {selected.size > 0 && `${selected.size}명 선택됨`}
           </span>
           <div className="flex gap-2">

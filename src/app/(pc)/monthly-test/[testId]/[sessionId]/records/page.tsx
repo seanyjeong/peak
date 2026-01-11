@@ -221,7 +221,7 @@ export default function SessionRecordsPage({
 
   const typeColors: Record<string, string> = {
     enrolled: 'bg-green-100 text-green-700',
-    rest: 'bg-gray-100 text-gray-600',
+    rest: 'bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-slate-400',
     trial: 'bg-purple-100 text-purple-700',
     test_new: 'bg-orange-100 text-orange-700'
   };
@@ -248,14 +248,14 @@ export default function SessionRecordsPage({
         <div>
           <button
             onClick={() => router.push(`/monthly-test/${testId}/${sessionId}`)}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700"
           >
             ← 조 편성으로 돌아가기
           </button>
           <h1 className="text-xl font-bold">
             기록 측정
           </h1>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 dark:text-slate-400">
             {session && new Date(session.test_date).toLocaleDateString('ko-KR')} | 참가자 {participants.length}명
           </div>
         </div>
@@ -274,7 +274,7 @@ export default function SessionRecordsPage({
             className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
               selectedGroupId === null
                 ? 'bg-gray-800 text-white'
-                : 'bg-gray-100 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-slate-900 hover:bg-gray-200 dark:bg-slate-700'
             }`}
           >
             전체 ({participants.length}명)
@@ -289,13 +289,13 @@ export default function SessionRecordsPage({
                 className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors flex items-center gap-2 ${
                   selectedGroupId === group.id
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-slate-900 hover:bg-gray-200 dark:bg-slate-700'
                 }`}
               >
                 <span className="font-medium">
                   {mainInstructor?.name || `${group.group_num}조`}
                 </span>
-                <span className={`text-xs ${selectedGroupId === group.id ? 'text-blue-200' : 'text-gray-500'}`}>
+                <span className={`text-xs ${selectedGroupId === group.id ? 'text-blue-200' : 'text-gray-500 dark:text-slate-400'}`}>
                   ({groupParticipants.length}명)
                 </span>
               </button>
@@ -313,7 +313,7 @@ export default function SessionRecordsPage({
             className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
               selectedTypeId === type.record_type_id
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-slate-900 hover:bg-gray-200 dark:bg-slate-700'
             }`}
           >
             {type.short_name || type.name}
@@ -326,7 +326,7 @@ export default function SessionRecordsPage({
       {selectedType && (
         <Card className="overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 dark:bg-slate-900">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">이름</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">성별</th>
@@ -351,7 +351,7 @@ export default function SessionRecordsPage({
                 const isSaved = savedMap[saveKey];
 
                 return (
-                  <tr key={p.id} className="hover:bg-gray-50">
+                  <tr key={p.id} className="hover:bg-gray-50 dark:bg-slate-900">
                     <td className="px-4 py-3 font-medium">{p.name}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs ${
@@ -381,7 +381,7 @@ export default function SessionRecordsPage({
                           score >= 80 ? 'text-green-600' :
                           score >= 60 ? 'text-blue-600' :
                           score >= 40 ? 'text-yellow-600' :
-                          'text-gray-500'
+                          'text-gray-500 dark:text-slate-400'
                         }`}>
                           {score}
                         </span>
@@ -401,7 +401,7 @@ export default function SessionRecordsPage({
           </table>
 
           {filteredParticipants.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-gray-500 dark:text-slate-400">
               {selectedGroupId === null
                 ? '참가자가 없습니다. 조 편성에서 학생을 추가해주세요.'
                 : '이 조에 배치된 학생이 없습니다.'}

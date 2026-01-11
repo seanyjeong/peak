@@ -225,7 +225,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
 
   if (!test) {
     return (
-      <div className="p-6 text-center text-gray-500">
+      <div className="p-6 text-center text-gray-500 dark:text-slate-400">
         테스트를 찾을 수 없습니다.
       </div>
     );
@@ -237,7 +237,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
       <div className="mb-6">
         <button
           onClick={() => router.push('/tablet/monthly-test')}
-          className="text-sm text-gray-500 hover:text-gray-700 min-h-12 flex items-center"
+          className="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 min-h-12 flex items-center"
         >
           ← 목록으로
         </button>
@@ -264,7 +264,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
 
       {/* 종목 정보 */}
       <Card className="p-4 mb-6">
-        <h2 className="text-sm font-medium text-gray-500 mb-2">측정 종목</h2>
+        <h2 className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">측정 종목</h2>
         <div className="flex flex-wrap gap-2">
           {test.record_types.map(type => (
             <Badge key={type.record_type_id} variant="info">
@@ -277,7 +277,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
       {/* 세션 목록 */}
       <h2 className="text-lg font-semibold mb-4">세션 목록</h2>
       {test.sessions.length === 0 ? (
-        <Card className="p-8 text-center text-gray-500">
+        <Card className="p-8 text-center text-gray-500 dark:text-slate-400">
           <p>등록된 세션이 없습니다.</p>
           <p className="text-sm mt-2">PC에서 세션을 추가해주세요.</p>
         </Card>
@@ -298,7 +298,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
                     {TIME_SLOT_LABELS[session.time_slot]}
                   </Badge>
                 </div>
-                <div className="text-sm text-gray-500 text-right">
+                <div className="text-sm text-gray-500 dark:text-slate-400 text-right">
                   <div>{session.group_count}개 조</div>
                   <div>{session.participant_count}명</div>
                 </div>
@@ -335,30 +335,30 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
         <div className="space-y-3">
           <button
             onClick={() => handleStatusChange('draft')}
-            className={`w-full p-4 text-left border rounded-xl hover:bg-gray-50 min-h-16 ${
+            className={`w-full p-4 text-left border rounded-xl hover:bg-gray-50 dark:bg-slate-900 min-h-16 ${
               test.status === 'draft' ? 'border-blue-500 bg-blue-50' : ''
             }`}
           >
             <div className="font-medium text-lg">준비중</div>
-            <div className="text-sm text-gray-500">테스트 준비 단계</div>
+            <div className="text-sm text-gray-500 dark:text-slate-400">테스트 준비 단계</div>
           </button>
           <button
             onClick={() => handleStatusChange('active')}
-            className={`w-full p-4 text-left border rounded-xl hover:bg-gray-50 min-h-16 ${
+            className={`w-full p-4 text-left border rounded-xl hover:bg-gray-50 dark:bg-slate-900 min-h-16 ${
               test.status === 'active' ? 'border-green-500 bg-green-50' : ''
             }`}
           >
             <div className="font-medium text-lg">진행중</div>
-            <div className="text-sm text-gray-500">테스트 진행 중 (전광판 활성화)</div>
+            <div className="text-sm text-gray-500 dark:text-slate-400">테스트 진행 중 (전광판 활성화)</div>
           </button>
           <button
             onClick={() => handleStatusChange('completed')}
-            className={`w-full p-4 text-left border rounded-xl hover:bg-gray-50 min-h-16 ${
-              test.status === 'completed' ? 'border-gray-500 bg-gray-50' : ''
+            className={`w-full p-4 text-left border rounded-xl hover:bg-gray-50 dark:bg-slate-900 min-h-16 ${
+              test.status === 'completed' ? 'border-gray-500 bg-gray-50 dark:bg-slate-900' : ''
             }`}
           >
             <div className="font-medium text-lg">완료</div>
-            <div className="text-sm text-gray-500">테스트 종료</div>
+            <div className="text-sm text-gray-500 dark:text-slate-400">테스트 종료</div>
           </button>
         </div>
       </Modal>
@@ -389,7 +389,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
                   className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors min-h-14 ${
                     editSelectedTypes.includes(type.id)
                       ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200'
+                      : 'border-gray-200 dark:border-slate-700'
                   }`}
                 >
                   <input
@@ -400,7 +400,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
                   />
                   <span className="text-base">
                     {type.name}
-                    <span className="text-gray-400 ml-1">({type.unit})</span>
+                    <span className="text-gray-400 dark:text-slate-500 ml-1">({type.unit})</span>
                   </span>
                 </label>
               ))}
@@ -416,9 +416,9 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
           {editSelectedTypes.length >= 2 && (
             <div>
               <label className="block text-sm font-medium mb-2">
-                충돌 종목 설정 <span className="text-gray-400 font-normal">(같은 장소/장비)</span>
+                충돌 종목 설정 <span className="text-gray-400 dark:text-slate-500 font-normal">(같은 장소/장비)</span>
               </label>
-              <div className="border rounded-xl p-3 bg-gray-50 max-h-48 overflow-auto">
+              <div className="border rounded-xl p-3 bg-gray-50 dark:bg-slate-900 max-h-48 overflow-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr>
@@ -453,7 +453,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
                                   className={`w-8 h-8 rounded-lg border-2 transition-colors ${
                                     isConflict(rowId, colId)
                                       ? 'bg-red-500 border-red-600 text-white'
-                                      : 'bg-white border-gray-300'
+                                      : 'bg-white dark:bg-slate-800 border-gray-300'
                                   }`}
                                 >
                                   {isConflict(rowId, colId) && '✕'}
