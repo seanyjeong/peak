@@ -546,16 +546,18 @@ router.post('/sync', verifyToken, async (req, res) => {
 });
 
 // GET /peak/assignments/next-class-num - 다음 반 번호 조회
-router.get('/next-class-num', async (req, res) => {
+router.get('/next-class-num', verifyToken, async (req, res) => {
     try {
         const { date, time_slot } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
+        const academyId = req.user.academyId;
 
+        // academy_id 필터 추가하여 다른 학원의 반 번호와 충돌 방지
         const [result] = await db.query(`
             SELECT COALESCE(MAX(class_num), 0) + 1 as next_num
             FROM class_instructors
-            WHERE date = ? AND time_slot = ?
-        `, [targetDate, time_slot]);
+            WHERE date = ? AND time_slot = ? AND academy_id = ?
+        `, [targetDate, time_slot, academyId]);
 
         res.json({ success: true, next_class_num: result[0].next_num });
     } catch (error) {

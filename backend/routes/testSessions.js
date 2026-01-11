@@ -6,9 +6,22 @@ const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
 
 // 세션 삭제
-router.delete('/:sessionId', async (req, res) => {
+router.delete('/:sessionId', verifyToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
+    const academyId = req.user.academyId;
+
+    // academy_id 검증: 해당 학원의 세션인지 확인
+    const [sessions] = await pool.query(`
+      SELECT ts.id FROM test_sessions ts
+      JOIN monthly_tests mt ON ts.monthly_test_id = mt.id
+      WHERE ts.id = ? AND mt.academy_id = ?
+    `, [sessionId, academyId]);
+
+    if (sessions.length === 0) {
+      return res.status(404).json({ success: false, message: '세션을 찾을 수 없습니다.' });
+    }
+
     await pool.query('DELETE FROM test_sessions WHERE id = ?', [sessionId]);
     res.json({ success: true, message: '세션이 삭제되었습니다.' });
   } catch (error) {
@@ -286,7 +299,7 @@ router.get('/:sessionId/groups', verifyToken, async (req, res) => {
 });
 
 // 조 생성
-router.post('/:sessionId/groups', async (req, res) => {
+router.post('/:sessionId/groups', verifyToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { group_name } = req.body || {};
@@ -311,7 +324,7 @@ router.post('/:sessionId/groups', async (req, res) => {
 });
 
 // 조 삭제
-router.delete('/:sessionId/groups/:groupId', async (req, res) => {
+router.delete('/:sessionId/groups/:groupId', verifyToken, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -338,7 +351,7 @@ router.delete('/:sessionId/groups/:groupId', async (req, res) => {
 });
 
 // 감독관 배치
-router.post('/:sessionId/supervisor', async (req, res) => {
+router.post('/:sessionId/supervisor', verifyToken, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -398,7 +411,7 @@ router.post('/:sessionId/supervisor', async (req, res) => {
 });
 
 // 참가자 조 배치 변경
-router.put('/:sessionId/participants/:participantId', async (req, res) => {
+router.put('/:sessionId/participants/:participantId', verifyToken, async (req, res) => {
   try {
     const { participantId } = req.params;
     const { test_group_id, order_num } = req.body;
@@ -612,7 +625,7 @@ router.get('/:sessionId/available-students', verifyToken, async (req, res) => {
 });
 
 // 참가자 수동 추가 (휴원생/체험생/테스트신규)
-router.post('/:sessionId/participants', async (req, res) => {
+router.post('/:sessionId/participants', verifyToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
     let { student_id, paca_student_id, test_applicant_id, participant_type } = req.body;
@@ -686,7 +699,7 @@ router.post('/:sessionId/participants', async (req, res) => {
 });
 
 // 참가자 제거
-router.delete('/:sessionId/participants/:participantId', async (req, res) => {
+router.delete('/:sessionId/participants/:participantId', verifyToken, async (req, res) => {
   try {
     const { participantId } = req.params;
 
@@ -917,7 +930,7 @@ router.get('/:sessionId/records', verifyToken, async (req, res) => {
 });
 
 // 기록 일괄 저장
-router.post('/:sessionId/records/batch', async (req, res) => {
+router.post('/:sessionId/records/batch', verifyToken, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -979,7 +992,7 @@ router.post('/:sessionId/records/batch', async (req, res) => {
 });
 
 // 세션 기록 전체 삭제
-router.delete('/:sessionId/records', async (req, res) => {
+router.delete('/:sessionId/records', verifyToken, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
