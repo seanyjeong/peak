@@ -20,10 +20,13 @@ import {
   X,
   Dumbbell,
   Trophy,
-  TableProperties
+  TableProperties,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { ThemeProvider, useTheme } from '@/components/theme-provider';
 
-const APP_VERSION = 'v4.3.25';
+const APP_VERSION = 'v4.3.28';
 
 // 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
 const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
@@ -67,12 +70,13 @@ const getRoleDisplayName = (role?: string, position?: string | null): string => 
   }
 };
 
-export default function TabletLayout({ children }: { children: React.ReactNode }) {
+function TabletLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<{ name: string; role?: string; position?: string | null } | null>(null);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAlertPopup, setShowAlertPopup] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     const currentUser = authAPI.getCurrentUser();
@@ -112,14 +116,14 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
   if (orientation === 'landscape') {
     return (
       <OrientationContext.Provider value={orientation}>
-        <div className="min-h-screen flex bg-slate-100">
+        <div className="min-h-screen flex bg-slate-100 dark:bg-slate-900">
           {/* 인앱 알림 팝업 */}
           {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
 
           {/* 축소형 사이드바 */}
-          <aside className="w-20 bg-[#1a2b4a] text-white flex flex-col fixed h-full z-20">
+          <aside className="w-20 bg-[#1a2b4a] dark:bg-slate-950 text-white flex flex-col fixed h-full z-20">
             {/* 로고 */}
-            <div className="h-16 flex items-center justify-center border-b border-[#243a5e]">
+            <div className="h-16 flex items-center justify-center border-b border-[#243a5e] dark:border-slate-800">
               <Image
                 src="/peak-512x512.png"
                 alt="P-EAK"
@@ -143,7 +147,7 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
                         className={`flex flex-col items-center py-3 px-1 rounded-lg transition-all duration-200 ${
                           isActive
                             ? 'bg-orange-500/15 text-orange-400'
-                            : 'text-slate-300 hover:bg-[#243a5e] hover:text-white'
+                            : 'text-slate-300 hover:bg-[#243a5e] dark:hover:bg-slate-800 hover:text-white'
                         }`}
                         title={item.name}
                       >
@@ -156,10 +160,10 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
             </nav>
 
             {/* 사용자 & 로그아웃 */}
-            <div className="border-t border-[#243a5e] p-2">
+            <div className="border-t border-[#243a5e] dark:border-slate-800 p-2">
               <button
                 onClick={handleLogout}
-                className="flex flex-col items-center py-2 px-1 rounded-lg text-slate-400 hover:text-white hover:bg-[#243a5e] transition w-full"
+                className="flex flex-col items-center py-2 px-1 rounded-lg text-slate-400 hover:text-white hover:bg-[#243a5e] dark:hover:bg-slate-800 transition w-full"
                 title="로그아웃"
               >
                 <LogOut size={20} />
@@ -172,21 +176,31 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
           {/* 메인 콘텐츠 */}
           <main className="flex-1 ml-20">
             {/* 헤더 */}
-            <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-10">
-              <h1 className="text-lg font-bold text-slate-800">
+            <header className="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 sticky top-0 z-10">
+              <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">
                 {navigation.find(n => pathname.startsWith(n.href))?.name || 'P-EAK'}
               </h1>
-              {user && (
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-slate-800">{user.name}</p>
-                    <p className="text-xs text-slate-500">{getRoleDisplayName(user.role, user.position)}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
-                    {user.name.charAt(0)}
-                  </div>
-                </div>
-              )}
+              <div className="flex items-center gap-3">
+                {/* 다크모드 토글 */}
+                <button
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition text-slate-700 dark:text-slate-300"
+                  title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+                >
+                  {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+                {user && (
+                  <>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{user.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{getRoleDisplayName(user.role, user.position)}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                      {user.name.charAt(0)}
+                    </div>
+                  </>
+                )}
+              </div>
             </header>
 
             {/* 페이지 콘텐츠 */}
@@ -202,12 +216,12 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
   // 세로 모드 레이아웃
   return (
     <OrientationContext.Provider value={orientation}>
-      <div className="min-h-screen flex flex-col bg-slate-100">
+      <div className="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900">
         {/* 인앱 알림 팝업 */}
         {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
 
         {/* 헤더 */}
-        <header className="h-16 bg-[#1a2b4a] flex items-center justify-between px-4 sticky top-0 z-20">
+        <header className="h-16 bg-[#1a2b4a] dark:bg-slate-950 flex items-center justify-between px-4 sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <Image
               src="/peak-512x512.png"
@@ -221,17 +235,27 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
               <p className="text-[10px] text-slate-400">{APP_VERSION}</p>
             </div>
           </div>
-          {user && (
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm font-medium text-white">{user.name}</p>
-                <p className="text-[10px] text-slate-400">{getRoleDisplayName(user.role, user.position)}</p>
-              </div>
-              <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
-                {user.name.charAt(0)}
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {/* 다크모드 토글 */}
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-lg hover:bg-[#243a5e] dark:hover:bg-slate-800 transition text-slate-300"
+              title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            {user && (
+              <>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-white">{user.name}</p>
+                  <p className="text-[10px] text-slate-400">{getRoleDisplayName(user.role, user.position)}</p>
+                </div>
+                <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                  {user.name.charAt(0)}
+                </div>
+              </>
+            )}
+          </div>
         </header>
 
         {/* 메인 콘텐츠 */}
@@ -240,14 +264,14 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
         </main>
 
         {/* 하단 탭 바 */}
-        <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white border-t border-slate-200 flex items-center justify-around px-2 z-20 safe-area-pb">
+        <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-2 z-20 safe-area-pb">
           {bottomTabs.map((tab) => {
             if (tab.href === '#more') {
               return (
                 <button
                   key={tab.name}
                   onClick={() => setShowMoreMenu(true)}
-                  className="flex flex-col items-center justify-center py-2 px-3 min-w-[64px] text-slate-400"
+                  className="flex flex-col items-center justify-center py-2 px-3 min-w-[64px] text-slate-400 dark:text-slate-500"
                 >
                   <tab.icon size={24} />
                   <span className="text-xs mt-1">{tab.name}</span>
@@ -260,7 +284,7 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
                 key={tab.name}
                 href={tab.href}
                 className={`flex flex-col items-center justify-center py-2 px-3 min-w-[64px] ${
-                  isActive ? 'text-orange-500' : 'text-slate-400'
+                  isActive ? 'text-orange-500' : 'text-slate-400 dark:text-slate-500'
                 }`}
               >
                 <tab.icon size={24} />
@@ -274,12 +298,12 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
         {showMoreMenu && (
           <div className="fixed inset-0 bg-black/50 z-30 flex items-end" onClick={() => setShowMoreMenu(false)}>
             <div
-              className="bg-white w-full rounded-t-2xl p-4 pb-8 safe-area-pb"
+              className="bg-white dark:bg-slate-800 w-full rounded-t-2xl p-4 pb-8 safe-area-pb"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-slate-800">메뉴</h2>
-                <button onClick={() => setShowMoreMenu(false)} className="p-2 text-slate-400">
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">메뉴</h2>
+                <button onClick={() => setShowMoreMenu(false)} className="p-2 text-slate-400 dark:text-slate-500">
                   <X size={24} />
                 </button>
               </div>
@@ -294,7 +318,9 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
                         href={item.href}
                         onClick={() => setShowMoreMenu(false)}
                         className={`flex flex-col items-center p-4 rounded-xl transition ${
-                          isActive ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-600'
+                          isActive
+                            ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                         }`}
                       >
                         <item.icon size={28} />
@@ -307,7 +333,7 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
                     setShowMoreMenu(false);
                     handleLogout();
                   }}
-                  className="flex flex-col items-center p-4 rounded-xl bg-red-50 text-red-600"
+                  className="flex flex-col items-center p-4 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
                 >
                   <LogOut size={28} />
                   <span className="text-xs mt-2">로그아웃</span>
@@ -318,5 +344,13 @@ export default function TabletLayout({ children }: { children: React.ReactNode }
         )}
       </div>
     </OrientationContext.Provider>
+  );
+}
+
+export default function TabletLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider defaultTheme="system" storageKey="peak-ui-theme">
+      <TabletLayoutContent>{children}</TabletLayoutContent>
+    </ThemeProvider>
   );
 }

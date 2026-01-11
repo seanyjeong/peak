@@ -33,7 +33,7 @@ function CircularProgress({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative" style={{ width: size, height: size }}>
+      <div className="relative transition-transform duration-300 hover:scale-110" style={{ width: size, height: size }}>
         <svg className="transform -rotate-90" width={size} height={size}>
           <circle
             cx={size / 2}
@@ -113,7 +113,7 @@ export default function DashboardPage() {
             <CircularProgress
               value={stats.trainersPresent}
               max={Math.max(stats.totalTrainers, 1)}
-              color="#0a0a0a"
+              color="#f97316"
               label="출근 강사"
             />
             <div>
@@ -128,7 +128,7 @@ export default function DashboardPage() {
             <CircularProgress
               value={stats.studentsToday}
               max={Math.max(stats.studentsToday, 1)}
-              color="#525252"
+              color="#14b8a6"
               label="수업 학생"
             />
             <div>
