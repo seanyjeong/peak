@@ -360,10 +360,10 @@ export default function ExercisesPage() {
                 <button
                   key={tag.tag_id}
                   onClick={() => setSelectedTagFilter(tag.tag_id)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition ${tag.color} ${
                     selectedTagFilter === tag.tag_id
-                      ? tag.color
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
+                      ? 'ring-2 ring-offset-2 ring-slate-400'
+                      : 'opacity-80 hover:opacity-100'
                   }`}
                 >
                   {tag.label} ({count})
