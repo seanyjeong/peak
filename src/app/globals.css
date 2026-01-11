@@ -141,28 +141,21 @@ body {
 /*
  * Tailwind Safelist - 동적으로 사용되는 태그 색상 클래스들
  * DB에서 가져오는 클래스들이 빌드에 포함되도록 명시적 선언
+ *
+ * 사용되는 클래스 목록 (Tailwind JIT에서 스캔됨):
+ * bg-red-100 text-red-700
+ * bg-orange-100 text-orange-700
+ * bg-amber-100 text-amber-700
+ * bg-yellow-100 text-yellow-700
+ * bg-lime-100 text-lime-700
+ * bg-green-100 text-green-700
+ * bg-teal-100 text-teal-700
+ * bg-cyan-100 text-cyan-700
+ * bg-blue-100 text-blue-700
+ * bg-indigo-100 text-indigo-700
+ * bg-purple-100 text-purple-700
+ * bg-fuchsia-100 text-fuchsia-700
+ * bg-pink-100 text-pink-700
+ * bg-rose-100 text-rose-700
+ * bg-slate-100 text-slate-700
  */
-.safelist-tags {
-  /* 기본 색상 */
-  @apply bg-red-100 text-red-700;
-  @apply bg-orange-100 text-orange-700;
-  @apply bg-yellow-100 text-yellow-700;
-  @apply bg-green-100 text-green-700;
-  @apply bg-blue-100 text-blue-700;
-  @apply bg-purple-100 text-purple-700;
-  @apply bg-pink-100 text-pink-700;
-  @apply bg-slate-100 text-slate-700;
-  /* 부상 관련 추가 색상 */
-  @apply bg-rose-100 text-rose-700;
-  @apply bg-amber-100 text-amber-700;
-  @apply bg-teal-100 text-teal-700;
-  @apply bg-cyan-100 text-cyan-700;
-  @apply bg-indigo-100 text-indigo-700;
-  @apply bg-lime-100 text-lime-700;
-  @apply bg-emerald-100 text-emerald-700;
-  @apply bg-fuchsia-100 text-fuchsia-700;
-  /* 200 밝기 버전 */
-  @apply bg-red-200 bg-orange-200 bg-yellow-200 bg-green-200;
-  @apply bg-blue-200 bg-purple-200 bg-pink-200 bg-slate-200;
-  @apply bg-rose-200 bg-amber-200 bg-teal-200 bg-cyan-200;
-}
