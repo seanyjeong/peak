@@ -77,7 +77,7 @@ router.post('/', requireRole('admin', 'owner'), async (req, res) => {
         let snapshotData = null;
         if (exercise_ids.length > 0) {
             const [exercises] = await db.query(
-                `SELECT id, name, tags, default_sets, default_reps, description
+                `SELECT id, name, tags, default_sets, default_reps, description, video_url
                  FROM exercises WHERE id IN (?)`,
                 [exercise_ids]
             );
@@ -96,6 +96,7 @@ router.post('/', requireRole('admin', 'owner'), async (req, res) => {
                     default_sets: ex.default_sets,
                     default_reps: ex.default_reps,
                     description: ex.description,
+                    video_url: ex.video_url,
                     order: idx
                 }))
             };
@@ -209,7 +210,7 @@ router.get('/:id/export', verifyToken, async (req, res) => {
 
         // 팩에 포함된 운동 조회
         const [exercises] = await db.query(`
-            SELECT e.name, e.tags, e.default_sets, e.default_reps, e.description, pi.display_order
+            SELECT e.name, e.tags, e.default_sets, e.default_reps, e.description, e.video_url, pi.display_order
             FROM exercises e
             JOIN exercise_pack_items pi ON e.id = pi.exercise_id
             WHERE pi.pack_id = ?
@@ -244,6 +245,7 @@ router.get('/:id/export', verifyToken, async (req, res) => {
                 default_sets: ex.default_sets,
                 default_reps: ex.default_reps,
                 description: ex.description,
+                video_url: ex.video_url,
                 order: ex.display_order
             }))
         };
@@ -308,15 +310,16 @@ router.post('/import', requireRole('admin', 'owner'), async (req, res) => {
                 exerciseId = existing[0].id;
             } else {
                 const [exResult] = await connection.query(`
-                    INSERT INTO exercises (academy_id, name, tags, default_sets, default_reps, description)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO exercises (academy_id, name, tags, default_sets, default_reps, description, video_url)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 `, [
                     academyId,
                     ex.name,
                     JSON.stringify(ex.tags || []),
                     ex.default_sets,
                     ex.default_reps,
-                    ex.description
+                    ex.description,
+                    ex.video_url || null
                 ]);
                 exerciseId = exResult.insertId;
             }
@@ -376,7 +379,7 @@ router.post('/:id/apply', requireRole('admin', 'owner'), async (req, res) => {
         // snapshot_data가 없으면 현재 연결된 운동으로 생성
         if (!snapshotData) {
             const [exercises] = await connection.query(`
-                SELECT e.name, e.tags, e.default_sets, e.default_reps, e.description, pi.display_order
+                SELECT e.name, e.tags, e.default_sets, e.default_reps, e.description, e.video_url, pi.display_order
                 FROM exercises e
                 JOIN exercise_pack_items pi ON e.id = pi.exercise_id
                 WHERE pi.pack_id = ?
@@ -395,6 +398,7 @@ router.post('/:id/apply', requireRole('admin', 'owner'), async (req, res) => {
                     default_sets: ex.default_sets,
                     default_reps: ex.default_reps,
                     description: ex.description,
+                    video_url: ex.video_url,
                     order: idx
                 }))
             };
@@ -421,15 +425,16 @@ router.post('/:id/apply', requireRole('admin', 'owner'), async (req, res) => {
         // 3. 팩의 운동으로 대체
         for (const ex of snapshotData.exercises) {
             await connection.query(`
-                INSERT INTO exercises (academy_id, name, tags, default_sets, default_reps, description)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO exercises (academy_id, name, tags, default_sets, default_reps, description, video_url)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             `, [
                 academyId,
                 ex.name,
                 JSON.stringify(ex.tags || []),
                 ex.default_sets,
                 ex.default_reps,
-                ex.description
+                ex.description,
+                ex.video_url || null
             ]);
         }
 

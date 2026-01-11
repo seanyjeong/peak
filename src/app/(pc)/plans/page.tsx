@@ -49,25 +49,21 @@ interface Plan {
   date: string;
 }
 
+interface ExerciseTag {
+  id: number;
+  tag_id: string;
+  label: string;
+  color: string;
+}
+
 const TIME_SLOT_INFO: Record<TimeSlot, { label: string; icon: typeof Sun; color: string; bgColor: string }> = {
   morning: { label: '오전', icon: Sunrise, color: 'text-orange-600', bgColor: 'bg-orange-100' },
   afternoon: { label: '오후', icon: Sun, color: 'text-blue-600', bgColor: 'bg-blue-100' },
   evening: { label: '저녁', icon: Moon, color: 'text-purple-600', bgColor: 'bg-purple-100' },
 };
 
-// 훈련 태그 목록
-const TRAINING_TAGS = [
-  { id: 'lower-power', label: '하체 파워', color: 'bg-red-100 text-red-700 border-red-300' },
-  { id: 'upper-power', label: '상체 파워', color: 'bg-orange-100 text-orange-700 border-orange-300' },
-  { id: 'agility', label: '민첩성', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
-  { id: 'flexibility', label: '유연성', color: 'bg-green-100 text-green-700 border-green-300' },
-  { id: 'technique', label: '기술/자세', color: 'bg-blue-100 text-blue-700 border-blue-300' },
-  { id: 'conditioning', label: '컨디셔닝', color: 'bg-purple-100 text-purple-700 border-purple-300' },
-];
-
-function TagBadge({ tagId, small = false }: { tagId: string; small?: boolean }) {
-  let tag = TRAINING_TAGS.find(t => t.id === tagId);
-  if (!tag) tag = TRAINING_TAGS.find(t => t.label === tagId);
+function TagBadge({ tagId, tags, small = false }: { tagId: string; tags: ExerciseTag[]; small?: boolean }) {
+  const tag = tags.find(t => t.tag_id === tagId);
   if (!tag) return <span className={`${small ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-xs'} rounded-full font-medium bg-slate-100 text-slate-600`}>{tagId}</span>;
   return (
     <span className={`${small ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-xs'} rounded-full font-medium ${tag.color}`}>
@@ -79,6 +75,7 @@ function TagBadge({ tagId, small = false }: { tagId: string; small?: boolean }) 
 export default function PlansPage() {
   const [slotsData, setSlotsData] = useState<SlotsData>({ morning: [], afternoon: [], evening: [] });
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exerciseTags, setExerciseTags] = useState<ExerciseTag[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -127,12 +124,14 @@ export default function PlansPage() {
       const user = authAPI.getCurrentUser();
       setCurrentUser(user);
 
-      const [plansRes, exercisesRes] = await Promise.all([
+      const [plansRes, exercisesRes, tagsRes] = await Promise.all([
         apiClient.get(`/plans?date=${selectedDate}`),
-        apiClient.get('/exercises')
+        apiClient.get('/exercises'),
+        apiClient.get('/exercise-tags')
       ]);
 
       setSlotsData(plansRes.data.slots || { morning: [], afternoon: [], evening: [] });
+      setExerciseTags(tagsRes.data.tags || []);
       setPlans(plansRes.data.plans || []);
       setExercises(exercisesRes.data.exercises || []);
 
@@ -451,12 +450,12 @@ export default function PlansPage() {
               훈련 태그 (운동 필터)
             </label>
             <div className="flex flex-wrap gap-2">
-              {TRAINING_TAGS.map(tag => (
+              {exerciseTags.map(tag => (
                 <button
-                  key={tag.id}
-                  onClick={() => toggleTag(tag.id)}
+                  key={tag.tag_id}
+                  onClick={() => toggleTag(tag.tag_id)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition border ${
-                    selectedTags.includes(tag.id)
+                    selectedTags.includes(tag.tag_id)
                       ? tag.color + ' ring-2 ring-offset-1 ring-slate-300 dark:ring-slate-600'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-transparent hover:bg-slate-200 dark:hover:bg-slate-600'
                   }`}
@@ -512,7 +511,7 @@ export default function PlansPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-1">
-                          {ex.tags.map(t => <TagBadge key={t} tagId={t} small />)}
+                          {ex.tags.map(t => <TagBadge key={t} tagId={t} tags={exerciseTags} small />)}
                         </div>
                       </div>
                       {ex.description && (
@@ -691,7 +690,7 @@ export default function PlansPage() {
                 {/* Tags */}
                 {plan.tags && plan.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {plan.tags.map(tagId => <TagBadge key={tagId} tagId={tagId} />)}
+                    {plan.tags.map(tagId => <TagBadge key={tagId} tagId={tagId} tags={exerciseTags} />)}
                   </div>
                 )}
 
