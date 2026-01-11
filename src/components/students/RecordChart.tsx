@@ -37,22 +37,22 @@ export function RecordChart({ type, chartData, getDecimalPlaces, detectDecimalPl
   }
 
   return (
-    <div className="bg-slate-50 rounded-xl p-4">
+    <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <h4 className="font-medium text-slate-800">{type.name}</h4>
+          <h4 className="font-medium text-slate-800 dark:text-slate-100">{type.name}</h4>
           <span className={`text-xs px-2 py-0.5 rounded ${
-            isLowerBetter ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
+            isLowerBetter ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
           }`}>
             {isLowerBetter ? '↓ 낮을수록 좋음' : '↑ 높을수록 좋음'}
           </span>
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <span className="text-slate-500">
+          <span className="text-slate-500 dark:text-slate-400">
             평균: {avg.toFixed(decimalPlaces)}{type.unit}
           </span>
           {improvement !== null && (
-            <span className={`font-medium ${improvement > 0 ? 'text-green-600' : improvement < 0 ? 'text-red-600' : 'text-slate-400'}`}>
+            <span className={`font-medium ${improvement > 0 ? 'text-green-600 dark:text-green-400' : improvement < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400'}`}>
               {improvement > 0 ? '▲' : improvement < 0 ? '▼' : '−'}
               {Math.abs(improvement).toFixed(decimalPlaces)} 변화
             </span>
@@ -108,8 +108,8 @@ export function RecordChart({ type, chartData, getDecimalPlaces, detectDecimalPl
             key={i}
             className={`text-xs px-2 py-1 rounded-full ${
               i === chartData.length - 1
-                ? 'bg-orange-100 text-orange-700 font-medium'
-                : 'bg-slate-200 text-slate-600'
+                ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-medium'
+                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
             }`}
           >
             {d.label}: {d.value.toFixed(decimalPlaces)}{type.unit}

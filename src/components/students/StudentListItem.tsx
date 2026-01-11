@@ -16,29 +16,29 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
       onClick={onSelect}
       className={`p-5 flex items-center justify-between cursor-pointer transition ${
         isSelected
-          ? 'bg-slate-50 border-l-4 border-slate-900'
-          : 'hover:bg-slate-50'
+          ? 'bg-slate-50 dark:bg-slate-700 border-l-4 border-slate-900 dark:border-orange-500'
+          : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
       }`}
     >
       <div className="flex items-center gap-4">
         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-          student.gender === 'M' ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-600'
+          student.gender === 'M' ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
         }`}>
           <User size={20} />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-medium text-slate-900">{student.name}</p>
+            <p className="font-medium text-slate-900 dark:text-slate-100">{student.name}</p>
             <Link
               href={`/students/${student.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="p-1 hover:bg-slate-200 rounded transition"
+              className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition"
               title="프로필 보기"
             >
-              <ExternalLink size={14} className="text-slate-600" />
+              <ExternalLink size={14} className="text-slate-600 dark:text-slate-400" />
             </Link>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {student.gender === 'M' ? '남' : '여'}
             {student.school && ` · ${student.school}`}
             {student.grade && ` ${student.grade}`}
@@ -47,7 +47,7 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
       </div>
       <div className="flex items-center gap-2">
         {!!student.is_trial && (
-          <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700">
+          <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
             체험 {student.trial_total - student.trial_remaining}/{student.trial_total}
           </span>
         )}

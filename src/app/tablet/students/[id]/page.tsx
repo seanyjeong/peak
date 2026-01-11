@@ -330,10 +330,10 @@ export default function TabletStudentProfilePage({
     if (trend === 'down') return <TrendingDown className="text-red-500" size={16} />;
     if (trend === 'need_more') {
       return showLabel
-        ? <span className="text-[9px] text-gray-400">기록 부족</span>
-        : <span className="text-[10px] text-gray-400">···</span>;
+        ? <span className="text-[9px] text-gray-400 dark:text-slate-500">기록 부족</span>
+        : <span className="text-[10px] text-gray-400 dark:text-slate-500">···</span>;
     }
-    return <Minus className="text-gray-400" size={16} />;
+    return <Minus className="text-gray-400 dark:text-slate-500" size={16} />;
   };
 
   const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 6);
@@ -369,13 +369,13 @@ export default function TabletStudentProfilePage({
             </button>
             <div className="flex items-center gap-3">
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+                student.gender === 'M' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400'
               }`}>
                 <User size={24} />
               </div>
               <div>
-                <h1 className="text-xl font-bold">{student.name}</h1>
-                <p className="text-gray-500 text-sm">
+                <h1 className="text-xl font-bold dark:text-slate-100">{student.name}</h1>
+                <p className="text-gray-500 dark:text-slate-400 text-sm">
                   {student.gender === 'M' ? '남' : '여'} · {student.school} · {student.grade}
                 </p>
               </div>
@@ -395,7 +395,7 @@ export default function TabletStudentProfilePage({
           <div className="col-span-3 flex flex-col gap-3 min-h-0">
             {/* Record Gauges */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-[2] overflow-hidden flex flex-col min-h-0">
-              <h3 className="text-base font-semibold text-gray-800 mb-2 flex-shrink-0">종목별 기록</h3>
+              <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100 mb-2 flex-shrink-0">종목별 기록</h3>
               <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
                 {selectedGaugeTypes.slice(0, 4).map((typeId) => {
                   const type = recordTypes.find(t => t.id === typeId);
@@ -434,7 +434,7 @@ export default function TabletStudentProfilePage({
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <span className="text-lg font-bold">
-                            {hasRecord ? value : '-'}<span className="text-xs font-normal text-gray-400">{type?.unit}</span>
+                            {hasRecord ? value : '-'}<span className="text-xs font-normal text-gray-400 dark:text-slate-500">{type?.unit}</span>
                           </span>
                           <span className="text-xs text-gray-500">{type?.short_name || type?.name}</span>
                           <TrendIcon trend={trend || 'need_more'} />
@@ -452,7 +452,7 @@ export default function TabletStudentProfilePage({
                     className={`text-xs px-2 py-0.5 rounded ${
                       selectedGaugeTypes.includes(type.id)
                         ? 'bg-orange-500 text-white'
-                        : 'bg-gray-100 text-gray-600'
+                        : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300'
                     }`}
                     disabled={selectedGaugeTypes.length >= 4 && !selectedGaugeTypes.includes(type.id)}
                   >
@@ -464,7 +464,7 @@ export default function TabletStudentProfilePage({
 
             {/* Overall Grade */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-1 overflow-hidden flex flex-col min-h-0">
-              <h3 className="text-base font-semibold text-gray-800 mb-2 flex-shrink-0">종합평가</h3>
+              <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100 mb-2 flex-shrink-0">종합평가</h3>
               <div className="flex items-center gap-3 flex-1">
                 <div className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 ${getGradeColor(selectedStats.grade)}`}>
                   <span className="text-3xl font-bold">{selectedStats.grade}</span>
@@ -473,7 +473,7 @@ export default function TabletStudentProfilePage({
                   <div>
                     <span className="text-2xl font-bold">{selectedStats.totalScore}</span>
                     <span className="text-sm font-normal">점</span>
-                    <span className="text-gray-400 text-sm"> / {selectedStats.maxScore}점</span>
+                    <span className="text-gray-400 dark:text-slate-500 text-sm"> / {selectedStats.maxScore}점</span>
                   </div>
                   <p className="text-sm text-gray-500">({selectedStats.percentage}% 달성)</p>
                   <div className="flex items-center gap-1 mt-1">
@@ -492,7 +492,7 @@ export default function TabletStudentProfilePage({
             {/* Trend Chart */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-[3] overflow-hidden flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                <h3 className="text-base font-semibold text-gray-800">기록 추이</h3>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">기록 추이</h3>
                 <select
                   className="text-sm border rounded-lg px-3 py-1.5"
                   value={selectedTrendType || ''}
@@ -530,7 +530,7 @@ export default function TabletStudentProfilePage({
             {/* Recent Records */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-[2] overflow-hidden flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                <h3 className="text-base font-semibold text-gray-800">최근 기록</h3>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">최근 기록</h3>
                 {recordHistory.length > 5 && (
                   <button
                     onClick={() => setShowAllRecords(!showAllRecords)}
@@ -566,7 +566,7 @@ export default function TabletStudentProfilePage({
                               {record ? (
                                 <span className="font-medium">{record.value}</span>
                               ) : (
-                                <span className="text-gray-300">-</span>
+                                <span className="text-gray-300 dark:text-slate-600">-</span>
                               )}
                             </td>
                           );
@@ -584,8 +584,8 @@ export default function TabletStudentProfilePage({
             {/* Bar Chart */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-1 overflow-hidden flex flex-col min-h-0">
               <div className="flex-shrink-0">
-                <h3 className="text-base font-semibold text-gray-800">학원평균 vs {student.name}</h3>
-                <p className="text-xs text-gray-400 mb-2">만점 대비 달성률 (%)</p>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">학원평균 vs {student.name}</h3>
+                <p className="text-xs text-gray-400 dark:text-slate-500 mb-2">만점 대비 달성률 (%)</p>
               </div>
               <div className="flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -610,7 +610,7 @@ export default function TabletStudentProfilePage({
             {/* Radar Chart */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 flex-1 overflow-hidden flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-1 flex-shrink-0">
-                <h3 className="text-base font-semibold text-gray-800">능력치 비교</h3>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">능력치 비교</h3>
                 <div className="flex items-center gap-2 text-xs">
                   <span className="flex items-center gap-1"><span className="w-2 h-2 bg-slate-400 rounded-sm"></span>학원</span>
                   <span className="flex items-center gap-1"><span className="w-2 h-2 bg-orange-500 rounded-sm"></span>{student.name}</span>
@@ -634,7 +634,7 @@ export default function TabletStudentProfilePage({
                     className={`text-xs px-2 py-0.5 rounded ${
                       selectedRadarTypes.includes(type.id)
                         ? 'bg-orange-500 text-white'
-                        : 'bg-gray-100 text-gray-600'
+                        : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300'
                     }`}
                     onClick={() => {
                       if (selectedRadarTypes.includes(type.id)) {
@@ -666,13 +666,13 @@ export default function TabletStudentProfilePage({
           </button>
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-              student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+              student.gender === 'M' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400'
             }`}>
               <User size={24} />
             </div>
             <div>
-              <h1 className="text-xl font-bold">{student.name}</h1>
-              <p className="text-gray-500 text-sm">
+              <h1 className="text-xl font-bold dark:text-slate-100">{student.name}</h1>
+              <p className="text-gray-500 dark:text-slate-400 text-sm">
                 {student.gender === 'M' ? '남' : '여'} · {student.school} · {student.grade}
               </p>
             </div>
@@ -690,7 +690,7 @@ export default function TabletStudentProfilePage({
       <div className="grid grid-cols-2 gap-4">
         {/* Record Gauges */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
-          <h3 className="font-semibold text-gray-800 mb-3">종목별 기록</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-slate-100 mb-3">종목별 기록</h3>
           <div className="grid grid-cols-2 gap-2">
             {selectedGaugeTypes.slice(0, 4).map((typeId) => {
               const type = recordTypes.find(t => t.id === typeId);
@@ -728,7 +728,7 @@ export default function TabletStudentProfilePage({
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-sm font-bold">
-                      {hasRecord ? value : '-'}<span className="text-[10px] font-normal text-gray-400">{type?.unit}</span>
+                      {hasRecord ? value : '-'}<span className="text-[10px] font-normal text-gray-400 dark:text-slate-500">{type?.unit}</span>
                     </span>
                     <span className="text-[9px] text-gray-500">{type?.short_name || type?.name}</span>
                   </div>
@@ -747,7 +747,7 @@ export default function TabletStudentProfilePage({
                 className={`text-xs px-2 py-1 rounded ${
                   selectedGaugeTypes.includes(type.id)
                     ? 'bg-orange-500 text-white'
-                    : 'bg-gray-100 text-gray-600'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300'
                 }`}
                 disabled={selectedGaugeTypes.length >= 4 && !selectedGaugeTypes.includes(type.id)}
               >
@@ -759,14 +759,14 @@ export default function TabletStudentProfilePage({
 
         {/* Overall Grade */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4 flex flex-col justify-center">
-          <h3 className="font-semibold text-gray-800 mb-3">종합평가</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-slate-100 mb-3">종합평가</h3>
           <div className="flex items-center gap-4">
             <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getGradeColor(selectedStats.grade)}`}>
               <span className="text-3xl font-bold">{selectedStats.grade}</span>
             </div>
             <div>
               <span className="text-2xl font-bold">{selectedStats.totalScore}<span className="text-sm font-normal">점</span></span>
-              <span className="text-gray-400 text-sm"> / {selectedStats.maxScore}점</span>
+              <span className="text-gray-400 dark:text-slate-500 text-sm"> / {selectedStats.maxScore}점</span>
               <p className="text-sm text-gray-500">({selectedStats.percentage}%)</p>
             </div>
           </div>
@@ -782,7 +782,7 @@ export default function TabletStudentProfilePage({
       {/* Trend Chart */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-800">기록 추이</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-slate-100">기록 추이</h3>
           <select
             className="text-sm border rounded-lg px-3 py-2"
             value={selectedTrendType || ''}
@@ -818,7 +818,7 @@ export default function TabletStudentProfilePage({
       <div className="grid grid-cols-2 gap-4">
         {/* Bar Chart */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
-          <h3 className="font-semibold text-gray-800 mb-3">학원평균 vs {student.name}</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-slate-100 mb-3">학원평균 vs {student.name}</h3>
           <ResponsiveContainer width="100%" height={compareBarData.length * 35 + 40}>
             <BarChart data={compareBarData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
@@ -839,7 +839,7 @@ export default function TabletStudentProfilePage({
 
         {/* Radar Chart */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
-          <h3 className="font-semibold text-gray-800 mb-3">능력치 비교</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-slate-100 mb-3">능력치 비교</h3>
           <ResponsiveContainer width="100%" height={200}>
             <RadarChart data={radarChartData}>
               <PolarGrid />
@@ -857,7 +857,7 @@ export default function TabletStudentProfilePage({
                 className={`text-xs px-2 py-1 rounded ${
                   selectedRadarTypes.includes(type.id)
                     ? 'bg-orange-500 text-white'
-                    : 'bg-gray-100 text-gray-600'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300'
                 }`}
                 onClick={() => {
                   if (selectedRadarTypes.includes(type.id)) {
@@ -877,7 +877,7 @@ export default function TabletStudentProfilePage({
       {/* Recent Records Table */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-800">최근 기록</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-slate-100">최근 기록</h3>
           {recordHistory.length > 6 && (
             <button
               onClick={() => setShowAllRecords(!showAllRecords)}
@@ -913,10 +913,10 @@ export default function TabletStudentProfilePage({
                         {record ? (
                           <span className="font-medium">
                             {record.value}
-                            <span className="text-gray-400 text-xs ml-0.5">{type.unit}</span>
+                            <span className="text-gray-400 dark:text-slate-500 text-xs ml-0.5">{type.unit}</span>
                           </span>
                         ) : (
-                          <span className="text-gray-300">-</span>
+                          <span className="text-gray-300 dark:text-slate-600">-</span>
                         )}
                       </td>
                     );

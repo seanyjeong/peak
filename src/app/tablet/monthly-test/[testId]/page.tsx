@@ -426,7 +426,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
                       {editSelectedTypes.slice(1).map(id => {
                         const type = allRecordTypes.find(t => t.id === id);
                         return (
-                          <th key={id} className="text-center px-2 py-1 text-xs font-medium text-gray-600">
+                          <th key={id} className="text-center px-2 py-1 text-xs font-medium text-gray-600 dark:text-slate-400">
                             {type?.short_name || type?.name}
                           </th>
                         );
@@ -438,7 +438,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
                       const rowType = allRecordTypes.find(t => t.id === rowId);
                       return (
                         <tr key={rowId}>
-                          <td className="pr-3 py-1 text-xs font-medium text-gray-600 whitespace-nowrap">
+                          <td className="pr-3 py-1 text-xs font-medium text-gray-600 dark:text-slate-400 whitespace-nowrap">
                             {rowType?.short_name || rowType?.name}
                           </td>
                           {editSelectedTypes.slice(1).map((colId, colIndex) => {
