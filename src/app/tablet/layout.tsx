@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { ThemeProvider, useTheme } from '@/components/theme-provider';
 
-const APP_VERSION = 'v4.3.36';
+const APP_VERSION = 'v4.3.37';
 
 // 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
 const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });

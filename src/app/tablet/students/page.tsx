@@ -38,7 +38,7 @@ export default function TabletStudentsPage() {
   const handleChosungJump = (chosung: string) => {
     const element = groupRefs.current[chosung];
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      element.scrollIntoView({ behavior: 'instant', block: 'start' });
       setActiveChosung(chosung);
     }
   };
