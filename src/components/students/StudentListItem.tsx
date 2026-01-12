@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { User, ChevronRight, ExternalLink } from 'lucide-react';
-import { Student, STATUS_MAP } from './types';
+import { Student, STATUS_MAP, GENDER_COLORS } from './types';
 
 interface StudentListItemProps {
   student: Student;
@@ -16,14 +16,12 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
       onClick={onSelect}
       className={`p-5 flex items-center justify-between cursor-pointer transition ${
         isSelected
-          ? 'bg-slate-50 dark:bg-slate-700 border-l-4 border-slate-900 dark:border-orange-500'
+          ? `bg-slate-50 dark:bg-slate-700 border-l-4 ${GENDER_COLORS[student.gender].border}`
           : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
       }`}
     >
       <div className="flex items-center gap-4">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-          student.gender === 'M' ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-        }`}>
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${GENDER_COLORS[student.gender].icon}`}>
           <User size={20} />
         </div>
         <div>

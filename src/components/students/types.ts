@@ -62,3 +62,14 @@ export const STATUS_MAP: Record<string, { label: string; color: string }> = {
   paused: { label: '휴원', color: 'bg-yellow-100 text-yellow-700' },
   pending: { label: '미등록', color: 'bg-amber-100 text-amber-700' },
 };
+
+export const GENDER_COLORS = {
+  M: {
+    icon: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    border: 'border-l-blue-500',
+  },
+  F: {
+    icon: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400',
+    border: 'border-l-pink-500',
+  },
+} as const;

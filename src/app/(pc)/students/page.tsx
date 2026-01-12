@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { Users, RefreshCw, Search, User, X, Activity, Plus, Download, ExternalLink } from 'lucide-react';
 import apiClient from '@/lib/api/client';
@@ -9,13 +9,16 @@ import {
   RecordAddForm,
   RecordTypeCard,
   RecordChart,
+  ChosungJumpNav,
   RecordType,
   StudentRecord,
   ScoreTableData,
   RecordInput,
+  GENDER_COLORS,
 } from '@/components/students';
 import { useStudentList, STATUS_MAP } from '@/features/students';
 import type { Student } from '@/features/students';
+import { groupByChosung, getSortedGroups } from '@/lib/utils/korean';
 
 export default function StudentsPage() {
   const {
@@ -42,6 +45,27 @@ export default function StudentsPage() {
   const [scoreTables, setScoreTables] = useState<{ [key: number]: ScoreTableData }>({});
   const [savingRecord, setSavingRecord] = useState(false);
   const [selectedRecordType, setSelectedRecordType] = useState<number | null>(null);
+
+  // 초성 그룹핑
+  const groupRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [activeChosung, setActiveChosung] = useState<string | undefined>(undefined);
+
+  const sortedGroups = useMemo(() => {
+    const groups = groupByChosung(filteredStudents, (s) => s.name);
+    return getSortedGroups(groups);
+  }, [filteredStudents]);
+
+  const availableChosung = useMemo(() => {
+    return new Set(sortedGroups.map(([chosung]) => chosung));
+  }, [sortedGroups]);
+
+  const handleChosungJump = (chosung: string) => {
+    const element = groupRefs.current[chosung];
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveChosung(chosung);
+    }
+  };
 
   useEffect(() => {
     fetchRecordTypesAndTables();
@@ -215,8 +239,8 @@ export default function StudentsPage() {
 
       {/* Content */}
       <div className="flex gap-8">
-        {/* Student List */}
-        <div className={`${selectedStudent ? 'w-1/2' : 'w-full'} transition-all`}>
+        {/* Student List with Chosung Jump */}
+        <div className={`${selectedStudent ? 'w-1/2' : 'w-full'} transition-all relative`}>
           {loading ? (
             <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
               <RefreshCw size={32} className="animate-spin text-slate-400" />
@@ -227,14 +251,47 @@ export default function StudentsPage() {
               <p className="text-slate-500 dark:text-slate-400">학생이 없습니다.</p>
             </div>
           ) : (
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                {filteredStudents.map(student => (
-                  <StudentListItem key={student.id} student={student}
-                    isSelected={selectedStudent?.id === student.id}
-                    onSelect={() => selectStudent(student)} />
-                ))}
+            <div className="flex gap-2">
+              {/* Student List with Groups */}
+              <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
+                  {sortedGroups.map(([chosung, students]) => (
+                    <div
+                      key={chosung}
+                      ref={(el) => { groupRefs.current[chosung] = el; }}
+                    >
+                      {/* Chosung Header */}
+                      <div className="sticky top-0 z-10 px-5 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                          {chosung}
+                        </span>
+                        <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">
+                          {students.length}명
+                        </span>
+                      </div>
+                      {/* Students in Group */}
+                      <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                        {students.map(student => (
+                          <StudentListItem
+                            key={student.id}
+                            student={student}
+                            isSelected={selectedStudent?.id === student.id}
+                            onSelect={() => selectStudent(student)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Chosung Jump Navigation */}
+              <ChosungJumpNav
+                availableChosung={availableChosung}
+                activeChosung={activeChosung}
+                onJump={handleChosungJump}
+                className="sticky top-0 self-start"
+              />
             </div>
           )}
         </div>
@@ -248,7 +305,7 @@ export default function StudentsPage() {
                   <X size={20} />
                 </button>
                 <div className="flex items-center gap-5">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${selectedStudent.gender === 'M' ? 'bg-white/20' : 'bg-white/20'}`}>
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${selectedStudent.gender === 'M' ? 'bg-blue-500/30' : 'bg-pink-500/30'}`}>
                     <User size={32} />
                   </div>
                   <div>
