@@ -1067,9 +1067,26 @@ router.delete('/:sessionId/records', verifyToken, async (req, res) => {
 
     let deletedStudentRecords = 0;
     let deletedApplicantRecords = 0;
+    const userId = req.user?.id || null;
+    const academyId = req.user?.academyId;
 
     // 재원생 기록 삭제 (해당 날짜의 기록만)
     if (studentIds.length > 0) {
+      // 🔥 삭제 전 백업!
+      await conn.query(`
+        INSERT INTO student_records_backup
+          (original_id, academy_id, student_id, record_type_id, measured_at, value, notes, deleted_by)
+        SELECT id, academy_id, student_id, record_type_id, measured_at, value, notes, ?
+        FROM student_records
+        WHERE student_id IN (?) AND measured_at = ?
+      `, [userId, studentIds, testDate]);
+
+      // 삭제 로그
+      await conn.query(`
+        INSERT INTO deletion_logs (academy_id, table_name, deleted_data, deleted_by, reason)
+        VALUES (?, 'student_records', ?, ?, ?)
+      `, [academyId, JSON.stringify({ studentIds, testDate, sessionId }), userId, '세션 기록 전체 삭제']);
+
       const [result] = await conn.query(`
         DELETE FROM student_records
         WHERE student_id IN (?) AND measured_at = ?
@@ -1079,6 +1096,12 @@ router.delete('/:sessionId/records', verifyToken, async (req, res) => {
 
     // 테스트신규 기록 삭제
     if (applicantIds.length > 0) {
+      // 삭제 로그
+      await conn.query(`
+        INSERT INTO deletion_logs (academy_id, table_name, deleted_data, deleted_by, reason)
+        VALUES (?, 'test_records', ?, ?, ?)
+      `, [academyId, JSON.stringify({ applicantIds, sessionId }), userId, '세션 기록 전체 삭제']);
+
       const [result] = await conn.query(`
         DELETE FROM test_records
         WHERE test_session_id = ? AND test_applicant_id IN (?)
@@ -1087,6 +1110,9 @@ router.delete('/:sessionId/records', verifyToken, async (req, res) => {
     }
 
     await conn.commit();
+
+    console.log(`[삭제 로그] 세션 ${sessionId} 기록 삭제 - user: ${userId}, 재원생: ${deletedStudentRecords}개, 신규: ${deletedApplicantRecords}개`);
+
     res.json({
       success: true,
       message: '세션 기록이 삭제되었습니다.',
