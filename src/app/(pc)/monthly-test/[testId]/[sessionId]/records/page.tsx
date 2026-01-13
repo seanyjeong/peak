@@ -200,7 +200,15 @@ export default function SessionRecordsPage({
   };
 
   const handleDeleteAllRecords = async () => {
-    if (!confirm('이 세션의 모든 기록을 삭제하시겠습니까?\n\n⚠️ 재원생 기록도 해당 날짜 기록이 삭제됩니다.')) return;
+    // 1단계: 경고
+    if (!confirm('⚠️ 정말 이 세션의 모든 기록을 삭제하시겠습니까?\n\n재원생 기록도 해당 날짜 기록이 모두 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다!')) return;
+
+    // 2단계: "삭제" 입력 확인
+    const input = prompt('삭제를 진행하려면 "삭제"를 입력하세요:');
+    if (input !== '삭제') {
+      alert('삭제가 취소되었습니다.');
+      return;
+    }
 
     try {
       const res = await apiClient.delete(`/test-sessions/${sessionId}/records`);

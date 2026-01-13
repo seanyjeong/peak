@@ -97,6 +97,7 @@ export default function TabletSessionRecordsPage({
   const [inputs, setInputs] = useState<Record<string, Record<number, string>>>({});
   const [savingMap, setSavingMap] = useState<Record<string, boolean>>({});
   const [savedMap, setSavedMap] = useState<Record<string, boolean>>({});
+  const [errorMap, setErrorMap] = useState<Record<string, boolean>>({});
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
@@ -151,6 +152,7 @@ export default function TabletSessionRecordsPage({
 
     try {
       setSavingMap(prev => ({ ...prev, [saveKey]: true }));
+      setErrorMap(prev => ({ ...prev, [saveKey]: false }));
       await apiClient.post(`/test-sessions/${sessionId}/records/batch`, {
         records: [{
           student_id: participant.student_id,
@@ -162,6 +164,10 @@ export default function TabletSessionRecordsPage({
       setSavedMap(prev => ({ ...prev, [saveKey]: true }));
     } catch (error) {
       console.error('저장 오류:', error);
+      setErrorMap(prev => ({ ...prev, [saveKey]: true }));
+      setSavedMap(prev => ({ ...prev, [saveKey]: false }));
+      // 저장 실패 알림
+      alert(`⚠️ ${participant.name} 기록 저장 실패!\n다시 시도해주세요.`);
     } finally {
       setSavingMap(prev => ({ ...prev, [saveKey]: false }));
     }
@@ -356,6 +362,8 @@ export default function TabletSessionRecordsPage({
                     <div className="w-8 text-center">
                       {isSaving ? (
                         <span className="text-blue-500 text-lg">...</span>
+                      ) : errorMap[saveKey] ? (
+                        <span className="text-red-500 text-xl">✗</span>
                       ) : isSaved ? (
                         <span className="text-green-500 text-xl">✓</span>
                       ) : null}
