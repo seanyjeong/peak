@@ -160,12 +160,62 @@ router.put('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const { test_name, status, notes, record_type_ids } = req.body;
 
+    // 현재 상태 조회
+    const [currentTest] = await conn.query(
+      'SELECT status FROM monthly_tests WHERE id = ? AND academy_id = ?',
+      [id, academyId]
+    );
+
     // 테스트 수정 - 해당 학원만
     await conn.query(`
       UPDATE monthly_tests
       SET test_name = ?, status = ?, notes = ?
       WHERE id = ? AND academy_id = ?
     `, [test_name, status, notes, id, academyId]);
+
+    // 🔥 완료(completed)로 변경 시 기록 영구 저장
+    if (status === 'completed' && currentTest[0]?.status !== 'completed') {
+      // 해당 테스트의 모든 세션 조회
+      const [sessions] = await conn.query(
+        'SELECT id, test_date FROM test_sessions WHERE monthly_test_id = ?',
+        [id]
+      );
+
+      for (const session of sessions) {
+        // 세션 참가자 조회
+        const [participants] = await conn.query(
+          'SELECT student_id, test_applicant_id FROM test_participants WHERE test_session_id = ?',
+          [session.id]
+        );
+
+        const studentIds = participants.filter(p => p.student_id).map(p => p.student_id);
+        const applicantIds = participants.filter(p => p.test_applicant_id).map(p => p.test_applicant_id);
+
+        // 재원생 기록 복사 (student_records → monthly_test_records)
+        if (studentIds.length > 0) {
+          await conn.query(`
+            INSERT IGNORE INTO monthly_test_records
+              (academy_id, monthly_test_id, test_session_id, student_id, record_type_id, value, measured_at)
+            SELECT ?, ?, ?, student_id, record_type_id, value, measured_at
+            FROM student_records
+            WHERE student_id IN (?) AND measured_at = ?
+          `, [academyId, id, session.id, studentIds, session.test_date]);
+        }
+
+        // 테스트신규 기록 복사 (test_records → monthly_test_records)
+        if (applicantIds.length > 0) {
+          await conn.query(`
+            INSERT IGNORE INTO monthly_test_records
+              (academy_id, monthly_test_id, test_session_id, test_applicant_id, record_type_id, value, measured_at)
+            SELECT ?, ?, ?, test_applicant_id, record_type_id, value, measured_at
+            FROM test_records
+            WHERE test_session_id = ? AND test_applicant_id IN (?)
+          `, [academyId, id, session.id, session.id, applicantIds]);
+        }
+      }
+
+      console.log(`[월말테스트] 테스트 ${id} 완료 - 기록 영구 저장됨`);
+    }
 
     // 종목 재설정
     if (record_type_ids !== undefined) {
