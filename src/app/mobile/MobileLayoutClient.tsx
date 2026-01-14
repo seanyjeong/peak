@@ -8,7 +8,7 @@ import { authAPI } from '@/lib/api/auth';
 import Image from 'next/image';
 import { Medal, Activity, LogOut, Sun, Moon } from 'lucide-react';
 
-const APP_VERSION = 'v4.6.5';
+const APP_VERSION = 'v4.6.6';
 
 // 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
 const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });

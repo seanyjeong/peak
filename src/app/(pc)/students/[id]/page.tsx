@@ -550,10 +550,10 @@ export default function StudentProfilePage({
           </div>
         </div>
 
-        {/* Main Grid - Compact */}
-        <div className="flex-1 grid grid-cols-12 gap-1.5 min-h-0">
+        {/* Row 1 - Fixed height charts */}
+        <div className="grid grid-cols-12 gap-1.5 h-[170px]">
           {/* Gauges - 3 columns */}
-          <div className="col-span-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
+          <div className="col-span-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
             <div className="flex items-center gap-1 mb-1">
               <PieChartIcon className="text-orange-500" size={12} />
               <h3 className="text-xs font-semibold text-slate-900 dark:text-white">종목별 기록</h3>
@@ -615,7 +615,7 @@ export default function StudentProfilePage({
           </div>
 
           {/* Trend Chart - 5 columns */}
-          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
+          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1">
                 <LineChartIcon className="text-blue-500" size={12} />
@@ -646,7 +646,7 @@ export default function StudentProfilePage({
           </div>
 
           {/* Comparison Chart - 4 columns */}
-          <div className="col-span-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
+          <div className="col-span-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
             <div className="flex items-center gap-1 mb-1">
               <BarChart3 className="text-cyan-500" size={12} />
               <h3 className="text-xs font-semibold text-slate-900 dark:text-white">학원 비교</h3>
@@ -666,7 +666,10 @@ export default function StudentProfilePage({
               </ResponsiveContainer>
             </div>
           </div>
+        </div>
 
+        {/* Row 2 - Fill remaining */}
+        <div className="flex-1 grid grid-cols-12 gap-1.5 min-h-0">
           {/* Radar Chart - 5 columns */}
           <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
             <div className="flex items-center justify-between">
