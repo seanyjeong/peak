@@ -150,7 +150,7 @@ export default function StudentProfilePage({
 
       // A4 사이즈 (210 x 297mm)
       const pdf = new jsPDF({
-        orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+        orientation: 'landscape',
         unit: 'mm',
         format: 'a4'
       });

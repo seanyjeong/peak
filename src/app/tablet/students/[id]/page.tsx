@@ -144,7 +144,7 @@ export default function TabletStudentProfilePage({
       const imgHeight = canvas.height;
 
       const pdf = new jsPDF({
-        orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+        orientation: 'landscape',
         unit: 'mm',
         format: 'a4'
       });
