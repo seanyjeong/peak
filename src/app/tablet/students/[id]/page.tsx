@@ -572,14 +572,16 @@ export default function TabletStudentProfilePage({
                 );
               })}
             </div>
-            <div className="flex flex-wrap gap-0.5 mt-1 flex-shrink-0">
+            <div className="flex flex-wrap gap-1 mt-1 flex-shrink-0">
               {recordTypes.map(type => (
                 <button
                   key={type.id}
                   onClick={() => toggleGaugeType(type.id)}
-                  className={`text-[10px] px-1.5 py-0.5 rounded ${
-                    selectedGaugeTypes.includes(type.id) ? 'bg-orange-500 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300'
-                  }`}
+                  className={`text-[10px] px-2 py-1 rounded-lg font-medium transition-all duration-200 ${
+                    selectedGaugeTypes.includes(type.id) 
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/30 scale-105' 
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
+                  } ${selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id) ? 'opacity-30 cursor-not-allowed' : 'active:scale-95'}`}
                   disabled={selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id)}
                 >
                   {type.short_name || type.name}
@@ -638,14 +640,14 @@ export default function TabletStudentProfilePage({
         <div className="grid grid-cols-12 gap-2 flex-1 min-h-0">
           {/* 능력치 레이더 */}
           <div className="col-span-5 bg-white dark:bg-slate-800 rounded-xl p-2 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center justify-between flex-shrink-0 mb-1">
               <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100">능력치</h3>
               <div className="flex items-center gap-1.5 text-[10px]">
                 <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 bg-slate-400 rounded-sm"></span><span className="text-slate-500">학원</span></span>
                 <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 bg-orange-500 rounded-sm"></span><span className="text-slate-500">{student.name}</span></span>
               </div>
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-[120px]">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
                   <PolarGrid stroke="#e2e8f0" />
@@ -656,12 +658,14 @@ export default function TabletStudentProfilePage({
                 </RadarChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex flex-wrap gap-0.5 flex-shrink-0">
+            <div className="flex flex-wrap gap-1 flex-shrink-0 mt-1">
               {recordTypes.slice(0, 8).map(type => (
                 <button
                   key={type.id}
-                  className={`text-[10px] px-1.5 py-0.5 rounded ${
-                    selectedRadarTypes.includes(type.id) ? 'bg-purple-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                  className={`text-[10px] px-2 py-1 rounded-lg font-medium transition-all duration-200 ${
+                    selectedRadarTypes.includes(type.id) 
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md shadow-purple-500/30 scale-105' 
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95'
                   }`}
                   onClick={() => {
                     if (selectedRadarTypes.includes(type.id)) {
