@@ -551,7 +551,7 @@ export default function StudentProfilePage({
         </div>
 
         {/* Row 1 - Fixed height charts */}
-        <div className="grid grid-cols-12 gap-1.5 h-[170px]">
+        <div className="grid grid-cols-12 gap-1.5 h-[210px]">
           {/* Gauges - 3 columns */}
           <div className="col-span-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
             <div className="flex items-center gap-1 mb-1">
@@ -574,23 +574,25 @@ export default function StudentProfilePage({
                 ];
 
                 return (
-                  <div key={typeId} className="relative bg-slate-50 dark:bg-slate-900 rounded p-1">
-                    <ResponsiveContainer width="100%" height={58}>
-                      <PieChart>
-                        <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="50%" outerRadius="78%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
-                          {gaugeData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={index === 1 ? (document.documentElement.classList.contains('dark') ? '#1e293b' : '#e2e8f0') : entry.color} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pt-0.5">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white leading-none">{hasRecord ? value : '-'}</span>
-                      <span className="text-[8px] text-slate-500 dark:text-slate-400 mt-0.5">{type?.short_name || type?.name}</span>
+                  <div key={typeId} className="flex flex-col items-center">
+                    <div className="relative bg-slate-50 dark:bg-slate-900 rounded w-full aspect-square">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="45%" outerRadius="80%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
+                            {gaugeData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={index === 1 ? (document.documentElement.classList.contains('dark') ? '#1e293b' : '#e2e8f0') : entry.color} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-sm font-bold text-slate-900 dark:text-white leading-none">{hasRecord ? value : '-'}</span>
+                      </div>
+                      <div className="absolute bottom-0.5 right-0.5">
+                        <TrendIcon trend={trend || 'stable'} className="w-2.5 h-2.5" />
+                      </div>
                     </div>
-                    <div className="absolute bottom-0.5 right-0.5">
-                      <TrendIcon trend={trend || 'stable'} className="w-2.5 h-2.5" />
-                    </div>
+                    <span className="text-[8px] text-slate-500 dark:text-slate-400 mt-0.5 truncate w-full text-center">{type?.short_name || type?.name}</span>
                   </div>
                 );
               })}
@@ -668,10 +670,10 @@ export default function StudentProfilePage({
           </div>
         </div>
 
-        {/* Row 2 - Fill remaining */}
-        <div className="flex-1 grid grid-cols-12 gap-1.5 min-h-0">
+        {/* Row 2 - Fixed height */}
+        <div className="grid grid-cols-12 gap-1.5 h-[180px]">
           {/* Radar Chart - 5 columns */}
-          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
+          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
                 <RadarIcon className="text-purple-500" size={12} />
@@ -719,7 +721,7 @@ export default function StudentProfilePage({
           </div>
 
           {/* Recent Records Table - 7 columns */}
-          <div className="col-span-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
+          <div className="col-span-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-xs font-semibold text-slate-900 dark:text-white">최근 기록</h3>
               {recordHistory.length > 3 && (
