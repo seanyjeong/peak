@@ -160,7 +160,7 @@ export default function TabletStudentProfilePage({
       const y = (pdfHeight - scaledHeight) / 2;
 
       pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
-      pdf.save(`${student.name}_성적표_${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(`${student.name}_실기기록_${new Date().toISOString().split('T')[0]}.pdf`);
 
     } catch (error) {
       console.error('PDF download error:', error);
