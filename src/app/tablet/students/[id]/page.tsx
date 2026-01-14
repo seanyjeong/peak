@@ -532,11 +532,11 @@ export default function TabletStudentProfilePage({
         </div>
 
         {/* Row 1 - 종목별기록, 기록추이, 학원비교 */}
-        <div className="grid grid-cols-12 gap-1.5 h-[220px]">
+        <div className="grid grid-cols-12 gap-1.5 flex-1 min-h-0">
           {/* 종목별 기록 - 6개 도넛 */}
           <div className="col-span-3 bg-white dark:bg-slate-800 rounded-xl p-1.5 flex flex-col overflow-hidden">
             <h3 className="text-xs font-semibold text-gray-800 dark:text-slate-100 mb-0.5 flex-shrink-0">종목별 기록</h3>
-            <div className="grid grid-cols-3 grid-rows-2 gap-x-0.5 gap-y-0 h-[110px]">
+            <div className="grid grid-cols-3 grid-rows-2 gap-1 flex-1 min-h-0">
               {selectedGaugeTypes.slice(0, 6).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
@@ -549,11 +549,11 @@ export default function TabletStudentProfilePage({
                   { value: 100 - percentage, color: '#e5e7eb' }
                 ];
                 return (
-                  <div key={typeId} className="flex flex-col items-center h-[55px]">
-                    <div className="relative w-[42px] h-[42px]">
+                  <div key={typeId} className="flex flex-col items-center flex-1 min-h-0">
+                    <div className="relative flex-1 w-full min-h-0">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="35%" outerRadius="68%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
+                          <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="42%" outerRadius="78%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
                             {gaugeData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={index === 1 ? (document.documentElement.classList.contains('dark') ? '#1e293b' : '#e5e7eb') : entry.color} />
                             ))}
@@ -561,13 +561,13 @@ export default function TabletStudentProfilePage({
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[9px] font-bold dark:text-white">{hasRecord ? value : '-'}</span>
+                        <span className="text-sm font-bold dark:text-white">{hasRecord ? value : '-'}</span>
                       </div>
-                      <div className="absolute -bottom-0.5 -right-0.5 scale-[0.55]">
+                      <div className="absolute bottom-4 right-1 scale-125">
                         <TrendIcon trend={trend || 'need_more'} />
                       </div>
                     </div>
-                    <span className="text-[7px] text-gray-500 dark:text-slate-400 truncate w-full text-center leading-none">{type?.short_name || type?.name}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-slate-300 truncate w-full text-center flex-shrink-0 -mt-3">{type?.short_name || type?.name}</span>
                   </div>
                 );
               })}
