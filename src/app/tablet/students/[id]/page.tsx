@@ -136,7 +136,21 @@ export default function TabletStudentProfilePage({
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#f1f5f9'
+        backgroundColor: '#f1f5f9',
+        onclone: (clonedDoc) => {
+          // Tailwind CSS v4의 lab() 색상 함수 호환성 문제 해결
+          const elements = clonedDoc.querySelectorAll('*');
+          elements.forEach((el) => {
+            const htmlEl = el as HTMLElement;
+            const computedStyle = window.getComputedStyle(htmlEl);
+            if (computedStyle.backgroundColor) {
+              htmlEl.style.backgroundColor = computedStyle.backgroundColor;
+            }
+            if (computedStyle.color) {
+              htmlEl.style.color = computedStyle.color;
+            }
+          });
+        }
       });
 
       const imgData = canvas.toDataURL('image/png');
