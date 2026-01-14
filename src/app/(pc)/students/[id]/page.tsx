@@ -413,10 +413,10 @@ export default function StudentProfilePage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
-          <p className="text-slate-400 text-lg">데이터 불러오는 중...</p>
+      <div className="h-[calc(100vh-56px)] bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-3 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+          <p className="text-slate-500 dark:text-slate-400 text-sm">불러오는 중...</p>
         </div>
       </div>
     );
@@ -424,13 +424,10 @@ export default function StudentProfilePage({
 
   if (!student || !stats) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="h-[calc(100vh-56px)] bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-slate-400 text-lg mb-4">학생 정보를 찾을 수 없습니다.</p>
-          <button 
-            onClick={() => router.back()} 
-            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition"
-          >
+          <p className="text-slate-500 dark:text-slate-400 mb-3">학생 정보를 찾을 수 없습니다.</p>
+          <button onClick={() => router.back()} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white rounded-lg text-sm transition">
             돌아가기
           </button>
         </div>
@@ -438,206 +435,175 @@ export default function StudentProfilePage({
     );
   }
 
-  const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 5);
+  const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-slate-950 p-8">
-      <div ref={contentRef} className="max-w-[1800px] mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+    <div className="h-[calc(100vh-56px)] bg-slate-100 dark:bg-slate-900 p-3 overflow-hidden">
+      <div ref={contentRef} className="h-full flex flex-col gap-2">
+        {/* Header - Compact */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="p-3 bg-slate-900/50 backdrop-blur-sm hover:bg-slate-800/50 rounded-xl transition border border-slate-800"
+              className="p-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition border border-slate-200 dark:border-slate-700"
             >
-              <ArrowLeft className="text-slate-300" size={24} />
+              <ArrowLeft className="text-slate-600 dark:text-slate-300" size={18} />
             </button>
             <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-4xl font-bold text-white tracking-tight">{student.name}</h1>
-                <span className="px-3 py-1 bg-orange-500/20 text-orange-400 text-sm font-medium rounded-lg border border-orange-500/30">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">{student.name}</h1>
+                <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 text-xs font-medium rounded border border-orange-200 dark:border-orange-500/30">
                   {student.gender === 'M' ? '남' : '여'}
                 </span>
               </div>
-              <p className="text-slate-400 text-base">
-                {student.school} • {student.grade} • {student.phone}
+              <p className="text-slate-500 dark:text-slate-400 text-xs">
+                {student.school} • {student.grade}
               </p>
             </div>
           </div>
           <button
             onClick={handleDownloadPDF}
             disabled={pdfLoading}
-            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-orange-500/20"
+            className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 flex items-center gap-1.5"
           >
-            <FileDown size={20} />
-            {pdfLoading ? 'PDF 생성중...' : 'PDF 다운로드'}
+            <FileDown size={14} />
+            {pdfLoading ? '생성중...' : 'PDF'}
           </button>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 hover:border-orange-500/30 transition">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-slate-400 text-xs uppercase tracking-wider font-medium">총점</span>
-              <div className="p-2 bg-orange-500/10 rounded-lg">
-                <Target className="text-orange-400" size={18} />
-              </div>
+        {/* KPI Cards - Compact */}
+        <div className="grid grid-cols-4 gap-2">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-medium">총점</span>
+              <Target className="text-orange-500" size={14} />
             </div>
-            <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold text-white">{selectedStats.totalScore}</span>
-              <span className="text-slate-500 text-lg mb-1">/ {selectedStats.maxScore}점</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{selectedStats.totalScore}</span>
+              <span className="text-slate-400 text-xs">/ {selectedStats.maxScore}</span>
             </div>
-            <div className="mt-3 flex items-center gap-2">
-              <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-orange-500 to-orange-600 rounded-full transition-all duration-500"
-                  style={{ width: `${selectedStats.percentage}%` }}
-                />
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-full bg-orange-500 rounded-full" style={{ width: `${selectedStats.percentage}%` }} />
               </div>
-              <span className="text-orange-400 text-sm font-medium">{selectedStats.percentage}%</span>
+              <span className="text-orange-500 text-xs font-medium">{selectedStats.percentage}%</span>
             </div>
           </div>
 
-          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 hover:border-blue-500/30 transition">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-slate-400 text-xs uppercase tracking-wider font-medium">등급</span>
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Award className="text-blue-400" size={18} />
-              </div>
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-medium">등급</span>
+              <Award className="text-blue-500" size={14} />
             </div>
-            <div className="flex items-center gap-4">
-              <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getGradeColor(selectedStats.grade)} flex items-center justify-center shadow-lg`}>
-                <span className="text-4xl font-bold text-white">{selectedStats.grade}</span>
+            <div className="flex items-center gap-2">
+              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getGradeColor(selectedStats.grade)} flex items-center justify-center`}>
+                <span className="text-xl font-bold text-white">{selectedStats.grade}</span>
               </div>
               <div>
-                <p className="text-slate-300 text-sm mb-1">평가 완료</p>
-                <p className="text-white text-2xl font-bold">{selectedStats.recordedCount}개</p>
+                <p className="text-slate-900 dark:text-white text-lg font-bold">{selectedStats.recordedCount}개</p>
+                <p className="text-slate-500 dark:text-slate-400 text-[10px]">평가 완료</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/30 transition">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-slate-400 text-xs uppercase tracking-wider font-medium">추세</span>
-              <div className="p-2 bg-cyan-500/10 rounded-lg">
-                <Activity className="text-cyan-400" size={18} />
-              </div>
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-medium">추세</span>
+              <Activity className="text-cyan-500" size={14} />
             </div>
-            <div className="flex items-center gap-3">
-              <TrendIcon trend={stats.overallTrend} className="w-12 h-12" />
+            <div className="flex items-center gap-2">
+              <TrendIcon trend={stats.overallTrend} className="w-8 h-8" />
               <div>
-                <p className="text-white text-2xl font-bold">
-                  {stats.overallTrend === 'up' ? '상승세' : stats.overallTrend === 'down' ? '하락세' : '안정'}
+                <p className="text-slate-900 dark:text-white text-lg font-bold">
+                  {stats.overallTrend === 'up' ? '상승' : stats.overallTrend === 'down' ? '하락' : '안정'}
                 </p>
-                <p className="text-slate-400 text-sm">전체 추세</p>
+                <p className="text-slate-500 dark:text-slate-400 text-[10px]">전체 추세</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 hover:border-purple-500/30 transition">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-slate-400 text-xs uppercase tracking-wider font-medium">기록 수</span>
-              <div className="p-2 bg-purple-500/10 rounded-lg">
-                <Trophy className="text-purple-400" size={18} />
-              </div>
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-medium">기록</span>
+              <Trophy className="text-purple-500" size={14} />
             </div>
-            <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold text-white">{stats.typesWithRecords}</span>
-              <span className="text-slate-500 text-lg mb-1">종목</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.typesWithRecords}</span>
+              <span className="text-slate-400 text-xs">종목</span>
             </div>
-            <p className="text-slate-400 text-sm mt-2">총 {recordHistory.length}회 측정</p>
+            <p className="text-slate-500 dark:text-slate-400 text-[10px] mt-0.5">총 {recordHistory.length}회 측정</p>
           </div>
         </div>
 
-        {/* Main Bento Grid */}
-        <div className="grid grid-cols-12 gap-4">
+        {/* Main Grid - Compact */}
+        <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
           {/* Gauges - 3 columns */}
-          <div className="col-span-3 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <PieChartIcon className="text-orange-400" size={20} />
-              <h3 className="text-lg font-semibold text-white">종목별 기록</h3>
+          <div className="col-span-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col">
+            <div className="flex items-center gap-1.5 mb-2">
+              <PieChartIcon className="text-orange-500" size={14} />
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">종목별 기록</h3>
             </div>
-            
-            <div className="grid grid-cols-2 gap-3 mb-4">
+
+            <div className="grid grid-cols-3 gap-1.5 flex-1">
               {selectedGaugeTypes.slice(0, 6).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
                 const hasRecord = latestRecord !== undefined && latestRecord !== null;
                 const value = latestRecord?.value || 0;
                 const percentage = getRecordPercentage(typeId, value, hasRecord);
-                const trend = stats.trends[typeId];
 
                 const gaugeData = [
                   { value: percentage, color: getScoreColor(percentage) },
-                  { value: 100 - percentage, color: '#1e293b' }
+                  { value: 100 - percentage, color: '#e2e8f0' }
                 ];
 
                 return (
-                  <div key={typeId} className="relative h-[120px] bg-slate-900/70 rounded-xl p-3 border border-slate-800/50">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div key={typeId} className="relative bg-slate-50 dark:bg-slate-900 rounded-lg p-1">
+                    <ResponsiveContainer width="100%" height={60}>
                       <PieChart>
-                        <Pie
-                          data={gaugeData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius="55%"
-                          outerRadius="75%"
-                          startAngle={90}
-                          endAngle={-270}
-                          dataKey="value"
-                          stroke="none"
-                        >
+                        <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="60%" outerRadius="85%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
                           {gaugeData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
+                            <Cell key={`cell-${index}`} fill={index === 1 ? (document.documentElement.classList.contains('dark') ? '#1e293b' : '#e2e8f0') : entry.color} />
                           ))}
                         </Pie>
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold text-white">
-                        {hasRecord ? value : '-'}
-                      </span>
-                      <span className="text-xs text-slate-400">{type?.unit}</span>
-                      <span className="text-[10px] text-slate-500 uppercase mt-1">{type?.short_name || type?.name}</span>
-                    </div>
-                    <div className="absolute bottom-2 right-2">
-                      <TrendIcon trend={trend || 'stable'} className="w-4 h-4" />
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">{hasRecord ? value : '-'}</span>
+                      <span className="text-[8px] text-slate-500 dark:text-slate-400">{type?.short_name || type?.name}</span>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs text-slate-500 uppercase tracking-wider">종목 선택 (최대 6개)</p>
-              <div className="flex flex-wrap gap-1.5">
-                {recordTypes.map(type => (
-                  <button
-                    key={type.id}
-                    onClick={() => toggleGaugeType(type.id)}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
-                      selectedGaugeTypes.includes(type.id)
-                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
-                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
-                    } ${selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id) ? 'opacity-30 cursor-not-allowed' : ''}`}
-                    disabled={selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id)}
-                  >
-                    {type.short_name || type.name}
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {recordTypes.map(type => (
+                <button
+                  key={type.id}
+                  onClick={() => toggleGaugeType(type.id)}
+                  className={`text-[10px] px-2 py-0.5 rounded font-medium transition ${
+                    selectedGaugeTypes.includes(type.id)
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
+                  }`}
+                  disabled={selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id)}
+                >
+                  {type.short_name || type.name}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Trend Chart - 5 columns */}
-          <div className="col-span-5 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <LineChartIcon className="text-blue-400" size={20} />
-                <h3 className="text-lg font-semibold text-white">기록 추이</h3>
+          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <LineChartIcon className="text-blue-500" size={14} />
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">기록 추이</h3>
               </div>
               <select
-                className="text-sm bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-xs bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-2 py-1 text-slate-700 dark:text-white"
                 value={selectedTrendType || ''}
                 onChange={(e) => setSelectedTrendType(parseInt(e.target.value))}
               >
@@ -647,166 +613,87 @@ export default function StudentProfilePage({
               </select>
             </div>
 
-            <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={trendChartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
-                <defs>
-                  <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4666FF" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#4666FF" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fill: '#94a3b8', fontSize: 13 }} 
-                  stroke="#334155"
-                  axisLine={{ stroke: '#334155' }}
-                />
-                <YAxis
-                  tick={{ fill: '#94a3b8', fontSize: 13 }}
-                  stroke="#334155"
-                  axisLine={{ stroke: '#334155' }}
-                  domain={trendYDomain as [number, number]}
-                  reversed={isTrendTypeLower}
-                  tickFormatter={(value) => Number(value).toFixed(2)}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #334155',
-                    borderRadius: '12px',
-                    padding: '12px',
-                    fontSize: '14px'
-                  }}
-                  labelStyle={{ color: '#cbd5e1', marginBottom: '4px' }}
-                  itemStyle={{ color: '#4666FF', fontWeight: 600 }}
-                  formatter={(value) => {
-                    const type = recordTypes.find(t => t.id === selectedTrendType);
-                    return [`${value}${type?.unit || ''}`, '기록'];
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#4666FF"
-                  strokeWidth={3}
-                  dot={{ fill: '#4666FF', r: 5, strokeWidth: 2, stroke: '#0f172a' }}
-                  activeDot={{ r: 7, fill: '#4666FF', stroke: '#fff', strokeWidth: 2 }}
-                  fill="url(#lineGradient)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-            {isTrendTypeLower && (
-              <p className="text-xs text-slate-500 text-center mt-2">* 낮을수록 좋은 종목 (Y축 반전)</p>
-            )}
+            <div className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendChartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" domain={trendYDomain as [number, number]} reversed={isTrendTypeLower} tickFormatter={(v) => Number(v).toFixed(1)} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', fontSize: '12px' }}
+                    formatter={(value) => {
+                      const type = recordTypes.find(t => t.id === selectedTrendType);
+                      return [`${value}${type?.unit || ''}`, '기록'];
+                    }}
+                  />
+                  <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
           {/* Comparison Chart - 4 columns */}
-          <div className="col-span-4 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <BarChart3 className="text-cyan-400" size={20} />
-              <h3 className="text-lg font-semibold text-white">학원 평균 비교</h3>
+          <div className="col-span-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col">
+            <div className="flex items-center gap-1.5 mb-2">
+              <BarChart3 className="text-cyan-500" size={14} />
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">학원 비교</h3>
+              <span className="text-[10px] text-slate-400 ml-auto">달성률 %</span>
             </div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-4">만점 대비 달성률 (%)</p>
-            
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={compareBarData} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-                <XAxis 
-                  type="number" 
-                  domain={[0, 100]} 
-                  tick={{ fill: '#94a3b8', fontSize: 13 }} 
-                  stroke="#334155"
-                  axisLine={{ stroke: '#334155' }}
-                />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  width={80}
-                  tick={{ fill: '#cbd5e1', fontSize: 13 }}
-                  stroke="#334155"
-                  axisLine={{ stroke: '#334155' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #334155',
-                    borderRadius: '12px',
-                    padding: '12px',
-                    fontSize: '14px'
-                  }}
-                  labelStyle={{ color: '#cbd5e1', marginBottom: '4px' }}
-                  formatter={(value, name, props) => {
-                    const data = props.payload;
-                    if (name === '학원평균') return [`${data.academyRaw}${data.unit} (${value}%)`, name];
-                    return [`${data.studentRaw}${data.unit} (${value}%)`, name];
-                  }}
-                />
-                <Bar dataKey="academy" fill="#64748b" radius={[0, 8, 8, 0]} name="학원평균" />
-                <Bar dataKey="student" fill="#FF8200" radius={[0, 8, 8, 0]} name={student.name} />
-              </BarChart>
-            </ResponsiveContainer>
+
+            <div className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={compareBarData} layout="vertical" margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
+                  <YAxis dataKey="name" type="category" width={50} tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', fontSize: '11px' }}
+                    formatter={(value, name, props) => {
+                      const data = props.payload;
+                      if (name === '학원') return [`${data.academyRaw}${data.unit} (${value}%)`, name];
+                      return [`${data.studentRaw}${data.unit} (${value}%)`, name];
+                    }}
+                  />
+                  <Bar dataKey="academy" fill="#94a3b8" radius={[0, 4, 4, 0]} name="학원" />
+                  <Bar dataKey="student" fill="#f97316" radius={[0, 4, 4, 0]} name={student.name} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
           {/* Radar Chart - 5 columns */}
-          <div className="col-span-5 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <RadarIcon className="text-purple-400" size={20} />
-                <h3 className="text-lg font-semibold text-white">능력치 분석</h3>
+          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <RadarIcon className="text-purple-500" size={14} />
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">능력치</h3>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-slate-500 rounded-sm"></span>
-                  <span className="text-slate-400">학원평균</span>
-                </span>
-                <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-orange-500 rounded-sm"></span>
-                  <span className="text-slate-400">{student.name}</span>
-                </span>
+              <div className="flex items-center gap-2 text-[10px]">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 bg-slate-400 rounded-sm"></span><span className="text-slate-500">학원</span></span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 bg-orange-500 rounded-sm"></span><span className="text-slate-500">{student.name}</span></span>
               </div>
             </div>
-            
-            <ResponsiveContainer width="100%" height={260}>
-              <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
-                <PolarGrid stroke="#334155" strokeWidth={1} />
-                <PolarAngleAxis 
-                  dataKey="subject" 
-                  tick={{ fill: '#cbd5e1', fontSize: 13, fontWeight: 500 }} 
-                />
-                <PolarRadiusAxis 
-                  angle={90} 
-                  domain={[0, 100]} 
-                  tick={{ fill: '#64748b', fontSize: 11 }} 
-                  stroke="#334155"
-                />
-                <Radar
-                  name="학원평균"
-                  dataKey="academy"
-                  stroke="#64748b"
-                  fill="#64748b"
-                  fillOpacity={0.2}
-                  strokeWidth={2}
-                />
-                <Radar
-                  name={student.name}
-                  dataKey="student"
-                  stroke="#FF8200"
-                  fill="#FF8200"
-                  fillOpacity={0.4}
-                  strokeWidth={2}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
 
-            <div className="flex flex-wrap gap-1.5 mt-4">
+            <div className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="65%">
+                  <PolarGrid stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 9 }} stroke="#e2e8f0" />
+                  <Radar name="학원" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.2} strokeWidth={1.5} />
+                  <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.3} strokeWidth={2} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="flex flex-wrap gap-1 mt-1">
               {recordTypes.slice(0, 8).map(type => (
                 <button
                   key={type.id}
-                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
+                  className={`text-[10px] px-2 py-0.5 rounded font-medium transition ${
                     selectedRadarTypes.includes(type.id)
-                      ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
                   }`}
                   onClick={() => {
                     if (selectedRadarTypes.includes(type.id)) {
@@ -823,26 +710,23 @@ export default function StudentProfilePage({
           </div>
 
           {/* Recent Records Table - 7 columns */}
-          <div className="col-span-7 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">최근 기록</h3>
-              {recordHistory.length > 5 && (
-                <button
-                  onClick={() => setShowAllRecords(!showAllRecords)}
-                  className="text-sm text-orange-400 hover:text-orange-300 font-medium transition"
-                >
-                  {showAllRecords ? '접기' : `전체보기 (${recordHistory.length})`}
+          <div className="col-span-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">최근 기록</h3>
+              {recordHistory.length > 3 && (
+                <button onClick={() => setShowAllRecords(!showAllRecords)} className="text-[10px] text-orange-500 font-medium">
+                  {showAllRecords ? '접기' : `더보기 (${recordHistory.length})`}
                 </button>
               )}
             </div>
-            
-            <div className={`overflow-x-auto ${showAllRecords ? 'max-h-64 overflow-y-auto' : ''}`}>
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-slate-900/90 backdrop-blur-sm">
-                  <tr className="border-b border-slate-800">
-                    <th className="text-left py-3 px-4 text-slate-400 uppercase tracking-wider text-xs font-medium">날짜</th>
+
+            <div className={`overflow-auto flex-1 ${showAllRecords ? '' : ''}`}>
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-white dark:bg-slate-800">
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="text-left py-1.5 px-2 text-slate-500 dark:text-slate-400 font-medium">날짜</th>
                     {recordTypes.slice(0, 6).map(type => (
-                      <th key={type.id} className="text-center py-3 px-4 text-slate-400 uppercase tracking-wider text-xs font-medium">
+                      <th key={type.id} className="text-center py-1.5 px-2 text-slate-500 dark:text-slate-400 font-medium">
                         {type.short_name || type.name}
                       </th>
                     ))}
@@ -850,25 +734,18 @@ export default function StudentProfilePage({
                 </thead>
                 <tbody>
                   {visibleRecords.map((history, idx) => (
-                    <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition">
-                      <td className="py-3 px-4 font-medium text-white">
-                        {new Date(history.measured_at).toLocaleDateString('ko-KR', { 
-                          year: '2-digit', 
-                          month: '2-digit', 
-                          day: '2-digit' 
-                        })}
+                    <tr key={idx} className="border-b border-slate-100 dark:border-slate-700/50">
+                      <td className="py-1.5 px-2 text-slate-700 dark:text-slate-300">
+                        {new Date(history.measured_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                       </td>
                       {recordTypes.slice(0, 6).map(type => {
                         const record = history.records.find(r => r.record_type_id === type.id);
                         return (
-                          <td key={type.id} className="text-center py-3 px-4">
+                          <td key={type.id} className="text-center py-1.5 px-2">
                             {record ? (
-                              <span className="font-semibold text-white">
-                                {record.value}
-                                <span className="text-slate-500 text-xs ml-1">{type.unit}</span>
-                              </span>
+                              <span className="font-medium text-slate-900 dark:text-white">{record.value}<span className="text-slate-400 text-[10px] ml-0.5">{type.unit}</span></span>
                             ) : (
-                              <span className="text-slate-700">-</span>
+                              <span className="text-slate-300 dark:text-slate-600">-</span>
                             )}
                           </td>
                         );
