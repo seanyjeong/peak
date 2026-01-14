@@ -107,29 +107,49 @@ router.get('/check', verifyToken, async (req, res) => {
             });
         }
 
-        // 2. 수업계획 미제출 체크 (내일 수업인데 계획 없음)
+        // 2. 수업계획 미제출 체크 (오늘/내일 수업인데 계획 없음)
+        const todayStr = today.toISOString().split('T')[0];
+        const todayFormatted = `${today.getMonth() + 1}.${String(today.getDate()).padStart(2, '0')}`;
+
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
         const tomorrowFormatted = `${tomorrow.getMonth() + 1}.${String(tomorrow.getDate()).padStart(2, '0')}`;
 
-        // 내일 출근 예정인 강사 중 계획 미제출자 (P-ACA 스케줄 기반)
-        // 단순화: 본인의 내일 수업 계획 체크 - academy_id 필터 추가
-        const [myPlans] = await pool.query(`
+        // 원장(owner)인 경우 instructor_id는 -user_id로 저장됨
+        const instructorId = req.user.role === 'owner' ? -req.user.id : req.user.id;
+
+        // 오늘 수업 계획 체크
+        const [todayPlans] = await pool.query(`
             SELECT COUNT(*) as count FROM daily_plans
             WHERE academy_id = ? AND date = ? AND instructor_id = ?
-        `, [academyId, tomorrowStr, req.user.id]);
+        `, [academyId, todayStr, instructorId]);
 
-        // 내일 스케줄이 있는지 체크 (P-ACA instructor_schedules)
-        // 여기서는 간단히 계획이 없으면 알림
-        if (myPlans[0].count === 0) {
-            // 내일이 주말이 아닌 경우에만
+        // 오늘이 주말이 아니고 계획이 없으면 알림
+        if (todayPlans[0].count === 0 && dayOfWeek !== 0 && dayOfWeek !== 6) {
+            alerts.push({
+                type: 'plan_missing',
+                title: '오늘 수업계획 미제출',
+                message: `${todayFormatted}일(오늘) 수업계획이 작성되지 않았습니다.`,
+                severity: 'warning',
+                date: todayStr
+            });
+        }
+
+        // 내일 수업 계획 체크
+        const [tomorrowPlans] = await pool.query(`
+            SELECT COUNT(*) as count FROM daily_plans
+            WHERE academy_id = ? AND date = ? AND instructor_id = ?
+        `, [academyId, tomorrowStr, instructorId]);
+
+        // 내일이 주말이 아니고 계획이 없으면 알림
+        if (tomorrowPlans[0].count === 0) {
             const tomorrowDay = tomorrow.getDay();
-            if (tomorrowDay !== 0 && tomorrowDay !== 6) { // 일요일, 토요일 제외
+            if (tomorrowDay !== 0 && tomorrowDay !== 6) {
                 alerts.push({
                     type: 'plan_missing',
-                    title: '수업계획 미제출',
-                    message: `${tomorrowFormatted}일 수업계획이 작성되지 않았습니다.`,
+                    title: '내일 수업계획 미제출',
+                    message: `${tomorrowFormatted}일(내일) 수업계획이 작성되지 않았습니다.`,
                     severity: 'info',
                     date: tomorrowStr
                 });
