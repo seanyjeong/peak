@@ -7,10 +7,14 @@ import {
   Sunrise,
   Sun,
   Moon,
-  RefreshCw
+  RefreshCw,
+  TrendingUp,
+  Users,
+  Activity
 } from 'lucide-react';
 import { useOrientation } from '../layout';
 import { useDashboard, getTodayFormatted } from '@/features/dashboard';
+import { motion } from 'framer-motion';
 
 // Circular Progress Component
 function CircularProgress({
@@ -33,7 +37,11 @@ function CircularProgress({
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center">
+    <motion.div 
+      className="flex flex-col items-center"
+      whileHover={{ scale: 1.05 }}
+      transition={{ type: 'spring' as const, stiffness: 300, damping: 20 }}
+    >
       <div className="relative" style={{ width: size, height: size }}>
         <svg className="transform -rotate-90" width={size} height={size}>
           <circle
@@ -63,7 +71,7 @@ function CircularProgress({
         </div>
       </div>
       <span className="text-sm text-slate-500 dark:text-slate-400 mt-2">{label}</span>
-    </div>
+    </motion.div>
   );
 }
 
@@ -91,56 +99,97 @@ export default function TabletDashboardPage() {
   }
 
   return (
-    <div className="tablet-scroll">
+    <motion.div 
+      className="tablet-scroll"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">대시보드</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{today}</p>
-        </div>
-        <button
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-brand-orange to-brand-blue bg-clip-text text-transparent">
+            대시보드
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm uppercase tracking-wide mt-1">{today}</p>
+        </motion.div>
+        <motion.button
           onClick={() => router.push('/tablet/assignments')}
-          className="flex items-center gap-2 px-4 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition text-sm font-medium"
+          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-brand-orange to-orange-600 text-white rounded-xl hover:shadow-lg transition-all text-sm font-medium"
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
         >
           <Calendar size={20} />
           <span>반 배치</span>
-        </button>
+        </motion.button>
       </div>
 
-      {/* Stats Cards */}
-      <div className={`grid gap-4 mb-6 ${orientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6">
-          <div className="flex items-center gap-6">
+      {/* Stats Cards - Bento Grid */}
+      <motion.div 
+        className={`grid gap-4 mb-6 ${orientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'}`}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <motion.div 
+          className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-2xl p-5 border border-orange-200 dark:border-orange-800 shadow-sm"
+          whileHover={{ y: -4, scale: 1.02 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-orange/10 rounded-full -mr-16 -mt-16"></div>
+          <div className="relative flex items-center gap-4">
+            <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+              <Users size={24} className="text-brand-orange" />
+            </div>
             <CircularProgress
               value={stats.trainersPresent}
               max={Math.max(stats.totalTrainers, 1)}
-              color="#f97316"
+              color="#FE5A1D"
               label="출근 강사"
-              size={orientation === 'landscape' ? 100 : 120}
+              size={orientation === 'landscape' ? 90 : 100}
             />
-            <div>
-              <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{stats.trainersPresent}명</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">오늘 출근 강사</p>
+            <div className="flex-1">
+              <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{stats.trainersPresent}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">/ {stats.totalTrainers}명</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6">
-          <div className="flex items-center gap-6">
+        <motion.div 
+          className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-2xl p-5 border border-blue-200 dark:border-blue-800 shadow-sm"
+          whileHover={{ y: -4, scale: 1.02 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/10 rounded-full -mr-16 -mt-16"></div>
+          <div className="relative flex items-center gap-4">
+            <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+              <Activity size={24} className="text-brand-blue" />
+            </div>
             <CircularProgress
               value={stats.studentsToday}
               max={Math.max(stats.studentsToday, 1)}
-              color="#14b8a6"
+              color="#4666FF"
               label="수업 학생"
-              size={orientation === 'landscape' ? 100 : 120}
+              size={orientation === 'landscape' ? 90 : 100}
             />
-            <div>
-              <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{stats.studentsToday}명</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">오늘 수업 학생</p>
+            <div className="flex-1">
+              <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{stats.studentsToday}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">명 예정</p>
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Schedule & Trainers */}
       <div className={`grid gap-4 ${orientation === 'landscape' ? 'grid-cols-2' : 'grid-cols-1'}`}>
@@ -275,6 +324,6 @@ export default function TabletDashboardPage() {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { RefreshCw, Calendar, Users, Trophy, ChevronDown, ChevronUp, Check, List, AlertCircle } from 'lucide-react';
+import { RefreshCw, Calendar, Users, Trophy, ChevronDown, ChevronUp, Check, List, AlertCircle, Target } from 'lucide-react';
 import { useOrientation } from '../layout';
 import { useRecords, useRecordInput, SLOT_LABELS } from '@/features/records';
 import type { InputMode } from '@/components/records';
+import { motion } from 'framer-motion';
 
 export default function TabletRecordsPage() {
   const orientation = useOrientation();
@@ -59,35 +60,64 @@ export default function TabletRecordsPage() {
   }
 
   return (
-    <div className="tablet-scroll">
+    <motion.div 
+      className="tablet-scroll"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-slate-800">기록 측정</h1>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
-            <Calendar size={18} className="text-slate-400" />
+        <motion.div
+          className="flex items-center gap-3"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div className="p-2 bg-gradient-to-br from-brand-orange to-orange-600 rounded-xl">
+            <Target size={22} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">기록 측정</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Performance Tracking</p>
+          </div>
+        </motion.div>
+        <motion.div 
+          className="flex items-center gap-2"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <Calendar size={18} className="text-slate-500 dark:text-slate-400" />
             <input
               type="date"
               value={measuredAt}
               onChange={e => setMeasuredAt(e.target.value)}
-              className="border-none focus:ring-0 text-slate-700 text-sm bg-transparent"
+              className="border-none focus:ring-0 text-slate-900 dark:text-slate-100 text-sm bg-transparent font-medium"
             />
           </div>
-          <button
+          <motion.button
             onClick={fetchData}
             disabled={loading}
-            className="p-3 text-slate-600 bg-white border border-slate-200 rounded-xl"
+            className="p-3 text-white bg-gradient-to-r from-brand-blue to-blue-600 rounded-xl shadow-sm hover:shadow-lg transition-all disabled:opacity-50"
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
           >
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
 
       {availableSlots.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-          <AlertCircle size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500">오늘 수업 스케줄이 없습니다.</p>
-        </div>
+        <motion.div 
+          className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-12 text-center"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <AlertCircle size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+          <p className="text-slate-600 dark:text-slate-400 font-medium">오늘 수업 스케줄이 없습니다.</p>
+        </motion.div>
       ) : (
         <>
           {/* 시간대 탭 */}
@@ -325,6 +355,6 @@ export default function TabletRecordsPage() {
           )}
         </>
       )}
-    </div>
+    </motion.div>
   );
 }
