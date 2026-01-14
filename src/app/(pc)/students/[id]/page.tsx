@@ -142,33 +142,42 @@ export default function StudentProfilePage({
         useCORS: true,
         logging: false,
         backgroundColor: '#f1f5f9', // slate-100 배경색
-        onclone: (clonedDoc) => {
+        onclone: (clonedDoc, element) => {
           // Tailwind CSS v4의 lab() 색상 함수 호환성 문제 해결
-          // html2canvas가 lab() 색상을 파싱하지 못하므로 computed style로 변환
-          const elements = clonedDoc.querySelectorAll('*');
-          elements.forEach((el) => {
-            const htmlEl = el as HTMLElement;
+          // html2canvas가 CSS 스타일시트의 lab() 색상을 파싱하지 못하므로
+          // 모든 스타일시트를 제거하고 computed style을 인라인으로 적용
+
+          // 1. 모든 스타일시트 제거 (lab() 색상 파싱 방지)
+          const styleSheets = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
+          styleSheets.forEach(sheet => sheet.remove());
+
+          // 2. 모든 요소에 computed style을 인라인으로 적용
+          const elements = element.querySelectorAll('*');
+          const allElements = [element, ...Array.from(elements)] as HTMLElement[];
+
+          allElements.forEach((htmlEl) => {
+            if (!(htmlEl instanceof HTMLElement)) return;
+
             const computedStyle = window.getComputedStyle(htmlEl);
 
-            // 색상 관련 모든 CSS 속성을 명시적으로 설정
-            const colorProps = [
+            // 주요 스타일 속성들을 인라인으로 설정
+            const importantProps = [
               'backgroundColor', 'color', 'borderColor',
               'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
-              'outlineColor', 'textDecorationColor', 'caretColor'
+              'borderWidth', 'borderStyle', 'borderRadius',
+              'padding', 'margin', 'fontSize', 'fontWeight', 'fontFamily',
+              'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap',
+              'width', 'height', 'maxWidth', 'minWidth',
+              'boxShadow', 'textAlign', 'lineHeight', 'letterSpacing'
             ];
 
-            colorProps.forEach(prop => {
+            importantProps.forEach(prop => {
               const cssProperty = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
               const value = computedStyle.getPropertyValue(cssProperty);
-              if (value && value !== 'rgba(0, 0, 0, 0)') {
+              if (value) {
                 htmlEl.style.setProperty(cssProperty, value);
               }
             });
-
-            // boxShadow 처리 (lab() 포함 가능)
-            if (computedStyle.boxShadow && computedStyle.boxShadow !== 'none') {
-              htmlEl.style.boxShadow = computedStyle.boxShadow;
-            }
           });
         }
       });
