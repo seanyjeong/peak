@@ -481,7 +481,7 @@ export default function TabletStudentProfilePage({
   // 가로 모드 (태블릿 최적화 - 스크롤 없이 한 화면)
   if (orientation === 'landscape') {
     return (
-      <div ref={contentRef} className="flex flex-col h-[calc(100vh-80px)] gap-2">
+      <div ref={contentRef} className="flex flex-col h-[calc(100vh-80px)] gap-1">
         {/* Header - 컴팩트 */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
@@ -532,11 +532,11 @@ export default function TabletStudentProfilePage({
         </div>
 
         {/* Row 1 - 종목별기록, 기록추이, 학원비교 */}
-        <div className="grid grid-cols-12 gap-2 h-[280px]">
+        <div className="grid grid-cols-12 gap-1.5 h-[220px]">
           {/* 종목별 기록 - 6개 도넛 */}
-          <div className="col-span-3 bg-white dark:bg-slate-800 rounded-xl p-2 flex flex-col overflow-hidden">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-1 flex-shrink-0">종목별 기록</h3>
-            <div className="grid grid-cols-3 gap-1 flex-1">
+          <div className="col-span-3 bg-white dark:bg-slate-800 rounded-xl p-1.5 flex flex-col overflow-hidden">
+            <h3 className="text-xs font-semibold text-gray-800 dark:text-slate-100 mb-0.5 flex-shrink-0">종목별 기록</h3>
+            <div className="grid grid-cols-3 grid-rows-2 gap-x-0.5 gap-y-0 h-[110px]">
               {selectedGaugeTypes.slice(0, 6).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
@@ -549,11 +549,11 @@ export default function TabletStudentProfilePage({
                   { value: 100 - percentage, color: '#e5e7eb' }
                 ];
                 return (
-                  <div key={typeId} className="flex flex-col items-center">
-                    <div className="relative w-full aspect-square">
+                  <div key={typeId} className="flex flex-col items-center h-[55px]">
+                    <div className="relative w-[42px] h-[42px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="45%" outerRadius="80%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
+                          <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="35%" outerRadius="68%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
                             {gaugeData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={index === 1 ? (document.documentElement.classList.contains('dark') ? '#1e293b' : '#e5e7eb') : entry.color} />
                             ))}
@@ -561,25 +561,25 @@ export default function TabletStudentProfilePage({
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-sm font-bold dark:text-white">{hasRecord ? value : '-'}</span>
+                        <span className="text-[9px] font-bold dark:text-white">{hasRecord ? value : '-'}</span>
                       </div>
-                      <div className="absolute bottom-0 right-0">
+                      <div className="absolute -bottom-0.5 -right-0.5 scale-[0.55]">
                         <TrendIcon trend={trend || 'need_more'} />
                       </div>
                     </div>
-                    <span className="text-[9px] text-gray-500 dark:text-slate-400 truncate w-full text-center">{type?.short_name || type?.name}</span>
+                    <span className="text-[7px] text-gray-500 dark:text-slate-400 truncate w-full text-center leading-none">{type?.short_name || type?.name}</span>
                   </div>
                 );
               })}
             </div>
-            <div className="flex flex-wrap gap-1 mt-1 flex-shrink-0">
+            <div className="flex flex-wrap gap-0.5 mt-0.5 flex-shrink-0 max-h-[52px] overflow-y-auto">
               {recordTypes.map(type => (
                 <button
                   key={type.id}
                   onClick={() => toggleGaugeType(type.id)}
-                  className={`text-[10px] px-2 py-1 rounded-lg font-medium transition-all duration-200 ${
-                    selectedGaugeTypes.includes(type.id) 
-                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/30 scale-105' 
+                  className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition-all duration-200 ${
+                    selectedGaugeTypes.includes(type.id)
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-sm shadow-orange-500/30'
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
                   } ${selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id) ? 'opacity-30 cursor-not-allowed' : 'active:scale-95'}`}
                   disabled={selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id)}
@@ -637,34 +637,34 @@ export default function TabletStudentProfilePage({
         </div>
 
         {/* Row 2 - 능력치, 최근 기록 */}
-        <div className="grid grid-cols-12 gap-2 flex-1 min-h-0">
+        <div className="grid grid-cols-12 gap-1.5 flex-1 min-h-0">
           {/* 능력치 레이더 */}
-          <div className="col-span-5 bg-white dark:bg-slate-800 rounded-xl p-2 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between flex-shrink-0 mb-1">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100">능력치</h3>
-              <div className="flex items-center gap-1.5 text-[10px]">
-                <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 bg-slate-400 rounded-sm"></span><span className="text-slate-500">학원</span></span>
-                <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 bg-orange-500 rounded-sm"></span><span className="text-slate-500">{student.name}</span></span>
+          <div className="col-span-5 bg-white dark:bg-slate-800 rounded-xl p-1.5 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between flex-shrink-0 mb-0.5">
+              <h3 className="text-xs font-semibold text-gray-800 dark:text-slate-100">능력치</h3>
+              <div className="flex items-center gap-1 text-[9px]">
+                <span className="flex items-center gap-0.5"><span className="w-1 h-1 bg-slate-400 rounded-sm"></span><span className="text-slate-500">학원</span></span>
+                <span className="flex items-center gap-0.5"><span className="w-1 h-1 bg-orange-500 rounded-sm"></span><span className="text-slate-500">{student.name}</span></span>
               </div>
             </div>
-            <div className="flex-1 min-h-[120px]">
+            <div className="flex-1 min-h-[100px]">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
+                <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="65%">
                   <PolarGrid stroke="#e2e8f0" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 9 }} stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 9 }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 8 }} stroke="#e2e8f0" />
                   <Radar name="학원" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.2} strokeWidth={1.5} />
                   <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.3} strokeWidth={2} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex flex-wrap gap-1 flex-shrink-0 mt-1">
+            <div className="flex flex-wrap gap-0.5 flex-shrink-0 mt-0.5 max-h-[40px] overflow-y-auto">
               {recordTypes.slice(0, 8).map(type => (
                 <button
                   key={type.id}
-                  className={`text-[10px] px-2 py-1 rounded-lg font-medium transition-all duration-200 ${
-                    selectedRadarTypes.includes(type.id) 
-                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md shadow-purple-500/30 scale-105' 
+                  className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition-all duration-200 ${
+                    selectedRadarTypes.includes(type.id)
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm shadow-purple-500/30'
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95'
                   }`}
                   onClick={() => {

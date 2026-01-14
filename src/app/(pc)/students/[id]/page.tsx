@@ -598,14 +598,14 @@ export default function StudentProfilePage({
               })}
             </div>
 
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div className="flex flex-wrap gap-0.5 mt-1 max-h-[48px] overflow-y-auto">
               {recordTypes.map(type => (
                 <button
                   key={type.id}
                   onClick={() => toggleGaugeType(type.id)}
-                  className={`text-[10px] px-2 py-1 rounded-lg font-medium transition-all duration-200 ${
+                  className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition-all duration-200 ${
                     selectedGaugeTypes.includes(type.id)
-                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/30 scale-105'
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-sm shadow-orange-500/30'
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
                   } ${selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id) ? 'opacity-30 cursor-not-allowed' : 'active:scale-95'}`}
                   disabled={selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id)}
@@ -697,13 +697,13 @@ export default function StudentProfilePage({
               </ResponsiveContainer>
             </div>
 
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-0.5 max-h-[44px] overflow-y-auto">
               {recordTypes.slice(0, 8).map(type => (
                 <button
                   key={type.id}
-                  className={`text-[10px] px-2 py-1 rounded-lg font-medium transition-all duration-200 ${
+                  className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition-all duration-200 ${
                     selectedRadarTypes.includes(type.id)
-                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md shadow-purple-500/30 scale-105'
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm shadow-purple-500/30'
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95'
                   }`}
                   onClick={() => {
