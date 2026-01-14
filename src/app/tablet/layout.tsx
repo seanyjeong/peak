@@ -27,7 +27,7 @@ import {
 import { ThemeProvider, useTheme } from '@/components/theme-provider';
 import { SlideUpSheet } from '@/components/animations';
 
-const APP_VERSION = 'v4.6.8';
+const APP_VERSION = 'v4.6.9';
 
 // 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
 const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
