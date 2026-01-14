@@ -127,84 +127,99 @@ export default function StudentProfilePage({
 
     try {
       setPdfLoading(true);
-      const originalElement = contentRef.current;
-      const styleMap = new Map<Element, CSSStyleDeclaration>();
+
+      // 1. 모든 요소의 computed style을 미리 수집
+      const styleMap = new Map<Element, Record<string, string>>();
+      const cssProps = [
+        'background-color', 'color', 'border-color', 'border-width', 'border-style', 'border-radius',
+        'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+        'padding', 'margin', 'font-size', 'font-weight', 'font-family', 'line-height', 'text-align',
+        'display', 'flex-direction', 'justify-content', 'align-items', 'flex-wrap', 'gap',
+        'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
+        'position', 'top', 'right', 'bottom', 'left', 'overflow', 'opacity', 'box-shadow',
+        'grid-template-columns', 'grid-template-rows', 'fill', 'stroke'
+      ];
 
       const collectStyles = (el: Element) => {
-        styleMap.set(el, window.getComputedStyle(el));
+        const computed = window.getComputedStyle(el);
+        const styles: Record<string, string> = {};
+        cssProps.forEach(prop => {
+          const value = computed.getPropertyValue(prop);
+          if (value && value !== 'none' && value !== 'normal' && value !== 'auto' && value !== '0px') {
+            styles[prop] = value;
+          }
+        });
+        styleMap.set(el, styles);
         Array.from(el.children).forEach(collectStyles);
       };
-      collectStyles(originalElement);
+      collectStyles(contentRef.current);
 
-      const canvas = await html2canvas(contentRef.current, {
+      // 2. iframe 생성 (격리된 환경)
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;left:-9999px;width:1800px;height:900px;border:none;';
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentDocument!;
+      const isDark = document.documentElement.classList.contains('dark');
+      const bgColor = isDark ? '#0f172a' : '#f1f5f9';
+
+      // 3. iframe에 HTML 복사 (스타일 없이)
+      iframeDoc.open();
+      iframeDoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:${bgColor};"></body></html>`);
+      iframeDoc.close();
+
+      // 4. 요소 클론 및 인라인 스타일 적용
+      const cloneWithStyles = (original: Element, parent: Element) => {
+        const clone = iframeDoc.createElement(original.tagName.toLowerCase());
+
+        // 속성 복사 (class 제외)
+        Array.from(original.attributes).forEach(attr => {
+          if (attr.name !== 'class') {
+            clone.setAttribute(attr.name, attr.value);
+          }
+        });
+
+        // 저장된 스타일 적용
+        const styles = styleMap.get(original);
+        if (styles && clone instanceof HTMLElement) {
+          Object.entries(styles).forEach(([prop, value]) => {
+            clone.style.setProperty(prop, value);
+          });
+        }
+
+        // 텍스트 노드 복사
+        Array.from(original.childNodes).forEach(child => {
+          if (child.nodeType === Node.TEXT_NODE) {
+            clone.appendChild(iframeDoc.createTextNode(child.textContent || ''));
+          } else if (child.nodeType === Node.ELEMENT_NODE) {
+            cloneWithStyles(child as Element, clone);
+          }
+        });
+
+        parent.appendChild(clone);
+      };
+
+      cloneWithStyles(contentRef.current, iframeDoc.body);
+
+      // 5. html2canvas로 캡처 (CSS 파싱 없음)
+      const canvas = await html2canvas(iframeDoc.body.firstElementChild as HTMLElement, {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#0f172a',
-        onclone: (clonedDoc, clonedElement) => {
-          clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
-          clonedDoc.head.innerHTML = '<meta charset="utf-8">';
-
-          const applyStyles = (original: Element, cloned: Element) => {
-            if (cloned instanceof HTMLElement) {
-              const computed = styleMap.get(original);
-              if (computed) {
-                const props = [
-                  'background-color', 'color', 'border-color', 'border-width', 'border-style', 'border-radius',
-                  'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
-                  'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-                  'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
-                  'font-size', 'font-weight', 'font-family', 'line-height', 'letter-spacing', 'text-align',
-                  'display', 'flex-direction', 'justify-content', 'align-items', 'flex-wrap', 'gap',
-                  'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
-                  'position', 'top', 'right', 'bottom', 'left', 'z-index',
-                  'overflow', 'opacity', 'visibility', 'box-shadow', 'text-decoration',
-                  'grid-template-columns', 'grid-template-rows', 'grid-gap'
-                ];
-
-                props.forEach(prop => {
-                  const value = computed.getPropertyValue(prop);
-                  if (value && value !== 'none' && value !== 'normal' && value !== 'auto') {
-                    cloned.style.setProperty(prop, value, 'important');
-                  }
-                });
-
-                if (cloned.tagName === 'svg' || cloned.closest('svg')) {
-                  ['fill', 'stroke'].forEach(prop => {
-                    const value = computed.getPropertyValue(prop);
-                    if (value) cloned.style.setProperty(prop, value);
-                  });
-                }
-              }
-              cloned.removeAttribute('class');
-            }
-
-            const origChildren = Array.from(original.children);
-            const clonedChildren = Array.from(cloned.children);
-            origChildren.forEach((origChild, i) => {
-              if (clonedChildren[i]) {
-                applyStyles(origChild, clonedChildren[i]);
-              }
-            });
-          };
-
-          applyStyles(originalElement, clonedElement);
-        }
+        backgroundColor: bgColor,
       });
 
+      // 6. iframe 제거
+      document.body.removeChild(iframe);
+
+      // 7. PDF 생성
       const imgData = canvas.toDataURL('image/png');
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-      });
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const scaledWidth = imgWidth * ratio;
-      const scaledHeight = imgHeight * ratio;
+      const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
+      const scaledWidth = canvas.width * ratio;
+      const scaledHeight = canvas.height * ratio;
       const x = (pdfWidth - scaledWidth) / 2;
       const y = (pdfHeight - scaledHeight) / 2;
       pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
@@ -551,6 +566,7 @@ export default function StudentProfilePage({
                 const hasRecord = latestRecord !== undefined && latestRecord !== null;
                 const value = latestRecord?.value || 0;
                 const percentage = getRecordPercentage(typeId, value, hasRecord);
+                const trend = stats.trends[typeId];
 
                 const gaugeData = [
                   { value: percentage, color: getScoreColor(percentage) },
@@ -558,10 +574,10 @@ export default function StudentProfilePage({
                 ];
 
                 return (
-                  <div key={typeId} className="relative bg-slate-50 dark:bg-slate-900 rounded-lg p-1">
-                    <ResponsiveContainer width="100%" height={60}>
+                  <div key={typeId} className="relative bg-slate-50 dark:bg-slate-900 rounded-lg p-1.5">
+                    <ResponsiveContainer width="100%" height={75}>
                       <PieChart>
-                        <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="60%" outerRadius="85%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
+                        <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="55%" outerRadius="80%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
                           {gaugeData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={index === 1 ? (document.documentElement.classList.contains('dark') ? '#1e293b' : '#e2e8f0') : entry.color} />
                           ))}
@@ -569,8 +585,11 @@ export default function StudentProfilePage({
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white">{hasRecord ? value : '-'}</span>
-                      <span className="text-[8px] text-slate-500 dark:text-slate-400">{type?.short_name || type?.name}</span>
+                      <span className="text-base font-bold text-slate-900 dark:text-white">{hasRecord ? value : '-'}</span>
+                      <span className="text-[9px] text-slate-500 dark:text-slate-400">{type?.short_name || type?.name}</span>
+                    </div>
+                    <div className="absolute bottom-1 right-1">
+                      <TrendIcon trend={trend || 'stable'} className="w-3 h-3" />
                     </div>
                   </div>
                 );
