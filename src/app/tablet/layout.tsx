@@ -27,7 +27,7 @@ import {
 import { ThemeProvider, useTheme } from '@/components/theme-provider';
 import { SlideUpSheet } from '@/components/animations';
 
-const APP_VERSION = 'v4.4.0';
+const APP_VERSION = 'v4.4.1';
 
 // 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
 const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
@@ -177,15 +177,15 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
           {/* 메인 콘텐츠 */}
           <main className="flex-1 ml-20">
             {/* 헤더 */}
-            <header className="h-14 bg-surface-base border-b border-border flex items-center justify-between px-6 sticky top-0 z-10 backdrop-blur-md bg-opacity-90">
-              <h1 className="text-lg font-bold text-foreground">
+            <header className="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 sticky top-0 z-10 backdrop-blur-md bg-opacity-90">
+              <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 {navigation.find(n => pathname.startsWith(n.href))?.name || 'P-EAK'}
               </h1>
               <div className="flex items-center gap-3">
                 {/* 다크모드 토글 */}
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="p-2 rounded-lg hover:bg-muted transition-smooth text-muted-foreground hover:text-foreground"
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300"
                   title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
                 >
                   {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
@@ -193,8 +193,8 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
                 {user && (
                   <>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-foreground">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{getRoleDisplayName(user.role, user.position)}</p>
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{user.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{getRoleDisplayName(user.role, user.position)}</p>
                     </div>
                     <div className="w-10 h-10 bg-brand-orange rounded-full flex items-center justify-center text-white font-bold">
                       {user.name.charAt(0)}
@@ -265,14 +265,14 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* 하단 탭 바 */}
-        <nav className="fixed bottom-0 left-0 right-0 h-20 bg-surface-base border-t border-border flex items-center justify-around px-2 z-20 safe-area-pb backdrop-blur-md bg-opacity-95">
+        <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-2 z-20 safe-area-pb backdrop-blur-md bg-opacity-95">
           {bottomTabs.map((tab) => {
             if (tab.href === '#more') {
               return (
                 <button
                   key={tab.name}
                   onClick={() => setShowMoreMenu(true)}
-                  className="flex flex-col items-center justify-center py-2 px-3 min-w-[64px] text-muted-foreground touch-target"
+                  className="flex flex-col items-center justify-center py-2 px-3 min-w-[64px] text-slate-500 dark:text-slate-400 touch-target"
                 >
                   <tab.icon size={24} />
                   <span className="text-xs mt-1">{tab.name}</span>
@@ -284,8 +284,8 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
               <Link
                 key={tab.name}
                 href={tab.href}
-                className={`flex flex-col items-center justify-center py-2 px-3 min-w-[64px] touch-target transition-smooth ${
-                  isActive ? 'text-brand-orange' : 'text-muted-foreground'
+                className={`flex flex-col items-center justify-center py-2 px-3 min-w-[64px] touch-target transition-all ${
+                  isActive ? 'text-brand-orange' : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
                 <tab.icon size={24} />
@@ -307,10 +307,10 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
                     key={item.name}
                     href={item.href}
                     onClick={() => setShowMoreMenu(false)}
-                    className={`flex flex-col items-center p-4 rounded-xl transition-smooth touch-target ${
+                    className={`flex flex-col items-center p-4 rounded-xl transition-all touch-target ${
                       isActive
-                        ? 'bg-brand-orange-50 text-brand-orange'
-                        : 'bg-muted text-muted-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                        ? 'bg-orange-50 dark:bg-orange-900/30 text-brand-orange'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                     }`}
                   >
                     <item.icon size={28} strokeWidth={isActive ? 2.5 : 2} />

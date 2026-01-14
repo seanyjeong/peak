@@ -11,7 +11,7 @@ import {
   InputMode,
 } from '@/components/records';
 import { useRecords, useRecordInput } from '@/features/records';
-import { PageTransition, StaggerChildren, StaggerItem } from '@/components/animations';
+// import { PageTransition, StaggerChildren, StaggerItem } from '@/components/animations';
 
 export default function RecordsPage() {
   const {
@@ -58,7 +58,7 @@ export default function RecordsPage() {
   const currentRecordType = recordTypes.find(t => t.id === selectedRecordType);
 
   return (
-    <PageTransition className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -190,6 +190,6 @@ export default function RecordsPage() {
           )}
         </>
       )}
-                                                                                                    </PageTransition>
+                                                                                                    </div>
   );
 }

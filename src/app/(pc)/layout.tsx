@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-const APP_VERSION = 'v4.4.0';
+const APP_VERSION = 'v4.4.1';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -214,10 +214,10 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main className={`flex-1 ${sidebarOpen ? 'ml-52' : 'ml-20'} transition-all duration-300`}>
         {/* 헤더 */}
-        <div className="h-14 bg-surface-base border-b border-border flex items-center justify-end px-6 sticky top-0 z-20 backdrop-blur-md bg-opacity-90">
+        <div className="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-end px-6 sticky top-0 z-20 backdrop-blur-md bg-opacity-90">
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2.5 rounded-lg hover:bg-muted transition-smooth text-muted-foreground hover:text-foreground"
+            className="p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
             title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
           >
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
