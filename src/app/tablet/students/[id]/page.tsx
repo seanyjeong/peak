@@ -139,15 +139,30 @@ export default function TabletStudentProfilePage({
         backgroundColor: '#f1f5f9',
         onclone: (clonedDoc) => {
           // Tailwind CSS v4의 lab() 색상 함수 호환성 문제 해결
+          // html2canvas가 lab() 색상을 파싱하지 못하므로 computed style로 변환
           const elements = clonedDoc.querySelectorAll('*');
           elements.forEach((el) => {
             const htmlEl = el as HTMLElement;
             const computedStyle = window.getComputedStyle(htmlEl);
-            if (computedStyle.backgroundColor) {
-              htmlEl.style.backgroundColor = computedStyle.backgroundColor;
-            }
-            if (computedStyle.color) {
-              htmlEl.style.color = computedStyle.color;
+
+            // 색상 관련 모든 CSS 속성을 명시적으로 설정
+            const colorProps = [
+              'backgroundColor', 'color', 'borderColor',
+              'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
+              'outlineColor', 'textDecorationColor', 'caretColor'
+            ];
+
+            colorProps.forEach(prop => {
+              const cssProperty = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
+              const value = computedStyle.getPropertyValue(cssProperty);
+              if (value && value !== 'rgba(0, 0, 0, 0)') {
+                htmlEl.style.setProperty(cssProperty, value);
+              }
+            });
+
+            // boxShadow 처리 (lab() 포함 가능)
+            if (computedStyle.boxShadow && computedStyle.boxShadow !== 'none') {
+              htmlEl.style.boxShadow = computedStyle.boxShadow;
             }
           });
         }
