@@ -325,16 +325,16 @@
     color: rgb(148 163 184);
   }
 
-  /* Touch Optimized Button */
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
-  }
 }
 
 /* =============================================================================
    CUSTOM UTILITIES
    ============================================================================= */
+
+@utility touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
 
 @utility glass-bg {
   background: var(--glass-bg);
