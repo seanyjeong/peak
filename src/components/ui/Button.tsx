@@ -11,17 +11,18 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles = {
-  primary: 'bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700',
-  secondary: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-500',
-  danger: 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700',
-  ghost: 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700',
-  outline: 'bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600',
+  primary: 'bg-brand-orange text-white hover:bg-brand-orange-dark active:scale-95 shadow-sm hover:shadow-md',
+  secondary: 'bg-muted text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 active:scale-95',
+  danger: 'bg-error text-white hover:bg-error-light active:scale-95 shadow-sm',
+  ghost: 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95',
+  outline: 'bg-transparent border border-border text-foreground hover:bg-muted active:scale-95',
+  success: 'bg-success text-white hover:bg-success-light active:scale-95 shadow-sm',
 };
 
 const sizeStyles = {
-  sm: 'px-3 py-1.5 text-sm rounded-lg',
-  md: 'px-4 py-2 text-sm rounded-xl',
-  lg: 'px-6 py-3 text-base rounded-xl',
+  sm: 'px-3 py-1.5 text-sm rounded-lg min-h-[36px]',
+  md: 'px-4 py-2.5 text-sm rounded-xl min-h-[40px]',
+  lg: 'px-6 py-3 text-base rounded-xl min-h-[44px]',
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(

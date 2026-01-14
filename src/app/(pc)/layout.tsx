@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-const APP_VERSION = 'v4.3.41';
+const APP_VERSION = 'v4.4.0';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -111,12 +111,12 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
       {/* 인앱 알림 팝업 */}
       {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
 
-      {/* Sidebar - Dark Navy */}
+      {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? 'w-52' : 'w-20'} bg-[#1a2b4a] dark:bg-slate-950 text-white transition-all duration-300 flex flex-col fixed h-full z-10`}
+        className={`${sidebarOpen ? 'w-52' : 'w-20'} bg-neutral-900 dark:bg-neutral-950 text-white transition-all duration-300 flex flex-col fixed h-full z-10 border-r border-neutral-800 dark:border-neutral-900`}
       >
         {/* Logo */}
-        <div className={`h-16 flex items-center border-b border-[#243a5e] dark:border-slate-800 ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'}`}>
+        <div className={`h-16 flex items-center border-b border-neutral-800 dark:border-neutral-900 ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'}`}>
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-3">
@@ -134,7 +134,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="p-2 hover:bg-[#243a5e] dark:hover:bg-slate-800 rounded-lg transition"
+                className="p-2 hover:bg-neutral-800 dark:hover:bg-neutral-900 rounded-lg transition-smooth"
               >
                 <ChevronLeft size={18} />
               </button>
@@ -142,7 +142,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
           ) : (
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-1 rounded-lg hover:bg-[#243a5e] dark:hover:bg-slate-800 transition"
+              className="p-1 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-900 transition-smooth"
             >
               <Image
                 src="/peak-512x512.png"
@@ -166,10 +166,10 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex rounded-lg transition-all duration-200 ${
+                  className={`flex rounded-lg transition-smooth ${
                     sidebarOpen
-                      ? `items-center gap-3 px-3 py-3 ${isActive ? 'bg-orange-500/15 text-orange-400 border-l-[3px] border-orange-500 -ml-[3px] pl-[15px]' : 'text-slate-300 hover:bg-[#243a5e] dark:hover:bg-slate-800 hover:text-white'}`
-                      : `flex-col items-center py-2 px-1 ${isActive ? 'bg-orange-500/15 text-orange-400' : 'text-slate-300 hover:bg-[#243a5e] dark:hover:bg-slate-800 hover:text-white'}`
+                      ? `items-center gap-3 px-3 py-3 ${isActive ? 'bg-brand-orange/15 text-brand-orange border-l-[3px] border-brand-orange -ml-[3px] pl-[15px]' : 'text-neutral-300 hover:bg-neutral-800 dark:hover:bg-neutral-900 hover:text-white'}`
+                      : `flex-col items-center py-2 px-1 ${isActive ? 'bg-brand-orange/15 text-brand-orange' : 'text-neutral-300 hover:bg-neutral-800 dark:hover:bg-neutral-900 hover:text-white'}`
                   }`}
                 >
                   <item.icon size={20} />
@@ -185,7 +185,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User Section */}
-        <div className={`border-t border-[#243a5e] dark:border-slate-800 ${sidebarOpen ? 'p-4' : 'p-2'}`}>
+        <div className={`border-t border-neutral-800 dark:border-neutral-900 ${sidebarOpen ? 'p-4' : 'p-2'}`}>
           {sidebarOpen && user && (
             <div className="mb-3 px-3">
               <p className="text-sm font-medium text-white">{user.name}</p>
@@ -194,7 +194,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
           )}
           <button
             onClick={handleLogout}
-            className={`flex rounded-lg text-slate-400 hover:text-white hover:bg-[#243a5e] dark:hover:bg-slate-800 transition w-full ${
+            className={`flex rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 dark:hover:bg-neutral-900 transition-smooth w-full ${
               sidebarOpen ? 'items-center gap-3 px-3 py-2' : 'flex-col items-center py-2'
             }`}
           >
@@ -206,18 +206,18 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
             )}
           </button>
           {sidebarOpen && (
-            <p className="text-[10px] text-slate-500 text-center mt-3">{APP_VERSION}</p>
+            <p className="text-[10px] text-neutral-500 text-center mt-3">{APP_VERSION}</p>
           )}
         </div>
       </aside>
 
       {/* Main Content */}
       <main className={`flex-1 ${sidebarOpen ? 'ml-52' : 'ml-20'} transition-all duration-300`}>
-        {/* 헤더에 다크모드 토글 */}
-        <div className="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-end px-6 sticky top-0 z-20">
+        {/* 헤더 */}
+        <div className="h-14 bg-surface-base border-b border-border flex items-center justify-end px-6 sticky top-0 z-20 backdrop-blur-md bg-opacity-90">
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition text-slate-700 dark:text-slate-300"
+            className="p-2.5 rounded-lg hover:bg-muted transition-smooth text-muted-foreground hover:text-foreground"
             title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
           >
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}

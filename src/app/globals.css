@@ -3,159 +3,436 @@
 /* Tailwind 4: class 기반 다크모드 활성화 */
 @variant dark (&:where(.dark, .dark *));
 
-:root {
-  --background: #f8fafc;
-  --foreground: #1e293b;
+/* =============================================================================
+   P-EAK DESIGN SYSTEM - Athletic Performance SaaS
+   Modern, Linear-esque precision with energetic athletic theme
+   ============================================================================= */
 
-  /* P-EAK Color Palette */
-  --peak-navy: #1a2b4a;
-  --peak-navy-light: #243a5e;
-  --peak-navy-dark: #0f1a2e;
-  --peak-orange: #f97316;
-  --peak-orange-light: #fb923c;
-  --peak-teal: #14b8a6;
-  --peak-red: #ef4444;
-  --peak-green: #22c55e;
-}
+@layer base {
+  /* CSS Variables - Design Tokens */
+  :root {
+    /* Brand Colors - Athletic Energy */
+    --brand-orange: #FE5A1D;
+    --brand-orange-light: #FF8F67;
+    --brand-orange-dark: #E93F01;
+    --brand-orange-50: #FFF4F0;
+    --brand-orange-100: #FFE3D9;
+    --brand-orange-500: #FE5A1D;
+    --brand-orange-600: #E93F01;
+    --brand-orange-700: #BA3201;
 
-/* Dark Mode - class 기반 (.dark 클래스가 있을 때) */
-.dark {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-}
+    --brand-blue: #4666FF;
+    --brand-blue-light: #6680FF;
+    --brand-blue-dark: #1139FF;
+    --brand-blue-50: #F0F2FF;
+    --brand-blue-100: #E0E5FF;
+    --brand-blue-500: #4666FF;
+    --brand-blue-600: #1139FF;
+    --brand-blue-700: #0024DA;
 
-/* Dark Mode - 시스템 설정 fallback */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
+    --accent-blue: #468FEA;
+    --accent-blue-light: #85B6F1;
+    --accent-blue-50: #E8F2FC;
+
+    --warning: #FFBA00;
+    --warning-light: #FFC62A;
+    --warning-dark: #D59C00;
+    --success: #22C55E;
+    --success-light: #4ADE80;
+    --error: #EF4444;
+    --error-light: #F87171;
+
+    /* Neutral Scale - Refined Gray */
+    --neutral-50: #F8FAFC;
+    --neutral-100: #F1F5F9;
+    --neutral-200: #E2E8F0;
+    --neutral-300: #CBD5E1;
+    --neutral-400: #94A3B8;
+    --neutral-500: #64748B;
+    --neutral-600: #475569;
+    --neutral-700: #334155;
+    --neutral-800: #1E293B;
+    --neutral-900: #0F172A;
+    --neutral-950: #020617;
+
+    /* Surface Colors */
+    --surface-base: #FFFFFF;
+    --surface-raised: #FFFFFF;
+    --surface-overlay: rgba(255, 255, 255, 0.95);
+    
+    /* Semantic Colors */
+    --background: var(--neutral-50);
+    --foreground: var(--neutral-900);
+    --border: var(--neutral-200);
+    --border-subtle: var(--neutral-100);
+    --muted: var(--neutral-100);
+    --muted-foreground: var(--neutral-500);
+
+    /* Shadows - Elevated & Floating */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+    --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.08);
+    --shadow-floating: 0 8px 30px rgba(0, 0, 0, 0.12);
+
+    /* Glassmorphic Effects */
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --backdrop-blur-sm: 8px;
+    --backdrop-blur-md: 12px;
+    --backdrop-blur-lg: 24px;
+
+    /* Radius Scale */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    --radius-full: 9999px;
+
+    /* Spacing Scale for Cards */
+    --space-card-sm: 1rem;
+    --space-card-md: 1.5rem;
+    --space-card-lg: 2rem;
+
+    /* Typography */
+    --font-sans: var(--font-geist-sans), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: var(--font-geist-mono), 'JetBrains Mono', monospace;
+  }
+
+  /* Dark Mode Tokens */
+  .dark {
+    --surface-base: var(--neutral-900);
+    --surface-raised: var(--neutral-800);
+    --surface-overlay: rgba(15, 23, 42, 0.95);
+    
+    --background: var(--neutral-950);
+    --foreground: var(--neutral-50);
+    --border: var(--neutral-700);
+    --border-subtle: var(--neutral-800);
+    --muted: var(--neutral-800);
+    --muted-foreground: var(--neutral-400);
+
+    --glass-bg: rgba(30, 41, 59, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.1);
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+    --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-floating: 0 8px 30px rgba(0, 0, 0, 0.6);
+  }
+
+  /* System Preferences Fallback */
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+      --surface-base: var(--neutral-900);
+      --surface-raised: var(--neutral-800);
+      --background: var(--neutral-950);
+      --foreground: var(--neutral-50);
+      --border: var(--neutral-700);
+    }
+  }
+
+  /* Base Styles */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Enhanced Scrollbar - Modern & Subtle */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--neutral-300);
+    border-radius: var(--radius-full);
+    transition: background 0.2s;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--neutral-400);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: var(--neutral-600);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: var(--neutral-500);
+  }
+
+  /* Focus Visible - Accessibility */
+  :focus-visible {
+    outline: 2px solid var(--brand-orange);
+    outline-offset: 2px;
+  }
+
+  /* Selection */
+  ::selection {
+    background: var(--brand-orange-100);
+    color: var(--brand-orange-700);
+  }
+
+  .dark ::selection {
+    background: var(--brand-orange-700);
+    color: var(--brand-orange-100);
   }
 }
 
-@theme inline {
+/* =============================================================================
+   TAILWIND THEME EXTENSION
+   ============================================================================= */
+
+@theme {
+  /* Brand Colors */
+  --color-brand-orange-50: var(--brand-orange-50);
+  --color-brand-orange-100: var(--brand-orange-100);
+  --color-brand-orange-500: var(--brand-orange-500);
+  --color-brand-orange-600: var(--brand-orange-600);
+  --color-brand-orange-700: var(--brand-orange-700);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-light: var(--brand-orange-light);
+  --color-brand-orange-dark: var(--brand-orange-dark);
+
+  --color-brand-blue-50: var(--brand-blue-50);
+  --color-brand-blue-100: var(--brand-blue-100);
+  --color-brand-blue-500: var(--brand-blue-500);
+  --color-brand-blue-600: var(--brand-blue-600);
+  --color-brand-blue-700: var(--brand-blue-700);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-light: var(--brand-blue-light);
+  --color-brand-blue-dark: var(--brand-blue-dark);
+
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-blue-light: var(--accent-blue-light);
+  --color-accent-blue-50: var(--accent-blue-50);
+
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-error: var(--error);
+
+  /* Semantic Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  /* Typography */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* Shadows */
+  --shadow-elevated: var(--shadow-elevated);
+  --shadow-floating: var(--shadow-floating);
+
+  /* Radius */
+  --radius-card: var(--radius-xl);
+  --radius-button: var(--radius-md);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-}
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Dark scrollbar - class 기반 */
-.dark ::-webkit-scrollbar-track {
-  background: #1e293b;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
-/* Dark scrollbar - 시스템 설정 fallback */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) ::-webkit-scrollbar-track {
-    background: #1e293b;
+@layer components {
+  /* Glassmorphic Card */
+  .glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(var(--backdrop-blur-md));
+    -webkit-backdrop-filter: blur(var(--backdrop-blur-md));
   }
 
-  :root:not(.light) ::-webkit-scrollbar-thumb {
-    background: #475569;
+  /* Bento Card - Variable Sized Grid Items */
+  .bento-card {
+    @apply bg-surface-base border border-border rounded-xl p-6 transition-all duration-200;
+    box-shadow: var(--shadow-sm);
   }
 
-  :root:not(.light) ::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
+  .bento-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border);
+  }
+
+  /* Floating Action Button */
+  .fab {
+    @apply fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-floating;
+    @apply flex items-center justify-center;
+    @apply bg-brand-orange text-white;
+    @apply hover:scale-110 active:scale-95;
+    @apply transition-transform duration-200;
+  }
+
+  /* Sidebar Active State */
+  .sidebar-active {
+    @apply bg-brand-orange/10 text-brand-orange border-l-3 border-brand-orange;
+  }
+
+  /* Metadata Label - Uppercase Tracked */
+  .label-meta {
+    @apply text-xs uppercase tracking-wider text-muted-foreground font-medium;
+  }
+
+  /* Touch Optimized Button */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
   }
 }
 
-/* Sidebar active state */
-.sidebar-active {
-  background: rgba(249, 115, 22, 0.15);
-  border-left: 3px solid var(--peak-orange);
+/* =============================================================================
+   CUSTOM UTILITIES
+   ============================================================================= */
+
+@utility glass-bg {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--backdrop-blur-md));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur-md));
 }
 
-/* Tablet Touch Optimization */
+@utility scrollbar-hidden {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@utility shadow-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+
+@utility shadow-floating {
+  box-shadow: var(--shadow-floating);
+}
+
+/* =============================================================================
+   TABLET & MOBILE OPTIMIZATIONS
+   ============================================================================= */
+
+/* Touch Optimization */
 @media (pointer: coarse) {
-  /* 터치 디바이스에서 버튼/터치 요소 최소 크기 */
   button, a, [role="button"] {
-    min-height: 44px;
+    @apply touch-target;
   }
 
-  /* 스크롤 최적화 */
+  /* Smooth Scrolling */
   .tablet-scroll {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
   }
 }
 
-/* Safe Area for bottom navigation */
+/* Safe Area Insets */
 .safe-area-pb {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Tablet Portrait Mode */
+.safe-area-pt {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Tablet Orientation Helpers */
 @media (max-width: 1199px) and (orientation: portrait) {
   .tablet-portrait-hidden {
     display: none;
   }
 }
 
-/* Tablet Landscape Mode */
 @media (min-width: 1200px) and (orientation: landscape) {
   .tablet-landscape-hidden {
     display: none;
   }
 }
 
-/* Drag & Drop for touch */
+/* Drag & Drop Touch Optimization */
 .touch-draggable {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
+/* =============================================================================
+   ANIMATION PRESETS
+   ============================================================================= */
+
+@layer utilities {
+  /* Smooth Transitions */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .transition-quick {
+    @apply transition-all duration-150 ease-out;
+  }
+
+  /* Hover Lift Effect */
+  .hover-lift {
+    @apply transition-transform duration-200;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-0.5;
+  }
+
+  /* Shimmer Loading Effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(
+      to right,
+      var(--neutral-100) 4%,
+      var(--neutral-200) 25%,
+      var(--neutral-100) 36%
+    );
+    background-size: 1000px 100%;
+  }
+}
+
+/* =============================================================================
+   TAILWIND SAFELIST
+   Dynamic classes from database (tags, statuses, etc.)
+   ============================================================================= */
+
 /*
- * Tailwind Safelist - 동적으로 사용되는 태그 색상 클래스들
- * DB에서 가져오는 클래스들이 빌드에 포함되도록 명시적 선언
- *
- * 사용되는 클래스 목록 (Tailwind JIT에서 스캔됨):
- * bg-red-100 text-red-700
- * bg-orange-100 text-orange-700
- * bg-amber-100 text-amber-700
- * bg-yellow-100 text-yellow-700
- * bg-lime-100 text-lime-700
- * bg-green-100 text-green-700
- * bg-teal-100 text-teal-700
- * bg-cyan-100 text-cyan-700
- * bg-blue-100 text-blue-700
- * bg-indigo-100 text-indigo-700
- * bg-purple-100 text-purple-700
- * bg-fuchsia-100 text-fuchsia-700
- * bg-pink-100 text-pink-700
- * bg-rose-100 text-rose-700
+ * Color classes used dynamically:
+ * bg-red-100 text-red-700 bg-orange-100 text-orange-700
+ * bg-amber-100 text-amber-700 bg-yellow-100 text-yellow-700
+ * bg-lime-100 text-lime-700 bg-green-100 text-green-700
+ * bg-teal-100 text-teal-700 bg-cyan-100 text-cyan-700
+ * bg-blue-100 text-blue-700 bg-indigo-100 text-indigo-700
+ * bg-purple-100 text-purple-700 bg-fuchsia-100 text-fuchsia-700
+ * bg-pink-100 text-pink-700 bg-rose-100 text-rose-700
  * bg-slate-100 text-slate-700
  */

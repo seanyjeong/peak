@@ -10,9 +10,11 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variantStyles = {
-  default: 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700',
-  outlined: 'bg-transparent border border-slate-300 dark:border-slate-600',
-  elevated: 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700',
+  default: 'bg-surface-base border border-border',
+  outlined: 'bg-transparent border border-border',
+  elevated: 'bg-surface-base border border-border shadow-elevated',
+  glass: 'glass-card',
+  bento: 'bento-card hover-lift',
 };
 
 const paddingStyles = {
@@ -37,11 +39,11 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     return (
       <div
         ref={ref}
-        className={`
-          rounded-xl transition
+      className={`
+          rounded-xl transition-smooth
           ${variantStyles[variant]}
           ${paddingStyles[padding]}
-          ${hoverable ? 'hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer' : ''}
+          ${hoverable ? 'hover:shadow-md hover:border-neutral-300 dark:hover:border-neutral-600 cursor-pointer' : ''}
           ${className}
         `}
         {...props}
@@ -62,7 +64,7 @@ export interface CardHeaderProps {
 
 export function CardHeader({ children, className = '' }: CardHeaderProps) {
   return (
-    <div className={`pb-4 border-b border-slate-200 dark:border-slate-700 mb-6 ${className}`}>
+    <div className={`pb-4 border-b border-border mb-4 ${className}`}>
       {children}
     </div>
   );
@@ -76,7 +78,7 @@ export interface CardTitleProps {
 
 export function CardTitle({ children, className = '' }: CardTitleProps) {
   return (
-    <h3 className={`font-semibold text-slate-900 dark:text-slate-100 text-base tracking-tight ${className}`}>
+    <h3 className={`font-semibold text-foreground text-base tracking-tight ${className}`}>
       {children}
     </h3>
   );
@@ -100,7 +102,7 @@ export interface CardFooterProps {
 
 export function CardFooter({ children, className = '' }: CardFooterProps) {
   return (
-    <div className={`pt-4 border-t border-slate-200 dark:border-slate-700 mt-6 ${className}`}>
+    <div className={`pt-4 border-t border-border mt-4 ${className}`}>
       {children}
     </div>
   );
