@@ -827,9 +827,8 @@ router.get('/:id/export', verifyToken, async (req, res) => {
 
     // 엑셀 워크북 생성
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_array([headers, ...rows]);
-    const wsData = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    XLSX.utils.book_append_sheet(wb, wsData, '기록');
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    XLSX.utils.book_append_sheet(wb, ws, '기록');
 
     // 버퍼로 변환
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
