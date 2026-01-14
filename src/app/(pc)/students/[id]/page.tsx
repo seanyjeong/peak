@@ -136,49 +136,80 @@ export default function StudentProfilePage({
     try {
       setPdfLoading(true);
 
+      // Tailwind CSS v4 lab() 색상 호환성을 위해 원본 요소의 스타일을 미리 수집
+      const originalElement = contentRef.current;
+      const styleMap = new Map<Element, CSSStyleDeclaration>();
+
+      // 원본 요소와 모든 자식 요소의 computed style 수집
+      const collectStyles = (el: Element) => {
+        styleMap.set(el, window.getComputedStyle(el));
+        Array.from(el.children).forEach(collectStyles);
+      };
+      collectStyles(originalElement);
+
       // 현재 화면을 캔버스로 캡처
       const canvas = await html2canvas(contentRef.current, {
         scale: 2, // 고해상도
         useCORS: true,
         logging: false,
         backgroundColor: '#f1f5f9', // slate-100 배경색
-        onclone: (clonedDoc, element) => {
-          // Tailwind CSS v4의 lab() 색상 함수 호환성 문제 해결
-          // html2canvas가 CSS 스타일시트의 lab() 색상을 파싱하지 못하므로
-          // 모든 스타일시트를 제거하고 computed style을 인라인으로 적용
+        onclone: (clonedDoc, clonedElement) => {
+          // 1. 모든 스타일시트 및 style 태그 제거
+          clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
 
-          // 1. 모든 스타일시트 제거 (lab() 색상 파싱 방지)
-          const styleSheets = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
-          styleSheets.forEach(sheet => sheet.remove());
+          // 2. head의 모든 CSS 관련 요소 제거
+          clonedDoc.head.innerHTML = '<meta charset="utf-8">';
 
-          // 2. 모든 요소에 computed style을 인라인으로 적용
-          const elements = element.querySelectorAll('*');
-          const allElements = [element, ...Array.from(elements)] as HTMLElement[];
+          // 3. 원본과 클론 요소를 매핑하여 스타일 적용
+          const applyStyles = (original: Element, cloned: Element) => {
+            if (cloned instanceof HTMLElement) {
+              const computed = styleMap.get(original);
+              if (computed) {
+                // 모든 CSS 속성을 인라인으로 적용
+                const props = [
+                  'background-color', 'color', 'border-color', 'border-width', 'border-style', 'border-radius',
+                  'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+                  'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+                  'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+                  'font-size', 'font-weight', 'font-family', 'line-height', 'letter-spacing', 'text-align',
+                  'display', 'flex-direction', 'justify-content', 'align-items', 'flex-wrap', 'gap',
+                  'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
+                  'position', 'top', 'right', 'bottom', 'left', 'z-index',
+                  'overflow', 'opacity', 'visibility', 'box-shadow', 'text-decoration',
+                  'grid-template-columns', 'grid-template-rows', 'grid-gap'
+                ];
 
-          allElements.forEach((htmlEl) => {
-            if (!(htmlEl instanceof HTMLElement)) return;
+                props.forEach(prop => {
+                  const value = computed.getPropertyValue(prop);
+                  if (value && value !== 'none' && value !== 'normal' && value !== 'auto') {
+                    cloned.style.setProperty(prop, value, 'important');
+                  }
+                });
 
-            const computedStyle = window.getComputedStyle(htmlEl);
+                // fill, stroke for SVG elements
+                if (cloned.tagName === 'svg' || cloned.closest('svg')) {
+                  ['fill', 'stroke'].forEach(prop => {
+                    const value = computed.getPropertyValue(prop);
+                    if (value) cloned.style.setProperty(prop, value);
+                  });
+                }
+              }
 
-            // 주요 스타일 속성들을 인라인으로 설정
-            const importantProps = [
-              'backgroundColor', 'color', 'borderColor',
-              'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
-              'borderWidth', 'borderStyle', 'borderRadius',
-              'padding', 'margin', 'fontSize', 'fontWeight', 'fontFamily',
-              'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap',
-              'width', 'height', 'maxWidth', 'minWidth',
-              'boxShadow', 'textAlign', 'lineHeight', 'letterSpacing'
-            ];
+              // 클래스 속성 제거 (CSS 규칙 참조 방지)
+              cloned.removeAttribute('class');
+            }
 
-            importantProps.forEach(prop => {
-              const cssProperty = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
-              const value = computedStyle.getPropertyValue(cssProperty);
-              if (value) {
-                htmlEl.style.setProperty(cssProperty, value);
+            // 자식 요소들 재귀 처리
+            const origChildren = Array.from(original.children);
+            const clonedChildren = Array.from(cloned.children);
+            origChildren.forEach((origChild, i) => {
+              if (clonedChildren[i]) {
+                applyStyles(origChild, clonedChildren[i]);
               }
             });
-          });
+          };
+
+          applyStyles(originalElement, clonedElement);
         }
       });
 
