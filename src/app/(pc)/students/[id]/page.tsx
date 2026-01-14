@@ -2,18 +2,19 @@
 
 import { useState, useEffect, useMemo, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   ArrowLeft,
-  User,
   TrendingUp,
   TrendingDown,
-  Minus,
   Award,
-  ChevronDown,
-  Printer,
-  Edit,
-  FileDown
+  Target,
+  Trophy,
+  Activity,
+  FileDown,
+  BarChart3,
+  LineChart as LineChartIcon,
+  PieChart as PieChartIcon,
+  Radar as RadarIcon,
 } from 'lucide-react';
 import {
   PieChart,
@@ -33,7 +34,6 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-  Legend
 } from 'recharts';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -108,19 +108,12 @@ export default function StudentProfilePage({
   const [scoreTables, setScoreTables] = useState<Record<number, ScoreTable>>({});
   const [loading, setLoading] = useState(true);
 
-  // 선택된 종목들 (원형 게이지용 4개)
   const [selectedGaugeTypes, setSelectedGaugeTypes] = useState<number[]>([]);
-  // 선 그래프용 선택된 종목
   const [selectedTrendType, setSelectedTrendType] = useState<number | null>(null);
-  // 레이더 차트용 선택된 종목들 (5개)
   const [selectedRadarTypes, setSelectedRadarTypes] = useState<number[]>([]);
-
-  // 최근 기록 더보기 상태
   const [showAllRecords, setShowAllRecords] = useState(false);
-  // PDF 다운로드 로딩 상태
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  // 게이지 종목 토글
   const toggleGaugeType = (typeId: number) => {
     if (selectedGaugeTypes.includes(typeId)) {
       setSelectedGaugeTypes(selectedGaugeTypes.filter(id => id !== typeId));
@@ -129,43 +122,33 @@ export default function StudentProfilePage({
     }
   };
 
-  // PDF 다운로드 핸들러 (현재 화면 캡처)
   const handleDownloadPDF = async () => {
     if (!contentRef.current || !student) return;
 
     try {
       setPdfLoading(true);
-
-      // Tailwind CSS v4 lab() 색상 호환성을 위해 원본 요소의 스타일을 미리 수집
       const originalElement = contentRef.current;
       const styleMap = new Map<Element, CSSStyleDeclaration>();
 
-      // 원본 요소와 모든 자식 요소의 computed style 수집
       const collectStyles = (el: Element) => {
         styleMap.set(el, window.getComputedStyle(el));
         Array.from(el.children).forEach(collectStyles);
       };
       collectStyles(originalElement);
 
-      // 현재 화면을 캔버스로 캡처
       const canvas = await html2canvas(contentRef.current, {
-        scale: 2, // 고해상도
+        scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#f1f5f9', // slate-100 배경색
+        backgroundColor: '#0f172a',
         onclone: (clonedDoc, clonedElement) => {
-          // 1. 모든 스타일시트 및 style 태그 제거
           clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
-
-          // 2. head의 모든 CSS 관련 요소 제거
           clonedDoc.head.innerHTML = '<meta charset="utf-8">';
 
-          // 3. 원본과 클론 요소를 매핑하여 스타일 적용
           const applyStyles = (original: Element, cloned: Element) => {
             if (cloned instanceof HTMLElement) {
               const computed = styleMap.get(original);
               if (computed) {
-                // 모든 CSS 속성을 인라인으로 적용
                 const props = [
                   'background-color', 'color', 'border-color', 'border-width', 'border-style', 'border-radius',
                   'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
@@ -186,7 +169,6 @@ export default function StudentProfilePage({
                   }
                 });
 
-                // fill, stroke for SVG elements
                 if (cloned.tagName === 'svg' || cloned.closest('svg')) {
                   ['fill', 'stroke'].forEach(prop => {
                     const value = computed.getPropertyValue(prop);
@@ -194,12 +176,9 @@ export default function StudentProfilePage({
                   });
                 }
               }
-
-              // 클래스 속성 제거 (CSS 규칙 참조 방지)
               cloned.removeAttribute('class');
             }
 
-            // 자식 요소들 재귀 처리
             const origChildren = Array.from(original.children);
             const clonedChildren = Array.from(cloned.children);
             origChildren.forEach((origChild, i) => {
@@ -216,29 +195,20 @@ export default function StudentProfilePage({
       const imgData = canvas.toDataURL('image/png');
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-
-      // A4 사이즈 (210 x 297mm)
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a4'
       });
-
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      // 이미지를 PDF 크기에 맞게 조정
       const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
       const scaledWidth = imgWidth * ratio;
       const scaledHeight = imgHeight * ratio;
-
-      // 중앙 정렬
       const x = (pdfWidth - scaledWidth) / 2;
       const y = (pdfHeight - scaledHeight) / 2;
-
       pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
       pdf.save(`${student.name}_실기기록_${new Date().toISOString().split('T')[0]}.pdf`);
-
     } catch (error) {
       console.error('PDF download error:', error);
       alert('PDF 다운로드에 실패했습니다.');
@@ -266,7 +236,6 @@ export default function StudentProfilePage({
       setStats(statsRes.data.stats);
       setRecordHistory(historyRes.data.records || []);
       setRecordTypes(typesRes.data.recordTypes || []);
-      // 성별에 맞는 학원 평균 선택 (원시값 + 점수)
       const gender = statsRes.data.student?.gender;
       if (gender === 'M') {
         setAcademyAverages(academyRes.data.maleAverages || {});
@@ -276,24 +245,19 @@ export default function StudentProfilePage({
         setAcademyScoreAverages(academyRes.data.femaleScoreAverages || {});
       }
 
-      // 배점표 데이터를 종목ID별로 매핑
       const tables: Record<number, ScoreTable> = {};
       (scoreTablesRes.data.scoreTables || []).forEach((st: ScoreTable) => {
         tables[st.record_type_id] = st;
       });
       setScoreTables(tables);
 
-      // 초기 선택 설정
       const types = typesRes.data.recordTypes || [];
       const typesWithRecords = types.filter((t: RecordType) =>
         statsRes.data.stats?.latests?.[t.id] !== undefined
       );
 
-      // 첫 6개 종목 선택 (게이지용)
       setSelectedGaugeTypes(typesWithRecords.slice(0, 6).map((t: RecordType) => t.id));
-      // 첫 번째 종목 선택 (트렌드용)
       setSelectedTrendType(typesWithRecords[0]?.id || null);
-      // 첫 5개 종목 선택 (레이더용)
       setSelectedRadarTypes(typesWithRecords.slice(0, 5).map((t: RecordType) => t.id));
     } catch (error) {
       console.error('Failed to load profile data:', error);
@@ -302,10 +266,8 @@ export default function StudentProfilePage({
     }
   };
 
-  // 트렌드 차트 데이터 생성
   const trendChartData = useMemo(() => {
     if (!selectedTrendType || !recordHistory.length) return [];
-
     const data = recordHistory
       .filter(h => h.records.some(r => r.record_type_id === selectedTrendType))
       .map(h => {
@@ -316,11 +278,9 @@ export default function StudentProfilePage({
         };
       })
       .reverse();
-
     return data;
   }, [selectedTrendType, recordHistory]);
 
-  // 선 그래프 Y축 도메인 계산 (자동 범위 + 패딩)
   const trendYDomain = useMemo(() => {
     if (!trendChartData.length) return [0, 100];
     const values = trendChartData.map(d => d.value);
@@ -330,23 +290,17 @@ export default function StudentProfilePage({
     return [Math.max(0, min - padding), max + padding];
   }, [trendChartData]);
 
-  // 현재 선택된 트렌드 종목이 lower인지
   const isTrendTypeLower = useMemo(() => {
     const type = recordTypes.find(t => t.id === selectedTrendType);
     return type?.direction === 'lower';
   }, [selectedTrendType, recordTypes]);
 
-  // 레이더 차트 데이터 생성 (점수 기반)
   const radarChartData = useMemo(() => {
     if (!stats || !selectedRadarTypes.length) return [];
-
     return selectedRadarTypes.map(typeId => {
       const type = recordTypes.find(t => t.id === typeId);
-      // 학생 점수 (0-100)
       const studentScore = stats.scores[typeId] || 0;
-      // 학원 평균 점수 (0-100)
       const academyScore = academyScoreAverages[typeId] || 0;
-
       return {
         subject: type?.short_name || type?.name || `종목${typeId}`,
         student: studentScore,
@@ -355,10 +309,8 @@ export default function StudentProfilePage({
     });
   }, [stats, selectedRadarTypes, recordTypes, academyScoreAverages]);
 
-  // 비교 막대 차트 데이터 (선택된 게이지 종목 기준)
   const compareBarData = useMemo(() => {
     if (!stats || !recordTypes.length || !student || !selectedGaugeTypes.length) return [];
-
     return selectedGaugeTypes
       .map(typeId => recordTypes.find(t => t.id === typeId))
       .filter((type): type is RecordType => type !== undefined)
@@ -367,26 +319,19 @@ export default function StudentProfilePage({
         const perfectValue = scoreTable
           ? (student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect)
           : 0;
-
         const studentValue = stats.latests[type.id]?.value || 0;
         const academyValue = academyAverages[type.id] || 0;
-
-        // 만점 대비 달성률로 정규화 (direction 고려)
         let studentPercent = 0;
         let academyPercent = 0;
-
         if (perfectValue > 0) {
           if (type.direction === 'lower') {
-            // 낮을수록 좋은 종목 (예: 달리기 시간)
             studentPercent = Math.max(0, Math.min(100, (2 - studentValue / perfectValue) * 100));
             academyPercent = Math.max(0, Math.min(100, (2 - academyValue / perfectValue) * 100));
           } else {
-            // 높을수록 좋은 종목 (예: 멀리뛰기)
             studentPercent = Math.min(100, (studentValue / perfectValue) * 100);
             academyPercent = Math.min(100, (academyValue / perfectValue) * 100);
           }
         }
-
         return {
           name: type.short_name || type.name,
           student: Math.round(studentPercent),
@@ -398,22 +343,16 @@ export default function StudentProfilePage({
       });
   }, [stats, recordTypes, academyAverages, scoreTables, student, selectedGaugeTypes]);
 
-  // 선택된 종목 기준 종합평가 계산 (기록이 있는 종목만 평가에 포함)
   const selectedStats = useMemo(() => {
     if (!stats || !selectedGaugeTypes.length) {
       return { totalScore: 0, maxScore: 0, percentage: 0, grade: 'F', recordedCount: 0, selectedCount: 0 };
     }
-
     let totalScore = 0;
     let maxScore = 0;
     let recordedCount = 0;
-
     selectedGaugeTypes.forEach(typeId => {
       const scoreTable = scoreTables[typeId];
-      // 기록이 있는지 확인 (latests 기준)
       const hasRecord = stats.latests[typeId] !== undefined;
-
-      // 기록이 있는 경우에만 점수 계산에 포함
       if (hasRecord) {
         recordedCount++;
         if (scoreTable) {
@@ -424,148 +363,202 @@ export default function StudentProfilePage({
         }
       }
     });
-
     const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
-
-    // 등급 계산
     let grade = 'F';
     if (recordedCount === 0) {
-      grade = '-'; // 기록이 없으면 등급 없음
+      grade = '-';
     } else if (percentage >= 90) grade = 'A';
     else if (percentage >= 80) grade = 'B';
     else if (percentage >= 70) grade = 'C';
     else if (percentage >= 60) grade = 'D';
-
     return { totalScore, maxScore, percentage, grade, recordedCount, selectedCount: selectedGaugeTypes.length };
   }, [stats, selectedGaugeTypes, scoreTables]);
 
-  // 기록 달성률 계산 (만점 대비)
   const getRecordPercentage = (typeId: number, value: number, hasRecord: boolean): number => {
-    // 기록이 없으면 0%
     if (!hasRecord) return 0;
-
     const type = recordTypes.find(t => t.id === typeId);
     const scoreTable = scoreTables[typeId];
     if (!type || !scoreTable || !student) return 0;
-
     const perfectValue = student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect;
     if (!perfectValue) return 0;
-
-    // direction이 lower면 낮을수록 좋음 (예: 달리기 시간)
     if (type.direction === 'lower') {
-      // 만점보다 기록이 좋으면(낮으면) 100%, 만점의 2배면 0%
-      const percentage = Math.max(0, Math.min(100, (2 - value / perfectValue) * 100));
-      return percentage;
+      return Math.max(0, Math.min(100, (2 - value / perfectValue) * 100));
     } else {
-      // higher: 높을수록 좋음 (예: 멀리뛰기)
-      const percentage = Math.min(100, (value / perfectValue) * 100);
-      return percentage;
+      return Math.min(100, (value / perfectValue) * 100);
     }
   };
 
-  // 달성률 기준 색상 결정
   const getScoreColor = (percentage: number) => {
-    if (percentage >= 90) return '#22c55e'; // green
-    if (percentage >= 70) return '#3b82f6'; // blue
-    if (percentage >= 50) return '#eab308'; // yellow
-    return '#ef4444'; // red
+    if (percentage >= 90) return '#FF8200';
+    if (percentage >= 70) return '#4666FF';
+    if (percentage >= 50) return '#468FEA';
+    return '#64748b';
   };
 
-  // 등급 색상
   const getGradeColor = (grade: string) => {
     switch (grade) {
-      case 'A': return 'text-green-600 bg-green-100';
-      case 'B': return 'text-blue-600 bg-blue-100';
-      case 'C': return 'text-yellow-600 bg-yellow-100';
-      case 'D': return 'text-orange-600 bg-orange-100';
-      default: return 'text-red-600 bg-red-100';
+      case 'A': return 'from-orange-500 to-orange-600';
+      case 'B': return 'from-blue-500 to-blue-600';
+      case 'C': return 'from-cyan-500 to-cyan-600';
+      case 'D': return 'from-slate-500 to-slate-600';
+      default: return 'from-slate-600 to-slate-700';
     }
   };
 
-  // 트렌드 아이콘
-  const TrendIcon = ({ trend, showLabel = false }: { trend: string; showLabel?: boolean }) => {
-    if (trend === 'up') return <TrendingUp className="text-green-500" size={16} />;
-    if (trend === 'down') return <TrendingDown className="text-red-500" size={16} />;
-    if (trend === 'need_more') {
-      return showLabel
-        ? <span className="text-[9px] text-gray-400">기록 부족</span>
-        : <span className="text-[10px] text-gray-400">···</span>;
-    }
-    return <Minus className="text-gray-400" size={16} />;
+  const TrendIcon = ({ trend, className = "" }: { trend: string; className?: string }) => {
+    if (trend === 'up') return <TrendingUp className={`text-orange-400 ${className}`} size={18} />;
+    if (trend === 'down') return <TrendingDown className={`text-slate-400 ${className}`} size={18} />;
+    return <Activity className={`text-slate-400 ${className}`} size={18} />;
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+          <p className="text-slate-400 text-lg">데이터 불러오는 중...</p>
+        </div>
       </div>
     );
   }
 
   if (!student || !stats) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">학생 정보를 찾을 수 없습니다.</p>
-        <button onClick={() => router.back()} className="mt-4 text-orange-500 hover:underline">
-          돌아가기
-        </button>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-slate-400 text-lg mb-4">학생 정보를 찾을 수 없습니다.</p>
+          <button 
+            onClick={() => router.back()} 
+            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition"
+          >
+            돌아가기
+          </button>
+        </div>
       </div>
     );
   }
 
-  const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 6);
+  const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 5);
 
   return (
-    <div ref={contentRef} className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
-          >
-            <ArrowLeft size={24} className="text-slate-900 dark:text-slate-100" />
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
-              <User size={24} className="text-orange-600 dark:text-orange-400" />
-            </div>
+    <div className="min-h-screen bg-slate-950 p-8">
+      <div ref={contentRef} className="max-w-[1800px] mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="p-3 bg-slate-900/50 backdrop-blur-sm hover:bg-slate-800/50 rounded-xl transition border border-slate-800"
+            >
+              <ArrowLeft className="text-slate-300" size={24} />
+            </button>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{student.name}</h1>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">
-                {student.gender === 'M' ? '남' : '여'} · {student.school} · {student.grade}
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-4xl font-bold text-white tracking-tight">{student.name}</h1>
+                <span className="px-3 py-1 bg-orange-500/20 text-orange-400 text-sm font-medium rounded-lg border border-orange-500/30">
+                  {student.gender === 'M' ? '남' : '여'}
+                </span>
+              </div>
+              <p className="text-slate-400 text-base">
+                {student.school} • {student.grade} • {student.phone}
               </p>
             </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200">
-            <Edit size={18} />
-            수정
-          </button>
           <button
             onClick={handleDownloadPDF}
             disabled={pdfLoading}
-            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-orange-500/20"
           >
-            <FileDown size={18} />
+            <FileDown size={20} />
             {pdfLoading ? 'PDF 생성중...' : 'PDF 다운로드'}
           </button>
-          <button className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200">
-            <Printer size={18} />
-            인쇄
-          </button>
         </div>
-      </div>
 
-      {/* 3 Column Layout */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left Column - Record Gauges */}
-        <div className="col-span-3">
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-[500px] overflow-hidden flex flex-col">
-            <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-3">종목별 기록</h3>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 hover:border-orange-500/30 transition">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-slate-400 text-xs uppercase tracking-wider font-medium">총점</span>
+              <div className="p-2 bg-orange-500/10 rounded-lg">
+                <Target className="text-orange-400" size={18} />
+              </div>
+            </div>
+            <div className="flex items-end gap-2">
+              <span className="text-4xl font-bold text-white">{selectedStats.totalScore}</span>
+              <span className="text-slate-500 text-lg mb-1">/ {selectedStats.maxScore}점</span>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-orange-500 to-orange-600 rounded-full transition-all duration-500"
+                  style={{ width: `${selectedStats.percentage}%` }}
+                />
+              </div>
+              <span className="text-orange-400 text-sm font-medium">{selectedStats.percentage}%</span>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-2 flex-1">
+          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 hover:border-blue-500/30 transition">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-slate-400 text-xs uppercase tracking-wider font-medium">등급</span>
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Award className="text-blue-400" size={18} />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getGradeColor(selectedStats.grade)} flex items-center justify-center shadow-lg`}>
+                <span className="text-4xl font-bold text-white">{selectedStats.grade}</span>
+              </div>
+              <div>
+                <p className="text-slate-300 text-sm mb-1">평가 완료</p>
+                <p className="text-white text-2xl font-bold">{selectedStats.recordedCount}개</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/30 transition">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-slate-400 text-xs uppercase tracking-wider font-medium">추세</span>
+              <div className="p-2 bg-cyan-500/10 rounded-lg">
+                <Activity className="text-cyan-400" size={18} />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <TrendIcon trend={stats.overallTrend} className="w-12 h-12" />
+              <div>
+                <p className="text-white text-2xl font-bold">
+                  {stats.overallTrend === 'up' ? '상승세' : stats.overallTrend === 'down' ? '하락세' : '안정'}
+                </p>
+                <p className="text-slate-400 text-sm">전체 추세</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 hover:border-purple-500/30 transition">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-slate-400 text-xs uppercase tracking-wider font-medium">기록 수</span>
+              <div className="p-2 bg-purple-500/10 rounded-lg">
+                <Trophy className="text-purple-400" size={18} />
+              </div>
+            </div>
+            <div className="flex items-end gap-2">
+              <span className="text-4xl font-bold text-white">{stats.typesWithRecords}</span>
+              <span className="text-slate-500 text-lg mb-1">종목</span>
+            </div>
+            <p className="text-slate-400 text-sm mt-2">총 {recordHistory.length}회 측정</p>
+          </div>
+        </div>
+
+        {/* Main Bento Grid */}
+        <div className="grid grid-cols-12 gap-4">
+          {/* Gauges - 3 columns */}
+          <div className="col-span-3 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <PieChartIcon className="text-orange-400" size={20} />
+              <h3 className="text-lg font-semibold text-white">종목별 기록</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3 mb-4">
               {selectedGaugeTypes.slice(0, 6).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
@@ -573,26 +566,22 @@ export default function StudentProfilePage({
                 const value = latestRecord?.value || 0;
                 const percentage = getRecordPercentage(typeId, value, hasRecord);
                 const trend = stats.trends[typeId];
-                const scoreTable = scoreTables[typeId];
-                const perfectValue = student && scoreTable
-                  ? (student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect)
-                  : null;
 
                 const gaugeData = [
                   { value: percentage, color: getScoreColor(percentage) },
-                  { value: 100 - percentage, color: '#e5e7eb' }
+                  { value: 100 - percentage, color: '#1e293b' }
                 ];
 
                 return (
-                  <div key={typeId} className="relative h-[105px]">
+                  <div key={typeId} className="relative h-[120px] bg-slate-900/70 rounded-xl p-3 border border-slate-800/50">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={gaugeData}
                           cx="50%"
                           cy="50%"
-                          innerRadius="60%"
-                          outerRadius="80%"
+                          innerRadius="55%"
+                          outerRadius="75%"
                           startAngle={90}
                           endAngle={-270}
                           dataKey="value"
@@ -605,51 +594,50 @@ export default function StudentProfilePage({
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                        {hasRecord ? value : '-'}<span className="text-xs font-normal text-slate-400 dark:text-slate-500">{type?.unit}</span>
+                      <span className="text-2xl font-bold text-white">
+                        {hasRecord ? value : '-'}
                       </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400">{type?.short_name || type?.name}</span>
-                      {perfectValue && (
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500">만점: {perfectValue}</span>
-                      )}
+                      <span className="text-xs text-slate-400">{type?.unit}</span>
+                      <span className="text-[10px] text-slate-500 uppercase mt-1">{type?.short_name || type?.name}</span>
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-center">
-                      <TrendIcon trend={trend || 'need_more'} showLabel={true} />
+                    <div className="absolute bottom-2 right-2">
+                      <TrendIcon trend={trend || 'stable'} className="w-4 h-4" />
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* 종목 선택 버튼들 */}
-            <div className="mt-2 flex flex-wrap gap-1">
-              {recordTypes.map(type => (
-                <button
-                  key={type.id}
-                  onClick={() => toggleGaugeType(type.id)}
-                  className={`text-xs px-2 py-0.5 rounded transition ${
-                    selectedGaugeTypes.includes(type.id)
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                  } ${selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id)}
-                >
-                  {type.short_name || type.name}
-                </button>
-              ))}
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500 uppercase tracking-wider">종목 선택 (최대 6개)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {recordTypes.map(type => (
+                  <button
+                    key={type.id}
+                    onClick={() => toggleGaugeType(type.id)}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
+                      selectedGaugeTypes.includes(type.id)
+                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
+                    } ${selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id) ? 'opacity-30 cursor-not-allowed' : ''}`}
+                    disabled={selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id)}
+                  >
+                    {type.short_name || type.name}
+                  </button>
+                ))}
+              </div>
             </div>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">최대 6개 선택</p>
           </div>
-        </div>
 
-        {/* Middle Column - Trend Chart & Overall Grade */}
-        <div className="col-span-5 space-y-4">
-          {/* Trend Chart */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-[300px] overflow-hidden">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-slate-800 dark:text-slate-100">기록 추이</h3>
+          {/* Trend Chart - 5 columns */}
+          <div className="col-span-5 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <LineChartIcon className="text-blue-400" size={20} />
+                <h3 className="text-lg font-semibold text-white">기록 추이</h3>
+              </div>
               <select
-                className="text-sm border border-slate-200 dark:border-slate-700 rounded px-3 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                className="text-sm bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={selectedTrendType || ''}
                 onChange={(e) => setSelectedTrendType(parseInt(e.target.value))}
               >
@@ -659,17 +647,39 @@ export default function StudentProfilePage({
               </select>
             </div>
 
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={trendChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart data={trendChartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+                <defs>
+                  <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4666FF" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#4666FF" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fill: '#94a3b8', fontSize: 13 }} 
+                  stroke="#334155"
+                  axisLine={{ stroke: '#334155' }}
+                />
                 <YAxis
-                  tick={{ fontSize: 11 }}
+                  tick={{ fill: '#94a3b8', fontSize: 13 }}
+                  stroke="#334155"
+                  axisLine={{ stroke: '#334155' }}
                   domain={trendYDomain as [number, number]}
                   reversed={isTrendTypeLower}
                   tickFormatter={(value) => Number(value).toFixed(2)}
                 />
                 <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    border: '1px solid #334155',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    fontSize: '14px'
+                  }}
+                  labelStyle={{ color: '#cbd5e1', marginBottom: '4px' }}
+                  itemStyle={{ color: '#4666FF', fontWeight: 600 }}
                   formatter={(value) => {
                     const type = recordTypes.find(t => t.id === selectedTrendType);
                     return [`${value}${type?.unit || ''}`, '기록'];
@@ -678,125 +688,125 @@ export default function StudentProfilePage({
                 <Line
                   type="monotone"
                   dataKey="value"
-                  stroke="#f97316"
-                  strokeWidth={2}
-                  dot={{ fill: '#f97316' }}
+                  stroke="#4666FF"
+                  strokeWidth={3}
+                  dot={{ fill: '#4666FF', r: 5, strokeWidth: 2, stroke: '#0f172a' }}
+                  activeDot={{ r: 7, fill: '#4666FF', stroke: '#fff', strokeWidth: 2 }}
+                  fill="url(#lineGradient)"
                 />
               </LineChart>
             </ResponsiveContainer>
             {isTrendTypeLower && (
-              <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-1">* 낮을수록 좋은 종목 (Y축 반전)</p>
+              <p className="text-xs text-slate-500 text-center mt-2">* 낮을수록 좋은 종목 (Y축 반전)</p>
             )}
           </div>
 
-          {/* Overall Grade */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-[184px] overflow-hidden">
-            <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-4">종합평가 <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">(선택 종목 기준)</span></h3>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getGradeColor(selectedStats.grade)}`}>
-                  <span className="text-3xl font-bold">{selectedStats.grade}</span>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{selectedStats.totalScore}<span className="text-base font-normal">점</span></span>
-                    <span className="text-slate-400 dark:text-slate-500">/ {selectedStats.maxScore}점</span>
-                  </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    ({selectedStats.percentage}% 달성)
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <TrendIcon trend={stats.overallTrend} />
-                <span className="text-sm text-slate-500 dark:text-slate-400">
-                  {stats.overallTrend === 'up' ? '상승세' : stats.overallTrend === 'down' ? '하락세' : '유지'}
-                </span>
-              </div>
+          {/* Comparison Chart - 4 columns */}
+          <div className="col-span-4 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <BarChart3 className="text-cyan-400" size={20} />
+              <h3 className="text-lg font-semibold text-white">학원 평균 비교</h3>
             </div>
-
-            {/* 종목 수 */}
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between text-sm">
-              <span className="text-slate-500 dark:text-slate-400">평가 대상</span>
-              <span className="font-medium text-slate-900 dark:text-slate-100">
-                {selectedStats.recordedCount}개
-                <span className="text-slate-400 dark:text-slate-500"> / {selectedStats.selectedCount}개 선택</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column - Comparison */}
-        <div className="col-span-4 space-y-4">
-          {/* Bar Chart Comparison */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-[240px] overflow-hidden">
-            <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">학원평균 vs {student.name}</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">만점 대비 달성률 (%)</p>
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={compareBarData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-4">만점 대비 달성률 (%)</p>
+            
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={compareBarData} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                <XAxis 
+                  type="number" 
+                  domain={[0, 100]} 
+                  tick={{ fill: '#94a3b8', fontSize: 13 }} 
+                  stroke="#334155"
+                  axisLine={{ stroke: '#334155' }}
+                />
                 <YAxis
                   dataKey="name"
                   type="category"
-                  width={70}
-                  tick={{ fontSize: 10 }}
+                  width={80}
+                  tick={{ fill: '#cbd5e1', fontSize: 13 }}
+                  stroke="#334155"
+                  axisLine={{ stroke: '#334155' }}
                 />
                 <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    border: '1px solid #334155',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    fontSize: '14px'
+                  }}
+                  labelStyle={{ color: '#cbd5e1', marginBottom: '4px' }}
                   formatter={(value, name, props) => {
                     const data = props.payload;
                     if (name === '학원평균') return [`${data.academyRaw}${data.unit} (${value}%)`, name];
                     return [`${data.studentRaw}${data.unit} (${value}%)`, name];
                   }}
                 />
-                <Bar dataKey="academy" fill="#94a3b8" name="학원평균" />
-                <Bar dataKey="student" fill="#f97316" name={student.name} />
+                <Bar dataKey="academy" fill="#64748b" radius={[0, 8, 8, 0]} name="학원평균" />
+                <Bar dataKey="student" fill="#FF8200" radius={[0, 8, 8, 0]} name={student.name} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Radar Chart */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-[300px] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-semibold text-slate-800 dark:text-slate-100">능력치 비교</h3>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-slate-400 rounded-sm"></span>학원평균</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-orange-500 rounded-sm"></span>{student.name}</span>
+          {/* Radar Chart - 5 columns */}
+          <div className="col-span-5 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <RadarIcon className="text-purple-400" size={20} />
+                <h3 className="text-lg font-semibold text-white">능력치 분석</h3>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <span className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-slate-500 rounded-sm"></span>
+                  <span className="text-slate-400">학원평균</span>
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-orange-500 rounded-sm"></span>
+                  <span className="text-slate-400">{student.name}</span>
+                </span>
               </div>
             </div>
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height={200}>
-                <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="75%">
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 8 }} />
-                  <Radar
-                    name="학원평균"
-                    dataKey="academy"
-                    stroke="#94a3b8"
-                    fill="#94a3b8"
-                    fillOpacity={0.3}
-                  />
-                  <Radar
-                    name={student.name}
-                    dataKey="student"
-                    stroke="#f97316"
-                    fill="#f97316"
-                    fillOpacity={0.5}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
+            
+            <ResponsiveContainer width="100%" height={260}>
+              <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
+                <PolarGrid stroke="#334155" strokeWidth={1} />
+                <PolarAngleAxis 
+                  dataKey="subject" 
+                  tick={{ fill: '#cbd5e1', fontSize: 13, fontWeight: 500 }} 
+                />
+                <PolarRadiusAxis 
+                  angle={90} 
+                  domain={[0, 100]} 
+                  tick={{ fill: '#64748b', fontSize: 11 }} 
+                  stroke="#334155"
+                />
+                <Radar
+                  name="학원평균"
+                  dataKey="academy"
+                  stroke="#64748b"
+                  fill="#64748b"
+                  fillOpacity={0.2}
+                  strokeWidth={2}
+                />
+                <Radar
+                  name={student.name}
+                  dataKey="student"
+                  stroke="#FF8200"
+                  fill="#FF8200"
+                  fillOpacity={0.4}
+                  strokeWidth={2}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
 
-            {/* 레이더 종목 선택 */}
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5 mt-4">
               {recordTypes.slice(0, 8).map(type => (
                 <button
                   key={type.id}
-                  className={`text-xs px-2 py-0.5 rounded ${
+                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
                     selectedRadarTypes.includes(type.id)
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                      ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
                   }`}
                   onClick={() => {
                     if (selectedRadarTypes.includes(type.id)) {
@@ -811,60 +821,64 @@ export default function StudentProfilePage({
               ))}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Recent Records Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-800 dark:text-slate-100">최근 기록</h3>
-          {recordHistory.length > 6 && (
-            <button
-              onClick={() => setShowAllRecords(!showAllRecords)}
-              className="text-sm text-orange-500 hover:text-orange-600 flex items-center gap-1"
-            >
-              {showAllRecords ? '접기' : `더보기 (${recordHistory.length}개)`}
-              <ChevronDown size={16} className={`transition-transform ${showAllRecords ? 'rotate-180' : ''}`} />
-            </button>
-          )}
-        </div>
-        <div className={`overflow-x-auto ${showAllRecords ? 'max-h-60 overflow-y-auto' : ''}`}>
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-white dark:bg-slate-800">
-              <tr className="border-b border-slate-200 dark:border-slate-700">
-                <th className="text-left py-2 px-3 text-slate-700 dark:text-slate-200">날짜</th>
-                {recordTypes.slice(0, 6).map(type => (
-                  <th key={type.id} className="text-center py-2 px-3 text-slate-700 dark:text-slate-200">
-                    {type.short_name || type.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRecords.map((history, idx) => (
-                <tr key={idx} className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
-                  <td className="py-2 px-3 font-medium text-slate-900 dark:text-slate-100">
-                    {new Date(history.measured_at).toLocaleDateString('ko-KR')}
-                  </td>
-                  {recordTypes.slice(0, 6).map(type => {
-                    const record = history.records.find(r => r.record_type_id === type.id);
-                    return (
-                      <td key={type.id} className="text-center py-2 px-3">
-                        {record ? (
-                          <span className="font-medium text-slate-900 dark:text-slate-100">
-                            {record.value}
-                            <span className="text-slate-400 dark:text-slate-500 text-xs ml-1">{type.unit}</span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-300 dark:text-slate-600">-</span>
-                        )}
+          {/* Recent Records Table - 7 columns */}
+          <div className="col-span-7 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">최근 기록</h3>
+              {recordHistory.length > 5 && (
+                <button
+                  onClick={() => setShowAllRecords(!showAllRecords)}
+                  className="text-sm text-orange-400 hover:text-orange-300 font-medium transition"
+                >
+                  {showAllRecords ? '접기' : `전체보기 (${recordHistory.length})`}
+                </button>
+              )}
+            </div>
+            
+            <div className={`overflow-x-auto ${showAllRecords ? 'max-h-64 overflow-y-auto' : ''}`}>
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-slate-900/90 backdrop-blur-sm">
+                  <tr className="border-b border-slate-800">
+                    <th className="text-left py-3 px-4 text-slate-400 uppercase tracking-wider text-xs font-medium">날짜</th>
+                    {recordTypes.slice(0, 6).map(type => (
+                      <th key={type.id} className="text-center py-3 px-4 text-slate-400 uppercase tracking-wider text-xs font-medium">
+                        {type.short_name || type.name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRecords.map((history, idx) => (
+                    <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition">
+                      <td className="py-3 px-4 font-medium text-white">
+                        {new Date(history.measured_at).toLocaleDateString('ko-KR', { 
+                          year: '2-digit', 
+                          month: '2-digit', 
+                          day: '2-digit' 
+                        })}
                       </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      {recordTypes.slice(0, 6).map(type => {
+                        const record = history.records.find(r => r.record_type_id === type.id);
+                        return (
+                          <td key={type.id} className="text-center py-3 px-4">
+                            {record ? (
+                              <span className="font-semibold text-white">
+                                {record.value}
+                                <span className="text-slate-500 text-xs ml-1">{type.unit}</span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-700">-</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
