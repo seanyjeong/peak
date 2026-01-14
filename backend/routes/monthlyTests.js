@@ -4,7 +4,7 @@ const pool = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 
 // 월말테스트 목록 조회
 router.get('/', verifyToken, async (req, res) => {
@@ -801,9 +801,53 @@ router.get('/:id/export', verifyToken, async (req, res) => {
       });
     }
 
-    // 엑셀 데이터 생성
+    // 엑셀 워크북 생성
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('기록');
+
+    // 헤더 정의
     const headers = ['이름', '성별', '학교', '학년', '유형', ...recordTypes.map(rt => `${rt.short_name || rt.name}(${rt.unit})`)];
-    const rows = participants.map(p => {
+
+    // 열 너비 설정
+    worksheet.columns = [
+      { width: 12 }, // 이름
+      { width: 6 },  // 성별
+      { width: 15 }, // 학교
+      { width: 8 },  // 학년
+      { width: 8 },  // 유형
+      ...recordTypes.map(() => ({ width: 12 })) // 종목들
+    ];
+
+    // 헤더 추가
+    const headerRow = worksheet.addRow(headers);
+    headerRow.height = 25;
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '2563EB' } // 파란색
+      };
+      cell.font = { bold: true, color: { argb: 'FFFFFF' }, size: 11 };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+
+    // 유형별 색상
+    const typeColors = {
+      enrolled: 'DCFCE7', // 연두
+      rest: 'F3F4F6',     // 회색
+      trial: 'F3E8FF',    // 보라
+      test_new: 'FFEDD5'  // 주황
+    };
+    const typeLabel = { enrolled: '재원', rest: '휴원', trial: '체험', test_new: '신규' };
+
+    // 데이터 추가
+    participants.forEach((p, idx) => {
       let info, records;
       if (p.student_id) {
         info = { name: p.name, gender: p.gender, school: p.school, grade: p.grade };
@@ -813,9 +857,7 @@ router.get('/:id/export', verifyToken, async (req, res) => {
         records = applicantRecords[p.test_applicant_id] || {};
       }
 
-      const typeLabel = { enrolled: '재원', rest: '휴원', trial: '체험', test_new: '신규' };
-
-      return [
+      const rowData = [
         info.name || '',
         info.gender === 'M' ? '남' : '여',
         info.school || '',
@@ -823,15 +865,60 @@ router.get('/:id/export', verifyToken, async (req, res) => {
         typeLabel[p.participant_type] || p.participant_type,
         ...recordTypes.map(rt => records[rt.record_type_id] ?? '')
       ];
+
+      const row = worksheet.addRow(rowData);
+      row.height = 22;
+
+      row.eachCell((cell, colNumber) => {
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'E5E7EB' } },
+          left: { style: 'thin', color: { argb: 'E5E7EB' } },
+          bottom: { style: 'thin', color: { argb: 'E5E7EB' } },
+          right: { style: 'thin', color: { argb: 'E5E7EB' } }
+        };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // 성별 색상
+        if (colNumber === 2) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: info.gender === 'M' ? 'DBEAFE' : 'FCE7F3' }
+          };
+          cell.font = { color: { argb: info.gender === 'M' ? '2563EB' : 'DB2777' } };
+        }
+
+        // 유형 색상
+        if (colNumber === 5) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: typeColors[p.participant_type] || 'FFFFFF' }
+          };
+        }
+
+        // 기록 숫자 정렬
+        if (colNumber > 5 && cell.value) {
+          cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        }
+      });
+
+      // 짝수행 배경색
+      if (idx % 2 === 1) {
+        row.eachCell((cell, colNumber) => {
+          if (colNumber !== 2 && colNumber !== 5) {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'F9FAFB' }
+            };
+          }
+        });
+      }
     });
 
-    // 엑셀 워크북 생성
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    XLSX.utils.book_append_sheet(wb, ws, '기록');
-
     // 버퍼로 변환
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = await workbook.xlsx.writeBuffer();
 
     // 파일명 생성
     const fileName = `${test.test_month}_${test.test_name || '월말테스트'}.xlsx`;
