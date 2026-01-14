@@ -551,7 +551,7 @@ export default function StudentProfilePage({
         </div>
 
         {/* Row 1 - Fixed height charts */}
-        <div className="grid grid-cols-12 gap-1.5 h-[340px]">
+        <div className="grid grid-cols-12 gap-1.5 h-[355px]">
           {/* Gauges - 3 columns */}
           <div className="col-span-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
             <div className="flex items-center gap-1 mb-1">
@@ -592,7 +592,7 @@ export default function StudentProfilePage({
                         <TrendIcon trend={trend || 'stable'} className="w-2.5 h-2.5" />
                       </div>
                     </div>
-                    <span className="text-[8px] text-slate-500 dark:text-slate-400 mt-0.5 truncate w-full text-center">{type?.short_name || type?.name}</span>
+                    <span className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 truncate w-full text-center">{type?.short_name || type?.name}</span>
                   </div>
                 );
               })}
@@ -603,7 +603,7 @@ export default function StudentProfilePage({
                 <button
                   key={type.id}
                   onClick={() => toggleGaugeType(type.id)}
-                  className={`text-[9px] px-1.5 py-px rounded font-medium transition ${
+                  className={`text-[10px] px-1.5 py-0.5 rounded font-medium transition ${
                     selectedGaugeTypes.includes(type.id)
                       ? 'bg-orange-500 text-white'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
@@ -624,7 +624,7 @@ export default function StudentProfilePage({
                 <h3 className="text-xs font-semibold text-slate-900 dark:text-white">기록 추이</h3>
               </div>
               <select
-                className="text-[10px] bg-slate-100 dark:bg-slate-700 border-0 rounded px-1.5 py-0.5 text-slate-700 dark:text-white"
+                className="text-[11px] bg-slate-100 dark:bg-slate-700 border-0 rounded px-2 py-0.5 text-slate-700 dark:text-white"
                 value={selectedTrendType || ''}
                 onChange={(e) => setSelectedTrendType(parseInt(e.target.value))}
               >
@@ -638,8 +638,8 @@ export default function StudentProfilePage({
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendChartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 9 }} stroke="#cbd5e1" />
-                  <YAxis tick={{ fill: '#64748b', fontSize: 9 }} stroke="#cbd5e1" domain={trendYDomain as [number, number]} reversed={isTrendTypeLower} tickFormatter={(v) => Number(v).toFixed(1)} />
+                  <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" domain={trendYDomain as [number, number]} reversed={isTrendTypeLower} tickFormatter={(v) => Number(v).toFixed(1)} />
                   <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px', fontSize: '11px' }} formatter={(value) => { const type = recordTypes.find(t => t.id === selectedTrendType); return [`${value}${type?.unit || ''}`, '기록']; }} />
                   <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 2 }} />
                 </LineChart>
@@ -652,15 +652,15 @@ export default function StudentProfilePage({
             <div className="flex items-center gap-1 mb-1">
               <BarChart3 className="text-cyan-500" size={12} />
               <h3 className="text-xs font-semibold text-slate-900 dark:text-white">학원 비교</h3>
-              <span className="text-[9px] text-slate-400 ml-auto">%</span>
+              <span className="text-[10px] text-slate-400 ml-auto">%</span>
             </div>
 
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={compareBarData} layout="vertical" margin={{ top: 2, right: 5, left: -5, bottom: 2 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 9 }} stroke="#cbd5e1" />
-                  <YAxis dataKey="name" type="category" width={40} tick={{ fill: '#64748b', fontSize: 9 }} stroke="#cbd5e1" />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
+                  <YAxis dataKey="name" type="category" width={45} tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
                   <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px', fontSize: '10px' }} formatter={(value, name, props) => { const data = props.payload; if (name === '학원') return [`${data.academyRaw}${data.unit} (${value}%)`, name]; return [`${data.studentRaw}${data.unit} (${value}%)`, name]; }} />
                   <Bar dataKey="academy" fill="#94a3b8" radius={[0, 3, 3, 0]} name="학원" />
                   <Bar dataKey="student" fill="#f97316" radius={[0, 3, 3, 0]} name={student.name} />
@@ -671,7 +671,7 @@ export default function StudentProfilePage({
         </div>
 
         {/* Row 2 - Fixed height */}
-        <div className="grid grid-cols-12 gap-1.5 h-[300px]">
+        <div className="grid grid-cols-12 gap-1.5 h-[315px]">
           {/* Radar Chart - 5 columns */}
           <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between">
@@ -679,7 +679,7 @@ export default function StudentProfilePage({
                 <RadarIcon className="text-purple-500" size={12} />
                 <h3 className="text-xs font-semibold text-slate-900 dark:text-white">능력치</h3>
               </div>
-              <div className="flex items-center gap-1.5 text-[9px]">
+              <div className="flex items-center gap-1.5 text-[10px]">
                 <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 bg-slate-400 rounded-sm"></span><span className="text-slate-500">학원</span></span>
                 <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 bg-orange-500 rounded-sm"></span><span className="text-slate-500">{student.name}</span></span>
               </div>
@@ -689,8 +689,8 @@ export default function StudentProfilePage({
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
                   <PolarGrid stroke="#e2e8f0" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 9 }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 8 }} stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 9 }} stroke="#e2e8f0" />
                   <Radar name="학원" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.2} strokeWidth={1.5} />
                   <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.3} strokeWidth={2} />
                 </RadarChart>
@@ -701,7 +701,7 @@ export default function StudentProfilePage({
               {recordTypes.slice(0, 8).map(type => (
                 <button
                   key={type.id}
-                  className={`text-[9px] px-1.5 py-px rounded font-medium transition ${
+                  className={`text-[10px] px-1.5 py-0.5 rounded font-medium transition ${
                     selectedRadarTypes.includes(type.id)
                       ? 'bg-purple-500 text-white'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
@@ -725,14 +725,14 @@ export default function StudentProfilePage({
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-xs font-semibold text-slate-900 dark:text-white">최근 기록</h3>
               {recordHistory.length > 3 && (
-                <button onClick={() => setShowAllRecords(!showAllRecords)} className="text-[9px] text-orange-500 font-medium">
+                <button onClick={() => setShowAllRecords(!showAllRecords)} className="text-[10px] text-orange-500 font-medium">
                   {showAllRecords ? '접기' : `더보기 (${recordHistory.length})`}
                 </button>
               )}
             </div>
 
             <div className={`overflow-auto flex-1`}>
-              <table className="w-full text-[10px]">
+              <table className="w-full text-[11px]">
                 <thead className="sticky top-0 bg-white dark:bg-slate-800">
                   <tr className="border-b border-slate-200 dark:border-slate-700">
                     <th className="text-left py-1 px-1.5 text-slate-500 dark:text-slate-400 font-medium">날짜</th>
@@ -754,7 +754,7 @@ export default function StudentProfilePage({
                         return (
                           <td key={type.id} className="text-center py-1 px-1.5">
                             {record ? (
-                              <span className="font-medium text-slate-900 dark:text-white">{record.value}<span className="text-slate-400 text-[9px] ml-0.5">{type.unit}</span></span>
+                              <span className="font-medium text-slate-900 dark:text-white">{record.value}<span className="text-slate-400 text-[10px] ml-0.5">{type.unit}</span></span>
                             ) : (
                               <span className="text-slate-300 dark:text-slate-600">-</span>
                             )}
