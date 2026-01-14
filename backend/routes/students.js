@@ -13,7 +13,7 @@ const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
 
 // 한글 폰트 경로
-const KOREAN_FONT_PATH = path.join(__dirname, '../fonts/NotoSansKR-Regular.otf');
+const KOREAN_FONT_PATH = path.join(__dirname, '../fonts/NanumBarunGothic.ttf');
 
 // P-ACA DB 연결 (환경변수 필수)
 const pacaPool = mysql.createPool({
