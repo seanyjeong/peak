@@ -84,6 +84,7 @@ export default function MobileRecordsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<'student' | 'type'>('student');
   const [selectedType, setSelectedType] = useState<number | null>(null);
+
   // 데이터 로드
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -105,13 +106,10 @@ export default function MobileRecordsPage() {
       // 현재 유저 정보
       const currentUser = authAPI.getCurrentUser();
       const userInstructorId = currentUser?.instructorId;
-      // 원장의 경우 음수 ID 사용 (-user.id)
       const userNegativeId = currentUser?.role === 'owner' ? -(currentUser?.id || 0) : null;
 
       if (slotData) {
-        // 반에 배치된 학생들 - 내가 배치된 반만 필터링
         (slotData.classes as ClassData[] || []).forEach((cls) => {
-          // 내가 이 반의 강사인 경우에만 학생 포함
           const isMyClass = cls.instructors?.some((inst: ClassInstructor) =>
             inst.id === userInstructorId || inst.id === userNegativeId
           );
@@ -130,7 +128,6 @@ export default function MobileRecordsPage() {
             });
           }
         });
-        // 대기 중인 학생은 모바일에서 표시하지 않음 (PC에서 배치 후 사용)
       }
 
       setStudents(slotStudents);
@@ -141,7 +138,6 @@ export default function MobileRecordsPage() {
       const activeTypes = (typeData.recordTypes || []).filter((t: { is_active: boolean }) => t.is_active);
       setRecordTypes(activeTypes);
 
-      // 기존 선택이 유효하면 유지, 없으면 첫 번째 종목 선택
       setSelectedType(prev => {
         if (prev && activeTypes.some((t: RecordType) => t.id === prev)) return prev;
         return activeTypes.length > 0 ? activeTypes[0].id : null;
@@ -252,23 +248,23 @@ export default function MobileRecordsPage() {
   return (
     <div className="space-y-3">
       {/* 날짜 & 새로고침 */}
-      <div className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm">
+      <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-2">
-          <Calendar size={18} className="text-slate-500" />
+          <Calendar size={18} className="text-slate-500 dark:text-slate-400" />
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="text-sm font-medium text-slate-800 bg-transparent border-none outline-none"
+            className="text-sm font-medium text-slate-800 dark:text-slate-100 bg-transparent border-none outline-none"
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">{koreanDate}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">{koreanDate}</span>
           <button
             onClick={loadData}
-            className="p-2 hover:bg-slate-100 rounded-lg transition"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin text-orange-500' : 'text-slate-500'} />
+            <RefreshCw size={18} className={loading ? 'animate-spin text-orange-500' : 'text-slate-500 dark:text-slate-400'} />
           </button>
         </div>
       </div>
@@ -282,7 +278,7 @@ export default function MobileRecordsPage() {
             className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl font-medium text-sm transition ${
               selectedTimeSlot === key
                 ? 'bg-orange-500 text-white shadow-md'
-                : 'bg-white text-slate-600 shadow-sm'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700'
             }`}
           >
             <Icon size={16} />
@@ -292,13 +288,13 @@ export default function MobileRecordsPage() {
       </div>
 
       {/* 입력 모드 선택 */}
-      <div className="flex gap-2 bg-white rounded-xl p-1 shadow-sm">
+      <div className="flex gap-2 bg-white dark:bg-slate-800 rounded-xl p-1 shadow-sm border border-slate-200 dark:border-slate-700">
         <button
           onClick={() => setInputMode('student')}
           className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
             inputMode === 'student'
-              ? 'bg-slate-800 text-white'
-              : 'text-slate-600'
+              ? 'bg-neutral-900 dark:bg-neutral-700 text-white'
+              : 'text-slate-600 dark:text-slate-300'
           }`}
         >
           <Users size={16} />
@@ -308,8 +304,8 @@ export default function MobileRecordsPage() {
           onClick={() => setInputMode('type')}
           className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
             inputMode === 'type'
-              ? 'bg-slate-800 text-white'
-              : 'text-slate-600'
+              ? 'bg-neutral-900 dark:bg-neutral-700 text-white'
+              : 'text-slate-600 dark:text-slate-300'
           }`}
         >
           <Trophy size={16} />
@@ -322,16 +318,15 @@ export default function MobileRecordsPage() {
           <RefreshCw size={24} className="animate-spin text-orange-500" />
         </div>
       ) : students.length === 0 ? (
-        <div className="bg-white rounded-xl p-8 text-center shadow-sm">
-          <p className="text-slate-500 text-sm">배치된 학생이 없습니다</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center shadow-sm border border-slate-200 dark:border-slate-700">
+          <p className="text-slate-500 dark:text-slate-400 text-sm">내 반에 배치된 학생이 없습니다</p>
         </div>
       ) : inputMode === 'student' ? (
         /* 학생별 모드 */
         <div className="space-y-2">
-          {/* 전체 펼치기/접기 */}
           <button
             onClick={toggleAll}
-            className="text-xs text-slate-500 underline"
+            className="text-xs text-slate-500 dark:text-slate-400 underline"
           >
             {expandedStudents.size === students.length ? '전체 접기' : '전체 펼치기'}
           </button>
@@ -339,8 +334,7 @@ export default function MobileRecordsPage() {
           {students.map((student) => {
             const isExpanded = expandedStudents.has(student.id);
             return (
-              <div key={student.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
-                {/* 학생 헤더 */}
+              <div key={student.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
                 <button
                   onClick={() => toggleStudent(student.id)}
                   className="w-full flex items-center justify-between p-3"
@@ -353,14 +347,14 @@ export default function MobileRecordsPage() {
                     </div>
                     <div className="text-left">
                       <div className="flex items-center gap-1">
-                        <p className="font-medium text-slate-800 text-sm">{student.name}</p>
+                        <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{student.name}</p>
                         {!!student.is_trial && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
                             {(student.trial_total || 0) - (student.trial_remaining || 0)}/{student.trial_total || 0}
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-500">
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
                         {student.gender === 'male' ? '남' : '여'}
                       </p>
                     </div>
@@ -372,9 +366,8 @@ export default function MobileRecordsPage() {
                   )}
                 </button>
 
-                {/* 기록 입력 영역 */}
                 {isExpanded && (
-                  <div className="px-3 pb-3 space-y-2 border-t border-slate-100">
+                  <div className="px-3 pb-3 space-y-2 border-t border-slate-100 dark:border-slate-700">
                     {recordTypes.map((type) => {
                       const key = `${student.id}-${type.id}`;
                       const record = records[key];
@@ -382,7 +375,7 @@ export default function MobileRecordsPage() {
 
                       return (
                         <div key={type.id} className="flex items-center gap-2 pt-2">
-                          <span className="text-xs text-slate-600 w-20 truncate">
+                          <span className="text-xs text-slate-600 dark:text-slate-300 w-20 truncate">
                             {type.short_name || type.name}
                           </span>
                           <div className="flex-1 relative">
@@ -392,7 +385,7 @@ export default function MobileRecordsPage() {
                               placeholder="기록"
                               defaultValue={record?.value ?? ''}
                               onBlur={(e) => saveRecord(student.id, type.id, e.target.value)}
-                              className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                              className="w-full h-10 px-3 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
                             />
                             {isSaving && (
                               <Check size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
@@ -416,7 +409,6 @@ export default function MobileRecordsPage() {
       ) : (
         /* 종목별 모드 */
         <div className="space-y-3">
-          {/* 종목 선택 탭 */}
           <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
             {recordTypes.map((type) => (
               <button
@@ -425,7 +417,7 @@ export default function MobileRecordsPage() {
                 className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition ${
                   selectedType === type.id
                     ? 'bg-orange-500 text-white'
-                    : 'bg-white text-slate-600'
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 {type.short_name || type.name}
@@ -433,8 +425,7 @@ export default function MobileRecordsPage() {
             ))}
           </div>
 
-          {/* 학생별 입력 리스트 */}
-          <div className="bg-white rounded-xl shadow-sm divide-y divide-slate-100">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700">
             {students.map((student) => {
               if (!selectedType) return null;
               const key = `${student.id}-${selectedType}`;
@@ -451,9 +442,9 @@ export default function MobileRecordsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
-                      <p className="font-medium text-slate-800 text-sm truncate">{student.name}</p>
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm truncate">{student.name}</p>
                       {!!student.is_trial && (
-                        <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-100 text-purple-700 flex-shrink-0">
+                        <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 flex-shrink-0">
                           {(student.trial_total || 0) - (student.trial_remaining || 0)}/{student.trial_total || 0}
                         </span>
                       )}
@@ -466,7 +457,7 @@ export default function MobileRecordsPage() {
                       placeholder="기록"
                       defaultValue={record?.value ?? ''}
                       onBlur={(e) => saveRecord(student.id, selectedType, e.target.value)}
-                      className="w-20 h-10 px-2 text-sm text-right border border-slate-200 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                      className="w-20 h-10 px-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
                     />
                     {isSaving && (
                       <Check size={14} className="text-green-500" />

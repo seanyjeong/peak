@@ -87,7 +87,7 @@ const conditionEmojis = [
 export default function MobileTrainingPage() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('morning');
-  const [activeTab, setActiveTab] = useState<'checklist' | 'condition'>('checklist');
+  const [activeTab, setActiveTab] = useState<'checklist' | 'condition'>('condition');
   const [students, setStudents] = useState<Student[]>([]);
   const [plans, setPlans] = useState<DailyPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,14 +111,14 @@ export default function MobileTrainingPage() {
       const token = authAPI.getToken();
       const headers = { Authorization: `Bearer ${token}` };
 
-      // 반배치에서 학생 목록 로드 (PC 버전과 동일)
+      // 반배치에서 학생 목록 로드
       const assignmentsRes = await fetch(
         `${API_BASE}/assignments?date=${selectedDate}`,
         { headers }
       );
       const assignmentsData = await assignmentsRes.json();
 
-      // 기존 수업 기록 로드 (컨디션, 메모 등)
+      // 기존 수업 기록 로드
       const trainingRes = await fetch(
         `${API_BASE}/training?date=${selectedDate}`,
         { headers }
@@ -126,22 +126,19 @@ export default function MobileTrainingPage() {
       const trainingData = await trainingRes.json();
       const existingLogs = trainingData.logs || [];
 
-      // 시간대별 학생 필터링 (assignments 기반)
+      // 시간대별 학생 필터링
       const slotsData = assignmentsData.slots || {};
       const slotInfo = slotsData[selectedTimeSlot] || {};
 
       // 현재 유저 정보
       const currentUser = authAPI.getCurrentUser();
       const userInstructorId = currentUser?.instructorId;
-      // 원장의 경우 음수 ID 사용 (-user.id)
       const userNegativeId = currentUser?.role === 'owner' ? -(currentUser?.id || 0) : null;
 
       // 내 반의 학생들만 필터링
       const myStudents: Array<{ id: number; student_id: number; student_name: string; gender: string; is_trial?: boolean; trial_total?: number; trial_remaining?: number }> = [];
 
-      // 반에 배치된 학생들 - 내가 배치된 반만 필터링
       (slotInfo.classes as ClassData[] || []).forEach((cls) => {
-        // 내가 이 반의 강사인 경우에만 학생 포함
         const isMyClass = cls.instructors?.some((inst: ClassInstructor) =>
           inst.id === userInstructorId || inst.id === userNegativeId
         );
@@ -152,10 +149,8 @@ export default function MobileTrainingPage() {
           });
         }
       });
-      // 대기 중인 학생은 모바일에서 표시하지 않음 (PC에서 배치 후 사용)
 
       const slotData = myStudents.map((s) => {
-        // 기존 로그에서 해당 학생의 컨디션/메모 찾기
         const existingLog = existingLogs.find((l: { student_id: number }) => l.student_id === s.student_id);
         return {
           id: s.student_id,
@@ -180,7 +175,6 @@ export default function MobileTrainingPage() {
       );
       const planData = await planRes.json();
 
-      // 내 instructor_id와 일치하는 계획만 필터링
       const myInstructorId = userInstructorId || userNegativeId;
       const myPlans = (planData.plans || []).filter((p: { instructor_id: number }) =>
         p.instructor_id === myInstructorId
@@ -273,7 +267,6 @@ export default function MobileTrainingPage() {
       });
       const data = await res.json();
 
-      // 로컬 상태 업데이트
       setPlans(prev => prev.map(p =>
         p.id === planId
           ? { ...p, completed_exercises: data.completed_exercises || [], exercise_times: data.exercise_times || {} }
@@ -284,7 +277,7 @@ export default function MobileTrainingPage() {
     }
   };
 
-  // 모든 계획의 운동 합치기 (완료 상태 포함)
+  // 모든 계획의 운동 합치기
   const allExercises = plans.flatMap(p =>
     (p.exercises || []).map(ex => ({
       ...ex,
@@ -297,23 +290,23 @@ export default function MobileTrainingPage() {
   return (
     <div className="space-y-3">
       {/* 날짜 선택 */}
-      <div className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm">
+      <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-2">
-          <Calendar size={18} className="text-slate-500" />
+          <Calendar size={18} className="text-slate-500 dark:text-slate-400" />
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="text-sm font-medium text-slate-800 bg-transparent border-none outline-none"
+            className="text-sm font-medium text-slate-800 dark:text-slate-100 bg-transparent border-none outline-none"
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">{koreanDate}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">{koreanDate}</span>
           <button
             onClick={loadData}
-            className="p-2 hover:bg-slate-100 rounded-lg transition"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin text-orange-500' : 'text-slate-500'} />
+            <RefreshCw size={18} className={loading ? 'animate-spin text-orange-500' : 'text-slate-500 dark:text-slate-400'} />
           </button>
         </div>
       </div>
@@ -327,7 +320,7 @@ export default function MobileTrainingPage() {
             className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl font-medium text-sm transition ${
               selectedTimeSlot === key
                 ? 'bg-orange-500 text-white shadow-md'
-                : 'bg-white text-slate-600 shadow-sm'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700'
             }`}
           >
             <Icon size={16} />
@@ -337,28 +330,28 @@ export default function MobileTrainingPage() {
       </div>
 
       {/* 내부 탭 */}
-      <div className="flex gap-2 bg-white rounded-xl p-1 shadow-sm">
-        <button
-          onClick={() => setActiveTab('checklist')}
-          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
-            activeTab === 'checklist'
-              ? 'bg-slate-800 text-white'
-              : 'text-slate-600'
-          }`}
-        >
-          <ClipboardList size={16} />
-          <span>체크리스트</span>
-        </button>
+      <div className="flex gap-2 bg-white dark:bg-slate-800 rounded-xl p-1 shadow-sm border border-slate-200 dark:border-slate-700">
         <button
           onClick={() => setActiveTab('condition')}
           className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
             activeTab === 'condition'
-              ? 'bg-slate-800 text-white'
-              : 'text-slate-600'
+              ? 'bg-neutral-900 dark:bg-neutral-700 text-white'
+              : 'text-slate-600 dark:text-slate-300'
           }`}
         >
           <Users size={16} />
           <span>학생 컨디션</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('checklist')}
+          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
+            activeTab === 'checklist'
+              ? 'bg-neutral-900 dark:bg-neutral-700 text-white'
+              : 'text-slate-600 dark:text-slate-300'
+          }`}
+        >
+          <ClipboardList size={16} />
+          <span>체크리스트</span>
         </button>
       </div>
 
@@ -366,96 +359,12 @@ export default function MobileTrainingPage() {
         <div className="flex items-center justify-center py-12">
           <RefreshCw size={24} className="animate-spin text-orange-500" />
         </div>
-      ) : activeTab === 'checklist' ? (
-        /* 체크리스트 탭 */
-        <div className="space-y-3">
-          {/* 환경 체크 - 한 줄로 컴팩트하게 */}
-          <div className="bg-white rounded-xl p-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setEnvCheck(prev => ({ ...prev, checked: !prev.checked }))}
-                className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition ${
-                  envCheck.checked
-                    ? 'bg-green-500 border-green-500'
-                    : 'border-slate-300'
-                }`}
-              >
-                {envCheck.checked && <Check size={12} className="text-white" />}
-              </button>
-              <span className="text-sm font-medium text-slate-800 flex-shrink-0">환경</span>
-              <div className="flex items-center gap-1 flex-1 min-w-0">
-                <Thermometer size={14} className="text-red-500 flex-shrink-0" />
-                <input
-                  type="number"
-                  placeholder="25"
-                  value={envCheck.temperature}
-                  onChange={(e) => setEnvCheck(prev => ({ ...prev, temperature: e.target.value }))}
-                  className="w-10 bg-slate-100 rounded px-1 py-0.5 text-sm text-center outline-none"
-                />
-                <span className="text-xs text-slate-400">°C</span>
-              </div>
-              <div className="flex items-center gap-1 flex-1 min-w-0">
-                <Droplets size={14} className="text-blue-500 flex-shrink-0" />
-                <input
-                  type="number"
-                  placeholder="50"
-                  value={envCheck.humidity}
-                  onChange={(e) => setEnvCheck(prev => ({ ...prev, humidity: e.target.value }))}
-                  className="w-10 bg-slate-100 rounded px-1 py-0.5 text-sm text-center outline-none"
-                />
-                <span className="text-xs text-slate-400">%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 계획된 운동 */}
-          <div className="bg-white rounded-xl shadow-sm divide-y divide-slate-100">
-            <div className="px-4 py-3">
-              <h3 className="font-medium text-slate-800">계획된 운동</h3>
-            </div>
-            {allExercises.length === 0 ? (
-              <div className="px-4 py-4 text-center text-sm text-slate-500">
-                계획된 운동이 없습니다
-              </div>
-            ) : (
-              allExercises.map((ex, idx) => (
-                <div key={idx} className="flex items-center gap-2 px-3 py-2">
-                  <button
-                    onClick={() => toggleExercise(ex.planId, ex.id)}
-                    className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition ${
-                      ex.completed
-                        ? 'bg-green-500 border-green-500'
-                        : 'border-slate-300'
-                    }`}
-                  >
-                    {ex.completed && <Check size={12} className="text-white" />}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-800 truncate">
-                      {ex.name}
-                      {(ex.sets || ex.reps) && (
-                        <span className="text-slate-400 ml-1">
-                          {ex.sets && `${ex.sets}세트`}{ex.sets && ex.reps && '/'}{ex.reps && `${ex.reps}회`}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  {ex.completed_at && (
-                    <span className="text-xs text-green-600 flex-shrink-0">
-                      {format(new Date(ex.completed_at), 'HH:mm')}
-                    </span>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      ) : (
+      ) : activeTab === 'condition' ? (
         /* 학생 컨디션 탭 */
         <div className="space-y-2">
           {students.length === 0 ? (
-            <div className="bg-white rounded-xl p-8 text-center shadow-sm">
-              <p className="text-slate-500 text-sm">등록된 학생이 없습니다</p>
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center shadow-sm border border-slate-200 dark:border-slate-700">
+              <p className="text-slate-500 dark:text-slate-400 text-sm">내 반에 배치된 학생이 없습니다</p>
             </div>
           ) : (
             students.map((student) => {
@@ -463,7 +372,7 @@ export default function MobileTrainingPage() {
               const isSavingNotes = saving === `notes-${student.training_log_id}`;
 
               return (
-                <div key={student.id} className="bg-white rounded-xl p-4 shadow-sm">
+                <div key={student.id} className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
                   {/* 학생 이름 */}
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
@@ -471,9 +380,9 @@ export default function MobileTrainingPage() {
                     }`}>
                       {student.name.charAt(0)}
                     </div>
-                    <p className="font-medium text-slate-800">{student.name}</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-100">{student.name}</p>
                     {!!student.is_trial && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
                         {(student.trial_total || 0) - (student.trial_remaining || 0)}/{student.trial_total || 0}
                       </span>
                     )}
@@ -494,12 +403,12 @@ export default function MobileTrainingPage() {
                         }}
                         className={`flex-1 flex flex-col items-center py-2 rounded-xl transition ${
                           student.condition_score === score
-                            ? 'bg-orange-100 border-2 border-orange-500'
-                            : 'bg-slate-50 border-2 border-transparent'
+                            ? 'bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-500'
+                            : 'bg-slate-50 dark:bg-slate-700 border-2 border-transparent'
                         }`}
                       >
                         <span className="text-xl">{emoji}</span>
-                        <span className="text-[10px] text-slate-500 mt-1">{label}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">{label}</span>
                       </button>
                     ))}
                   </div>
@@ -518,7 +427,7 @@ export default function MobileTrainingPage() {
                           saveNotes(student.training_log_id, e.target.value);
                         }
                       }}
-                      className="w-full h-10 pl-10 pr-8 text-sm bg-slate-50 rounded-lg border border-slate-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                      className="w-full h-10 pl-10 pr-8 text-sm bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
                     />
                     {isSavingNotes && (
                       <Check size={14} className="absolute right-3 top-3 text-green-500" />
@@ -528,6 +437,90 @@ export default function MobileTrainingPage() {
               );
             })
           )}
+        </div>
+      ) : (
+        /* 체크리스트 탭 */
+        <div className="space-y-3">
+          {/* 환경 체크 */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setEnvCheck(prev => ({ ...prev, checked: !prev.checked }))}
+                className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition ${
+                  envCheck.checked
+                    ? 'bg-green-500 border-green-500'
+                    : 'border-slate-300 dark:border-slate-500'
+                }`}
+              >
+                {envCheck.checked && <Check size={12} className="text-white" />}
+              </button>
+              <span className="text-sm font-medium text-slate-800 dark:text-slate-100 flex-shrink-0">환경</span>
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <Thermometer size={14} className="text-red-500 flex-shrink-0" />
+                <input
+                  type="number"
+                  placeholder="25"
+                  value={envCheck.temperature}
+                  onChange={(e) => setEnvCheck(prev => ({ ...prev, temperature: e.target.value }))}
+                  className="w-10 bg-slate-100 dark:bg-slate-700 rounded px-1 py-0.5 text-sm text-center outline-none text-slate-800 dark:text-slate-100"
+                />
+                <span className="text-xs text-slate-400">°C</span>
+              </div>
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <Droplets size={14} className="text-blue-500 flex-shrink-0" />
+                <input
+                  type="number"
+                  placeholder="50"
+                  value={envCheck.humidity}
+                  onChange={(e) => setEnvCheck(prev => ({ ...prev, humidity: e.target.value }))}
+                  className="w-10 bg-slate-100 dark:bg-slate-700 rounded px-1 py-0.5 text-sm text-center outline-none text-slate-800 dark:text-slate-100"
+                />
+                <span className="text-xs text-slate-400">%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 계획된 운동 */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700">
+            <div className="px-4 py-3">
+              <h3 className="font-medium text-slate-800 dark:text-slate-100">계획된 운동</h3>
+            </div>
+            {allExercises.length === 0 ? (
+              <div className="px-4 py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                계획된 운동이 없습니다
+              </div>
+            ) : (
+              allExercises.map((ex, idx) => (
+                <div key={idx} className="flex items-center gap-2 px-3 py-2">
+                  <button
+                    onClick={() => toggleExercise(ex.planId, ex.id)}
+                    className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition ${
+                      ex.completed
+                        ? 'bg-green-500 border-green-500'
+                        : 'border-slate-300 dark:border-slate-500'
+                    }`}
+                  >
+                    {ex.completed && <Check size={12} className="text-white" />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-800 dark:text-slate-100 truncate">
+                      {ex.name}
+                      {(ex.sets || ex.reps) && (
+                        <span className="text-slate-400 ml-1">
+                          {ex.sets && `${ex.sets}세트`}{ex.sets && ex.reps && '/'}{ex.reps && `${ex.reps}회`}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  {ex.completed_at && (
+                    <span className="text-xs text-green-600 flex-shrink-0">
+                      {format(new Date(ex.completed_at), 'HH:mm')}
+                    </span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
