@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, use } from 'react';
+import { useState, useEffect, useMemo, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -35,6 +35,8 @@ import {
   Radar,
   Legend
 } from 'recharts';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import apiClient from '@/lib/api/client';
 
 interface RecordType {
@@ -95,6 +97,7 @@ export default function StudentProfilePage({
 }) {
   const { id: studentId } = use(params);
   const router = useRouter();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const [student, setStudent] = useState<Student | null>(null);
   const [stats, setStats] = useState<StudentStats | null>(null);
@@ -126,23 +129,47 @@ export default function StudentProfilePage({
     }
   };
 
-  // PDF 다운로드 핸들러
+  // PDF 다운로드 핸들러 (현재 화면 캡처)
   const handleDownloadPDF = async () => {
+    if (!contentRef.current || !student) return;
+
     try {
       setPdfLoading(true);
-      const response = await apiClient.get(`/students/${studentId}/export-pdf`, {
-        responseType: 'blob'
+
+      // 현재 화면을 캔버스로 캡처
+      const canvas = await html2canvas(contentRef.current, {
+        scale: 2, // 고해상도
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f1f5f9' // slate-100 배경색
       });
 
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${student?.name || '학생'}_성적표_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      // A4 사이즈 (210 x 297mm)
+      const pdf = new jsPDF({
+        orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      // 이미지를 PDF 크기에 맞게 조정
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const scaledWidth = imgWidth * ratio;
+      const scaledHeight = imgHeight * ratio;
+
+      // 중앙 정렬
+      const x = (pdfWidth - scaledWidth) / 2;
+      const y = (pdfHeight - scaledHeight) / 2;
+
+      pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
+      pdf.save(`${student.name}_성적표_${new Date().toISOString().split('T')[0]}.pdf`);
+
     } catch (error) {
       console.error('PDF download error:', error);
       alert('PDF 다운로드에 실패했습니다.');
@@ -420,7 +447,7 @@ export default function StudentProfilePage({
   const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 6);
 
   return (
-    <div className="space-y-6">
+    <div ref={contentRef} className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

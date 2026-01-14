@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, use } from 'react';
+import { useState, useEffect, useMemo, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -12,6 +12,8 @@ import {
   ChevronDown,
   FileDown
 } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import {
   PieChart,
   Pie,
@@ -94,6 +96,7 @@ export default function TabletStudentProfilePage({
   const { id: studentId } = use(params);
   const router = useRouter();
   const orientation = useOrientation();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const [student, setStudent] = useState<Student | null>(null);
   const [stats, setStats] = useState<StudentStats | null>(null);
@@ -121,23 +124,44 @@ export default function TabletStudentProfilePage({
     }
   };
 
-  // PDF 다운로드 핸들러
+  // PDF 다운로드 핸들러 (현재 화면 캡처)
   const handleDownloadPDF = async () => {
+    if (!contentRef.current || !student) return;
+
     try {
       setPdfLoading(true);
-      const response = await apiClient.get(`/students/${studentId}/export-pdf`, {
-        responseType: 'blob'
+
+      // 현재 화면을 캔버스로 캡처
+      const canvas = await html2canvas(contentRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f1f5f9'
       });
 
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${student?.name || '학생'}_성적표_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      const pdf = new jsPDF({
+        orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const scaledWidth = imgWidth * ratio;
+      const scaledHeight = imgHeight * ratio;
+
+      const x = (pdfWidth - scaledWidth) / 2;
+      const y = (pdfHeight - scaledHeight) / 2;
+
+      pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
+      pdf.save(`${student.name}_성적표_${new Date().toISOString().split('T')[0]}.pdf`);
+
     } catch (error) {
       console.error('PDF download error:', error);
       alert('PDF 다운로드에 실패했습니다.');
@@ -388,7 +412,7 @@ export default function TabletStudentProfilePage({
   // 가로 모드 (2000x1200 태블릿 기준)
   if (orientation === 'landscape') {
     return (
-      <div className="flex flex-col h-[calc(100vh-100px)]">
+      <div ref={contentRef} className="flex flex-col h-[calc(100vh-100px)]">
         {/* Header - 컴팩트하게 */}
         <div className="flex items-center justify-between mb-3 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -695,7 +719,7 @@ export default function TabletStudentProfilePage({
 
   // 세로 모드: 스크롤 가능
   return (
-    <div className="space-y-4 pb-20">
+    <div ref={contentRef} className="space-y-4 pb-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
