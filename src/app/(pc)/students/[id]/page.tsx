@@ -551,7 +551,7 @@ export default function StudentProfilePage({
         </div>
 
         {/* Row 1 - Fixed height charts */}
-        <div className="grid grid-cols-12 gap-1.5 h-[210px]">
+        <div className="grid grid-cols-12 gap-1.5 h-[260px]">
           {/* Gauges - 3 columns */}
           <div className="col-span-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
             <div className="flex items-center gap-1 mb-1">
@@ -671,7 +671,7 @@ export default function StudentProfilePage({
         </div>
 
         {/* Row 2 - Fixed height */}
-        <div className="grid grid-cols-12 gap-1.5 h-[180px]">
+        <div className="grid grid-cols-12 gap-1.5 h-[240px]">
           {/* Radar Chart - 5 columns */}
           <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between">
