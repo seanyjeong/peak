@@ -7,8 +7,13 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const mysql = require('mysql2/promise');
+const PDFDocument = require('pdfkit');
+const path = require('path');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
+
+// 한글 폰트 경로
+const KOREAN_FONT_PATH = path.join(__dirname, '../fonts/NotoSansKR-Regular.otf');
 
 // P-ACA DB 연결 (환경변수 필수)
 const pacaPool = mysql.createPool({
@@ -546,6 +551,279 @@ router.get('/:id/stats', verifyToken, async (req, res) => {
     } catch (error) {
         console.error('Get student stats error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /peak/students/:id/export-pdf - 학생 대시보드 PDF 다운로드
+ */
+router.get('/:id/export-pdf', verifyToken, async (req, res) => {
+    try {
+        const academyId = req.user.academyId;
+        const studentId = req.params.id;
+
+        // 1. 학원명 조회
+        const [settings] = await db.query(
+            'SELECT academy_name FROM peak_settings WHERE academy_id = ?',
+            [academyId]
+        );
+        const academyName = settings[0]?.academy_name || '체대입시 학원';
+
+        // 2. 학생 정보 조회
+        const [students] = await db.query(
+            'SELECT * FROM students WHERE id = ? AND academy_id = ?',
+            [studentId, academyId]
+        );
+        if (students.length === 0) {
+            return res.status(404).json({ error: 'Student not found' });
+        }
+        const student = students[0];
+
+        // 3. 활성 종목 목록
+        const [recordTypes] = await db.query(
+            'SELECT * FROM record_types WHERE academy_id = ? AND is_active = 1 ORDER BY display_order',
+            [academyId]
+        );
+
+        // 4. 학생의 모든 기록 조회
+        const [allRecords] = await db.query(`
+            SELECT r.*, rt.name as record_type_name, rt.unit, rt.direction
+            FROM student_records r
+            JOIN record_types rt ON r.record_type_id = rt.id
+            WHERE r.student_id = ? AND r.academy_id = ?
+            ORDER BY r.measured_at DESC
+        `, [studentId, academyId]);
+
+        // 5. 종목별 배점표 조회
+        const [scoreTables] = await db.query(`
+            SELECT st.*, sr.score, sr.male_min, sr.male_max, sr.female_min, sr.female_max
+            FROM score_tables st
+            JOIN score_ranges sr ON sr.score_table_id = st.id
+            WHERE st.academy_id = ?
+            ORDER BY st.record_type_id, sr.score DESC
+        `, [academyId]);
+
+        // 배점표를 종목별로 그룹화
+        const scoreTablesByType = {};
+        scoreTables.forEach(row => {
+            if (!scoreTablesByType[row.record_type_id]) {
+                scoreTablesByType[row.record_type_id] = { maxScore: row.max_score, ranges: [] };
+            }
+            scoreTablesByType[row.record_type_id].ranges.push({
+                score: row.score,
+                male_min: parseFloat(row.male_min),
+                male_max: parseFloat(row.male_max),
+                female_min: parseFloat(row.female_min),
+                female_max: parseFloat(row.female_max)
+            });
+        });
+
+        // 6. 종목별 통계 계산
+        const bests = {};
+        const latests = {};
+        const scores = {};
+
+        recordTypes.forEach(rt => {
+            const typeRecords = allRecords.filter(r => r.record_type_id === rt.id);
+            if (typeRecords.length === 0) return;
+
+            const values = typeRecords.map(r => parseFloat(r.value));
+            const isLowerBetter = rt.direction === 'lower';
+            const bestValue = isLowerBetter ? Math.min(...values) : Math.max(...values);
+            const bestRecord = typeRecords.find(r => parseFloat(r.value) === bestValue);
+            bests[rt.id] = { value: bestValue, date: bestRecord?.measured_at };
+
+            latests[rt.id] = { value: parseFloat(typeRecords[0].value), date: typeRecords[0].measured_at };
+
+            // 점수 계산
+            const scoreTable = scoreTablesByType[rt.id];
+            if (scoreTable) {
+                const latestValue = parseFloat(typeRecords[0].value);
+                const ranges = scoreTable.ranges;
+                let foundScore = null;
+
+                for (const range of ranges) {
+                    const min = student.gender === 'M' ? range.male_min : range.female_min;
+                    const max = student.gender === 'M' ? range.male_max : range.female_max;
+                    if (latestValue >= min && latestValue <= max) {
+                        foundScore = range.score;
+                        break;
+                    }
+                }
+
+                if (foundScore === null) {
+                    if (isLowerBetter) {
+                        for (const range of ranges) {
+                            const max = student.gender === 'M' ? range.male_max : range.female_max;
+                            if (latestValue <= max) { foundScore = range.score; break; }
+                        }
+                        if (foundScore === null) foundScore = ranges[ranges.length - 1]?.score || 50;
+                    } else {
+                        for (const range of ranges) {
+                            const min = student.gender === 'M' ? range.male_min : range.female_min;
+                            if (latestValue >= min) { foundScore = range.score; break; }
+                        }
+                        if (foundScore === null) foundScore = ranges[ranges.length - 1]?.score || 50;
+                    }
+                }
+
+                scores[rt.id] = foundScore;
+            }
+        });
+
+        // 7. 총점 및 등급
+        const scoreValues = Object.values(scores);
+        const totalScore = scoreValues.reduce((a, b) => a + b, 0);
+        const maxPossibleScore = scoreValues.length * 100;
+        const percentage = maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0;
+
+        let grade = 'F';
+        if (percentage >= 90) grade = 'A';
+        else if (percentage >= 80) grade = 'B';
+        else if (percentage >= 70) grade = 'C';
+        else if (percentage >= 60) grade = 'D';
+
+        // 8. PDF 생성
+        const doc = new PDFDocument({ size: 'A4', margin: 40 });
+
+        // 응답 헤더 설정
+        const fileName = encodeURIComponent(`${student.name}_성적표_${new Date().toISOString().split('T')[0]}.pdf`);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${fileName}`);
+
+        doc.pipe(res);
+
+        // 한글 폰트 등록
+        doc.registerFont('Korean', KOREAN_FONT_PATH);
+        doc.font('Korean');
+
+        // === 헤더 영역 ===
+        doc.fontSize(24).fillColor('#1a2b4a').text(academyName, { align: 'center' });
+        doc.moveDown(0.3);
+        doc.fontSize(14).fillColor('#666').text('실기 성적표', { align: 'center' });
+        doc.moveDown(0.5);
+
+        // 발행일
+        const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+        doc.fontSize(10).fillColor('#999').text(`발행일: ${today}`, { align: 'right' });
+
+        doc.moveDown(1);
+
+        // === 학생 정보 ===
+        doc.fontSize(12).fillColor('#1a2b4a').text('학생 정보', { underline: true });
+        doc.moveDown(0.5);
+
+        const studentInfo = [
+            ['이름', student.name],
+            ['성별', student.gender === 'M' ? '남' : '여'],
+            ['학교', student.school || '-'],
+            ['학년', student.grade || '-']
+        ];
+
+        doc.fontSize(10).fillColor('#333');
+        studentInfo.forEach(([label, value]) => {
+            doc.text(`${label}: ${value}`, { continued: false });
+        });
+
+        doc.moveDown(1);
+
+        // === 종합 평가 ===
+        doc.fontSize(12).fillColor('#1a2b4a').text('종합 평가', { underline: true });
+        doc.moveDown(0.5);
+
+        // 종합 점수 박스
+        const gradeColors = { A: '#22c55e', B: '#3b82f6', C: '#eab308', D: '#f97316', F: '#ef4444' };
+        doc.fontSize(36).fillColor(gradeColors[grade] || '#666').text(grade, { continued: true });
+        doc.fontSize(12).fillColor('#333').text(`  ${totalScore}점 / ${maxPossibleScore}점 (${Math.round(percentage)}%)`, { baseline: 'middle' });
+
+        doc.moveDown(1.5);
+
+        // === 종목별 기록 ===
+        doc.fontSize(12).fillColor('#1a2b4a').text('종목별 기록', { underline: true });
+        doc.moveDown(0.5);
+
+        // 테이블 헤더
+        const tableTop = doc.y;
+        const colWidths = [120, 80, 80, 80, 80];
+        const headers = ['종목', '최근 기록', '최고 기록', '점수', '단위'];
+
+        doc.fontSize(9).fillColor('#fff');
+        doc.rect(40, tableTop, 515, 20).fill('#1a2b4a');
+        let xPos = 45;
+        headers.forEach((header, i) => {
+            doc.fillColor('#fff').text(header, xPos, tableTop + 5, { width: colWidths[i], align: 'center' });
+            xPos += colWidths[i];
+        });
+
+        // 테이블 데이터
+        let yPos = tableTop + 22;
+        doc.fillColor('#333');
+
+        recordTypes.forEach((rt, idx) => {
+            const latest = latests[rt.id];
+            const best = bests[rt.id];
+            const score = scores[rt.id];
+
+            // 배경색 (줄무늬)
+            if (idx % 2 === 0) {
+                doc.rect(40, yPos - 2, 515, 18).fill('#f8fafc');
+            }
+
+            xPos = 45;
+            doc.fillColor('#333').fontSize(9);
+            doc.text(rt.name, xPos, yPos, { width: colWidths[0] });
+            xPos += colWidths[0];
+            doc.text(latest ? String(latest.value) : '-', xPos, yPos, { width: colWidths[1], align: 'center' });
+            xPos += colWidths[1];
+            doc.text(best ? String(best.value) : '-', xPos, yPos, { width: colWidths[2], align: 'center' });
+            xPos += colWidths[2];
+            doc.text(score !== undefined ? `${score}점` : '-', xPos, yPos, { width: colWidths[3], align: 'center' });
+            xPos += colWidths[3];
+            doc.text(rt.unit, xPos, yPos, { width: colWidths[4], align: 'center' });
+
+            yPos += 18;
+
+            // 페이지 넘김 체크
+            if (yPos > 750) {
+                doc.addPage();
+                yPos = 50;
+            }
+        });
+
+        doc.moveDown(2);
+
+        // === 최근 기록 히스토리 ===
+        if (allRecords.length > 0) {
+            doc.y = yPos + 20;
+            doc.fontSize(12).fillColor('#1a2b4a').text('최근 측정 기록', { underline: true });
+            doc.moveDown(0.5);
+
+            // 날짜별로 그룹화
+            const grouped = {};
+            allRecords.slice(0, 30).forEach(r => {
+                const dateKey = new Date(r.measured_at).toISOString().split('T')[0];
+                if (!grouped[dateKey]) grouped[dateKey] = [];
+                grouped[dateKey].push(r);
+            });
+
+            doc.fontSize(9).fillColor('#333');
+            const dates = Object.keys(grouped).slice(0, 5);
+            dates.forEach(date => {
+                const records = grouped[date];
+                const formattedDate = new Date(date).toLocaleDateString('ko-KR');
+                doc.text(`${formattedDate}: ${records.map(r => `${r.record_type_name} ${r.value}${r.unit}`).join(', ')}`);
+            });
+        }
+
+        // === 푸터 ===
+        doc.fontSize(8).fillColor('#999');
+        doc.text(`${academyName} | P-EAK 실기훈련관리시스템`, 40, 800, { align: 'center', width: 515 });
+
+        doc.end();
+
+    } catch (error) {
+        console.error('Export PDF error:', error);
+        res.status(500).json({ error: 'PDF 생성 실패: ' + error.message });
     }
 });
 

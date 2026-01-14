@@ -12,7 +12,8 @@ import {
   Award,
   ChevronDown,
   Printer,
-  Edit
+  Edit,
+  FileDown
 } from 'lucide-react';
 import {
   PieChart,
@@ -113,6 +114,8 @@ export default function StudentProfilePage({
 
   // 최근 기록 더보기 상태
   const [showAllRecords, setShowAllRecords] = useState(false);
+  // PDF 다운로드 로딩 상태
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // 게이지 종목 토글
   const toggleGaugeType = (typeId: number) => {
@@ -120,6 +123,31 @@ export default function StudentProfilePage({
       setSelectedGaugeTypes(selectedGaugeTypes.filter(id => id !== typeId));
     } else if (selectedGaugeTypes.length < 6) {
       setSelectedGaugeTypes([...selectedGaugeTypes, typeId]);
+    }
+  };
+
+  // PDF 다운로드 핸들러
+  const handleDownloadPDF = async () => {
+    try {
+      setPdfLoading(true);
+      const response = await apiClient.get(`/students/${studentId}/export-pdf`, {
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${student?.name || '학생'}_성적표_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('PDF download error:', error);
+      alert('PDF 다운로드에 실패했습니다.');
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -418,6 +446,14 @@ export default function StudentProfilePage({
           <button className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200">
             <Edit size={18} />
             수정
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            disabled={pdfLoading}
+            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <FileDown size={18} />
+            {pdfLoading ? 'PDF 생성중...' : 'PDF 다운로드'}
           </button>
           <button className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200">
             <Printer size={18} />

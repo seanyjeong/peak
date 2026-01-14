@@ -1,6 +1,6 @@
 {
   "name": "peak-temp",
-  "version": "4.3.38",
+  "version": "4.3.39",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -36,6 +36,7 @@
     "mysql2": "^3.16.0",
     "next": "16.1.0",
     "node-cron": "^4.2.1",
+    "pdfkit": "^0.17.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-grid-layout": "^2.1.0",

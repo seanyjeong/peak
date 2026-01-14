@@ -9,7 +9,8 @@ import {
   TrendingDown,
   Minus,
   RefreshCw,
-  ChevronDown
+  ChevronDown,
+  FileDown
 } from 'lucide-react';
 import {
   PieChart,
@@ -109,12 +110,39 @@ export default function TabletStudentProfilePage({
 
   // 더보기 상태
   const [showAllRecords, setShowAllRecords] = useState(false);
+  // PDF 다운로드 로딩 상태
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const toggleGaugeType = (typeId: number) => {
     if (selectedGaugeTypes.includes(typeId)) {
       setSelectedGaugeTypes(selectedGaugeTypes.filter(id => id !== typeId));
     } else if (selectedGaugeTypes.length < 6) {
       setSelectedGaugeTypes([...selectedGaugeTypes, typeId]);
+    }
+  };
+
+  // PDF 다운로드 핸들러
+  const handleDownloadPDF = async () => {
+    try {
+      setPdfLoading(true);
+      const response = await apiClient.get(`/students/${studentId}/export-pdf`, {
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${student?.name || '학생'}_성적표_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('PDF download error:', error);
+      alert('PDF 다운로드에 실패했습니다.');
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -381,12 +409,22 @@ export default function TabletStudentProfilePage({
               </div>
             </div>
           </div>
-          <button
-            onClick={loadData}
-            className="p-3 text-slate-600 dark:text-slate-300 bg-white border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 transition"
-          >
-            <RefreshCw size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadPDF}
+              disabled={pdfLoading}
+              className="px-4 py-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+            >
+              <FileDown size={18} />
+              {pdfLoading ? 'PDF...' : 'PDF'}
+            </button>
+            <button
+              onClick={loadData}
+              className="p-3 text-slate-600 dark:text-slate-300 bg-white border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 transition"
+            >
+              <RefreshCw size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Main Grid - 3 컬럼 (2000x1200 최적화) */}
@@ -678,12 +716,22 @@ export default function TabletStudentProfilePage({
             </div>
           </div>
         </div>
-        <button
-          onClick={loadData}
-          className="p-3 text-slate-600 dark:text-slate-300 bg-white border border-slate-200 dark:border-slate-700 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 transition"
-        >
-          <RefreshCw size={18} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadPDF}
+            disabled={pdfLoading}
+            className="px-3 py-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 text-sm"
+          >
+            <FileDown size={16} />
+            {pdfLoading ? '...' : 'PDF'}
+          </button>
+          <button
+            onClick={loadData}
+            className="p-3 text-slate-600 dark:text-slate-300 bg-white border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-700 transition"
+          >
+            <RefreshCw size={18} />
+          </button>
+        </div>
       </div>
 
       {/* 2 Column: 게이지 + 종합평가 */}
