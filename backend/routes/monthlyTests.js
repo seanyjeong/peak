@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
+const XLSX = require('xlsx');
 
 // 월말테스트 목록 조회
 router.get('/', verifyToken, async (req, res) => {
@@ -160,62 +161,12 @@ router.put('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const { test_name, status, notes, record_type_ids } = req.body;
 
-    // 현재 상태 조회
-    const [currentTest] = await conn.query(
-      'SELECT status FROM monthly_tests WHERE id = ? AND academy_id = ?',
-      [id, academyId]
-    );
-
     // 테스트 수정 - 해당 학원만
     await conn.query(`
       UPDATE monthly_tests
       SET test_name = ?, status = ?, notes = ?
       WHERE id = ? AND academy_id = ?
     `, [test_name, status, notes, id, academyId]);
-
-    // 🔥 완료(completed)로 변경 시 기록 영구 저장
-    if (status === 'completed' && currentTest[0]?.status !== 'completed') {
-      // 해당 테스트의 모든 세션 조회
-      const [sessions] = await conn.query(
-        'SELECT id, test_date FROM test_sessions WHERE monthly_test_id = ?',
-        [id]
-      );
-
-      for (const session of sessions) {
-        // 세션 참가자 조회
-        const [participants] = await conn.query(
-          'SELECT student_id, test_applicant_id FROM test_participants WHERE test_session_id = ?',
-          [session.id]
-        );
-
-        const studentIds = participants.filter(p => p.student_id).map(p => p.student_id);
-        const applicantIds = participants.filter(p => p.test_applicant_id).map(p => p.test_applicant_id);
-
-        // 재원생 기록 복사 (student_records → monthly_test_records)
-        if (studentIds.length > 0) {
-          await conn.query(`
-            INSERT IGNORE INTO monthly_test_records
-              (academy_id, monthly_test_id, test_session_id, student_id, record_type_id, value, measured_at)
-            SELECT ?, ?, ?, student_id, record_type_id, value, measured_at
-            FROM student_records
-            WHERE student_id IN (?) AND measured_at = ?
-          `, [academyId, id, session.id, studentIds, session.test_date]);
-        }
-
-        // 테스트신규 기록 복사 (test_records → monthly_test_records)
-        if (applicantIds.length > 0) {
-          await conn.query(`
-            INSERT IGNORE INTO monthly_test_records
-              (academy_id, monthly_test_id, test_session_id, test_applicant_id, record_type_id, value, measured_at)
-            SELECT ?, ?, ?, test_applicant_id, record_type_id, value, measured_at
-            FROM test_records
-            WHERE test_session_id = ? AND test_applicant_id IN (?)
-          `, [academyId, id, session.id, session.id, applicantIds]);
-        }
-      }
-
-      console.log(`[월말테스트] 테스트 ${id} 완료 - 기록 영구 저장됨`);
-    }
 
     // 종목 재설정
     if (record_type_ids !== undefined) {
@@ -754,6 +705,146 @@ router.put('/:testId/conflicts', verifyToken, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   } finally {
     conn.release();
+  }
+});
+
+// 월말테스트 기록 엑셀 다운로드
+router.get('/:id/export', verifyToken, async (req, res) => {
+  try {
+    const academyId = req.user.academyId;
+    const { id } = req.params;
+
+    // 테스트 정보
+    const [tests] = await pool.query(`
+      SELECT * FROM monthly_tests WHERE id = ? AND academy_id = ?
+    `, [id, academyId]);
+
+    if (tests.length === 0) {
+      return res.status(404).json({ success: false, message: '테스트를 찾을 수 없습니다.' });
+    }
+
+    const test = tests[0];
+
+    // 종목 정보
+    const [recordTypes] = await pool.query(`
+      SELECT mtt.record_type_id, rt.name, rt.short_name, rt.unit
+      FROM monthly_test_types mtt
+      JOIN record_types rt ON mtt.record_type_id = rt.id
+      WHERE mtt.monthly_test_id = ?
+      ORDER BY mtt.display_order
+    `, [id]);
+
+    // 세션 정보
+    const [sessions] = await pool.query(`
+      SELECT id, test_date, time_slot FROM test_sessions WHERE monthly_test_id = ?
+    `, [id]);
+
+    if (sessions.length === 0) {
+      return res.status(400).json({ success: false, message: '세션이 없습니다.' });
+    }
+
+    const sessionIds = sessions.map(s => s.id);
+    const testDates = sessions.map(s => s.test_date);
+
+    // 참가자 정보
+    const [participants] = await pool.query(`
+      SELECT tp.id, tp.student_id, tp.test_applicant_id, tp.participant_type,
+             s.name, s.gender, s.school, s.grade
+      FROM test_participants tp
+      LEFT JOIN students s ON tp.student_id = s.id
+      WHERE tp.test_session_id IN (?)
+    `, [sessionIds]);
+
+    // 테스트신규 정보
+    const testApplicantIds = participants.filter(p => p.test_applicant_id).map(p => p.test_applicant_id);
+    let applicantMap = {};
+    if (testApplicantIds.length > 0) {
+      const [applicants] = await pacaPool.query(`
+        SELECT id, name, gender, school, grade FROM test_applicants WHERE id IN (?)
+      `, [testApplicantIds]);
+      applicants.forEach(a => {
+        applicantMap[a.id] = {
+          name: decrypt(a.name),
+          gender: a.gender === 'male' ? 'M' : 'F',
+          school: a.school,
+          grade: a.grade
+        };
+      });
+    }
+
+    // 재원생 기록
+    const studentIds = participants.filter(p => p.student_id).map(p => p.student_id);
+    let studentRecords = {};
+    if (studentIds.length > 0) {
+      const [records] = await pool.query(`
+        SELECT student_id, record_type_id, value
+        FROM student_records
+        WHERE student_id IN (?) AND measured_at IN (?)
+      `, [studentIds, testDates]);
+      records.forEach(r => {
+        if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
+        studentRecords[r.student_id][r.record_type_id] = r.value;
+      });
+    }
+
+    // 테스트신규 기록
+    let applicantRecords = {};
+    if (testApplicantIds.length > 0) {
+      const [records] = await pool.query(`
+        SELECT test_applicant_id, record_type_id, value
+        FROM test_records
+        WHERE test_session_id IN (?) AND test_applicant_id IN (?)
+      `, [sessionIds, testApplicantIds]);
+      records.forEach(r => {
+        if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
+        applicantRecords[r.test_applicant_id][r.record_type_id] = r.value;
+      });
+    }
+
+    // 엑셀 데이터 생성
+    const headers = ['이름', '성별', '학교', '학년', '유형', ...recordTypes.map(rt => `${rt.short_name || rt.name}(${rt.unit})`)];
+    const rows = participants.map(p => {
+      let info, records;
+      if (p.student_id) {
+        info = { name: p.name, gender: p.gender, school: p.school, grade: p.grade };
+        records = studentRecords[p.student_id] || {};
+      } else {
+        info = applicantMap[p.test_applicant_id] || {};
+        records = applicantRecords[p.test_applicant_id] || {};
+      }
+
+      const typeLabel = { enrolled: '재원', rest: '휴원', trial: '체험', test_new: '신규' };
+
+      return [
+        info.name || '',
+        info.gender === 'M' ? '남' : '여',
+        info.school || '',
+        info.grade || '',
+        typeLabel[p.participant_type] || p.participant_type,
+        ...recordTypes.map(rt => records[rt.record_type_id] ?? '')
+      ];
+    });
+
+    // 엑셀 워크북 생성
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_array([headers, ...rows]);
+    const wsData = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    XLSX.utils.book_append_sheet(wb, wsData, '기록');
+
+    // 버퍼로 변환
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    // 파일명 생성
+    const fileName = `${test.test_month}_${test.test_name || '월말테스트'}.xlsx`;
+    const encodedFileName = encodeURIComponent(fileName);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFileName}`);
+    res.send(buffer);
+
+  } catch (error) {
+    console.error('엑셀 다운로드 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

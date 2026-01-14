@@ -95,6 +95,26 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      const response = await apiClient.get(`/monthly-tests/${testId}/export`, {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${test?.test_month}_${test?.test_name || '월말테스트'}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('엑셀 다운로드 오류:', error);
+      alert('엑셀 다운로드에 실패했습니다.');
+    }
+  };
+
   const handleAddSession = async () => {
     if (!newSessionDate) {
       alert('날짜를 선택해주세요.');
@@ -289,6 +309,9 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push(`/monthly-test/${testId}/rankings`)}>
             📊 전체 순위
+          </Button>
+          <Button variant="outline" onClick={handleExportExcel}>
+            📥 엑셀 다운로드
           </Button>
           {test.status === 'draft' && (
             <Button variant="outline" onClick={openEditModal}>
