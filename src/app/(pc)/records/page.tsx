@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { RefreshCw, Calendar, Users, AlertCircle } from 'lucide-react';
+import { RefreshCw, Calendar, Users, AlertCircle, Target } from 'lucide-react';
 import {
   StudentRecordCard,
   EventRecordCard,
@@ -11,7 +11,7 @@ import {
   InputMode,
 } from '@/components/records';
 import { useRecords, useRecordInput } from '@/features/records';
-// import { PageTransition, StaggerChildren, StaggerItem } from '@/components/animations';
+import { motion } from 'framer-motion';
 
 export default function RecordsPage() {
   const {
@@ -90,15 +90,23 @@ export default function RecordsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 bento-card">
-          <RefreshCw size={32} className="animate-spin text-muted-foreground" />
-        </div>
+        <motion.div 
+          className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <RefreshCw size={32} className="animate-spin text-slate-400 dark:text-slate-500" />
+        </motion.div>
       ) : availableSlots.length === 0 ? (
-        <div className="bento-card p-12 text-center">
-          <AlertCircle size={48} className="mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">해당 날짜에 배정된 학생이 없습니다.</p>
-          <p className="text-muted-foreground text-sm mt-1">반 배치 페이지에서 학생을 배치해주세요.</p>
-        </div>
+        <motion.div 
+          className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-12 text-center"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <AlertCircle size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+          <p className="text-slate-600 dark:text-slate-400 font-medium">해당 날짜에 배정된 학생이 없습니다.</p>
+          <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">반 배치 페이지에서 학생을 배치해주세요.</p>
+        </motion.div>
       ) : (
         <>
           {/* 시간대 탭 */}

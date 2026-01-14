@@ -7,9 +7,13 @@ import {
   Sunrise,
   Sun,
   Moon,
-  RefreshCw
+  RefreshCw,
+  TrendingUp,
+  Users,
+  Activity
 } from 'lucide-react';
 import { useDashboard, getTodayFormatted } from '@/features/dashboard';
+import { motion } from 'framer-motion';
 
 // Circular Progress Component (Donut Chart Style)
 function CircularProgress({
@@ -32,8 +36,12 @@ function CircularProgress({
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative transition-transform duration-300 hover:scale-110" style={{ width: size, height: size }}>
+    <motion.div 
+      className="flex flex-col items-center"
+      whileHover={{ scale: 1.05 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+    >
+      <div className="relative" style={{ width: size, height: size }}>
         <svg className="transform -rotate-90" width={size} height={size}>
           <circle
             cx={size / 2}
@@ -62,7 +70,7 @@ function CircularProgress({
         </div>
       </div>
       <span className="text-xs text-slate-500 dark:text-slate-400 mt-2">{label}</span>
-    </div>
+    </motion.div>
   );
 }
 
@@ -89,63 +97,149 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <motion.div 
+      className="max-w-7xl mx-auto"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between mb-12">
-        <div>
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">대시보드</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">{today}</p>
-        </div>
-        <button
+      <div className="flex items-center justify-between mb-8">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight bg-gradient-to-r from-brand-orange to-brand-blue bg-clip-text text-transparent">
+            대시보드
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm uppercase tracking-wide">{today}</p>
+        </motion.div>
+        <motion.button
           onClick={() => router.push('/assignments')}
-          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-800 dark:hover:bg-slate-600 transition text-sm font-medium"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-orange to-orange-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all font-medium"
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
         >
           <Calendar size={18} />
           <span>반 배치 관리</span>
-        </button>
+        </motion.button>
       </div>
 
-      {/* Stats Cards with Circular Progress */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 mb-8">
-        <h2 className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-8">오늘 현황</h2>
-        <div className="grid grid-cols-2 gap-12">
-          <div className="flex items-center gap-8">
-            <CircularProgress
-              value={stats.trainersPresent}
-              max={Math.max(stats.totalTrainers, 1)}
-              color="#f97316"
-              label="출근 강사"
-            />
-            <div>
-              <p className="text-3xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
-                {stats.trainersPresent}명
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">오늘 출근 강사</p>
+      {/* Stats Cards - Bento Grid Style */}
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, staggerChildren: 0.1 }}
+      >
+        {/* Card 1: 출근 강사 */}
+        <motion.div 
+          className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-2xl p-6 border border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-lg transition-all"
+          whileHover={{ y: -4, scale: 1.02 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-orange/10 rounded-full -mr-16 -mt-16"></div>
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                <Users size={24} className="text-brand-orange" />
+              </div>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">출근 강사</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <CircularProgress
+                value={stats.trainersPresent}
+                max={Math.max(stats.totalTrainers, 1)}
+                color="#FE5A1D"
+                label=""
+                size={70}
+              />
+              <div>
+                <p className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                  {stats.trainersPresent}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">/ {stats.totalTrainers}명</p>
+              </div>
             </div>
           </div>
+        </motion.div>
 
-          <div className="flex items-center gap-8">
-            <CircularProgress
-              value={stats.studentsToday}
-              max={Math.max(stats.studentsToday, 1)}
-              color="#14b8a6"
-              label="수업 학생"
-            />
-            <div>
-              <p className="text-3xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
-                {stats.studentsToday}명
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">오늘 수업 학생</p>
+        {/* Card 2: 수업 학생 */}
+        <motion.div 
+          className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-lg transition-all"
+          whileHover={{ y: -4, scale: 1.02 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/10 rounded-full -mr-16 -mt-16"></div>
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                <Activity size={24} className="text-brand-blue" />
+              </div>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">수업 학생</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <CircularProgress
+                value={stats.studentsToday}
+                max={Math.max(stats.studentsToday, 1)}
+                color="#4666FF"
+                label=""
+                size={70}
+              />
+              <div>
+                <p className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                  {stats.studentsToday}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">명 예정</p>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
 
-      <div className="grid grid-cols-2 gap-8">
+        {/* Card 3: 전체 학생 */}
+        <motion.div 
+          className="relative overflow-hidden bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 rounded-2xl p-6 border border-teal-200 dark:border-teal-800 shadow-sm hover:shadow-lg transition-all"
+          whileHover={{ y: -4, scale: 1.02 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full -mr-16 -mt-16"></div>
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                <TrendingUp size={24} className="text-teal-600" />
+              </div>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">전체 학생</span>
+            </div>
+            <div>
+              <p className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">
+                {stats.studentsToday}
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">오늘 수업</p>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Today's Schedule by Time Slot */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">오늘 스케줄</h2>
+        <motion.div 
+          className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-all"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.7 }}
+        >
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">오늘 스케줄</h2>
             <button
               onClick={() => router.push('/assignments')}
               className="text-slate-600 dark:text-slate-400 text-sm font-medium flex items-center gap-1 hover:text-slate-900 dark:hover:text-slate-200 transition"
@@ -188,11 +282,16 @@ export default function DashboardPage() {
               })}
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Trainer Status - 현재 시간대 기준 */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8">
-          <div className="flex items-center justify-between mb-6">
+        <motion.div 
+          className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-all"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.8 }}
+        >
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
             <div>
               <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">강사 현황</h2>
               {currentAttendance && (
@@ -261,11 +360,16 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Quick Summary Banner */}
-      <div className="mt-8 bg-slate-900 dark:bg-slate-700 rounded-xl p-8 text-white">
+      <motion.div 
+        className="mt-8 bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-8 text-white shadow-xl"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9 }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-semibold mb-2">오늘 요약</h3>
@@ -273,14 +377,16 @@ export default function DashboardPage() {
               강사 {stats.trainersPresent}명 출근 · 학생 {stats.studentsToday}명 수업 예정
             </p>
           </div>
-          <button
+          <motion.button
             onClick={() => router.push('/assignments')}
-            className="px-5 py-2.5 bg-white text-slate-900 rounded-lg hover:bg-slate-100 transition text-sm font-medium"
+            className="px-6 py-3 bg-white text-slate-900 rounded-xl hover:bg-slate-100 transition-all text-sm font-semibold shadow-lg"
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
           >
             반 배치 보기
-          </button>
+          </motion.button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
