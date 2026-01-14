@@ -551,15 +551,15 @@ export default function StudentProfilePage({
         </div>
 
         {/* Main Grid - Compact */}
-        <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
+        <div className="flex-1 grid grid-cols-12 gap-1.5 min-h-0">
           {/* Gauges - 3 columns */}
-          <div className="col-span-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col">
-            <div className="flex items-center gap-1.5 mb-2">
-              <PieChartIcon className="text-orange-500" size={14} />
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">종목별 기록</h3>
+          <div className="col-span-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
+            <div className="flex items-center gap-1 mb-1">
+              <PieChartIcon className="text-orange-500" size={12} />
+              <h3 className="text-xs font-semibold text-slate-900 dark:text-white">종목별 기록</h3>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5 flex-1">
+            <div className="grid grid-cols-3 gap-1">
               {selectedGaugeTypes.slice(0, 6).map((typeId) => {
                 const type = recordTypes.find(t => t.id === typeId);
                 const latestRecord = stats.latests[typeId];
@@ -574,37 +574,37 @@ export default function StudentProfilePage({
                 ];
 
                 return (
-                  <div key={typeId} className="relative bg-slate-50 dark:bg-slate-900 rounded-lg p-1.5">
-                    <ResponsiveContainer width="100%" height={75}>
+                  <div key={typeId} className="relative bg-slate-50 dark:bg-slate-900 rounded p-1">
+                    <ResponsiveContainer width="100%" height={58}>
                       <PieChart>
-                        <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="55%" outerRadius="80%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
+                        <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="50%" outerRadius="78%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
                           {gaugeData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={index === 1 ? (document.documentElement.classList.contains('dark') ? '#1e293b' : '#e2e8f0') : entry.color} />
                           ))}
                         </Pie>
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-base font-bold text-slate-900 dark:text-white">{hasRecord ? value : '-'}</span>
-                      <span className="text-[9px] text-slate-500 dark:text-slate-400">{type?.short_name || type?.name}</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pt-0.5">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white leading-none">{hasRecord ? value : '-'}</span>
+                      <span className="text-[8px] text-slate-500 dark:text-slate-400 mt-0.5">{type?.short_name || type?.name}</span>
                     </div>
-                    <div className="absolute bottom-1 right-1">
-                      <TrendIcon trend={trend || 'stable'} className="w-3 h-3" />
+                    <div className="absolute bottom-0.5 right-0.5">
+                      <TrendIcon trend={trend || 'stable'} className="w-2.5 h-2.5" />
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            <div className="flex flex-wrap gap-1 mt-2">
+            <div className="flex flex-wrap gap-0.5 mt-1">
               {recordTypes.map(type => (
                 <button
                   key={type.id}
                   onClick={() => toggleGaugeType(type.id)}
-                  className={`text-[10px] px-2 py-0.5 rounded font-medium transition ${
+                  className={`text-[9px] px-1.5 py-px rounded font-medium transition ${
                     selectedGaugeTypes.includes(type.id)
                       ? 'bg-orange-500 text-white'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
                   }`}
                   disabled={selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id)}
                 >
@@ -615,14 +615,14 @@ export default function StudentProfilePage({
           </div>
 
           {/* Trend Chart - 5 columns */}
-          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <LineChartIcon className="text-blue-500" size={14} />
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">기록 추이</h3>
+          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1">
+                <LineChartIcon className="text-blue-500" size={12} />
+                <h3 className="text-xs font-semibold text-slate-900 dark:text-white">기록 추이</h3>
               </div>
               <select
-                className="text-xs bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-2 py-1 text-slate-700 dark:text-white"
+                className="text-[10px] bg-slate-100 dark:bg-slate-700 border-0 rounded px-1.5 py-0.5 text-slate-700 dark:text-white"
                 value={selectedTrendType || ''}
                 onChange={(e) => setSelectedTrendType(parseInt(e.target.value))}
               >
@@ -634,82 +634,69 @@ export default function StudentProfilePage({
 
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendChartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+                <LineChart data={trendChartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
-                  <YAxis tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" domain={trendYDomain as [number, number]} reversed={isTrendTypeLower} tickFormatter={(v) => Number(v).toFixed(1)} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', fontSize: '12px' }}
-                    formatter={(value) => {
-                      const type = recordTypes.find(t => t.id === selectedTrendType);
-                      return [`${value}${type?.unit || ''}`, '기록'];
-                    }}
-                  />
-                  <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} />
+                  <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 9 }} stroke="#cbd5e1" />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 9 }} stroke="#cbd5e1" domain={trendYDomain as [number, number]} reversed={isTrendTypeLower} tickFormatter={(v) => Number(v).toFixed(1)} />
+                  <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px', fontSize: '11px' }} formatter={(value) => { const type = recordTypes.find(t => t.id === selectedTrendType); return [`${value}${type?.unit || ''}`, '기록']; }} />
+                  <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 2 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Comparison Chart - 4 columns */}
-          <div className="col-span-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col">
-            <div className="flex items-center gap-1.5 mb-2">
-              <BarChart3 className="text-cyan-500" size={14} />
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">학원 비교</h3>
-              <span className="text-[10px] text-slate-400 ml-auto">달성률 %</span>
+          <div className="col-span-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
+            <div className="flex items-center gap-1 mb-1">
+              <BarChart3 className="text-cyan-500" size={12} />
+              <h3 className="text-xs font-semibold text-slate-900 dark:text-white">학원 비교</h3>
+              <span className="text-[9px] text-slate-400 ml-auto">%</span>
             </div>
 
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={compareBarData} layout="vertical" margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                <BarChart data={compareBarData} layout="vertical" margin={{ top: 2, right: 5, left: -5, bottom: 2 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
-                  <YAxis dataKey="name" type="category" width={50} tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', fontSize: '11px' }}
-                    formatter={(value, name, props) => {
-                      const data = props.payload;
-                      if (name === '학원') return [`${data.academyRaw}${data.unit} (${value}%)`, name];
-                      return [`${data.studentRaw}${data.unit} (${value}%)`, name];
-                    }}
-                  />
-                  <Bar dataKey="academy" fill="#94a3b8" radius={[0, 4, 4, 0]} name="학원" />
-                  <Bar dataKey="student" fill="#f97316" radius={[0, 4, 4, 0]} name={student.name} />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 9 }} stroke="#cbd5e1" />
+                  <YAxis dataKey="name" type="category" width={40} tick={{ fill: '#64748b', fontSize: 9 }} stroke="#cbd5e1" />
+                  <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px', fontSize: '10px' }} formatter={(value, name, props) => { const data = props.payload; if (name === '학원') return [`${data.academyRaw}${data.unit} (${value}%)`, name]; return [`${data.studentRaw}${data.unit} (${value}%)`, name]; }} />
+                  <Bar dataKey="academy" fill="#94a3b8" radius={[0, 3, 3, 0]} name="학원" />
+                  <Bar dataKey="student" fill="#f97316" radius={[0, 3, 3, 0]} name={student.name} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Radar Chart - 5 columns */}
-          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5">
-                <RadarIcon className="text-purple-500" size={14} />
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">능력치</h3>
+          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <RadarIcon className="text-purple-500" size={12} />
+                <h3 className="text-xs font-semibold text-slate-900 dark:text-white">능력치</h3>
               </div>
-              <div className="flex items-center gap-2 text-[10px]">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 bg-slate-400 rounded-sm"></span><span className="text-slate-500">학원</span></span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 bg-orange-500 rounded-sm"></span><span className="text-slate-500">{student.name}</span></span>
+              <div className="flex items-center gap-1.5 text-[9px]">
+                <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 bg-slate-400 rounded-sm"></span><span className="text-slate-500">학원</span></span>
+                <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 bg-orange-500 rounded-sm"></span><span className="text-slate-500">{student.name}</span></span>
               </div>
             </div>
 
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="65%">
+                <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
                   <PolarGrid stroke="#e2e8f0" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 9 }} stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 9 }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 8 }} stroke="#e2e8f0" />
                   <Radar name="학원" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.2} strokeWidth={1.5} />
                   <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.3} strokeWidth={2} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div className="flex flex-wrap gap-0.5">
               {recordTypes.slice(0, 8).map(type => (
                 <button
                   key={type.id}
-                  className={`text-[10px] px-2 py-0.5 rounded font-medium transition ${
+                  className={`text-[9px] px-1.5 py-px rounded font-medium transition ${
                     selectedRadarTypes.includes(type.id)
                       ? 'bg-purple-500 text-white'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
@@ -729,23 +716,23 @@ export default function StudentProfilePage({
           </div>
 
           {/* Recent Records Table - 7 columns */}
-          <div className="col-span-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">최근 기록</h3>
+          <div className="col-span-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-xs font-semibold text-slate-900 dark:text-white">최근 기록</h3>
               {recordHistory.length > 3 && (
-                <button onClick={() => setShowAllRecords(!showAllRecords)} className="text-[10px] text-orange-500 font-medium">
+                <button onClick={() => setShowAllRecords(!showAllRecords)} className="text-[9px] text-orange-500 font-medium">
                   {showAllRecords ? '접기' : `더보기 (${recordHistory.length})`}
                 </button>
               )}
             </div>
 
-            <div className={`overflow-auto flex-1 ${showAllRecords ? '' : ''}`}>
-              <table className="w-full text-xs">
+            <div className={`overflow-auto flex-1`}>
+              <table className="w-full text-[10px]">
                 <thead className="sticky top-0 bg-white dark:bg-slate-800">
                   <tr className="border-b border-slate-200 dark:border-slate-700">
-                    <th className="text-left py-1.5 px-2 text-slate-500 dark:text-slate-400 font-medium">날짜</th>
+                    <th className="text-left py-1 px-1.5 text-slate-500 dark:text-slate-400 font-medium">날짜</th>
                     {recordTypes.slice(0, 6).map(type => (
-                      <th key={type.id} className="text-center py-1.5 px-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <th key={type.id} className="text-center py-1 px-1.5 text-slate-500 dark:text-slate-400 font-medium">
                         {type.short_name || type.name}
                       </th>
                     ))}
@@ -754,15 +741,15 @@ export default function StudentProfilePage({
                 <tbody>
                   {visibleRecords.map((history, idx) => (
                     <tr key={idx} className="border-b border-slate-100 dark:border-slate-700/50">
-                      <td className="py-1.5 px-2 text-slate-700 dark:text-slate-300">
+                      <td className="py-1 px-1.5 text-slate-700 dark:text-slate-300">
                         {new Date(history.measured_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                       </td>
                       {recordTypes.slice(0, 6).map(type => {
                         const record = history.records.find(r => r.record_type_id === type.id);
                         return (
-                          <td key={type.id} className="text-center py-1.5 px-2">
+                          <td key={type.id} className="text-center py-1 px-1.5">
                             {record ? (
-                              <span className="font-medium text-slate-900 dark:text-white">{record.value}<span className="text-slate-400 text-[10px] ml-0.5">{type.unit}</span></span>
+                              <span className="font-medium text-slate-900 dark:text-white">{record.value}<span className="text-slate-400 text-[9px] ml-0.5">{type.unit}</span></span>
                             ) : (
                               <span className="text-slate-300 dark:text-slate-600">-</span>
                             )}
