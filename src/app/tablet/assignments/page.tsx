@@ -14,10 +14,11 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
-import { Users, RefreshCw, Calendar, Star, Crown, Plus, ExternalLink } from 'lucide-react';
+import { Users, RefreshCw, Calendar, Star, Crown, Plus, ExternalLink, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 import { useOrientation } from '../layout';
+import { useSocket } from '@/hooks/useSocket';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening';
 
@@ -318,10 +319,23 @@ export default function TabletAssignmentsPage() {
   const [syncing, setSyncing] = useState(false);
   const [activeItem, setActiveItem] = useState<{ type: 'student' | 'instructor'; data: Student | Instructor } | null>(null);
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
     return now.toISOString().split('T')[0];
+  });
+
+  // Socket.io 실시간 동기화
+  const { isConnected } = useSocket({
+    onAssignmentsUpdated: (data) => {
+      // 같은 날짜의 업데이트만 처리
+      if (data.date === selectedDate) {
+        console.log('[Realtime] Assignments updated, refreshing...');
+        fetchData();
+      }
+    }
   });
 
   // 스크롤 위치 저장용
@@ -491,6 +505,24 @@ export default function TabletAssignmentsPage() {
     return data.waitingStudents.length + data.classes.reduce((sum, c) => sum + c.students.length, 0);
   };
 
+  // 반배치 초기화
+  const handleReset = async () => {
+    try {
+      setResetting(true);
+      await apiClient.post('/assignments/reset', {
+        date: selectedDate,
+        time_slot: activeSlot
+      });
+      setShowResetConfirm(false);
+      await fetchData();
+    } catch (error) {
+      console.error('Failed to reset:', error);
+      alert('초기화에 실패했습니다.');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const totalStudents = currentSlotData.waitingStudents.length +
     currentSlotData.classes.reduce((sum, c) => sum + c.students.length, 0);
   const assignedStudents = currentSlotData.classes.reduce((sum, c) => sum + c.students.length, 0);
@@ -518,14 +550,55 @@ export default function TabletAssignmentsPage() {
             <span className="ml-2 font-bold text-orange-500">{assignedStudents}/{totalStudents}</span>
           </div>
           <button
+            onClick={() => setShowResetConfirm(true)}
+            disabled={loading || resetting}
+            className="p-3 text-red-600 dark:text-red-400 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 rounded-lg min-h-12"
+            title="현재 시간대 반배치 초기화"
+          >
+            <RotateCcw size={18} />
+          </button>
+          <button
             onClick={fetchData}
             disabled={loading}
             className="p-3 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg min-h-12"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
+          {/* 실시간 연결 상태 표시 */}
+          <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} title={isConnected ? '실시간 연결됨' : '연결 끊김'} />
         </div>
       </div>
+
+      {/* 초기화 확인 모달 */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">반배치 초기화</h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              {formatDateKorean(selectedDate)} <span className="font-semibold text-orange-500">{TIME_SLOT_INFO[activeSlot].label}</span> 시간대의 모든 반 배치가 초기화됩니다.
+              <br /><br />
+              <span className="text-sm text-slate-500">* 학생들은 대기 영역으로 이동됩니다.</span>
+              <br />
+              <span className="text-sm text-slate-500">* 생성된 반은 삭제됩니다.</span>
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition min-h-12"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleReset}
+                disabled={resetting}
+                className="px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50 min-h-12"
+              >
+                {resetting ? '초기화 중...' : '초기화'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 시간대 탭 */}
       <div className="flex gap-2 mb-4">

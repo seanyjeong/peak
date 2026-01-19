@@ -272,6 +272,16 @@ router.post('/instructor', verifyToken, async (req, res) => {
                 await cleanupEmptyClasses(targetDate, time_slot);
             }
 
+            // Socket.io 브로드캐스트
+            const io = req.app.get('io');
+            if (io) {
+                io.to(`academy-${academyId}`).emit('assignments-updated', {
+                    date: targetDate,
+                    time_slot,
+                    action: 'instructor-removed'
+                });
+            }
+
             return res.json({ success: true, action: 'removed' });
         }
 
@@ -311,6 +321,17 @@ router.post('/instructor', verifyToken, async (req, res) => {
 
         // 빈 반 정리
         await cleanupEmptyClasses(targetDate, time_slot, academyId);
+
+        // Socket.io 브로드캐스트
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`academy-${academyId}`).emit('assignments-updated', {
+                date: targetDate,
+                time_slot,
+                action: 'instructor-assigned',
+                class_num: to_class_num
+            });
+        }
 
         res.json({ success: true, action: 'assigned', class_num: to_class_num });
     } catch (error) {
@@ -352,6 +373,15 @@ router.put('/:id', verifyToken, async (req, res) => {
         const academyId = req.user.academyId;
         const { class_id, status, order_num, time_slot } = req.body;
 
+        // 먼저 배치 정보 조회 (브로드캐스트용)
+        const [existing] = await db.query(
+            'SELECT date, time_slot FROM daily_assignments WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
+        );
+        if (existing.length === 0) {
+            return res.status(404).json({ error: '배치를 찾을 수 없습니다.' });
+        }
+
         let query = 'UPDATE daily_assignments SET class_id = ?';
         const params = [class_id];
 
@@ -376,6 +406,16 @@ router.put('/:id', verifyToken, async (req, res) => {
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: '배치를 찾을 수 없습니다.' });
+        }
+
+        // Socket.io 브로드캐스트
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`academy-${academyId}`).emit('assignments-updated', {
+                date: existing[0].date,
+                time_slot: time_slot || existing[0].time_slot,
+                action: 'student-moved'
+            });
         }
 
         res.json({ success: true });
@@ -622,6 +662,66 @@ router.post('/sync', verifyToken, async (req, res) => {
         });
     } catch (error) {
         console.error('Sync assignments error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// POST /peak/assignments/reset - 반 배치 초기화 (해당 날짜, 시간대 모든 배치 삭제)
+router.post('/reset', verifyToken, async (req, res) => {
+    try {
+        const academyId = req.user.academyId;
+        const { date, time_slot } = req.body;
+        const targetDate = date || new Date().toISOString().split('T')[0];
+
+        // 특정 시간대 또는 전체 초기화
+        if (time_slot) {
+            // 특정 시간대만 초기화
+            // 1. 강사 배치 삭제
+            await db.query(`
+                DELETE FROM class_instructors
+                WHERE academy_id = ? AND date = ? AND time_slot = ?
+            `, [academyId, targetDate, time_slot]);
+
+            // 2. 학생 배치 해제 (class_id만 null로)
+            await db.query(`
+                UPDATE daily_assignments
+                SET class_id = NULL
+                WHERE academy_id = ? AND date = ? AND time_slot = ?
+            `, [academyId, targetDate, time_slot]);
+        } else {
+            // 전체 시간대 초기화
+            // 1. 강사 배치 삭제
+            await db.query(`
+                DELETE FROM class_instructors
+                WHERE academy_id = ? AND date = ?
+            `, [academyId, targetDate]);
+
+            // 2. 학생 배치 해제
+            await db.query(`
+                UPDATE daily_assignments
+                SET class_id = NULL
+                WHERE academy_id = ? AND date = ?
+            `, [academyId, targetDate]);
+        }
+
+        // Socket.io 브로드캐스트 (io가 있다면)
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`academy-${academyId}`).emit('assignments-updated', {
+                date: targetDate,
+                time_slot: time_slot || 'all',
+                action: 'reset'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: time_slot
+                ? `${targetDate} ${time_slot} 반 배치가 초기화되었습니다.`
+                : `${targetDate} 모든 반 배치가 초기화되었습니다.`
+        });
+    } catch (error) {
+        console.error('Reset assignments error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });

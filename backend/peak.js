@@ -9,13 +9,52 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
+const http = require('http');
+const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 
 // Winston Logger 및 Request Logger
 const logger = require('./utils/logger');
 const requestLogger = require('./middleware/requestLogger');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 8330;
+
+// Socket.io 설정
+const io = new Server(server, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+    }
+});
+
+// Socket.io를 app에 저장 (라우터에서 사용)
+app.set('io', io);
+
+// Socket.io 연결 핸들링
+io.on('connection', (socket) => {
+    logger.info('Socket connected', { socketId: socket.id });
+
+    // 학원 room 참가 (토큰 검증)
+    socket.on('join-academy', (token) => {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const academyId = decoded.academyId;
+            socket.join(`academy-${academyId}`);
+            socket.academyId = academyId;
+            logger.info('Socket joined academy room', { socketId: socket.id, academyId });
+            socket.emit('joined', { academyId });
+        } catch (err) {
+            logger.warn('Socket auth failed', { socketId: socket.id, error: err.message });
+            socket.emit('error', { message: 'Authentication failed' });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        logger.info('Socket disconnected', { socketId: socket.id, academyId: socket.academyId });
+    });
+});
 
 app.set('trust proxy', 1);
 
@@ -146,11 +185,12 @@ app.use((req, res) => {
 
 const { initScheduler } = require('./scheduler/pushScheduler');
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     logger.info('Server started', {
         port: PORT,
         database: 'peak',
         env: process.env.NODE_ENV || 'development',
+        socketio: true,
     });
 
     // 콘솔에도 시각적 표시
@@ -161,6 +201,7 @@ app.listen(PORT, () => {
 ╠═══════════════════════════════════════════╣
 ║  Port: ${PORT}                              ║
 ║  DB: peak                                 ║
+║  Socket.io: enabled                       ║
 ║  Env: ${process.env.NODE_ENV || 'development'}                       ║
 ╚═══════════════════════════════════════════╝
     `);
