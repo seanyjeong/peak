@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight, Settings2, Trash2, Video } from 'lucide-react';
+import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight, Settings2, Trash2, Video, Search } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 import { authAPI, User } from '@/lib/api/auth';
@@ -97,6 +97,7 @@ export default function TabletPlansPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedExercises, setSelectedExercises] = useState<SelectedExercise[]>([]);
   const [description, setDescription] = useState('');
+  const [exerciseSearch, setExerciseSearch] = useState('');
 
   const formatDateDisplay = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00');
@@ -157,9 +158,16 @@ export default function TabletPlansPage() {
   const canAddPlan = isOwner ? instructorsWithoutPlan.length > 0 : (amIScheduled && !myPlanExists);
 
   const filteredExercises = useMemo(() => {
-    if (selectedTags.length === 0) return exercises;
-    return exercises.filter(ex => ex.tags.some(t => selectedTags.includes(t)));
-  }, [exercises, selectedTags]);
+    let result = exercises;
+    if (selectedTags.length > 0) {
+      result = result.filter(ex => ex.tags.some(t => selectedTags.includes(t)));
+    }
+    if (exerciseSearch.trim()) {
+      const keyword = exerciseSearch.trim().toLowerCase();
+      result = result.filter(ex => ex.name.toLowerCase().includes(keyword));
+    }
+    return result;
+  }, [exercises, selectedTags, exerciseSearch]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTags(prev => prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId]);
@@ -192,6 +200,7 @@ export default function TabletPlansPage() {
     setSelectedTags([]);
     setSelectedExercises([]);
     setDescription('');
+    setExerciseSearch('');
     setShowAddForm(false);
     setEditingId(null);
   };
@@ -406,8 +415,23 @@ export default function TabletPlansPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   <Dumbbell size={16} className="inline mr-1" />
-                  운동 선택 {selectedTags.length > 0 && `(${filteredExercises.length}개)`}
+                  운동 선택 {`(${filteredExercises.length}개)`}
                 </label>
+                <div className="relative mb-2">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={exerciseSearch}
+                    onChange={(e) => setExerciseSearch(e.target.value)}
+                    placeholder="운동 검색..."
+                    className="w-full pl-9 pr-8 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                  />
+                  {exerciseSearch && (
+                    <button onClick={() => setExerciseSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
                 <div className="border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
                   {filteredExercises.length === 0 ? (
                     <div className="p-4 text-center text-slate-400 text-sm">

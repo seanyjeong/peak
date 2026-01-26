@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, addDays, subDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import {
@@ -16,7 +16,8 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
-  RefreshCw
+  RefreshCw,
+  Search
 } from 'lucide-react';
 import { authAPI } from '@/lib/api/auth';
 
@@ -69,6 +70,7 @@ export default function MobilePlansPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedExercises, setSelectedExercises] = useState<{ exercise_id: number; note?: string }[]>([]);
   const [notes, setNotes] = useState('');
+  const [exerciseSearch, setExerciseSearch] = useState('');
   const [saving, setSaving] = useState(false);
 
   // 유저 정보
@@ -154,6 +156,7 @@ export default function MobilePlansPage() {
       setSelectedExercises([]);
       setNotes('');
     }
+    setExerciseSearch('');
     setShowForm(true);
   };
 
@@ -248,9 +251,17 @@ export default function MobilePlansPage() {
   const koreanDate = format(new Date(selectedDate), 'M월 d일 (E)', { locale: ko });
 
   // 선택된 태그에 해당하는 운동 필터링
-  const filteredExercises = selectedTags.length > 0
-    ? exercises.filter(ex => ex.tags?.some(t => selectedTags.includes(t)))
-    : exercises;
+  const filteredExercises = useMemo(() => {
+    let result = exercises;
+    if (selectedTags.length > 0) {
+      result = result.filter(ex => ex.tags?.some(t => selectedTags.includes(t)));
+    }
+    if (exerciseSearch.trim()) {
+      const keyword = exerciseSearch.trim().toLowerCase();
+      result = result.filter(ex => ex.name.toLowerCase().includes(keyword));
+    }
+    return result;
+  }, [exercises, selectedTags, exerciseSearch]);
 
   return (
     <div className="space-y-3">
@@ -434,7 +445,23 @@ export default function MobilePlansPage() {
                   )}
                 </button>
                 {expandedSections.has('exercises') && (
-                  <div className="space-y-2 mt-2 max-h-48 overflow-y-auto">
+                  <>
+                  <div className="relative mb-2">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={exerciseSearch}
+                      onChange={(e) => setExerciseSearch(e.target.value)}
+                      placeholder="운동 검색..."
+                      className="w-full pl-9 pr-8 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                    />
+                    {exerciseSearch && (
+                      <button onClick={() => setExerciseSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
                     {filteredExercises.map((ex) => {
                       const isSelected = selectedExercises.some(e => e.exercise_id === ex.id);
                       return (
@@ -455,6 +482,7 @@ export default function MobilePlansPage() {
                       );
                     })}
                   </div>
+                  </>
                 )}
               </div>
 
