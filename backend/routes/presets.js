@@ -73,6 +73,34 @@ router.get('/', async (req, res) => {
     }
 });
 
+
+// GET /peak/presets/instructors - all instructors for preset config
+router.get("/instructors", async (req, res) => {
+    try {
+        const academyId = req.user.academyId;
+        const [instructors] = await pacaPool.query(
+            "SELECT id, name FROM instructors WHERE academy_id = ? AND status = \"active\" ORDER BY name",
+            [academyId]
+        );
+        const result = instructors.map(i => ({
+            id: i.id,
+            name: i.name ? decrypt(i.name) : "unknown",
+            isOwner: false
+        }));
+        const [owners] = await pacaPool.query(
+            "SELECT id, name FROM users WHERE academy_id = ? AND role = \"owner\"",
+            [academyId]
+        );
+        owners.forEach(o => {
+            result.push({ id: -o.id, name: o.name ? decrypt(o.name) : "owner", isOwner: true });
+        });
+        res.json({ success: true, instructors: result });
+    } catch (error) {
+        console.error("Get preset instructors error:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
 // POST /peak/presets - 프리셋 생성
 router.post('/', async (req, res) => {
     try {

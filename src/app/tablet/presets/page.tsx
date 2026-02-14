@@ -265,7 +265,7 @@ export default function PresetsPage() {
   const fetchStudents = useCallback(async () => {
     try {
       // Get all active students
-      const res = await apiClient.get('/students');
+      const res = await apiClient.get('/students?status=active');
       setAllStudents(res.data.students || []);
     } catch (e) {
       console.error('Failed to fetch students:', e);
@@ -274,19 +274,9 @@ export default function PresetsPage() {
 
   const fetchInstructors = useCallback(async () => {
     try {
-      const res = await apiClient.get('/assignments/instructors');
-      const all: InstructorOption[] = [];
-      const seen = new Set<number>();
-      for (const slot of ['morning', 'afternoon', 'evening']) {
-        const list = res.data.instructors?.[slot] || [];
-        for (const inst of list) {
-          if (!seen.has(inst.id)) {
-            seen.add(inst.id);
-            all.push({ id: inst.id, name: inst.name, isOwner: inst.id < 0 });
-          }
-        }
-      }
-      setInstructors(all);
+      const res = await apiClient.get('/presets/instructors');
+      const list = res.data.instructors || [];
+      setInstructors(list.map((inst: any) => ({ id: inst.id, name: inst.name, isOwner: inst.id < 0 })));
     } catch (e) {
       console.error('Failed to fetch instructors:', e);
     }
