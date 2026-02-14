@@ -15,11 +15,14 @@ const { sendPushToUser, sendPushToAllInstructors } = require('../routes/push');
 const { createNotification, createNotificationForAllInstructors } = require('../routes/notifications');
 
 /**
- * 활성화된 모든 학원 목록 조회
+ * P-EAK를 사용하는 모든 학원 목록 조회
+ * peak_settings 테이블에 등록된 학원만 반환
  */
 async function getActiveAcademies() {
-    const [academies] = await pacaPool.query(`
-        SELECT id, name FROM academies WHERE status = 'active' AND deleted_at IS NULL
+    const [academies] = await pool.query(`
+        SELECT academy_id AS id, academy_name AS name
+        FROM peak_settings
+        WHERE academy_id IS NOT NULL
     `);
     return academies;
 }

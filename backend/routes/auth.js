@@ -77,9 +77,9 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // JWT 토큰 생성
+        // JWT 토큰 생성 (academyId 포함 - Socket.io에서 사용)
         const token = jwt.sign(
-            { userId: user.id },
+            { userId: user.id, academyId: user.academy_id },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
