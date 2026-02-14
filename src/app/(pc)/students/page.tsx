@@ -40,7 +40,7 @@ export default function StudentsPage() {
   const [loadingRecords, setLoadingRecords] = useState(false);
 
   const [showAddRecord, setShowAddRecord] = useState(false);
-  const [recordDate, setRecordDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [recordDate, setRecordDate] = useState(() => (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })());
   const [recordInputs, setRecordInputs] = useState<{ [key: number]: RecordInput }>({});
   const [scoreTables, setScoreTables] = useState<{ [key: number]: ScoreTableData }>({});
   const [savingRecord, setSavingRecord] = useState(false);

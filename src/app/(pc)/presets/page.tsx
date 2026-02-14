@@ -292,7 +292,7 @@ export default function PresetsPage() {
     activePreset?.groups.flatMap(g => g.members.map(m => m.student_id)) || []
   );
   const unassignedStudents = allStudents
-    .filter(s => s.status === 'active' && !assignedStudentIds.has(s.student_id))
+    .filter(s => !assignedStudentIds.has(s.id as number))
     .map(s => ({
       student_id: s.id ?? s.student_id,
       name: s.name,

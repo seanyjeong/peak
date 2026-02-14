@@ -338,7 +338,10 @@ export default function AssignmentsPage() {
 
   const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
-    return now.toISOString().split('T')[0];
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   });
 
   // Socket.io 실시간 동기화
@@ -444,6 +447,12 @@ export default function AssignmentsPage() {
       try {
         setSyncing(true);
         setLoading(true);
+        // Reset data first to avoid showing stale data
+        setSlotsData({
+          morning: { waitingStudents: [], waitingInstructors: [], classes: [] },
+          afternoon: { waitingStudents: [], waitingInstructors: [], classes: [] },
+          evening: { waitingStudents: [], waitingInstructors: [], classes: [] }
+        });
         await apiClient.post('/assignments/sync', { date: selectedDate });
 
         const res = await apiClient.get(`/assignments?date=${selectedDate}`);

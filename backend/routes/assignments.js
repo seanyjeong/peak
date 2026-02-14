@@ -484,10 +484,13 @@ router.post('/sync', verifyToken, async (req, res) => {
 
         // N+1 쿼리 최적화: 한 번에 모든 학생 조회
         const pacaStudentIds = pacaStudents.map(ps => ps.paca_student_id);
-        const [existingPeakStudents] = await db.query(
-            'SELECT id, paca_student_id FROM students WHERE paca_student_id IN (?)',
-            [pacaStudentIds]
-        );
+        let existingPeakStudents = [];
+        if (pacaStudentIds.length > 0) {
+            [existingPeakStudents] = await db.query(
+                'SELECT id, paca_student_id FROM students WHERE paca_student_id IN (?)',
+                [pacaStudentIds]
+            );
+        }
 
         // paca_student_id로 매핑
         const peakStudentMap = new Map();
