@@ -17,6 +17,7 @@ import { Layers, Plus, Trash2, RefreshCw, Users, UserCheck, Edit3, X, Check, Che
 import apiClient from '@/lib/api/client';
 
 interface Student {
+  id?: number;
   student_id: number;
   name: string;
   gender: string;
@@ -303,7 +304,7 @@ export default function PresetsPage() {
   const unassignedStudents = allStudents
     .filter(s => s.status === 'active' && !assignedStudentIds.has(s.student_id))
     .map(s => ({
-      student_id: (s as any).id,
+      student_id: s.id ?? s.student_id,
       name: s.name,
       gender: s.gender,
       grade: s.grade,

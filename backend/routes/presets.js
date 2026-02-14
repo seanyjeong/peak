@@ -170,7 +170,15 @@ router.post('/:id/groups', async (req, res) => {
 // PUT /peak/presets/groups/:groupId - 그룹 수정
 router.put('/groups/:groupId', async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { name, instructor_id, order_num } = req.body;
+
+        // Verify group belongs to this academy
+        const [groupCheck] = await db.query(
+            'SELECT pg.id FROM preset_groups pg JOIN class_presets cp ON pg.preset_id = cp.id WHERE pg.id = ? AND cp.academy_id = ?',
+            [req.params.groupId, academyId]
+        );
+        if (groupCheck.length === 0) return res.status(404).json({ error: 'Group not found' });
 
         const updates = [];
         const params = [];
@@ -196,6 +204,14 @@ router.put('/groups/:groupId', async (req, res) => {
 // DELETE /peak/presets/groups/:groupId - 그룹 삭제 (CASCADE)
 router.delete('/groups/:groupId', async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+        // Verify group belongs to this academy
+        const [groupCheck] = await db.query(
+            'SELECT pg.id FROM preset_groups pg JOIN class_presets cp ON pg.preset_id = cp.id WHERE pg.id = ? AND cp.academy_id = ?',
+            [req.params.groupId, academyId]
+        );
+        if (groupCheck.length === 0) return res.status(404).json({ error: 'Group not found' });
+
         await db.query('DELETE FROM preset_groups WHERE id = ?', [req.params.groupId]);
         res.json({ success: true });
     } catch (error) {
@@ -207,6 +223,14 @@ router.delete('/groups/:groupId', async (req, res) => {
 // POST /peak/presets/groups/:groupId/members - 학생 추가 (batch)
 router.post('/groups/:groupId/members', async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+        // Verify group belongs to this academy
+        const [groupCheck] = await db.query(
+            'SELECT pg.id FROM preset_groups pg JOIN class_presets cp ON pg.preset_id = cp.id WHERE pg.id = ? AND cp.academy_id = ?',
+            [req.params.groupId, academyId]
+        );
+        if (groupCheck.length === 0) return res.status(404).json({ error: 'Group not found' });
+
         const { student_ids } = req.body;
         if (!Array.isArray(student_ids) || student_ids.length === 0) {
             return res.status(400).json({ error: 'student_ids array required' });
@@ -228,6 +252,14 @@ router.post('/groups/:groupId/members', async (req, res) => {
 // DELETE /peak/presets/groups/:groupId/members - 학생 제거 (batch)
 router.delete('/groups/:groupId/members', async (req, res) => {
     try {
+        const academyId = req.user.academyId;
+        // Verify group belongs to this academy
+        const [groupCheck] = await db.query(
+            'SELECT pg.id FROM preset_groups pg JOIN class_presets cp ON pg.preset_id = cp.id WHERE pg.id = ? AND cp.academy_id = ?',
+            [req.params.groupId, academyId]
+        );
+        if (groupCheck.length === 0) return res.status(404).json({ error: 'Group not found' });
+
         const { student_ids } = req.body;
         if (!Array.isArray(student_ids) || student_ids.length === 0) {
             return res.status(400).json({ error: 'student_ids array required' });

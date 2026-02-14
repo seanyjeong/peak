@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -381,11 +381,19 @@ export default function AssignmentsPage() {
     try {
       setApplyingPreset(true);
       setShowPresetConfirm(null);
-      await apiClient.post(`/presets/${presetId}/apply`, {
+      const res = await apiClient.post(`/presets/${presetId}/apply`, {
         date: selectedDate,
         time_slot: activeSlot
       });
+      const result = res.data?.result;
       await fetchData();
+      if (result) {
+        alert(`프리셋 적용 완료!
+생성된 반: ${result.classes_created}개
+배정 학생: ${result.students_assigned}명
+미매칭: ${result.students_unmatched}명${result.instructors_absent > 0 ? `
+미출근 강사: ${result.instructors_absent}명` : ''}`);
+      }
     } catch (e) {
       console.error("Failed to apply preset:", e);
       alert("프리셋 적용에 실패했습니다.");
@@ -419,6 +427,17 @@ export default function AssignmentsPage() {
   };
 
   // 날짜 변경 시 자동으로 P-ACA 동기화 후 데이터 로드
+  const presetMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (presetMenuRef.current && !presetMenuRef.current.contains(e.target as Node)) {
+        setShowPresetMenu(false);
+      }
+    };
+    if (showPresetMenu) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPresetMenu]);
+
   useEffect(() => { fetchPresets(); }, []);
   useEffect(() => {
     const syncAndFetch = async () => {
@@ -587,7 +606,7 @@ export default function AssignmentsPage() {
           </div>
           {/* Preset Apply Button */}
           {presets.length > 0 && (
-            <div className="relative">
+            <div className="relative" ref={presetMenuRef}>
               <button
                 onClick={() => setShowPresetMenu(!showPresetMenu)}
                 disabled={loading || applyingPreset}
