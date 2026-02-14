@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
+const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
 
 // 세션 삭제
@@ -202,12 +203,20 @@ router.get('/:sessionId/groups', verifyToken, async (req, res) => {
 
     // 참가자 목록 (학생)
     const [participants] = await conn.query(`
-      SELECT tp.*, s.name as student_name, s.gender, s.school, s.grade
+      SELECT tp.*, ps.name as student_name, ps.gender, ps.school, ps.grade
       FROM test_participants tp
       LEFT JOIN students s ON tp.student_id = s.id
+      LEFT JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = s.academy_id
       WHERE tp.test_session_id = ?
       ORDER BY tp.order_num
     `, [sessionId]);
+
+    // Decrypt paca student names + convert gender
+    participants.forEach(p => {
+      if (p.student_name) p.student_name = decrypt(p.student_name);
+      if (p.gender === 'male') p.gender = 'M';
+      else if (p.gender === 'female') p.gender = 'F';
+    });
 
     // 테스트신규 학생 정보 조회
     const testApplicantIds = participants
@@ -789,12 +798,20 @@ router.get('/:sessionId/records', verifyToken, async (req, res) => {
 
     // 참가자 목록
     const [participants] = await pool.query(`
-      SELECT tp.*, s.name as student_name, s.gender, s.school, s.grade
+      SELECT tp.*, ps.name as student_name, ps.gender, ps.school, ps.grade
       FROM test_participants tp
       LEFT JOIN students s ON tp.student_id = s.id
+      LEFT JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = s.academy_id
       WHERE tp.test_session_id = ?
       ORDER BY tp.test_group_id, tp.order_num
     `, [sessionId]);
+
+    // Decrypt paca student names + convert gender
+    participants.forEach(p => {
+      if (p.student_name) p.student_name = decrypt(p.student_name);
+      if (p.gender === 'male') p.gender = 'M';
+      else if (p.gender === 'female') p.gender = 'F';
+    });
 
     // 테스트신규 정보
     const testApplicantIds = participants

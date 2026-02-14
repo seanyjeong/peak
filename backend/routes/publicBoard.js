@@ -132,7 +132,7 @@ router.get('/:slug', async (req, res) => {
              ps.name, ps.gender, ps.school, ps.grade
       FROM test_participants tp
       LEFT JOIN students s ON tp.student_id = s.id
-      LEFT JOIN paca.students ps ON s.paca_student_id = ps.id
+      LEFT JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = s.academy_id
       WHERE tp.test_session_id IN (?)
     `, [sessionIds]);
 
