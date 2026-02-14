@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
 
 /**
@@ -80,7 +81,7 @@ router.get('/academy-average', verifyToken, async (req, res) => {
 
         // 3. 모든 학생의 최신 기록만 조회 (종목별 최신 1개씩) + 성별 정보 포함
         const [latestRecords] = await db.query(`
-            SELECT r1.*, s.gender
+            SELECT r1.*, ps.gender
             FROM student_records r1
             INNER JOIN (
                 SELECT student_id, record_type_id, MAX(measured_at) as max_date
@@ -91,8 +92,15 @@ router.get('/academy-average', verifyToken, async (req, res) => {
                 AND r1.record_type_id = r2.record_type_id
                 AND r1.measured_at = r2.max_date
             JOIN students s ON r1.student_id = s.id
-            WHERE s.status = 'active' AND s.academy_id = ?
-        `, [academyId, academyId]);
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+            WHERE ps.status = 'active' AND s.academy_id = ?
+        `, [academyId, academyId, academyId]);
+
+        // Convert Paca gender format for JS filtering
+        latestRecords.forEach(r => {
+            if (r.gender === 'male') r.gender = 'M';
+            else if (r.gender === 'female') r.gender = 'F';
+        });
 
         // 4. 종목별 남/녀 분리 평균 계산 (원시값 + 점수)
         const maleAverages = {};
@@ -134,13 +142,14 @@ router.get('/academy-average', verifyToken, async (req, res) => {
 
         // 5. 전체 학생 수 (성별별)
         const [studentCount] = await db.query(
-            "SELECT gender, COUNT(*) as count FROM students WHERE status = 'active' AND academy_id = ? GROUP BY gender",
-            [academyId]
+            `SELECT ps.gender, COUNT(*) as count FROM students s JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ? WHERE ps.status = 'active' AND s.academy_id = ? GROUP BY ps.gender`,
+            [academyId, academyId]
         );
 
         const genderCounts = {};
         studentCount.forEach(row => {
-            genderCounts[row.gender] = row.count;
+            const g = row.gender === 'male' ? 'M' : row.gender === 'female' ? 'F' : row.gender;
+            genderCounts[g] = row.count;
         });
 
         res.json({
@@ -191,7 +200,7 @@ router.get('/leaderboard/:recordTypeId', verifyToken, async (req, res) => {
 
         // 최신 기록 기준 순위 - 해당 학원만
         let query = `
-            SELECT r.*, s.name as student_name, s.gender, s.school, s.grade
+            SELECT r.*, ps.name as student_name, ps.gender, ps.school, ps.grade
             FROM student_records r
             INNER JOIN (
                 SELECT student_id, MAX(measured_at) as max_date
@@ -200,12 +209,13 @@ router.get('/leaderboard/:recordTypeId', verifyToken, async (req, res) => {
                 GROUP BY student_id
             ) latest ON r.student_id = latest.student_id AND r.measured_at = latest.max_date
             JOIN students s ON r.student_id = s.id
-            WHERE r.record_type_id = ? AND s.status = 'active' AND s.academy_id = ?
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+            WHERE r.record_type_id = ? AND ps.status = 'active' AND s.academy_id = ?
         `;
-        const params = [recordTypeId, academyId, recordTypeId, academyId];
+        const params = [recordTypeId, academyId, academyId, recordTypeId, academyId];
 
         if (gender) {
-            query += ' AND s.gender = ?';
+            query += ' AND ps.gender = ?';
             params.push(gender);
         }
 
@@ -218,11 +228,12 @@ router.get('/leaderboard/:recordTypeId', verifyToken, async (req, res) => {
         params.push(parseInt(limit));
 
         const [records] = await db.query(query, params);
+        const decryptedRecords = decryptStudentFields(records);
 
         res.json({
             success: true,
             recordType,
-            leaderboard: records.map((r, idx) => ({
+            leaderboard: decryptedRecords.map((r, idx) => ({
                 rank: idx + 1,
                 studentId: r.student_id,
                 studentName: r.student_name,

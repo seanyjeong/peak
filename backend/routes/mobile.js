@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { decryptStudentFields } = require('../utils/paca-student');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 
@@ -67,12 +68,20 @@ router.get('/my-class', async (req, res) => {
                 da.id as assignment_id, da.student_id, da.time_slot,
                 da.class_id, da.paca_attendance_id, da.is_trial,
                 da.trial_total, da.trial_remaining, da.status,
-                s.name as student_name, s.gender, s.school, s.grade, s.paca_student_id
+                ps.name as student_name, ps.gender, ps.school, ps.grade, s.paca_student_id
             FROM daily_assignments da
             JOIN students s ON da.student_id = s.id
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
             WHERE da.academy_id = ? AND da.date = ?
-            ORDER BY da.time_slot, s.name
-        `, [academyId, targetDate]);
+            ORDER BY da.time_slot, ps.name
+        `, [academyId, academyId, targetDate]);
+
+        // Decrypt student names + convert gender
+        allAssignments.forEach(a => {
+            if (a.student_name) a.student_name = decrypt(a.student_name);
+            if (a.gender === 'male') a.gender = 'M';
+            else if (a.gender === 'female') a.gender = 'F';
+        });
 
         // Paca 출석 상태 조회
         const pacaAttIds = allAssignments.filter(a => a.paca_attendance_id).map(a => a.paca_attendance_id);

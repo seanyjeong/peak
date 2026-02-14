@@ -10,20 +10,14 @@ const mysql = require('mysql2/promise');
 const PDFDocument = require('pdfkit');
 const path = require('path');
 const { decrypt } = require('../utils/encryption');
+const { decryptStudentFields } = require('../utils/paca-student');
+const pacaPool = require('../config/paca-database');
 const { verifyToken } = require('../middleware/auth');
 
 // 한글 폰트 경로
 const KOREAN_FONT_PATH = path.join(__dirname, '../fonts/NanumBarunGothic.ttf');
 
-// P-ACA DB 연결 (환경변수 필수)
-const pacaPool = mysql.createPool({
-    host: process.env.PACA_DB_HOST || 'localhost',
-    user: process.env.PACA_DB_USER || 'paca',
-    password: process.env.PACA_DB_PASSWORD,
-    database: 'paca',
-    waitForConnections: true,
-    connectionLimit: 5
-});
+// P-ACA DB: using shared paca-database config
 
 /**
  * POST /peak/students/sync
@@ -223,16 +217,20 @@ router.get('/today', verifyToken, async (req, res) => {
         const today = new Date();
         const dayOfWeek = today.getDay();
 
-        const [students] = await db.query(`
-            SELECT *
-            FROM students
-            WHERE academy_id = ?
-              AND status = 'active'
-              AND class_days IS NOT NULL
-              AND JSON_CONTAINS(class_days, ?)
-            ORDER BY name
-        `, [academyId, dayOfWeek.toString()]);
+        const [rows] = await db.query(`
+            SELECT s.id, s.paca_student_id,
+                   ps.name, ps.gender, ps.phone, ps.school, ps.grade,
+                   ps.status, ps.class_days, ps.is_trial, ps.trial_remaining
+            FROM students s
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+            WHERE s.academy_id = ?
+              AND ps.status IN ('active', 'trial')
+              AND ps.class_days IS NOT NULL
+              AND JSON_CONTAINS(ps.class_days, ?)
+            ORDER BY ps.name
+        `, [academyId, academyId, dayOfWeek.toString()]);
 
+        const students = decryptStudentFields(rows);
         res.json({
             success: true,
             date: today.toISOString().split('T')[0],
@@ -256,18 +254,22 @@ router.get('/schedule', verifyToken, async (req, res) => {
         const targetDate = date ? new Date(date) : new Date();
         const dayOfWeek = targetDate.getDay();
 
-        const [students] = await db.query(`
-            SELECT *
-            FROM students
-            WHERE academy_id = ?
-              AND status = 'active'
+        const [rows] = await db.query(`
+            SELECT s.id, s.paca_student_id,
+                   ps.name, ps.gender, ps.phone, ps.school, ps.grade,
+                   ps.status, ps.class_days, ps.is_trial, ps.trial_remaining
+            FROM students s
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+            WHERE s.academy_id = ?
+              AND ps.status IN ('active', 'trial')
               AND (
-                (class_days IS NOT NULL AND JSON_CONTAINS(class_days, ?))
-                OR is_trial = 1
+                (ps.class_days IS NOT NULL AND JSON_CONTAINS(ps.class_days, ?))
+                OR ps.is_trial = 1
               )
-            ORDER BY is_trial DESC, name
-        `, [academyId, dayOfWeek.toString()]);
+            ORDER BY ps.is_trial DESC, ps.name
+        `, [academyId, academyId, dayOfWeek.toString()]);
 
+        const students = decryptStudentFields(rows);
         res.json({
             success: true,
             date: targetDate.toISOString().split('T')[0],
@@ -280,21 +282,30 @@ router.get('/schedule', verifyToken, async (req, res) => {
     }
 });
 
-// GET /peak/students - 학생 목록
+// GET /peak/students - 학생 목록 (Paca direct read)
 router.get('/', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const { status } = req.query;
-        let query = 'SELECT * FROM students WHERE academy_id = ?';
-        const params = [academyId];
+        let query = `
+            SELECT s.id, s.paca_student_id,
+                   ps.name, ps.gender, ps.phone, ps.school, ps.grade,
+                   ps.status, ps.class_days, ps.enrollment_date as join_date,
+                   ps.is_trial, ps.trial_remaining, ps.trial_dates
+            FROM students s
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+            WHERE s.academy_id = ?
+        `;
+        const params = [academyId, academyId];
 
         if (status) {
-            query += ' AND status = ?';
+            query += ' AND ps.status = ?';
             params.push(status);
         }
-        query += ' ORDER BY name';
+        query += ' ORDER BY ps.name';
 
-        const [students] = await db.query(query, params);
+        const [rows] = await db.query(query, params);
+        const students = decryptStudentFields(rows);
         res.json({ success: true, students });
     } catch (error) {
         console.error('Get students error:', error);
@@ -302,18 +313,25 @@ router.get('/', verifyToken, async (req, res) => {
     }
 });
 
-// GET /peak/students/:id - 학생 상세
+// GET /peak/students/:id - 학생 상세 (Paca direct read)
 router.get('/:id', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-        const [students] = await db.query(
-            'SELECT * FROM students WHERE id = ? AND academy_id = ?',
-            [req.params.id, academyId]
-        );
-        if (students.length === 0) {
+        const [rows] = await db.query(`
+            SELECT s.id, s.paca_student_id,
+                   ps.name, ps.gender, ps.phone, ps.school, ps.grade,
+                   ps.status, ps.class_days, ps.enrollment_date as join_date,
+                   ps.is_trial, ps.trial_remaining, ps.trial_dates,
+                   ps.parent_phone, ps.notes, ps.memo
+            FROM students s
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+            WHERE s.id = ? AND s.academy_id = ?
+        `, [academyId, req.params.id, academyId]);
+        if (rows.length === 0) {
             return res.status(404).json({ error: 'Not Found' });
         }
-        res.json({ success: true, student: students[0] });
+        const student = decryptStudentFields(rows)[0];
+        res.json({ success: true, student });
     } catch (error) {
         console.error('Get student error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -387,14 +405,17 @@ router.get('/:id/stats', verifyToken, async (req, res) => {
         const studentId = req.params.id;
 
         // 1. 학생 정보 조회
-        const [students] = await db.query(
-            'SELECT * FROM students WHERE id = ? AND academy_id = ?',
-            [studentId, academyId]
-        );
-        if (students.length === 0) {
+        const [studentRows] = await db.query(`
+            SELECT s.id, s.paca_student_id,
+                   ps.name, ps.gender, ps.school, ps.grade, ps.status
+            FROM students s
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+            WHERE s.id = ? AND s.academy_id = ?
+        `, [academyId, studentId, academyId]);
+        if (studentRows.length === 0) {
             return res.status(404).json({ error: 'Student not found' });
         }
-        const student = students[0];
+        const student = decryptStudentFields(studentRows)[0];
 
         // 2. 활성 종목 목록
         const [recordTypes] = await db.query(
@@ -570,15 +591,18 @@ router.get('/:id/export-pdf', verifyToken, async (req, res) => {
         );
         const academyName = settings[0]?.academy_name || '체대입시 학원';
 
-        // 2. 학생 정보 조회
-        const [students] = await db.query(
-            'SELECT * FROM students WHERE id = ? AND academy_id = ?',
-            [studentId, academyId]
-        );
-        if (students.length === 0) {
+        // 2. 학생 정보 조회 (Paca direct read)
+        const [studentRows] = await db.query(`
+            SELECT s.id, s.paca_student_id,
+                   ps.name, ps.gender, ps.school, ps.grade, ps.status
+            FROM students s
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+            WHERE s.id = ? AND s.academy_id = ?
+        `, [academyId, studentId, academyId]);
+        if (studentRows.length === 0) {
             return res.status(404).json({ error: 'Student not found' });
         }
-        const student = students[0];
+        const student = decryptStudentFields(studentRows)[0];
 
         // 3. 활성 종목 목록
         const [recordTypes] = await db.query(

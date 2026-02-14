@@ -11,6 +11,7 @@ const router = express.Router();
 const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
+const { decryptStudentFields } = require('../utils/paca-student');
 
 // GET /peak/presets - 프리셋 목록 (그룹 + 멤버 포함)
 router.get('/', async (req, res) => {
@@ -31,14 +32,15 @@ router.get('/', async (req, res) => {
 
             for (const group of groups) {
                 const [members] = await db.query(`
-                    SELECT pgm.student_id, s.name, s.gender, s.grade, s.school, s.status
+                    SELECT pgm.student_id, ps.name, ps.gender, ps.grade, ps.school, ps.status
                     FROM preset_group_members pgm
                     JOIN students s ON pgm.student_id = s.id
+                    JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
                     WHERE pgm.group_id = ?
-                    ORDER BY s.name
-                `, [group.id]);
+                    ORDER BY ps.name
+                `, [academyId, group.id]);
 
-                group.members = members;
+                group.members = decryptStudentFields(members);
 
                 // Resolve instructor name from Paca if instructor_id exists
                 if (group.instructor_id) {

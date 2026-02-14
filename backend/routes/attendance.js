@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { decryptStudentFields } = require('../utils/paca-student');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
@@ -206,16 +207,17 @@ router.get('/students', verifyToken, async (req, res) => {
                 da.paca_attendance_id,
                 da.is_trial,
                 da.status,
-                s.name as student_name,
-                s.gender,
-                s.school,
-                s.grade,
+                ps.name as student_name,
+                ps.gender,
+                ps.school,
+                ps.grade,
                 s.paca_student_id
             FROM daily_assignments da
             JOIN students s ON da.student_id = s.id
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
             WHERE da.academy_id = ? AND da.date = ?
-            ORDER BY da.time_slot, s.name
-        `, [academyId, targetDate]);
+            ORDER BY da.time_slot, ps.name
+        `, [academyId, academyId, targetDate]);
 
         if (assignments.length === 0) {
             return res.json({
@@ -245,9 +247,12 @@ router.get('/students', verifyToken, async (req, res) => {
             });
         }
 
+        // Decrypt student names + convert gender from Paca
+        const decAssignments = decryptStudentFields(assignments);
+
         // 시간대별 그룹화
         const bySlot = { morning: [], afternoon: [], evening: [] };
-        assignments.forEach(a => {
+        decAssignments.forEach(a => {
             const pacaAtt = attendanceMap[a.paca_attendance_id] || {};
             if (bySlot[a.time_slot]) {
                 bySlot[a.time_slot].push({

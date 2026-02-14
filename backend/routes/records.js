@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/records - 기록 목록
@@ -14,14 +15,15 @@ router.get('/', verifyToken, async (req, res) => {
         const { student_id, record_type_id, from_date, to_date } = req.query;
 
         let query = `
-            SELECT r.*, s.name as student_name, s.gender,
+            SELECT r.*, ps.name as student_name, ps.gender,
                    rt.name as record_type_name, rt.unit, rt.direction
             FROM student_records r
             JOIN students s ON r.student_id = s.id
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
             JOIN record_types rt ON r.record_type_id = rt.id
             WHERE r.academy_id = ?
         `;
-        const params = [academyId];
+        const params = [academyId, academyId];
 
         if (student_id) {
             query += ' AND r.student_id = ?';
@@ -43,7 +45,7 @@ router.get('/', verifyToken, async (req, res) => {
         query += ' ORDER BY r.measured_at DESC, rt.display_order';
 
         const [records] = await db.query(query, params);
-        res.json({ success: true, records });
+        res.json({ success: true, records: decryptStudentFields(records) });
     } catch (error) {
         console.error('Get records error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -188,10 +190,11 @@ router.get('/latest', verifyToken, async (req, res) => {
         const academyId = req.user.academyId;
         // 각 학생의 각 종목별 최신 기록 - 해당 학원만
         const [records] = await db.query(`
-            SELECT r.*, s.name as student_name, s.gender,
+            SELECT r.*, ps.name as student_name, ps.gender,
                    rt.name as record_type_name, rt.unit, rt.direction
             FROM student_records r
             JOIN students s ON r.student_id = s.id
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
             JOIN record_types rt ON r.record_type_id = rt.id
             INNER JOIN (
                 SELECT student_id, record_type_id, MAX(measured_at) as max_date
@@ -202,9 +205,9 @@ router.get('/latest', verifyToken, async (req, res) => {
                     AND r.record_type_id = latest.record_type_id
                     AND r.measured_at = latest.max_date
             WHERE r.academy_id = ?
-            ORDER BY s.name, rt.display_order
-        `, [academyId, academyId]);
-        res.json({ success: true, records });
+            ORDER BY ps.name, rt.display_order
+        `, [academyId, academyId, academyId]);
+        res.json({ success: true, records: decryptStudentFields(records) });
     } catch (error) {
         console.error('Get latest records error:', error);
         res.status(500).json({ error: 'Internal Server Error' });

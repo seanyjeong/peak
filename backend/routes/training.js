@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/training - 훈련 기록 목록
@@ -20,18 +21,19 @@ router.get('/', verifyToken, async (req, res) => {
         let query = `
             SELECT
                 l.*,
-                s.name as student_name,
-                s.gender as student_gender,
+                ps.name as student_name,
+                ps.gender as student_gender,
                 s.is_trial,
                 s.trial_total,
                 s.trial_remaining,
                 p.tags, p.description as plan_description, p.time_slot
             FROM training_logs l
             JOIN students s ON l.student_id = s.id
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
             LEFT JOIN daily_plans p ON l.plan_id = p.id
             WHERE l.academy_id = ? AND l.date = ?
         `;
-        const params = [academyId, targetDate];
+        const params = [academyId, academyId, targetDate];
 
         // 원장(owner)은 trainer_id 필터 무시 - 모든 강사 기록 조회 가능
         if (trainer_id && userRole !== 'owner') {
@@ -49,7 +51,8 @@ router.get('/', verifyToken, async (req, res) => {
 
         query += ' ORDER BY l.created_at DESC';
 
-        const [logs] = await db.query(query, params);
+        const [rawLogs] = await db.query(query, params);
+        const logs = decryptStudentFields(rawLogs);
         res.json({
             success: true,
             date: targetDate,

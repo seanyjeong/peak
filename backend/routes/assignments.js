@@ -10,6 +10,7 @@ const router = express.Router();
 const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
+const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/assignments - 반 배치 현황 (반 중심 구조)
@@ -92,16 +93,24 @@ router.get('/', verifyToken, async (req, res) => {
         const [assignments] = await db.query(`
             SELECT
                 a.*,
-                s.name as student_name,
-                s.gender,
-                s.school,
-                s.grade,
+                ps.name as student_name,
+                ps.gender,
+                ps.school,
+                ps.grade,
                 s.paca_student_id
             FROM daily_assignments a
             JOIN students s ON a.student_id = s.id
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
             WHERE a.academy_id = ? AND a.date = ?
             ORDER BY a.time_slot, a.class_id, a.order_num
-        `, [academyId, targetDate]);
+        `, [academyId, academyId, targetDate]);
+
+        // Decrypt student names + convert gender
+        assignments.forEach(a => {
+            if (a.student_name) a.student_name = decrypt(a.student_name);
+            if (a.gender === 'male') a.gender = 'M';
+            else if (a.gender === 'female') a.gender = 'F';
+        });
 
         // P-ACA에서 출결 상태 조회
         const [pacaAttendance] = await pacaPool.query(`
