@@ -23,7 +23,8 @@ import {
   Trophy,
   TableProperties,
   Sun,
-  Moon
+  Moon,
+  Layers
 } from 'lucide-react';
 import { ThemeProvider, useTheme } from '@/components/theme-provider';
 import { SlideUpSheet } from '@/components/animations';
@@ -43,6 +44,7 @@ const navigation = [
   { name: '출근 체크', href: '/tablet/attendance', icon: UserCheck },
   { name: '학생 출석', href: '/tablet/student-attendance', icon: ListChecks },
   { name: '반 배치', href: '/tablet/assignments', icon: Users },
+  { name: '반 프리셋', href: '/tablet/presets', icon: Layers },
   { name: '수업 계획', href: '/tablet/plans', icon: ClipboardList },
   { name: '수업 기록', href: '/tablet/training', icon: Activity },
   { name: '기록 측정', href: '/tablet/records', icon: Medal },
@@ -56,6 +58,7 @@ const navigation = [
 const bottomTabs = [
   { name: '대시보드', href: '/tablet/dashboard', icon: LayoutDashboard },
   { name: '반 배치', href: '/tablet/assignments', icon: Users },
+  { name: '반 프리셋', href: '/tablet/presets', icon: Layers },
   { name: '수업 기록', href: '/tablet/training', icon: Activity },
   { name: '기록 측정', href: '/tablet/records', icon: Medal },
   { name: '더보기', href: '#more', icon: Menu },

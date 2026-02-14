@@ -14,7 +14,7 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
-import { Users, RefreshCw, Calendar, Star, Crown, Plus, ExternalLink, RotateCcw } from 'lucide-react';
+import { Users, RefreshCw, Calendar, Star, Crown, Plus, ExternalLink, RotateCcw, Layers, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 import { useSocket } from '@/hooks/useSocket';
@@ -334,6 +334,7 @@ export default function AssignmentsPage() {
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [presets, setPresets] = useState<{id:number;name:string;type:string}[]>([]);  const [showPresetMenu, setShowPresetMenu] = useState(false);  const [showPresetConfirm, setShowPresetConfirm] = useState<{id:number;name:string}|null>(null);  const [applyingPreset, setApplyingPreset] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
@@ -368,6 +369,30 @@ export default function AssignmentsPage() {
     useSensor(KeyboardSensor)
   );
 
+  // Fetch presets for apply button
+  const fetchPresets = async () => {
+    try {
+      const res = await apiClient.get("/presets");
+      setPresets(res.data.presets || []);
+    } catch (e) { console.error(e); }
+  };
+
+  const handleApplyPreset = async (presetId: number) => {
+    try {
+      setApplyingPreset(true);
+      setShowPresetConfirm(null);
+      await apiClient.post(`/presets/${presetId}/apply`, {
+        date: selectedDate,
+        time_slot: activeSlot
+      });
+      await fetchData();
+    } catch (e) {
+      console.error("Failed to apply preset:", e);
+      alert("프리셋 적용에 실패했습니다.");
+    } finally {
+      setApplyingPreset(false);
+    }
+  };
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -394,6 +419,7 @@ export default function AssignmentsPage() {
   };
 
   // 날짜 변경 시 자동으로 P-ACA 동기화 후 데이터 로드
+  useEffect(() => { fetchPresets(); }, []);
   useEffect(() => {
     const syncAndFetch = async () => {
       try {
@@ -559,6 +585,34 @@ export default function AssignmentsPage() {
             <span className="text-slate-500 dark:text-slate-400 text-sm">배정</span>
             <span className="ml-2 font-bold text-orange-500">{assignedStudents}/{totalStudents}명</span>
           </div>
+          {/* Preset Apply Button */}
+          {presets.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setShowPresetMenu(!showPresetMenu)}
+                disabled={loading || applyingPreset}
+                className="flex items-center gap-2 px-4 py-2 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition disabled:opacity-50"
+              >
+                <Layers size={18} />
+                <span className="hidden sm:inline">{applyingPreset ? '적용 중...' : '프리셋 적용'}</span>
+                <ChevronDown size={14} />
+              </button>
+              {showPresetMenu && (
+                <div className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-30">
+                  {presets.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => { setShowPresetMenu(false); setShowPresetConfirm({id: p.id, name: p.name}); }}
+                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 first:rounded-t-lg last:rounded-b-lg"
+                    >
+                      <span className="text-slate-800 dark:text-slate-100">{p.name}</span>
+                      <span className="ml-2 text-xs text-slate-400">{p.type === 'homeroom' ? '담임' : '그룹'}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <button
             onClick={() => setShowResetConfirm(true)}
             disabled={loading || resetting}
@@ -606,6 +660,24 @@ export default function AssignmentsPage() {
               >
                 {resetting ? '초기화 중...' : '초기화'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 프리셋 적용 확인 모달 */}
+      {showPresetConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">프리셋 적용</h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              <span className="font-semibold text-indigo-500">{showPresetConfirm.name}</span> 프리셋을 적용하시겠습니까?
+              <br /><br />
+              <span className="text-sm text-red-500">⚠ 현재 {TIME_SLOT_INFO[activeSlot].label} 시간대 배치가 초기화된 후 프리셋이 적용됩니다.</span>
+            </p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowPresetConfirm(null)} className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">취소</button>
+              <button onClick={() => handleApplyPreset(showPresetConfirm.id)} className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition">적용</button>
             </div>
           </div>
         </div>

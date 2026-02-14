@@ -133,6 +133,7 @@ app.use('/peak/score-tables', verifyToken, require('./routes/scoreTable'));
 app.use('/peak/stats', verifyToken, require('./routes/stats'));
 app.use('/peak/settings', verifyToken, require('./routes/peakSettings'));
 app.use('/peak/mobile', verifyToken, require('./routes/mobile'));
+app.use("/peak/presets", verifyToken, require("./routes/presets"));
 
 // 월말테스트
 app.use('/peak/monthly-tests', verifyToken, require('./routes/monthlyTests'));

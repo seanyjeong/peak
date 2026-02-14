@@ -14,7 +14,7 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
-import { Users, RefreshCw, Calendar, Star, Crown, Plus, ExternalLink, RotateCcw } from 'lucide-react';
+import { Users, RefreshCw, Calendar, Star, Crown, Plus, ExternalLink, RotateCcw, Layers, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 import { useOrientation } from '../layout';
@@ -321,6 +321,10 @@ export default function TabletAssignmentsPage() {
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [presets, setPresets] = useState<{id:number;name:string;type:string}[]>([]);
+  const [showPresetMenu, setShowPresetMenu] = useState(false);
+  const [showPresetConfirm, setShowPresetConfirm] = useState<{id:number;name:string}|null>(null);
+  const [applyingPreset, setApplyingPreset] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
@@ -360,6 +364,30 @@ export default function TabletAssignmentsPage() {
     })
   );
 
+  const fetchPresets = async () => {
+    try {
+      const res = await apiClient.get("/presets");
+      setPresets(res.data.presets || []);
+    } catch (e) { console.error(e); }
+  };
+
+  const handleApplyPreset = async (presetId: number) => {
+    try {
+      setApplyingPreset(true);
+      setShowPresetConfirm(null);
+      await apiClient.post(`/presets/${presetId}/apply`, {
+        date: selectedDate,
+        time_slot: activeSlot
+      });
+      await fetchData();
+    } catch (e) {
+      console.error("Failed to apply preset:", e);
+      alert("프리셋 적용에 실패했습니다.");
+    } finally {
+      setApplyingPreset(false);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -385,6 +413,8 @@ export default function TabletAssignmentsPage() {
   };
 
   // 날짜 변경 시 자동으로 P-ACA 동기화 후 데이터 로드
+  useEffect(() => { fetchPresets(); }, []);
+
   useEffect(() => {
     const syncAndFetch = async () => {
       try {
@@ -595,6 +625,24 @@ export default function TabletAssignmentsPage() {
               >
                 {resetting ? '초기화 중...' : '초기화'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 프리셋 적용 확인 모달 */}
+      {showPresetConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">프리셋 적용</h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              <span className="font-semibold text-indigo-500">{showPresetConfirm.name}</span> 프리셋을 적용하시겠습니까?
+              <br /><br />
+              <span className="text-sm text-red-500">⚠ 현재 {TIME_SLOT_INFO[activeSlot].label} 시간대 배치가 초기화 후 적용됩니다.</span>
+            </p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowPresetConfirm(null)} className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">취소</button>
+              <button onClick={() => handleApplyPreset(showPresetConfirm.id)} className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">적용</button>
             </div>
           </div>
         </div>
