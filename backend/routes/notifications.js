@@ -87,15 +87,16 @@ router.get('/check', verifyToken, async (req, res) => {
         const [studentsWithoutRecords] = await pool.query(`
             SELECT COUNT(DISTINCT s.id) as count
             FROM students s
+            JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
             WHERE s.academy_id = ?
-            AND s.status = 'active'
-            AND (s.is_trial = FALSE OR s.is_trial IS NULL)
+            AND ps.status = 'active'
+            AND (ps.is_trial = FALSE OR ps.is_trial IS NULL)
             AND s.id NOT IN (
                 SELECT DISTINCT sr.student_id
                 FROM student_records sr
                 WHERE sr.academy_id = ? AND sr.measured_at >= ?
             )
-        `, [academyId, academyId, weekAgoStr]);
+        `, [academyId, academyId, academyId, weekAgoStr]);
 
         if (studentsWithoutRecords[0].count > 0) {
             alerts.push({

@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
+const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
 const ExcelJS = require('exceljs');
 
@@ -473,14 +474,22 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
         tp.student_id,
         tp.test_applicant_id,
         tp.participant_type,
-        s.name as student_name,
-        s.gender,
-        s.school,
-        s.grade
+        ps.name as student_name,
+        ps.gender,
+        ps.school,
+        ps.grade
       FROM test_participants tp
       LEFT JOIN students s ON tp.student_id = s.id
+      LEFT JOIN paca.students ps ON s.paca_student_id = ps.id
       WHERE tp.test_session_id IN (?)
     `, [sessionIds]);
+
+    // Decrypt paca student names + convert gender
+    allParticipants.forEach(p => {
+      if (p.student_name) p.student_name = decrypt(p.student_name);
+      if (p.gender === 'male') p.gender = 'M';
+      else if (p.gender === 'female') p.gender = 'F';
+    });
 
     // 테스트신규 정보 조회 (P-ACA)
     const testApplicantIds = allParticipants
@@ -749,11 +758,19 @@ router.get('/:id/export', verifyToken, async (req, res) => {
     // 참가자 정보
     const [participants] = await pool.query(`
       SELECT tp.id, tp.student_id, tp.test_applicant_id, tp.participant_type,
-             s.name, s.gender, s.school, s.grade
+             ps.name, ps.gender, ps.school, ps.grade
       FROM test_participants tp
       LEFT JOIN students s ON tp.student_id = s.id
+      LEFT JOIN paca.students ps ON s.paca_student_id = ps.id
       WHERE tp.test_session_id IN (?)
     `, [sessionIds]);
+
+    // Decrypt paca student names + convert gender
+    participants.forEach(p => {
+      if (p.name) p.name = decrypt(p.name);
+      if (p.gender === 'male') p.gender = 'M';
+      else if (p.gender === 'female') p.gender = 'F';
+    });
 
     // 테스트신규 정보
     const testApplicantIds = participants.filter(p => p.test_applicant_id).map(p => p.test_applicant_id);

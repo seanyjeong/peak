@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
+const { decryptStudentFields } = require('../utils/paca-student');
 
 // 점수 계산 함수
 const calculateScore = (value, scoreRanges, gender) => {
@@ -128,11 +129,19 @@ router.get('/:slug', async (req, res) => {
     // 6. 참가자 + 기록 조회
     const [participants] = await pool.query(`
       SELECT tp.id, tp.student_id, tp.test_applicant_id, tp.participant_type,
-             s.name, s.gender, s.school, s.grade
+             ps.name, ps.gender, ps.school, ps.grade
       FROM test_participants tp
       LEFT JOIN students s ON tp.student_id = s.id
+      LEFT JOIN paca.students ps ON s.paca_student_id = ps.id
       WHERE tp.test_session_id IN (?)
     `, [sessionIds]);
+
+    // Decrypt paca student names + convert gender
+    participants.forEach(p => {
+      if (p.name) p.name = decrypt(p.name);
+      if (p.gender === 'male') p.gender = 'M';
+      else if (p.gender === 'female') p.gender = 'F';
+    });
 
     // 테스트신규 정보 조회
     const testApplicantIds = participants
