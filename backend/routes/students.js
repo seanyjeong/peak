@@ -92,6 +92,7 @@ router.post('/sync', verifyToken, async (req, res) => {
             let status = 'active';
             if (student.status === 'paused') status = 'paused';
             else if (student.status === 'pending') status = 'pending';
+            else if (student.status === 'trial') status = 'trial';
             else if (['graduated', 'withdrawn'].includes(student.status)) status = 'inactive';
 
             // 체험생 처리
