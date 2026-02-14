@@ -1,6 +1,7 @@
 /**
- * Trainer Attendance Routes (출근 체크 - P-ACA 연동)
- * P-ACA의 instructor_schedules에서 출근 현황 가져오기
+ * Attendance Routes (출근 체크 + 학생 출석 체크 - P-ACA 연동)
+ * - 강사 출근: P-ACA instructor_schedules에서 조회
+ * - 학생 출석: P-ACA attendance 테이블에 직접 쓰기
  */
 
 const express = require('express');
@@ -10,14 +11,17 @@ const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
 
+// ==========================================
+// 강사 출근 (기존)
+// ==========================================
+
 // GET /peak/attendance - P-ACA에서 오늘 강사 출근 현황
 router.get('/', verifyToken, async (req, res) => {
     try {
         const { date } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
-        const academyId = req.user.academyId;  // 토큰에서 학원 ID 가져오기
+        const academyId = req.user.academyId;
 
-        // P-ACA에서 강사 스케줄 + 출결 조회 (instructor_schedules + instructor_attendance JOIN)
         const [instructors] = await pacaPool.query(`
             SELECT
                 i.id,
@@ -36,7 +40,6 @@ router.get('/', verifyToken, async (req, res) => {
             ORDER BY ins.time_slot, i.name
         `, [academyId, targetDate]);
 
-        // 이름 복호화 및 시간대별 그룹화
         const bySlot = { morning: [], afternoon: [], evening: [] };
         instructors.forEach(inst => {
             const decryptedName = inst.name ? decrypt(inst.name) : inst.name;
@@ -52,7 +55,6 @@ router.get('/', verifyToken, async (req, res) => {
             }
         });
 
-        // 전체 통계 (고유 강사 기준)
         const allInstructors = [...bySlot.morning, ...bySlot.afternoon, ...bySlot.evening];
         const uniqueIds = new Set(allInstructors.map(i => i.id));
         const presentIds = new Set(
@@ -65,7 +67,7 @@ router.get('/', verifyToken, async (req, res) => {
             slots: bySlot,
             stats: {
                 total: allInstructors.length,
-                checkedIn: presentIds.size,  // 고유 강사 중 출근한 수
+                checkedIn: presentIds.size,
                 uniqueInstructors: uniqueIds.size
             }
         });
@@ -83,24 +85,13 @@ router.get('/current', verifyToken, async (req, res) => {
         const now = new Date();
         const currentHour = now.getHours();
 
-        // 현재 시간대 판단 (기본값 사용, 추후 academy_settings에서 가져올 수 있음)
         let currentSlot;
-        if (currentHour < 12) {
-            currentSlot = 'morning';
-        } else if (currentHour < 18) {
-            currentSlot = 'afternoon';
-        } else {
-            currentSlot = 'evening';
-        }
+        if (currentHour < 12) currentSlot = 'morning';
+        else if (currentHour < 18) currentSlot = 'afternoon';
+        else currentSlot = 'evening';
 
-        const slotLabels = {
-            morning: '오전반',
-            afternoon: '오후반',
-            evening: '저녁반'
-        };
+        const slotLabels = { morning: '오전반', afternoon: '오후반', evening: '저녁반' };
 
-        // P-ACA에서 해당 시간대 스케줄된 강사 조회
-        // attendance_status = 'present'면 출근한 것으로 판단 (check_in_time은 선택적)
         const [scheduledInstructors] = await pacaPool.query(`
             SELECT
                 i.id,
@@ -120,7 +111,6 @@ router.get('/current', verifyToken, async (req, res) => {
             ORDER BY i.name
         `, [academyId, today, currentSlot]);
 
-        // 이름 복호화 및 출근 여부 판단 (attendance_status = 'present' 또는 'late'면 출근)
         const instructors = scheduledInstructors.map(inst => ({
             id: inst.id,
             name: inst.name ? decrypt(inst.name) : inst.name,
@@ -148,7 +138,7 @@ router.get('/current', verifyToken, async (req, res) => {
     }
 });
 
-// POST /peak/attendance/checkin - 출근 체크
+// POST /peak/attendance/checkin - 강사 출근 체크
 router.post('/checkin', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
@@ -156,7 +146,6 @@ router.post('/checkin', verifyToken, async (req, res) => {
         const today = new Date().toISOString().split('T')[0];
         const now = new Date().toTimeString().split(' ')[0];
 
-        // 권한 체크: 본인 또는 원장/관리자만 대리 체크 가능
         const requesterId = req.user.instructorId;
         const isAdminOrOwner = req.user.role === 'admin' || req.user.role === 'owner';
 
@@ -167,7 +156,6 @@ router.post('/checkin', verifyToken, async (req, res) => {
             });
         }
 
-        // 이미 출근했는지 확인 (해당 학원만)
         const [existing] = await db.query(
             'SELECT id FROM daily_attendance WHERE academy_id = ? AND date = ? AND trainer_id = ?',
             [academyId, today, trainer_id]
@@ -193,6 +181,213 @@ router.post('/checkin', verifyToken, async (req, res) => {
         });
     } catch (error) {
         console.error('Check in error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// ==========================================
+// 학생 출석 체크 (신규)
+// ==========================================
+
+// GET /peak/attendance/students - 학생 출석 현황 (시간대별)
+router.get('/students', verifyToken, async (req, res) => {
+    try {
+        const { date } = req.query;
+        const targetDate = date || new Date().toISOString().split('T')[0];
+        const academyId = req.user.academyId;
+
+        // Peak daily_assignments에서 학생 조회 + Paca attendance 상태
+        const [assignments] = await db.query(`
+            SELECT
+                da.id as assignment_id,
+                da.student_id,
+                da.time_slot,
+                da.class_id,
+                da.paca_attendance_id,
+                da.is_trial,
+                da.status,
+                s.name as student_name,
+                s.gender,
+                s.school,
+                s.grade,
+                s.paca_student_id
+            FROM daily_assignments da
+            JOIN students s ON da.student_id = s.id
+            WHERE da.academy_id = ? AND da.date = ?
+            ORDER BY da.time_slot, s.name
+        `, [academyId, targetDate]);
+
+        if (assignments.length === 0) {
+            return res.json({
+                success: true,
+                date: targetDate,
+                slots: { morning: [], afternoon: [], evening: [] },
+                stats: { total: 0, present: 0, absent: 0, late: 0, excused: 0 }
+            });
+        }
+
+        // Paca에서 출석 상태 조회 (paca_attendance_id로)
+        const pacaAttIds = assignments
+            .filter(a => a.paca_attendance_id)
+            .map(a => a.paca_attendance_id);
+
+        let attendanceMap = {};
+        if (pacaAttIds.length > 0) {
+            const [pacaRecords] = await pacaPool.query(
+                'SELECT id, attendance_status, notes FROM attendance WHERE id IN (?)',
+                [pacaAttIds]
+            );
+            pacaRecords.forEach(r => {
+                attendanceMap[r.id] = {
+                    attendance_status: r.attendance_status,
+                    notes: r.notes
+                };
+            });
+        }
+
+        // 시간대별 그룹화
+        const bySlot = { morning: [], afternoon: [], evening: [] };
+        assignments.forEach(a => {
+            const pacaAtt = attendanceMap[a.paca_attendance_id] || {};
+            if (bySlot[a.time_slot]) {
+                bySlot[a.time_slot].push({
+                    assignment_id: a.assignment_id,
+                    student_id: a.student_id,
+                    student_name: a.student_name,
+                    gender: a.gender,
+                    school: a.school,
+                    grade: a.grade,
+                    class_id: a.class_id,
+                    is_trial: a.is_trial,
+                    paca_attendance_id: a.paca_attendance_id,
+                    attendance_status: pacaAtt.attendance_status || null,
+                    notes: pacaAtt.notes || null
+                });
+            }
+        });
+
+        // 통계
+        const allStudents = [...bySlot.morning, ...bySlot.afternoon, ...bySlot.evening];
+        const stats = {
+            total: allStudents.length,
+            present: allStudents.filter(s => s.attendance_status === 'present').length,
+            absent: allStudents.filter(s => s.attendance_status === 'absent').length,
+            late: allStudents.filter(s => s.attendance_status === 'late').length,
+            excused: allStudents.filter(s => s.attendance_status === 'excused').length,
+            unchecked: allStudents.filter(s => !s.attendance_status).length
+        };
+
+        res.json({
+            success: true,
+            date: targetDate,
+            slots: bySlot,
+            stats
+        });
+    } catch (error) {
+        console.error('Get student attendance error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// POST /peak/attendance/student - 개별 학생 출석 체크 (Paca에 직접 쓰기)
+router.post('/student', verifyToken, async (req, res) => {
+    try {
+        const { paca_attendance_id, attendance_status } = req.body;
+
+        if (!paca_attendance_id) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'paca_attendance_id가 필요합니다. 먼저 출석 동기화를 실행하세요.'
+            });
+        }
+
+        const validStatuses = ['present', 'absent', 'late', 'excused'];
+        if (!validStatuses.includes(attendance_status)) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: `유효한 상태: ${validStatuses.join(', ')}`
+            });
+        }
+
+        // Paca attendance 테이블 직접 UPDATE
+        const [result] = await pacaPool.query(
+            'UPDATE attendance SET attendance_status = ? WHERE id = ?',
+            [attendance_status, paca_attendance_id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                error: 'Not Found',
+                message: '해당 출석 레코드를 찾을 수 없습니다.'
+            });
+        }
+
+        // Socket.io로 브로드캐스트
+        const io = req.app.get('io');
+        if (io) {
+            const academyId = req.user.academyId;
+            io.to(`academy-${academyId}`).emit('student-attendance-updated', {
+                paca_attendance_id,
+                attendance_status
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `출석 상태를 '${attendance_status}'로 변경했습니다.`,
+            paca_attendance_id,
+            attendance_status
+        });
+    } catch (error) {
+        console.error('Update student attendance error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// POST /peak/attendance/student/batch - 일괄 출석 체크
+router.post('/student/batch', verifyToken, async (req, res) => {
+    try {
+        const { updates } = req.body;
+        // updates: [{ paca_attendance_id, attendance_status }]
+
+        if (!Array.isArray(updates) || updates.length === 0) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'updates 배열이 필요합니다.'
+            });
+        }
+
+        const validStatuses = ['present', 'absent', 'late', 'excused'];
+        let successCount = 0;
+
+        for (const update of updates) {
+            if (!update.paca_attendance_id || !validStatuses.includes(update.attendance_status)) {
+                continue;
+            }
+            const [result] = await pacaPool.query(
+                'UPDATE attendance SET attendance_status = ? WHERE id = ?',
+                [update.attendance_status, update.paca_attendance_id]
+            );
+            if (result.affectedRows > 0) successCount++;
+        }
+
+        // Socket.io 브로드캐스트
+        const io = req.app.get('io');
+        if (io) {
+            const academyId = req.user.academyId;
+            io.to(`academy-${academyId}`).emit('student-attendance-batch-updated', {
+                count: successCount
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `${successCount}명의 출석 상태를 변경했습니다.`,
+            updated: successCount,
+            total: updates.length
+        });
+    } catch (error) {
+        console.error('Batch update student attendance error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
