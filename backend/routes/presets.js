@@ -342,7 +342,7 @@ router.post('/:id/apply', async (req, res) => {
             SELECT DISTINCT i.id
             FROM instructor_schedules isch
             JOIN instructors i ON isch.instructor_id = i.id
-            WHERE isch.academy_id = ? AND isch.date = ? AND isch.time_slot = ?
+            WHERE isch.academy_id = ? AND isch.work_date = ? AND isch.time_slot = ?
               AND isch.attendance_status IN ('present', 'checked_in')
         `, [academyId, date, time_slot]);
         const availableInstructorIds = new Set(pacaInstructors.map(i => i.id));
