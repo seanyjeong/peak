@@ -33,6 +33,7 @@
     "dotenv": "^17.2.3",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
     "framer-motion": "^12.26.2",
     "helmet": "^8.1.0",
     "html2canvas": "^1.4.1",

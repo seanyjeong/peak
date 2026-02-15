@@ -272,13 +272,13 @@ router.post('/instructor', verifyToken, async (req, res) => {
             // 대기로 이동: 기존 배치 삭제
             const [deleted] = await db.query(`
                 DELETE FROM class_instructors
-                WHERE date = ? AND time_slot = ? AND instructor_id = ?
-            `, [targetDate, time_slot, instructor_id]);
+                WHERE academy_id = ? AND date = ? AND time_slot = ? AND instructor_id = ?
+            `, [academyId, targetDate, time_slot, instructor_id]);
 
             // 해당 강사가 있던 반 찾기
             if (deleted.affectedRows > 0) {
                 // 남은 강사가 없는 반의 학생들 미배치로
-                await cleanupEmptyClasses(targetDate, time_slot);
+                await cleanupEmptyClasses(targetDate, time_slot, academyId);
             }
 
             // Socket.io 브로드캐스트
@@ -297,15 +297,15 @@ router.post('/instructor', verifyToken, async (req, res) => {
         // 기존 배치 삭제
         await db.query(`
             DELETE FROM class_instructors
-            WHERE date = ? AND time_slot = ? AND instructor_id = ?
-        `, [targetDate, time_slot, instructor_id]);
+            WHERE academy_id = ? AND date = ? AND time_slot = ? AND instructor_id = ?
+        `, [academyId, targetDate, time_slot, instructor_id]);
 
         // 해당 반의 기존 강사 확인
         const [existingInsts] = await db.query(`
             SELECT * FROM class_instructors
-            WHERE date = ? AND time_slot = ? AND class_num = ?
+            WHERE academy_id = ? AND date = ? AND time_slot = ? AND class_num = ?
             ORDER BY order_num
-        `, [targetDate, time_slot, to_class_num]);
+        `, [academyId, targetDate, time_slot, to_class_num]);
 
         let orderNum = 0;
         let isMainFlag = is_main !== undefined ? is_main : (existingInsts.length === 0);
@@ -315,8 +315,8 @@ router.post('/instructor', verifyToken, async (req, res) => {
             await db.query(`
                 UPDATE class_instructors
                 SET is_main = 0, order_num = order_num + 1
-                WHERE date = ? AND time_slot = ? AND class_num = ? AND is_main = 1
-            `, [targetDate, time_slot, to_class_num]);
+                WHERE academy_id = ? AND date = ? AND time_slot = ? AND class_num = ? AND is_main = 1
+            `, [academyId, targetDate, time_slot, to_class_num]);
             orderNum = 0;
         } else {
             orderNum = existingInsts.length;
@@ -599,9 +599,9 @@ router.post('/sync', verifyToken, async (req, res) => {
         // Bulk Insert: 새 학생들
         if (studentsToInsert.length > 0) {
             const [insertResult] = await db.query(`
-                INSERT INTO students (paca_student_id, name, gender, school, grade, is_trial, trial_total, trial_remaining, status)
+                INSERT INTO students (paca_student_id, name, gender, school, grade, is_trial, trial_total, trial_remaining, status, academy_id)
                 VALUES ?
-            `, [studentsToInsert.map(s => [...s, 'active'])]);
+            `, [studentsToInsert.map(s => [...s, 'active', academyId])]);
 
             // 새로 생성된 ID로 매핑 업데이트
             const startId = insertResult.insertId;

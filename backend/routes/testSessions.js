@@ -6,22 +6,31 @@ const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
 
+// Middleware: verify session belongs to user's academy
+async function verifySessionOwnership(req, res, next) {
+  const { sessionId } = req.params;
+  const academyId = req.user.academyId;
+  try {
+    const [rows] = await pool.query(
+      `SELECT ts.id FROM test_sessions ts
+       JOIN monthly_tests mt ON ts.monthly_test_id = mt.id
+       WHERE ts.id = ? AND mt.academy_id = ?`,
+      [sessionId, academyId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    next();
+  } catch (error) {
+    console.error('Session ownership check error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+}
+
 // 세션 삭제
-router.delete('/:sessionId', verifyToken, async (req, res) => {
+router.delete('/:sessionId', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const academyId = req.user.academyId;
-
-    // academy_id 검증: 해당 학원의 세션인지 확인
-    const [sessions] = await pool.query(`
-      SELECT ts.id FROM test_sessions ts
-      JOIN monthly_tests mt ON ts.monthly_test_id = mt.id
-      WHERE ts.id = ? AND mt.academy_id = ?
-    `, [sessionId, academyId]);
-
-    if (sessions.length === 0) {
-      return res.status(404).json({ success: false, message: '세션을 찾을 수 없습니다.' });
-    }
 
     await pool.query('DELETE FROM test_sessions WHERE id = ?', [sessionId]);
     res.json({ success: true, message: '세션이 삭제되었습니다.' });
@@ -32,7 +41,7 @@ router.delete('/:sessionId', verifyToken, async (req, res) => {
 });
 
 // 조 편성 조회 (감독관 + 학생 포함) - P-ACA 자동 동기화
-router.get('/:sessionId/groups', verifyToken, async (req, res) => {
+router.get('/:sessionId/groups', verifyToken, verifySessionOwnership, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     const academyId = req.user.academyId;
@@ -333,7 +342,7 @@ router.get('/:sessionId/groups', verifyToken, async (req, res) => {
 });
 
 // 조 생성
-router.post('/:sessionId/groups', verifyToken, async (req, res) => {
+router.post('/:sessionId/groups', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { group_name } = req.body || {};
@@ -358,7 +367,7 @@ router.post('/:sessionId/groups', verifyToken, async (req, res) => {
 });
 
 // 조 삭제
-router.delete('/:sessionId/groups/:groupId', verifyToken, async (req, res) => {
+router.delete('/:sessionId/groups/:groupId', verifyToken, verifySessionOwnership, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -385,7 +394,7 @@ router.delete('/:sessionId/groups/:groupId', verifyToken, async (req, res) => {
 });
 
 // 감독관 배치
-router.post('/:sessionId/supervisor', verifyToken, async (req, res) => {
+router.post('/:sessionId/supervisor', verifyToken, verifySessionOwnership, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -445,7 +454,7 @@ router.post('/:sessionId/supervisor', verifyToken, async (req, res) => {
 });
 
 // 참가자 조 배치 변경
-router.put('/:sessionId/participants/:participantId', verifyToken, async (req, res) => {
+router.put('/:sessionId/participants/:participantId', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
     const { participantId } = req.params;
     const { test_group_id, order_num } = req.body;
@@ -464,7 +473,7 @@ router.put('/:sessionId/participants/:participantId', verifyToken, async (req, r
 });
 
 // 재원생 동기화 (재원생만, 체험생 제외) - P-ACA 상태 기준으로 조회
-router.post('/:sessionId/participants/sync', verifyToken, async (req, res) => {
+router.post('/:sessionId/participants/sync', verifyToken, verifySessionOwnership, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -580,7 +589,7 @@ router.post('/:sessionId/participants/sync', verifyToken, async (req, res) => {
 });
 
 // 추가 가능 학생 목록 (휴원생, 체험생, 테스트신규 - P-ACA에서 조회)
-router.get('/:sessionId/available-students', verifyToken, async (req, res) => {
+router.get('/:sessionId/available-students', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
     const academyId = req.user.academyId;
     const { sessionId } = req.params;
@@ -680,7 +689,7 @@ router.get('/:sessionId/available-students', verifyToken, async (req, res) => {
 });
 
 // 참가자 수동 추가 (휴원생/체험생/테스트신규)
-router.post('/:sessionId/participants', verifyToken, async (req, res) => {
+router.post('/:sessionId/participants', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
     const { sessionId } = req.params;
     let { student_id, paca_student_id, test_applicant_id, participant_type } = req.body;
@@ -754,7 +763,7 @@ router.post('/:sessionId/participants', verifyToken, async (req, res) => {
 });
 
 // 참가자 제거
-router.delete('/:sessionId/participants/:participantId', verifyToken, async (req, res) => {
+router.delete('/:sessionId/participants/:participantId', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
     const { participantId } = req.params;
 
@@ -768,7 +777,7 @@ router.delete('/:sessionId/participants/:participantId', verifyToken, async (req
 });
 
 // 기록 조회
-router.get('/:sessionId/records', verifyToken, async (req, res) => {
+router.get('/:sessionId/records', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
     const academyId = req.user.academyId;
     const { sessionId } = req.params;
@@ -993,7 +1002,7 @@ router.get('/:sessionId/records', verifyToken, async (req, res) => {
 });
 
 // 기록 일괄 저장
-router.post('/:sessionId/records/batch', verifyToken, async (req, res) => {
+router.post('/:sessionId/records/batch', verifyToken, verifySessionOwnership, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -1055,7 +1064,7 @@ router.post('/:sessionId/records/batch', verifyToken, async (req, res) => {
 });
 
 // 세션 기록 전체 삭제
-router.delete('/:sessionId/records', verifyToken, async (req, res) => {
+router.delete('/:sessionId/records', verifyToken, verifySessionOwnership, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -1273,7 +1282,7 @@ function generateScheduleAlgorithm(groups, recordTypes, conflicts) {
 }
 
 // 스케줄 조회
-router.get('/:sessionId/schedule', verifyToken, async (req, res) => {
+router.get('/:sessionId/schedule', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
     const { sessionId } = req.params;
 
@@ -1358,7 +1367,7 @@ router.get('/:sessionId/schedule', verifyToken, async (req, res) => {
 });
 
 // 스케줄 생성/재생성
-router.post('/:sessionId/schedule/generate', verifyToken, async (req, res) => {
+router.post('/:sessionId/schedule/generate', verifyToken, verifySessionOwnership, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();

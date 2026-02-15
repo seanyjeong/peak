@@ -314,18 +314,26 @@ router.post('/student', verifyToken, async (req, res) => {
             });
         }
 
-        // Paca attendance 테이블 직접 UPDATE
-        const [result] = await pacaPool.query(
-            'UPDATE attendance SET attendance_status = ? WHERE id = ?',
-            [attendance_status, paca_attendance_id]
+        // Verify attendance record belongs to user's academy
+        const academyId = req.user.academyId;
+        const [attendance] = await pacaPool.query(
+            `SELECT a.id FROM attendance a
+             JOIN class_schedules cs ON a.class_schedule_id = cs.id
+             WHERE a.id = ? AND cs.academy_id = ?`,
+            [paca_attendance_id, academyId]
         );
-
-        if (result.affectedRows === 0) {
+        if (attendance.length === 0) {
             return res.status(404).json({
                 error: 'Not Found',
                 message: '해당 출석 레코드를 찾을 수 없습니다.'
             });
         }
+
+        // Paca attendance 테이블 직접 UPDATE
+        await pacaPool.query(
+            'UPDATE attendance SET attendance_status = ? WHERE id = ?',
+            [attendance_status, paca_attendance_id]
+        );
 
         // Socket.io로 브로드캐스트
         const io = req.app.get('io');
@@ -362,11 +370,33 @@ router.post('/student/batch', verifyToken, async (req, res) => {
             });
         }
 
+        const academyId = req.user.academyId;
         const validStatuses = ['present', 'absent', 'late', 'excused'];
         let successCount = 0;
 
+        // Collect all attendance IDs for bulk ownership verification
+        const attIds = updates
+            .filter(u => u.paca_attendance_id && validStatuses.includes(u.attendance_status))
+            .map(u => u.paca_attendance_id);
+
+        if (attIds.length === 0) {
+            return res.json({ success: true, message: '업데이트할 항목이 없습니다.', updated: 0, total: updates.length });
+        }
+
+        // Verify all attendance records belong to user's academy
+        const [ownedRecords] = await pacaPool.query(
+            `SELECT a.id FROM attendance a
+             JOIN class_schedules cs ON a.class_schedule_id = cs.id
+             WHERE a.id IN (?) AND cs.academy_id = ?`,
+            [attIds, academyId]
+        );
+        const ownedIds = new Set(ownedRecords.map(r => r.id));
+
         for (const update of updates) {
             if (!update.paca_attendance_id || !validStatuses.includes(update.attendance_status)) {
+                continue;
+            }
+            if (!ownedIds.has(update.paca_attendance_id)) {
                 continue;
             }
             const [result] = await pacaPool.query(

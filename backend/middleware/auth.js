@@ -44,6 +44,7 @@ const verifyToken = async (req, res, next) => {
                 email: 'n8n@system',
                 name: 'N8N Service',
                 role: 'admin',
+                academyId: null,
                 isServiceAccount: true
             };
             return next();

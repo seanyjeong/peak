@@ -8,25 +8,42 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const mysql = require('mysql2/promise');
+const rateLimit = require('express-rate-limit');
 const { decrypt } = require('../utils/encryption');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'jeong-paca-secret';
+if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+}
+if (!process.env.PACA_DB_PASSWORD) {
+    throw new Error('PACA_DB_PASSWORD environment variable is required');
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // P-ACA DB 연결
 const pacaPool = mysql.createPool({
     host: process.env.PACA_DB_HOST || 'localhost',
     user: process.env.PACA_DB_USER || 'paca',
-    password: process.env.PACA_DB_PASSWORD || 'q141171616!',
+    password: process.env.PACA_DB_PASSWORD,
     database: 'paca',
     waitForConnections: true,
     connectionLimit: 5
+});
+
+// Login rate limiter: 15min window, max 5 attempts per IP
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: { error: 'Too Many Requests', message: '로그인 시도가 너무 많습니다. 15분 후에 다시 시도하세요.' },
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 
 /**
  * POST /peak/auth/login
  * P-ACA 계정으로 로그인
  */
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
     console.log('[Auth] Login attempt:', req.body?.email);
     try {
         const { email, password } = req.body;
