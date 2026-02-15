@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { Users, RefreshCw, Search, User, X, Activity, Plus, Download, ExternalLink } from 'lucide-react';
+import { Users, RefreshCw, Search, User, X, Activity, Plus, ExternalLink } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import {
   StudentListItem,
@@ -24,7 +24,6 @@ export default function StudentsPage() {
   const {
     filteredStudents,
     loading,
-    syncing,
     searchTerm,
     statusFilter,
     setSearchTerm,

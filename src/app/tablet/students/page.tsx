@@ -2,7 +2,7 @@
 
 import { useRef, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Users, RefreshCw, Search, User, ChevronRight, Download } from 'lucide-react';
+import { Users, RefreshCw, Search, User, ChevronRight } from 'lucide-react';
 import { useOrientation } from '../layout';
 import { useStudentList, STATUS_MAP } from '@/features/students';
 import { groupByChosung, getSortedGroups, DISPLAY_CHOSUNG } from '@/lib/utils/korean';
@@ -173,7 +173,7 @@ export default function TabletStudentsPage() {
                             체험 {student.trial_total - student.trial_remaining}/{student.trial_total}
                           </span>
                         )}
-                        <span className={`px-3 py-1 rounded-lg text-sm font-medium ${STATUS_MAP[student.status].color} ${STATUS_MAP[student.status].darkColor}`}>
+                        <span className={`px-3 py-1 rounded-lg text-sm font-medium ${STATUS_MAP[student.status]?.color ?? 'bg-slate-100 text-slate-600'}`}>
                           {STATUS_MAP[student.status].label}
                         </span>
                         <ChevronRight size={20} className="text-slate-400" />
