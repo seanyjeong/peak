@@ -2,7 +2,7 @@ export interface Student {
   id: number;
   paca_student_id: number;
   name: string;
-  gender: 'M' | 'F';
+  gender: 'M' | 'F' | null;
   phone: string | null;
   school: string | null;
   grade: string | null;

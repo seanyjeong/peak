@@ -16,12 +16,12 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
       onClick={onSelect}
       className={`p-5 flex items-center justify-between cursor-pointer transition ${
         isSelected
-          ? `bg-slate-50 dark:bg-slate-700 border-l-4 ${GENDER_COLORS[student.gender].border}`
+          ? `bg-slate-50 dark:bg-slate-700 border-l-4 ${(GENDER_COLORS[student.gender as keyof typeof GENDER_COLORS] ?? GENDER_COLORS['M']).border}`
           : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
       }`}
     >
       <div className="flex items-center gap-4">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${GENDER_COLORS[student.gender].icon}`}>
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${(GENDER_COLORS[student.gender as keyof typeof GENDER_COLORS] ?? GENDER_COLORS['M']).icon}`}>
           <User size={20} />
         </div>
         <div>
@@ -37,7 +37,7 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
             </Link>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {student.gender === 'M' ? '남' : '여'}
+            {student.gender === 'M' ? '남' : student.gender === 'F' ? '여' : ''}
             {student.school && ` · ${student.school}`}
             {student.grade && ` ${student.grade}`}
           </p>
