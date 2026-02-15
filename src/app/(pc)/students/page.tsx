@@ -31,7 +31,7 @@ export default function StudentsPage() {
     setStatusFilter,
     statusCounts,
     fetchStudents,
-    syncStudents,
+
   } = useStudentList();
 
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
@@ -198,11 +198,6 @@ export default function StudentsPage() {
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">총 {statusCounts.all}명</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={syncStudents} disabled={syncing}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-800 dark:hover:bg-slate-600 transition disabled:opacity-50 text-sm font-medium">
-            <Download size={18} className={syncing ? 'animate-spin' : ''} />
-            <span>{syncing ? '동기화 중...' : 'P-ACA 동기화'}</span>
-          </button>
           <button onClick={fetchStudents} disabled={loading}
             className="flex items-center gap-2 px-4 py-2.5 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />

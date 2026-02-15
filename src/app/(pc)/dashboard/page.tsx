@@ -254,7 +254,7 @@ export default function DashboardPage() {
                 onClick={() => router.push('/assignments')}
                 className="mt-2 text-sm text-orange-500 hover:text-orange-600"
               >
-                P-ACA 동기화하기
+                반배치 하러가기
               </button>
             </div>
           ) : (

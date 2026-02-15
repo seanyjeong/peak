@@ -12,14 +12,12 @@ export default function TabletStudentsPage() {
   const {
     filteredStudents,
     loading,
-    syncing,
     searchTerm,
     statusFilter,
     setSearchTerm,
     setStatusFilter,
     statusCounts,
     fetchStudents,
-    syncStudents,
   } = useStudentList();
 
   // 초성 그룹핑
@@ -52,14 +50,6 @@ export default function TabletStudentsPage() {
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">총 {statusCounts.all}명</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={syncStudents}
-            disabled={syncing}
-            className="flex items-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition disabled:opacity-50"
-          >
-            <Download size={18} className={syncing ? 'animate-spin' : ''} />
-            <span className="text-sm font-medium">{syncing ? '동기화 중...' : '동기화'}</span>
-          </button>
           <button
             onClick={fetchStudents}
             disabled={loading}
