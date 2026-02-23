@@ -374,9 +374,32 @@ export default function TabletTrainingPage() {
     }
   };
 
+  // Find trainer ID for a student from their class assignment
+  const findTrainerForStudent = (studentId: number): number | null => {
+    const slotData = slots[selectedSlot] as SlotData | undefined;
+    if (!slotData) return null;
+    for (const cls of (slotData.classes || [])) {
+      if (cls.students?.some(s => s.student_id === studentId)) {
+        return cls.instructors?.[0]?.id ?? null;
+      }
+    }
+    return null;
+  };
+
   const saveCondition = async (studentId: number, score: number | null) => {
     const existing = existingLogs.find(l => l.student_id === studentId);
     const dateStr = selectedDate;
+
+    // Resolve trainer_id: selected > student's class trainer > current user
+    const trainerId = selectedTrainerId
+      || findTrainerForStudent(studentId)
+      || currentUser?.instructorId
+      || null;
+
+    if (!trainerId) {
+      console.error('Cannot save: no trainer_id available');
+      return;
+    }
 
     try {
       if (existing) {
@@ -391,7 +414,7 @@ export default function TabletTrainingPage() {
         const res = await apiClient.post('/training', {
           date: dateStr,
           student_id: studentId,
-          trainer_id: selectedTrainerId,
+          trainer_id: trainerId,
           plan_id: currentPlan?.id || null,
           condition_score: score,
           notes: ''

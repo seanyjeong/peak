@@ -202,9 +202,12 @@ router.get('/', verifyToken, async (req, res) => {
                 });
             });
 
-            // 대기 중인 학생: 미배치 학생(결석 아닌) + 결석 학생(배치 여부 무관)
+            // 유효한 반 번호 (강사가 있는 반)
+            const validClassNums = new Set(classNums);
+
+            // 대기 중인 학생: 미배치 + 강사 없는 반에 배치된 학생(결석 아닌) + 결석 학생(배치 여부 무관)
             const waitingNonAbsent = assignments
-                .filter(a => a.time_slot === slot && a.class_id === null)
+                .filter(a => a.time_slot === slot && (a.class_id === null || !validClassNums.has(a.class_id)))
                 .map(a => {
                     const attInfo = attendanceMap[`${a.paca_student_id}-${slot}`] || {};
                     return {
