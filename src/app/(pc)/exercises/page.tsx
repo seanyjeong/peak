@@ -29,7 +29,6 @@ export default function ExercisesPage() {
 
   const currentUser = authAPI.getCurrentUser();
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
-  const isSystemAdmin = currentUser?.role === 'admin'; // 태그 관리는 시스템 관리자만
 
   // 운동 관리 상태
   const [showExerciseForm, setShowExerciseForm] = useState(false);
@@ -292,7 +291,7 @@ export default function ExercisesPage() {
           <Dumbbell size={16} />
           운동 목록
         </button>
-        {isSystemAdmin && (
+        {isAdmin && (
           <button
             onClick={() => setActiveTab('tags')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
@@ -409,7 +408,7 @@ export default function ExercisesPage() {
             onDelete={deleteExercise}
           />
         </div>
-      ) : activeTab === 'tags' && isSystemAdmin ? (
+      ) : activeTab === 'tags' && isAdmin ? (
         <TagManager
           tags={exerciseTags}
           form={tagForm}
