@@ -46,6 +46,11 @@ export const STATUS_MAP: Record<string, { label: string; color: string; darkColo
     color: 'bg-amber-100 text-amber-700',
     darkColor: 'dark:bg-amber-900/20 dark:text-amber-400'
   },
+  trial: {
+    label: '체험',
+    color: 'bg-purple-100 text-purple-700',
+    darkColor: 'dark:bg-purple-900/20 dark:text-purple-400'
+  },
 };
 
 interface UseStudentListReturn {

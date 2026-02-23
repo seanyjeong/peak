@@ -174,7 +174,7 @@ export default function TabletStudentsPage() {
                           </span>
                         )}
                         <span className={`px-3 py-1 rounded-lg text-sm font-medium ${STATUS_MAP[student.status]?.color ?? 'bg-slate-100 text-slate-600'}`}>
-                          {STATUS_MAP[student.status].label}
+                          {STATUS_MAP[student.status]?.label ?? student.status}
                         </span>
                         <ChevronRight size={20} className="text-slate-400" />
                       </div>

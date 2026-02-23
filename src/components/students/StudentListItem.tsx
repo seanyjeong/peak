@@ -49,8 +49,8 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
             체험 {student.trial_total - student.trial_remaining}/{student.trial_total}
           </span>
         )}
-        <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${STATUS_MAP[student.status].color}`}>
-          {STATUS_MAP[student.status].label}
+        <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${STATUS_MAP[student.status]?.color ?? 'bg-slate-100 text-slate-600'}`}>
+          {STATUS_MAP[student.status]?.label ?? student.status}
         </span>
         <ChevronRight size={18} className="text-slate-400" />
       </div>
