@@ -42,6 +42,7 @@ export default function AllStudentRecordsPage() {
   // 필터 상태
   const [searchTerm, setSearchTerm] = useState('');
   const [gradeFilter, setGradeFilter] = useState('');
+  const [genderFilter, setGenderFilter] = useState<'' | 'M' | 'F'>('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sort, setSort] = useState<SortConfig>({ recordTypeId: null, order: 'asc' });
 
@@ -94,6 +95,9 @@ export default function AllStudentRecordsPage() {
       // 학년
       const matchesGrade = !gradeFilter || s.grade === gradeFilter;
 
+      // 성별
+      const matchesGender = !genderFilter || s.gender === genderFilter;
+
       // 상태
       let matchesStatus = true;
       if (statusFilter !== 'all') {
@@ -106,7 +110,7 @@ export default function AllStudentRecordsPage() {
         }
       }
 
-      return matchesSearch && matchesGrade && matchesStatus;
+      return matchesSearch && matchesGrade && matchesGender && matchesStatus;
     });
 
     // 정렬
@@ -121,7 +125,7 @@ export default function AllStudentRecordsPage() {
     });
 
     return rows;
-  }, [students, searchTerm, gradeFilter, statusFilter, sort, recordMap]);
+  }, [students, searchTerm, gradeFilter, genderFilter, statusFilter, sort, recordMap]);
 
   // 상태별 카운트
   const statusCounts = useMemo(() => {
@@ -198,6 +202,23 @@ export default function AllStudentRecordsPage() {
               <option key={g} value={g}>{g}</option>
             ))}
           </select>
+          <div className="flex rounded-lg border dark:border-slate-700 overflow-hidden">
+            {([['', '전체'], ['M', '남'], ['F', '여']] as const).map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => setGenderFilter(val as '' | 'M' | 'F')}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                  genderFilter === val
+                    ? val === 'M' ? 'bg-blue-500 text-white'
+                    : val === 'F' ? 'bg-pink-500 text-white'
+                    : 'bg-orange-500 text-white'
+                    : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* 상태 필터 */}
@@ -255,10 +276,20 @@ export default function AllStudentRecordsPage() {
             <tbody className="divide-y dark:divide-slate-700">
               {filteredRows.map((student, idx) => {
                 const status = getStatusDisplay(student);
+                const genderBg = student.gender === 'M'
+                  ? 'bg-blue-50/60 dark:bg-blue-950/20'
+                  : student.gender === 'F'
+                  ? 'bg-pink-50/60 dark:bg-pink-950/20'
+                  : 'bg-white dark:bg-slate-950';
+                const stickyBg = student.gender === 'M'
+                  ? 'bg-blue-50 dark:bg-blue-950/30'
+                  : student.gender === 'F'
+                  ? 'bg-pink-50 dark:bg-pink-950/30'
+                  : 'bg-white dark:bg-slate-950';
                 return (
-                  <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                    <td className="sticky left-0 z-10 bg-white dark:bg-slate-950 px-3 py-2.5 text-gray-400">{idx + 1}</td>
-                    <td className="sticky left-10 z-10 bg-white dark:bg-slate-950 px-3 py-2.5">
+                  <tr key={student.id} className={`${genderBg} hover:brightness-95 dark:hover:brightness-110`}>
+                    <td className={`sticky left-0 z-10 ${stickyBg} px-3 py-2.5 text-gray-400`}>{idx + 1}</td>
+                    <td className={`sticky left-10 z-10 ${stickyBg} px-3 py-2.5`}>
                       <div className="flex items-center gap-1.5">
                         <Link href={`/students?id=${student.id}`} className="font-medium hover:text-orange-500 truncate">
                           {student.name}
@@ -268,8 +299,8 @@ export default function AllStudentRecordsPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="sticky left-[168px] z-10 bg-white dark:bg-slate-950 px-3 py-2.5 text-gray-600 dark:text-gray-400 truncate">{student.school || '-'}</td>
-                    <td className="sticky left-[248px] z-10 bg-white dark:bg-slate-950 px-3 py-2.5 text-gray-600 dark:text-gray-400">{student.grade || '-'}</td>
+                    <td className={`sticky left-[168px] z-10 ${stickyBg} px-3 py-2.5 text-gray-600 dark:text-gray-400 truncate`}>{student.school || '-'}</td>
+                    <td className={`sticky left-[248px] z-10 ${stickyBg} px-3 py-2.5 text-gray-600 dark:text-gray-400`}>{student.grade || '-'}</td>
                     {recordTypes.map(rt => {
                       const val = recordMap.get(`${student.id}-${rt.id}`);
                       return (
