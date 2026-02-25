@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { Users, RefreshCw, Search, User, X, Activity, Plus, ExternalLink } from 'lucide-react';
+import { Users, RefreshCw, Search, User, X, Activity, Plus, ExternalLink, TableProperties } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import {
   StudentListItem,
@@ -197,6 +197,11 @@ export default function StudentsPage() {
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">총 {statusCounts.all}명</p>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/students/records"
+            className="flex items-center gap-2 px-4 py-2.5 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+            <TableProperties size={18} />
+            <span className="text-sm">전체 기록</span>
+          </Link>
           <button onClick={fetchStudents} disabled={loading}
             className="flex items-center gap-2 px-4 py-2.5 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
