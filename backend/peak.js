@@ -17,6 +17,8 @@ const jwt = require('jsonwebtoken');
 const logger = require('./utils/logger');
 const requestLogger = require('./middleware/requestLogger');
 
+const rateLimit = require('express-rate-limit');
+
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 8330;
@@ -71,7 +73,27 @@ app.use(cors({
 
 app.use(helmet({
     crossOriginResourcePolicy: false,
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false,
+    strictTransportSecurity: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+    },
+    permissionsPolicy: {
+        features: {
+            camera: [],
+            microphone: [],
+            geolocation: [],
+        },
+    },
+}));
+
+// 전체 API Rate Limiting: 1분에 100회
+app.use(rateLimit({
+    windowMs: 60 * 1000,
+    max: 100,
+    message: { error: 'Too Many Requests', message: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.' },
+    standardHeaders: true,
+    legacyHeaders: false,
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -173,7 +195,6 @@ app.use((req, res) => {
     });
     res.status(404).json({
         error: 'Not Found',
-        message: `Cannot ${req.method} ${req.path}`
     });
 });
 
