@@ -17,7 +17,7 @@ export interface Student {
   trial_total: number;
   trial_remaining: number;
   join_date: string | null;
-  status: 'active' | 'inactive' | 'injury' | 'paused' | 'pending';
+  status: 'active' | 'inactive' | 'injury' | 'paused' | 'pending' | 'trial';
 }
 
 export const STATUS_MAP: Record<string, { label: string; color: string; darkColor: string }> = {
@@ -85,12 +85,12 @@ export function useStudentList(): UseStudentListReturn {
   // 상태별 인원수 계산
   const statusCounts = useMemo(() => ({
     all: students.length,
-    active: students.filter(s => s.status === 'active' && !s.is_trial).length,
+    active: students.filter(s => s.status === 'active').length,
     inactive: students.filter(s => s.status === 'inactive').length,
     injury: students.filter(s => s.status === 'injury').length,
     paused: students.filter(s => s.status === 'paused').length,
     pending: students.filter(s => s.status === 'pending').length,
-    trial: students.filter(s => s.is_trial).length,
+    trial: students.filter(s => s.status === 'trial').length,
   }), [students]);
 
   // 필터링된 학생 목록
@@ -102,12 +102,6 @@ export function useStudentList(): UseStudentListReturn {
       switch (statusFilter) {
         case 'all':
           matchesFilter = true;
-          break;
-        case 'trial':
-          matchesFilter = student.is_trial;
-          break;
-        case 'active':
-          matchesFilter = student.status === 'active' && !student.is_trial;
           break;
         default:
           matchesFilter = student.status === statusFilter;

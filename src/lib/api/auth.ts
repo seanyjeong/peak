@@ -30,6 +30,11 @@ export const authAPI = {
     if (data.success && data.token) {
       localStorage.setItem('peak_token', data.token);
       localStorage.setItem('peak_user', JSON.stringify(data.user));
+
+      // 로그인 시 P-ACA 학생 자동 동기화 (백그라운드)
+      if (data.user?.academyId) {
+        apiClient.post('/students/sync', { academyId: data.user.academyId }).catch(() => {});
+      }
     }
 
     return data;

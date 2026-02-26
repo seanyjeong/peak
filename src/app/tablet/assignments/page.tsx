@@ -89,7 +89,7 @@ function CompactStudentCard({ student, isDragging }: { student: Student; isDragg
       {isAbsent && (
         <span className="px-1 py-0.5 rounded text-xs bg-red-100 text-red-600">결</span>
       )}
-      {!isAbsent && !!student.is_trial && (
+      {!isAbsent && student.status === 'trial' && (
         <span className="px-1 py-0.5 rounded text-xs bg-purple-100 text-purple-700">
           {Math.max(0, student.trial_total - student.trial_remaining)}/{student.trial_total}
         </span>

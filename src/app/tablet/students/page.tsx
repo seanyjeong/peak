@@ -168,7 +168,7 @@ export default function TabletStudentsPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {!!student.is_trial && (
+                        {student.status === 'trial' && (
                           <span className="px-2 py-1 rounded-lg text-xs font-medium bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400">
                             체험 {student.trial_total - student.trial_remaining}/{student.trial_total}
                           </span>

@@ -101,13 +101,7 @@ export default function AllStudentRecordsPage() {
       // 상태
       let matchesStatus = true;
       if (statusFilter !== 'all') {
-        if (statusFilter === 'trial') {
-          matchesStatus = s.is_trial;
-        } else if (statusFilter === 'active') {
-          matchesStatus = s.status === 'active' && !s.is_trial;
-        } else {
-          matchesStatus = s.status === statusFilter;
-        }
+        matchesStatus = s.status === statusFilter;
       }
 
       return matchesSearch && matchesGrade && matchesGender && matchesStatus;
@@ -132,13 +126,7 @@ export default function AllStudentRecordsPage() {
     const counts: Record<string, number> = { all: students.length };
     STATUS_FILTERS.forEach(f => {
       if (f.key === 'all') return;
-      if (f.key === 'trial') {
-        counts.trial = students.filter(s => s.is_trial).length;
-      } else if (f.key === 'active') {
-        counts.active = students.filter(s => s.status === 'active' && !s.is_trial).length;
-      } else {
-        counts[f.key] = students.filter(s => s.status === f.key).length;
-      }
+      counts[f.key] = students.filter(s => s.status === f.key).length;
     });
     return counts;
   }, [students]);
@@ -155,7 +143,6 @@ export default function AllStudentRecordsPage() {
   }
 
   function getStatusDisplay(student: Student) {
-    if (student.is_trial) return STATUS_MAP.trial;
     return STATUS_MAP[student.status] || STATUS_MAP.active;
   }
 

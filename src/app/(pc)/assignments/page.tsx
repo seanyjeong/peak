@@ -97,7 +97,7 @@ function CompactStudentCard({ student, isDragging }: { student: Student; isDragg
         >
           <ExternalLink size={10} className="text-orange-500" />
         </Link>
-        {!!student.is_trial && (
+        {student.status === 'trial' && (
           <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-100 text-purple-700">
             {student.trial_total - student.trial_remaining}/{student.trial_total}
           </span>
