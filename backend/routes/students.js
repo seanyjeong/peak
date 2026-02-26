@@ -299,8 +299,14 @@ router.get('/', verifyToken, async (req, res) => {
         const params = [academyId, academyId];
 
         if (status) {
-            query += ' AND ps.status = ?';
-            params.push(status);
+            const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
+            if (statuses.length === 1) {
+                query += ' AND ps.status = ?';
+                params.push(statuses[0]);
+            } else if (statuses.length > 1) {
+                query += ` AND ps.status IN (${statuses.map(() => '?').join(',')})`;
+                params.push(...statuses);
+            }
         }
         query += ' ORDER BY ps.name';
 

@@ -264,8 +264,8 @@ export default function PresetsPage() {
 
   const fetchStudents = useCallback(async () => {
     try {
-      // Get all active students
-      const res = await apiClient.get('/students?status=active');
+      // Get active + trial students for preset assignment
+      const res = await apiClient.get('/students?status=active,trial');
       setAllStudents(res.data.students || []);
     } catch (e) {
       console.error('Failed to fetch students:', e);
