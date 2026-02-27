@@ -882,9 +882,9 @@ function ScheduleTable({ schedule, groups, recordTypes, sessionId, onSwapped }: 
             </tbody>
           </table>
         </div>
-        <DragOverlay>
+        <DragOverlay dropAnimation={null}>
           {dragItem && (
-            <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700 shadow-lg">
+            <div className="px-4 py-2 rounded-full text-sm font-medium bg-blue-500 text-white shadow-lg whitespace-nowrap" style={{ transform: 'translate(-50%, -50%)' }}>
               {dragItem.name}
             </div>
           )}
