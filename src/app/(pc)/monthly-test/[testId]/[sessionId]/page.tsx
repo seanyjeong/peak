@@ -16,9 +16,25 @@ import {
   useSensors,
   PointerSensor,
   DragStartEvent,
-  DragEndEvent
+  DragEndEvent,
+  type Modifier
 } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
+
+// 커서 중앙에 오버레이를 스냅하는 modifier
+const snapCenterToCursor: Modifier = ({ activatorEvent, draggingNodeRect, transform }) => {
+  if (draggingNodeRect && activatorEvent && 'clientX' in activatorEvent) {
+    const event = activatorEvent as MouseEvent;
+    const offsetX = event.clientX - draggingNodeRect.left;
+    const offsetY = event.clientY - draggingNodeRect.top;
+    return {
+      ...transform,
+      x: transform.x + offsetX - draggingNodeRect.width / 2,
+      y: transform.y + offsetY - draggingNodeRect.height / 2,
+    };
+  }
+  return transform;
+};
 
 interface Participant {
   id: number;
@@ -882,9 +898,9 @@ function ScheduleTable({ schedule, groups, recordTypes, sessionId, onSwapped }: 
             </tbody>
           </table>
         </div>
-        <DragOverlay dropAnimation={null}>
+        <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
           {dragItem && (
-            <div className="px-4 py-2 rounded-full text-sm font-medium bg-blue-500 text-white shadow-lg whitespace-nowrap" style={{ transform: 'translate(-50%, -50%)' }}>
+            <div className="px-4 py-2 rounded-full text-sm font-medium bg-blue-500 text-white shadow-lg whitespace-nowrap">
               {dragItem.name}
             </div>
           )}
