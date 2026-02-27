@@ -19,6 +19,41 @@ function getKey() {
 }
 
 /**
+ * 데이터 암호화
+ * @param {string} plaintext - 암호화할 평문
+ * @returns {string} - ENC: 접두사 + Base64 인코딩된 암호문
+ */
+function encrypt(plaintext) {
+    if (!plaintext || plaintext === '') {
+        return plaintext;
+    }
+
+    // 이미 암호화된 데이터
+    if (typeof plaintext === 'string' && plaintext.startsWith('ENC:')) {
+        return plaintext;
+    }
+
+    try {
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv('aes-256-gcm', getKey(), iv);
+
+        const encrypted = Buffer.concat([
+            cipher.update(plaintext, 'utf8'),
+            cipher.final()
+        ]);
+
+        const authTag = cipher.getAuthTag();
+
+        // IV(16) + AuthTag(16) + Encrypted
+        const data = Buffer.concat([iv, authTag, encrypted]);
+        return 'ENC:' + data.toString('base64');
+    } catch (error) {
+        console.error('Encryption error:', error);
+        return plaintext;
+    }
+}
+
+/**
  * 데이터 복호화
  * @param {string} ciphertext - Base64 인코딩된 암호문
  * @returns {string} - 복호화된 평문
@@ -73,6 +108,7 @@ function decryptFields(obj, fields) {
 }
 
 module.exports = {
+    encrypt,
     decrypt,
     decryptFields
 };

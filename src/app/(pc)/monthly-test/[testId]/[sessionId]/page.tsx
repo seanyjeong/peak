@@ -1111,13 +1111,20 @@ function AddParticipantModal({
                         onChange={e => setNewSchool(e.target.value)}
                         className="flex-1 px-3 py-2 border rounded"
                       />
-                      <input
-                        type="text"
-                        placeholder="학년"
+                      <select
                         value={newGrade}
                         onChange={e => setNewGrade(e.target.value)}
-                        className="w-20 px-3 py-2 border rounded"
-                      />
+                        className="w-24 px-3 py-2 border rounded"
+                      >
+                        <option value="">학년</option>
+                        <option value="중1">중1</option>
+                        <option value="중2">중2</option>
+                        <option value="중3">중3</option>
+                        <option value="고1">고1</option>
+                        <option value="고2">고2</option>
+                        <option value="고3">고3</option>
+                        <option value="N수">N수</option>
+                      </select>
                     </div>
                     <div className="flex gap-2 justify-end">
                       <Button variant="ghost" size="sm" onClick={() => setShowNewForm(false)}>
