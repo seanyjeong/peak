@@ -45,6 +45,7 @@ export interface ScoreTableData {
   scoreTable: {
     id: number;
     decimal_places: number;
+    min_score?: number;
   } | null;
   ranges: ScoreRange[];
 }

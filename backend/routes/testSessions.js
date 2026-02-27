@@ -955,11 +955,16 @@ router.get('/:sessionId/records', verifyToken, verifySessionOwnership, async (re
     // 배점표 조회
     const recordTypeIds = types.map(t => t.record_type_id);
     let scoreRangesMap = {};
+    let minScoresMap = {}; // 종목별 기본점수 (파울용)
 
     if (recordTypeIds.length > 0) {
       const [scoreTables] = await pool.query(`
-        SELECT id, record_type_id FROM score_tables WHERE record_type_id IN (?)
+        SELECT id, record_type_id, min_score FROM score_tables WHERE record_type_id IN (?)
       `, [recordTypeIds]);
+
+      scoreTables.forEach(st => {
+        minScoresMap[st.record_type_id] = st.min_score || 0;
+      });
 
       const scoreTableIds = scoreTables.map(st => st.id);
 
@@ -993,6 +998,7 @@ router.get('/:sessionId/records', verifyToken, verifySessionOwnership, async (re
       record_types: types,
       participants: participantsWithRecords,
       score_ranges: scoreRangesMap,
+      min_scores: minScoresMap,
       groups: groupsWithInstructors
     });
   } catch (error) {

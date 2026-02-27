@@ -95,8 +95,11 @@ export default function TabletRankingsPage({
       const direction = type?.direction || 'higher';
 
       sorted = [...filtered].sort((a, b) => {
-        const aVal = a.records[selectedTypeId] ?? (direction === 'higher' ? -Infinity : Infinity);
-        const bVal = b.records[selectedTypeId] ?? (direction === 'higher' ? -Infinity : Infinity);
+        const aRaw = a.records[selectedTypeId];
+        const bRaw = b.records[selectedTypeId];
+        // 기록 없음(null/undefined)이나 파울(0)은 최하위
+        const aVal = (aRaw === null || aRaw === undefined || aRaw === 0) ? (direction === 'higher' ? -Infinity : Infinity) : aRaw;
+        const bVal = (bRaw === null || bRaw === undefined || bRaw === 0) ? (direction === 'higher' ? -Infinity : Infinity) : bRaw;
         return direction === 'higher' ? bVal - aVal : aVal - bVal;
       });
     }

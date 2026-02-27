@@ -13,9 +13,10 @@ const { verifyToken } = require('../middleware/auth');
 /**
  * 값을 점수로 변환하는 헬퍼 함수
  */
-function valueToScore(value, ranges, gender, direction) {
+function valueToScore(value, ranges, gender, direction, minScore = 0) {
     if (!ranges || ranges.length === 0) return null;
-    if (value === 0 || value === null || value === undefined) return 0; // 파울(0)은 0점
+    if (value === null || value === undefined) return 0;
+    if (value === 0) return minScore; // 파울(0)은 해당 종목의 기본점수
 
     const genderPrefix = gender === 'M' ? 'male' : 'female';
 
@@ -62,18 +63,20 @@ router.get('/academy-average', verifyToken, async (req, res) => {
 
         // 2. 배점표 조회 (score_ranges 포함)
         const [scoreTables] = await db.query(`
-            SELECT st.id, st.record_type_id, sr.score, sr.male_min, sr.male_max, sr.female_min, sr.female_max
+            SELECT st.id, st.record_type_id, st.min_score, sr.score, sr.male_min, sr.male_max, sr.female_min, sr.female_max
             FROM score_tables st
             LEFT JOIN score_ranges sr ON st.id = sr.score_table_id
             WHERE st.academy_id = ?
             ORDER BY st.record_type_id, sr.score DESC
         `, [academyId]);
 
-        // 종목별 배점표 그룹화
+        // 종목별 배점표 그룹화 + 기본점수 매핑
         const scoreTablesByType = {};
+        const minScoreByType = {};
         scoreTables.forEach(row => {
             if (!scoreTablesByType[row.record_type_id]) {
                 scoreTablesByType[row.record_type_id] = [];
+                minScoreByType[row.record_type_id] = row.min_score || 0;
             }
             if (row.score !== null) {
                 scoreTablesByType[row.record_type_id].push(row);
@@ -122,7 +125,8 @@ router.get('/academy-average', verifyToken, async (req, res) => {
                 maleCounts[rt.id] = values.length;
 
                 // 각 학생의 점수를 계산하고 평균 구하기
-                const scores = values.map(v => valueToScore(v, ranges, 'M', rt.direction)).filter(s => s !== null);
+                const minScore = minScoreByType[rt.id] || 0;
+                const scores = values.map(v => valueToScore(v, ranges, 'M', rt.direction, minScore)).filter(s => s !== null);
                 if (scores.length > 0) {
                     maleScoreAverages[rt.id] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
                 }
@@ -134,7 +138,8 @@ router.get('/academy-average', verifyToken, async (req, res) => {
                 femaleCounts[rt.id] = values.length;
 
                 // 각 학생의 점수를 계산하고 평균 구하기
-                const scores = values.map(v => valueToScore(v, ranges, 'F', rt.direction)).filter(s => s !== null);
+                const minScore = minScoreByType[rt.id] || 0;
+                const scores = values.map(v => valueToScore(v, ranges, 'F', rt.direction, minScore)).filter(s => s !== null);
                 if (scores.length > 0) {
                     femaleScoreAverages[rt.id] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
                 }

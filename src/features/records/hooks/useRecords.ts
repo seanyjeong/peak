@@ -200,10 +200,11 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
 
   const myStudents = getMyStudents();
 
-  // 점수 계산
+  // 점수 계산 (value=0 파울은 min_score 기본점수 적용)
   const calculateScore = useCallback((value: number, gender: 'M' | 'F', recordTypeId: number): number | null => {
     const tableData = scoreTablesCache[recordTypeId];
     if (!tableData?.scoreTable || tableData.ranges.length === 0) return null;
+    if (value === 0) return tableData.scoreTable.min_score || 0; // 파울(0)은 기본점수
     for (const range of tableData.ranges) {
       const min = gender === 'M' ? range.male_min : range.female_min;
       const max = gender === 'M' ? range.male_max : range.female_max;

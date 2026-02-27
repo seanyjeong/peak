@@ -549,11 +549,16 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
     // 배점표 조회
     const recordTypeIds = types.map(t => t.record_type_id);
     let scoreRangesMap = {};
+    let minScoreMap = {}; // 종목별 기본점수 (파울용)
 
     if (recordTypeIds.length > 0) {
       const [scoreTables] = await pool.query(`
-        SELECT id, record_type_id FROM score_tables WHERE academy_id = ? AND record_type_id IN (?)
+        SELECT id, record_type_id, min_score FROM score_tables WHERE academy_id = ? AND record_type_id IN (?)
       `, [academyId, recordTypeIds]);
+
+      scoreTables.forEach(st => {
+        minScoreMap[st.record_type_id] = st.min_score || 0;
+      });
 
       const scoreTableIds = scoreTables.map(st => st.id);
 
@@ -581,11 +586,11 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
       }
     }
 
-    // 점수 계산 함수
+    // 점수 계산 함수 (value=0 파울은 minScore 기본점수 적용)
     const calculateScore = (value, gender, recordTypeId) => {
       const ranges = scoreRangesMap[recordTypeId];
       if (!ranges || ranges.length === 0 || value === null || value === undefined) return null;
-      if (value === 0) return 0; // 파울(0)은 0점
+      if (value === 0) return minScoreMap[recordTypeId] || 0; // 파울(0)은 해당 종목의 기본점수
 
       const genderKey = gender === 'M' ? 'male' : 'female';
       for (const range of ranges) {

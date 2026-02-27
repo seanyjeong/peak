@@ -92,6 +92,7 @@ export default function StudentsPage() {
   const calculateScore = (value: number, gender: 'M' | 'F', recordTypeId: number): number | null => {
     const tableData = scoreTables[recordTypeId];
     if (!tableData?.scoreTable || tableData.ranges.length === 0) return null;
+    if (value === 0) return tableData.scoreTable.min_score || 0; // 파울(0)은 기본점수
     for (const range of tableData.ranges) {
       const min = gender === 'M' ? range.male_min : range.female_min;
       const max = gender === 'M' ? range.male_max : range.female_max;

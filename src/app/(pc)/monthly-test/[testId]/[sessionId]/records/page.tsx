@@ -57,9 +57,11 @@ interface Session {
   monthly_test_id?: number;
 }
 
-// 점수 계산 함수 (범위 내에서 매칭)
-const calculateScore = (value: number, ranges: ScoreRange[], gender: 'M' | 'F'): number => {
-  if (!value || !ranges || ranges.length === 0) return 0;
+// 점수 계산 함수 (범위 내에서 매칭, value=0 파울은 minScore 기본점수)
+const calculateScore = (value: number, ranges: ScoreRange[], gender: 'M' | 'F', minScore: number = 0): number => {
+  if (value === null || value === undefined) return 0;
+  if (!ranges || ranges.length === 0) return 0;
+  if (value === 0) return minScore; // 파울(0)은 기본점수
 
   const genderKey = gender === 'M' ? 'male' : 'female';
 
@@ -93,6 +95,7 @@ export default function SessionRecordsPage({
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [scoreRanges, setScoreRanges] = useState<Record<number, ScoreRange[]>>({});
+  const [minScores, setMinScores] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [inputs, setInputs] = useState<Record<string, Record<number, string>>>({});
   const [savingMap, setSavingMap] = useState<Record<string, boolean>>({});
@@ -120,6 +123,7 @@ export default function SessionRecordsPage({
       setParticipants(res.data.participants || []);
       setGroups(res.data.groups || []);
       setScoreRanges(res.data.score_ranges || {});
+      setMinScores(res.data.min_scores || {});
 
       // 첫 종목 선택
       if (res.data.record_types?.length > 0 && !selectedTypeId) {
@@ -353,7 +357,7 @@ export default function SessionRecordsPage({
                 const value = inputs[key]?.[selectedType.record_type_id] || '';
                 const numValue = parseFloat(value);
                 const score = !isNaN(numValue)
-                  ? calculateScore(numValue, scoreRanges[selectedType.record_type_id] || [], p.gender)
+                  ? calculateScore(numValue, scoreRanges[selectedType.record_type_id] || [], p.gender, minScores[selectedType.record_type_id] || 0)
                   : 0;
                 const isSaving = savingMap[saveKey];
                 const isSaved = savedMap[saveKey];

@@ -5,9 +5,11 @@ const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
 
-// 점수 계산 함수
-const calculateScore = (value, scoreRanges, gender) => {
-  if (!value || !scoreRanges || scoreRanges.length === 0) return 0;
+// 점수 계산 함수 (value=0 파울은 minScore 기본점수 적용)
+const calculateScore = (value, scoreRanges, gender, minScore = 0) => {
+  if (!scoreRanges || scoreRanges.length === 0) return 0;
+  if (value === null || value === undefined) return 0;
+  if (value === 0) return minScore; // 파울(0)은 해당 종목의 기본점수
 
   const genderKey = gender === 'M' ? 'male' : 'female';
 
@@ -83,11 +85,16 @@ router.get('/:slug', async (req, res) => {
     // 4. 배점표 조회
     const recordTypeIds = recordTypes.map(rt => rt.record_type_id);
     let scoreRangesMap = {};
+    let minScoreMap = {}; // 종목별 기본점수 (파울용)
 
     if (recordTypeIds.length > 0) {
       const [scoreTables] = await pool.query(`
-        SELECT id, record_type_id FROM score_tables WHERE record_type_id IN (?)
+        SELECT id, record_type_id, min_score FROM score_tables WHERE record_type_id IN (?)
       `, [recordTypeIds]);
+
+      scoreTables.forEach(st => {
+        minScoreMap[st.record_type_id] = st.min_score || 0;
+      });
 
       const scoreTableIds = scoreTables.map(st => st.id);
 
@@ -229,7 +236,8 @@ router.get('/:slug', async (req, res) => {
           const score = calculateScore(
             parseFloat(value),
             scoreRangesMap[rt.record_type_id] || [],
-            info.gender
+            info.gender,
+            minScoreMap[rt.record_type_id] || 0
           );
           eventScores[rt.record_type_id] = { value: parseFloat(value), score };
           totalScore += score;
@@ -272,7 +280,7 @@ router.get('/:slug', async (req, res) => {
     // 10. 종목별 순위 (남/여 각각 10명씩)
     const events = recordTypes.map(rt => {
       const allRecords = participantData
-        .filter(p => p.eventScores[rt.record_type_id])
+        .filter(p => p.eventScores[rt.record_type_id] && p.eventScores[rt.record_type_id].value > 0) // 파울(0) 제외
         .map(p => ({
           name: p.name,
           gender: p.gender,
