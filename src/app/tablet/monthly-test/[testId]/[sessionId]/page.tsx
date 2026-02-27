@@ -897,6 +897,41 @@ function AddParticipantModal({
   );
 }
 
+// 태블릿 순서표 드래그앤드롭 셀
+function TabletScheduleCell({ id, timeOrder, groupId, children }: {
+  id: string;
+  timeOrder: number;
+  groupId: number;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({
+    id,
+    data: { type: 'schedule-cell', timeOrder, groupId }
+  });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `drop-${id}`,
+    data: { type: 'schedule-cell', timeOrder, groupId }
+  });
+
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.5 : 1 }
+    : undefined;
+
+  return (
+    <td
+      ref={(node) => { setDragRef(node); setDropRef(node); }}
+      className={`border px-3 py-2 text-center select-none transition-colors ${
+        isOver ? 'bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-400 ring-inset' : ''
+      } ${isDragging ? 'opacity-50' : ''}`}
+      style={style}
+      {...listeners}
+      {...attributes}
+    >
+      {children}
+    </td>
+  );
+}
+
 // 순서표 모달 컴포넌트
 function ScheduleModal({
   isOpen,
@@ -913,6 +948,12 @@ function ScheduleModal({
   const [recordTypes, setRecordTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [dragItem, setDragItem] = useState<{ timeOrder: number; groupId: number; name: string } | null>(null);
+
+  const scheduleSensors = useSensors(
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -966,6 +1007,40 @@ function ScheduleModal({
     }
   };
 
+  const handleScheduleDragStart = (event: DragStartEvent) => {
+    const { timeOrder, groupId } = event.active.data.current as any;
+    const item = schedule.find(s => s.group_id === groupId && s.time_order === timeOrder);
+    setDragItem({
+      timeOrder,
+      groupId,
+      name: item?.record_type_id ? (item.record_type_short || item.record_type_name || '?') : '휴식'
+    });
+  };
+
+  const handleScheduleDragEnd = async (event: DragEndEvent) => {
+    setDragItem(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeData = active.data.current as any;
+    const overData = over.data.current as any;
+    if (!activeData || !overData) return;
+
+    if (activeData.timeOrder !== overData.timeOrder) return;
+    if (activeData.groupId === overData.groupId) return;
+
+    try {
+      await apiClient.put(`/test-sessions/${sessionId}/schedule/swap`, {
+        time_order: activeData.timeOrder,
+        group_id_1: activeData.groupId,
+        group_id_2: overData.groupId
+      });
+      await fetchSchedule();
+    } catch (error: any) {
+      alert(error.response?.data?.message || '교체 실패');
+    }
+  };
+
   // 타임별로 그룹화
   const timeOrders = [...new Set(schedule.map(s => s.time_order))].sort((a, b) => a - b);
   const groupList = [...new Set(schedule.map(s => s.group_id))];
@@ -975,7 +1050,7 @@ function ScheduleModal({
     const group = groups.find(g => g.id === groupId);
     if (!group) return `${groupId}조`;
     const mainSupervisor = group.supervisors.find(s => s.is_main);
-    return mainSupervisor ? `${mainSupervisor.name}T` : `${group.group_num}조`;
+    return mainSupervisor ? `${mainSupervisor.name}반` : `${group.group_num}조`;
   };
 
   return (
@@ -997,47 +1072,60 @@ function ScheduleModal({
           </div>
         ) : (
           <>
-            {/* 스케줄 테이블 */}
-            <div className="overflow-x-auto mb-4">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border px-3 py-2 text-left">타임</th>
-                    {groupList.map(gId => (
-                      <th key={gId} className="border px-3 py-2 text-center">
-                        {getGroupName(gId)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {timeOrders.map(time => (
-                    <tr key={time} className="hover:bg-gray-50 dark:bg-slate-900">
-                      <td className="border px-3 py-2 font-medium bg-gray-50 dark:bg-slate-900">
-                        {time + 1}타임
-                      </td>
-                      {groupList.map(gId => {
-                        const item = schedule.find(s => s.time_order === time && s.group_id === gId);
-                        const typeName = item?.record_type_id
-                          ? (item.record_type_short || item.record_type_name || '?')
-                          : '휴식';
-                        const isRest = !item?.record_type_id;
-                        return (
-                          <td
-                            key={gId}
-                            className={`border px-3 py-2 text-center ${
-                              isRest ? 'bg-gray-200 text-gray-500 dark:text-slate-400' : ''
-                            }`}
-                          >
-                            {typeName}
-                          </td>
-                        );
-                      })}
+            <p className="text-xs text-gray-500 mb-2">같은 타임 내에서 종목을 드래그하여 교체할 수 있습니다.</p>
+            {/* 스케줄 테이블 (DnD) */}
+            <DndContext
+              sensors={scheduleSensors}
+              collisionDetection={pointerWithin}
+              onDragStart={handleScheduleDragStart}
+              onDragEnd={handleScheduleDragEnd}
+            >
+              <div className="overflow-x-auto mb-4">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border px-3 py-2 text-left">타임</th>
+                      {groupList.map(gId => (
+                        <th key={gId} className="border px-3 py-2 text-center">
+                          {getGroupName(gId)}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {timeOrders.map(time => (
+                      <tr key={time}>
+                        <td className="border px-3 py-2 font-medium bg-gray-50 dark:bg-slate-900">
+                          {time + 1}타임
+                        </td>
+                        {groupList.map(gId => {
+                          const item = schedule.find(s => s.time_order === time && s.group_id === gId);
+                          const typeName = item?.record_type_id
+                            ? (item.record_type_short || item.record_type_name || '?')
+                            : '휴식';
+                          const isRest = !item?.record_type_id;
+                          const cellId = `tablet-schedule-${time}-${gId}`;
+                          return (
+                            <TabletScheduleCell key={cellId} id={cellId} timeOrder={time} groupId={gId}>
+                              <span className={isRest ? 'text-gray-500 dark:text-slate-400' : ''}>
+                                {typeName}
+                              </span>
+                            </TabletScheduleCell>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <DragOverlay>
+                {dragItem && (
+                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700 shadow-lg">
+                    {dragItem.name}
+                  </div>
+                )}
+              </DragOverlay>
+            </DndContext>
 
             {/* 재생성 버튼 */}
             <div className="flex justify-end">
@@ -1047,7 +1135,7 @@ function ScheduleModal({
                 disabled={generating}
                 className="min-h-12"
               >
-                {generating ? '생성 중...' : '🔄 스케줄 재생성'}
+                {generating ? '생성 중...' : '스케줄 재생성'}
               </Button>
             </div>
           </>

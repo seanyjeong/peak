@@ -116,7 +116,16 @@ function GroupColumn({
   };
 
   const handlePickInstructor = (instructorId: number | null) => {
-    onUpdateGroup(group.id, { instructor_id: instructorId } as Partial<Group>);
+    if (instructorId !== null) {
+      const instructor = instructors.find(i => i.id === instructorId);
+      if (instructor) {
+        onUpdateGroup(group.id, { instructor_id: instructorId, name: `${instructor.name}반` } as Partial<Group>);
+      } else {
+        onUpdateGroup(group.id, { instructor_id: instructorId } as Partial<Group>);
+      }
+    } else {
+      onUpdateGroup(group.id, { instructor_id: instructorId } as Partial<Group>);
+    }
     setShowInstructorPicker(false);
   };
 

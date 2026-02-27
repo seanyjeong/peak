@@ -723,66 +723,13 @@ export default function SessionGroupPage({
               </Button>
             </div>
           ) : (
-            <Card className="p-4">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="border p-3 bg-gray-100 text-left w-24">타임</th>
-                      {groups.map(group => {
-                        const mainSupervisor = group.supervisors.find(s => s.is_main);
-                        return (
-                          <th key={group.id} className="border p-3 bg-gray-100 text-center min-w-[120px]">
-                            {mainSupervisor ? `${mainSupervisor.name}T` : `${group.group_num}조`}
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const timeSlots = [...new Set(schedule.map(s => s.time_order))].sort((a, b) => a - b);
-                      return timeSlots.map(timeOrder => (
-                        <tr key={timeOrder}>
-                          <td className="border p-3 bg-gray-50 dark:bg-slate-900 font-medium">
-                            타임 {timeOrder + 1}
-                          </td>
-                          {groups.map(group => {
-                            const item = schedule.find(
-                              s => s.group_id === group.id && s.time_order === timeOrder
-                            );
-                            return (
-                              <td key={group.id} className="border p-3 text-center">
-                                {item?.record_type_id ? (
-                                  <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                                    {item.record_type_short || item.record_type_name}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400 dark:text-slate-500 text-sm">휴식</span>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ));
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-
-              {recordTypes.length > 0 && (
-                <div className="mt-4 pt-4 border-t">
-                  <div className="text-sm text-gray-600 mb-2">종목 안내</div>
-                  <div className="flex flex-wrap gap-2">
-                    {recordTypes.map(type => (
-                      <span key={type.id} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
-                        {type.short_name || type.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Card>
+            <ScheduleTable
+              schedule={schedule}
+              groups={groups}
+              recordTypes={recordTypes}
+              sessionId={sessionId}
+              onSwapped={fetchSchedule}
+            />
           )}
         </div>
       )}
@@ -796,6 +743,171 @@ export default function SessionGroupPage({
         onAdded={fetchData}
       />
     </div>
+  );
+}
+
+// 순서표 드래그앤드롭 셀
+function ScheduleCell({ id, timeOrder, groupId, children }: {
+  id: string;
+  timeOrder: number;
+  groupId: number;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({
+    id,
+    data: { type: 'schedule-cell', timeOrder, groupId }
+  });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `drop-${id}`,
+    data: { type: 'schedule-cell', timeOrder, groupId }
+  });
+
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.5 : 1 }
+    : undefined;
+
+  return (
+    <td
+      ref={(node) => { setDragRef(node); setDropRef(node); }}
+      className={`border p-3 text-center cursor-grab active:cursor-grabbing select-none transition-colors ${
+        isOver ? 'bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-400 ring-inset' : ''
+      } ${isDragging ? 'opacity-50' : ''}`}
+      style={style}
+      {...listeners}
+      {...attributes}
+    >
+      {children}
+    </td>
+  );
+}
+
+// 순서표 테이블 (DnD)
+function ScheduleTable({ schedule, groups, recordTypes, sessionId, onSwapped }: {
+  schedule: ScheduleItem[];
+  groups: Group[];
+  recordTypes: RecordType[];
+  sessionId: string;
+  onSwapped: () => void;
+}) {
+  const [dragItem, setDragItem] = useState<{ timeOrder: number; groupId: number; name: string } | null>(null);
+
+  const scheduleSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const handleScheduleDragStart = (event: DragStartEvent) => {
+    const { timeOrder, groupId } = event.active.data.current as any;
+    const item = schedule.find(s => s.group_id === groupId && s.time_order === timeOrder);
+    setDragItem({
+      timeOrder,
+      groupId,
+      name: item?.record_type_id ? (item.record_type_short || item.record_type_name || '?') : '휴식'
+    });
+  };
+
+  const handleScheduleDragEnd = async (event: DragEndEvent) => {
+    setDragItem(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeData = active.data.current as any;
+    const overData = over.data.current as any;
+    if (!activeData || !overData) return;
+
+    // 같은 타임 내에서만 교체 허용
+    if (activeData.timeOrder !== overData.timeOrder) return;
+    if (activeData.groupId === overData.groupId) return;
+
+    try {
+      await apiClient.put(`/test-sessions/${sessionId}/schedule/swap`, {
+        time_order: activeData.timeOrder,
+        group_id_1: activeData.groupId,
+        group_id_2: overData.groupId
+      });
+      onSwapped();
+    } catch (error: any) {
+      alert(error.response?.data?.message || '교체 실패');
+    }
+  };
+
+  const timeSlots = [...new Set(schedule.map(s => s.time_order))].sort((a, b) => a - b);
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs text-gray-500">같은 타임 내에서 종목을 드래그하여 교체할 수 있습니다.</p>
+      </div>
+      <DndContext
+        sensors={scheduleSensors}
+        collisionDetection={pointerWithin}
+        onDragStart={handleScheduleDragStart}
+        onDragEnd={handleScheduleDragEnd}
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className="border p-3 bg-gray-100 text-left w-24">타임</th>
+                {groups.map(group => {
+                  const mainSupervisor = group.supervisors.find(s => s.is_main);
+                  return (
+                    <th key={group.id} className="border p-3 bg-gray-100 text-center min-w-[120px]">
+                      {mainSupervisor ? `${mainSupervisor.name}반` : `${group.group_num}조`}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {timeSlots.map(timeOrder => (
+                <tr key={timeOrder}>
+                  <td className="border p-3 bg-gray-50 dark:bg-slate-900 font-medium">
+                    타임 {timeOrder + 1}
+                  </td>
+                  {groups.map(group => {
+                    const item = schedule.find(
+                      s => s.group_id === group.id && s.time_order === timeOrder
+                    );
+                    const cellId = `schedule-${timeOrder}-${group.id}`;
+                    return (
+                      <ScheduleCell key={cellId} id={cellId} timeOrder={timeOrder} groupId={group.id}>
+                        {item?.record_type_id ? (
+                          <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                            {item.record_type_short || item.record_type_name}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 dark:text-slate-500 text-sm">휴식</span>
+                        )}
+                      </ScheduleCell>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <DragOverlay>
+          {dragItem && (
+            <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700 shadow-lg">
+              {dragItem.name}
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+
+      {recordTypes.length > 0 && (
+        <div className="mt-4 pt-4 border-t">
+          <div className="text-sm text-gray-600 mb-2">종목 안내</div>
+          <div className="flex flex-wrap gap-2">
+            {recordTypes.map(type => (
+              <span key={type.id} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                {type.short_name || type.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 

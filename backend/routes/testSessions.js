@@ -1469,4 +1469,60 @@ router.post('/:sessionId/schedule/generate', verifyToken, verifySessionOwnership
   }
 });
 
+// 스케줄 교체 (같은 타임 내 두 조의 종목 swap)
+router.put('/:sessionId/schedule/swap', verifyToken, verifySessionOwnership, async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { sessionId } = req.params;
+    const { time_order, group_id_1, group_id_2 } = req.body;
+
+    if (time_order === undefined || !group_id_1 || !group_id_2) {
+      await conn.rollback();
+      return res.status(400).json({ success: false, message: 'time_order, group_id_1, group_id_2 필수' });
+    }
+
+    if (group_id_1 === group_id_2) {
+      await conn.rollback();
+      return res.status(400).json({ success: false, message: '같은 조끼리는 교체할 수 없습니다.' });
+    }
+
+    // 두 스케줄 항목 조회
+    const [rows] = await conn.query(
+      `SELECT id, group_id, record_type_id FROM session_schedules
+       WHERE test_session_id = ? AND time_order = ? AND group_id IN (?, ?)`,
+      [sessionId, time_order, group_id_1, group_id_2]
+    );
+
+    if (rows.length !== 2) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: '교체할 스케줄 항목을 찾을 수 없습니다.' });
+    }
+
+    const item1 = rows.find(r => r.group_id === group_id_1);
+    const item2 = rows.find(r => r.group_id === group_id_2);
+
+    // record_type_id 교체
+    await conn.query(
+      'UPDATE session_schedules SET record_type_id = ? WHERE id = ?',
+      [item2.record_type_id, item1.id]
+    );
+    await conn.query(
+      'UPDATE session_schedules SET record_type_id = ? WHERE id = ?',
+      [item1.record_type_id, item2.id]
+    );
+
+    await conn.commit();
+
+    res.json({ success: true, message: '종목이 교체되었습니다.' });
+  } catch (error) {
+    await conn.rollback();
+    console.error('스케줄 교체 오류:', error);
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    conn.release();
+  }
+});
+
 module.exports = router;

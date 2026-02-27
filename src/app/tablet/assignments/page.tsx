@@ -232,7 +232,7 @@ function ClassColumn({ classData, orientation }: { classData: ClassData; orienta
 
   // 주강사 이름으로 반 이름 생성
   const mainInstructor = classData.instructors.find(i => i.isMain);
-  const className = mainInstructor ? `${mainInstructor.name}T` : `${classData.class_num}반`;
+  const className = mainInstructor ? `${mainInstructor.name}반` : `${classData.class_num}반`;
 
   return (
     <div className={`flex flex-col ${columnWidth} bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 overflow-hidden`}>
