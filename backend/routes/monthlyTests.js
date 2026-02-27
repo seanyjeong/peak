@@ -585,6 +585,7 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
     const calculateScore = (value, gender, recordTypeId) => {
       const ranges = scoreRangesMap[recordTypeId];
       if (!ranges || ranges.length === 0 || value === null || value === undefined) return null;
+      if (value === 0) return 0; // 파울(0)은 0점
 
       const genderKey = gender === 'M' ? 'male' : 'female';
       for (const range of ranges) {

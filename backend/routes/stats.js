@@ -15,6 +15,7 @@ const { verifyToken } = require('../middleware/auth');
  */
 function valueToScore(value, ranges, gender, direction) {
     if (!ranges || ranges.length === 0) return null;
+    if (value === 0 || value === null || value === undefined) return 0; // 파울(0)은 0점
 
     const genderPrefix = gender === 'M' ? 'male' : 'female';
 
