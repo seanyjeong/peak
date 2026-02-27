@@ -11,6 +11,7 @@ import {
   DndContext,
   DragOverlay,
   pointerWithin,
+  closestCenter,
   useSensor,
   useSensors,
   PointerSensor,
@@ -746,14 +747,14 @@ export default function SessionGroupPage({
   );
 }
 
-// 순서표 드래그앤드롭 셀
+// 순서표 드래그앤드롭 셀 (transform 없이 DragOverlay만 사용)
 function ScheduleCell({ id, timeOrder, groupId, children }: {
   id: string;
   timeOrder: number;
   groupId: number;
   children: React.ReactNode;
 }) {
-  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
     id,
     data: { type: 'schedule-cell', timeOrder, groupId }
   });
@@ -762,17 +763,12 @@ function ScheduleCell({ id, timeOrder, groupId, children }: {
     data: { type: 'schedule-cell', timeOrder, groupId }
   });
 
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.5 : 1 }
-    : undefined;
-
   return (
     <td
       ref={(node) => { setDragRef(node); setDropRef(node); }}
       className={`border p-3 text-center cursor-grab active:cursor-grabbing select-none transition-colors ${
         isOver ? 'bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-400 ring-inset' : ''
       } ${isDragging ? 'opacity-50' : ''}`}
-      style={style}
       {...listeners}
       {...attributes}
     >
@@ -839,7 +835,7 @@ function ScheduleTable({ schedule, groups, recordTypes, sessionId, onSwapped }: 
       </div>
       <DndContext
         sensors={scheduleSensors}
-        collisionDetection={pointerWithin}
+        collisionDetection={closestCenter}
         onDragStart={handleScheduleDragStart}
         onDragEnd={handleScheduleDragEnd}
       >
