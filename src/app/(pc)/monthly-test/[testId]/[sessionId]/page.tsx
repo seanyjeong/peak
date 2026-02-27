@@ -747,7 +747,7 @@ export default function SessionGroupPage({
   );
 }
 
-// 순서표 드래그앤드롭 셀 (transform 없이 DragOverlay만 사용)
+// 순서표 드래그앤드롭 셀 (같은 ID로 자기 셀 자동 제외)
 function ScheduleCell({ id, timeOrder, groupId, children }: {
   id: string;
   timeOrder: number;
@@ -759,7 +759,7 @@ function ScheduleCell({ id, timeOrder, groupId, children }: {
     data: { type: 'schedule-cell', timeOrder, groupId }
   });
   const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: `drop-${id}`,
+    id,
     data: { type: 'schedule-cell', timeOrder, groupId }
   });
 
@@ -810,14 +810,14 @@ function ScheduleTable({ schedule, groups, recordTypes, sessionId, onSwapped }: 
     const overData = over.data.current as any;
     if (!activeData || !overData) return;
 
-    // 같은 타임 내에서만 교체 허용
-    if (activeData.timeOrder !== overData.timeOrder) return;
-    if (activeData.groupId === overData.groupId) return;
+    // 같은 셀이면 무시
+    if (activeData.timeOrder === overData.timeOrder && activeData.groupId === overData.groupId) return;
 
     try {
       await apiClient.put(`/test-sessions/${sessionId}/schedule/swap`, {
-        time_order: activeData.timeOrder,
+        time_order_1: activeData.timeOrder,
         group_id_1: activeData.groupId,
+        time_order_2: overData.timeOrder,
         group_id_2: overData.groupId
       });
       onSwapped();
@@ -831,7 +831,7 @@ function ScheduleTable({ schedule, groups, recordTypes, sessionId, onSwapped }: 
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs text-gray-500">같은 타임 내에서 종목을 드래그하여 교체할 수 있습니다.</p>
+        <p className="text-xs text-gray-500">종목을 드래그하여 다른 셀과 교체할 수 있습니다.</p>
       </div>
       <DndContext
         sensors={scheduleSensors}

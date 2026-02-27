@@ -898,7 +898,7 @@ function AddParticipantModal({
   );
 }
 
-// 태블릿 순서표 드래그앤드롭 셀 (transform 없이 DragOverlay만 사용)
+// 태블릿 순서표 드래그앤드롭 셀 (같은 ID로 자기 셀 자동 제외)
 function TabletScheduleCell({ id, timeOrder, groupId, children }: {
   id: string;
   timeOrder: number;
@@ -910,7 +910,7 @@ function TabletScheduleCell({ id, timeOrder, groupId, children }: {
     data: { type: 'schedule-cell', timeOrder, groupId }
   });
   const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: `drop-${id}`,
+    id,
     data: { type: 'schedule-cell', timeOrder, groupId }
   });
 
@@ -1022,13 +1022,13 @@ function ScheduleModal({
     const overData = over.data.current as any;
     if (!activeData || !overData) return;
 
-    if (activeData.timeOrder !== overData.timeOrder) return;
-    if (activeData.groupId === overData.groupId) return;
+    if (activeData.timeOrder === overData.timeOrder && activeData.groupId === overData.groupId) return;
 
     try {
       await apiClient.put(`/test-sessions/${sessionId}/schedule/swap`, {
-        time_order: activeData.timeOrder,
+        time_order_1: activeData.timeOrder,
         group_id_1: activeData.groupId,
+        time_order_2: overData.timeOrder,
         group_id_2: overData.groupId
       });
       await fetchSchedule();
@@ -1068,7 +1068,7 @@ function ScheduleModal({
           </div>
         ) : (
           <>
-            <p className="text-xs text-gray-500 mb-2">같은 타임 내에서 종목을 드래그하여 교체할 수 있습니다.</p>
+            <p className="text-xs text-gray-500 mb-2">종목을 드래그하여 다른 셀과 교체할 수 있습니다.</p>
             {/* 스케줄 테이블 (DnD) */}
             <DndContext
               sensors={scheduleSensors}
