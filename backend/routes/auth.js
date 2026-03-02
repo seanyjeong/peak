@@ -30,10 +30,10 @@ const pacaPool = mysql.createPool({
     connectionLimit: 5
 });
 
-// Login rate limiter: 5min window, max 20 attempts per IP
+// Login rate limiter: 15min window, max 100 attempts per IP
 const loginLimiter = rateLimit({
-    windowMs: 5 * 60 * 1000,
-    max: 20,
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     message: { error: 'Too Many Requests', message: '로그인 시도가 너무 많습니다. 15분 후에 다시 시도하세요.' },
     standardHeaders: true,
     legacyHeaders: false,

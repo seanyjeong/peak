@@ -87,10 +87,10 @@ app.use(helmet({
     },
 }));
 
-// 전체 API Rate Limiting: 1분에 100회
+// 전체 API Rate Limiting: 1분에 300회
 app.use(rateLimit({
     windowMs: 60 * 1000,
-    max: 100,
+    max: 300,
     message: { error: 'Too Many Requests', message: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.' },
     standardHeaders: true,
     legacyHeaders: false,
