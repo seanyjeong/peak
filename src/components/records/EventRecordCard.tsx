@@ -11,6 +11,7 @@ interface EventRecordCardProps {
   isSaved: boolean;
   onInputChange: (value: string) => void;
   onInputBlur: () => void;
+  isOutOfRange?: boolean;
 }
 
 export function EventRecordCard({
@@ -20,6 +21,7 @@ export function EventRecordCard({
   isSaved,
   onInputChange,
   onInputBlur,
+  isOutOfRange,
 }: EventRecordCardProps) {
   const isAbsent = student.attendance_status === 'absent';
 
@@ -50,7 +52,11 @@ export function EventRecordCard({
         onChange={e => onInputChange(e.target.value)}
         onBlur={onInputBlur}
         placeholder="0"
-        className="w-20 px-2 py-1 text-sm border border-slate-200 rounded text-center focus:ring-1 focus:ring-orange-500 flex-shrink-0"
+        className={`w-20 px-2 py-1 text-sm border rounded text-center focus:ring-1 flex-shrink-0 ${
+          isOutOfRange
+            ? 'border-red-500 bg-red-50 focus:ring-red-500'
+            : 'border-slate-200 focus:ring-orange-500'
+        }`}
       />
       {inputData.score !== null ? (
         <span className="flex items-center gap-0.5 text-xs text-orange-600 font-bold flex-shrink-0">

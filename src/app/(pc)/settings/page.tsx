@@ -11,6 +11,8 @@ interface RecordType {
   direction: 'higher' | 'lower';
   is_active: boolean;
   display_order: number;
+  min_value: number | null;
+  max_value: number | null;
 }
 
 interface ScoreTable {
@@ -48,7 +50,7 @@ export default function SettingsPage() {
   // 종목 관리 상태
   const [showTypeForm, setShowTypeForm] = useState(false);
   const [editingType, setEditingType] = useState<RecordType | null>(null);
-  const [typeForm, setTypeForm] = useState<{ name: string; unit: string; direction: 'higher' | 'lower' }>({ name: '', unit: '', direction: 'higher' });
+  const [typeForm, setTypeForm] = useState<{ name: string; unit: string; direction: 'higher' | 'lower'; min_value: string; max_value: string }>({ name: '', unit: '', direction: 'higher', min_value: '', max_value: '' });
 
   // 배점표 관리 상태
   const [showScoreForm, setShowScoreForm] = useState(false);
@@ -92,18 +94,25 @@ export default function SettingsPage() {
   // 종목 저장
   const saveType = async () => {
     try {
+      const payload = {
+        name: typeForm.name,
+        unit: typeForm.unit,
+        direction: typeForm.direction,
+        min_value: typeForm.min_value ? parseFloat(typeForm.min_value) : null,
+        max_value: typeForm.max_value ? parseFloat(typeForm.max_value) : null,
+      };
       if (editingType) {
         await apiClient.put(`/record-types/${editingType.id}`, {
-          ...typeForm,
+          ...payload,
           is_active: editingType.is_active,
           display_order: editingType.display_order
         });
       } else {
-        await apiClient.post('/record-types', typeForm);
+        await apiClient.post('/record-types', payload);
       }
       setShowTypeForm(false);
       setEditingType(null);
-      setTypeForm({ name: '', unit: '', direction: 'higher' });
+      setTypeForm({ name: '', unit: '', direction: 'higher', min_value: '', max_value: '' });
       fetchData();
     } catch (error) {
       console.error('Failed to save type:', error);
@@ -121,7 +130,9 @@ export default function SettingsPage() {
         unit: type.unit,
         direction: type.direction,
         is_active: newStatus,
-        display_order: type.display_order
+        display_order: type.display_order,
+        min_value: type.min_value,
+        max_value: type.max_value
       });
       fetchData();
     } catch (error) {
@@ -131,7 +142,13 @@ export default function SettingsPage() {
 
   const startEditType = (type: RecordType) => {
     setEditingType(type);
-    setTypeForm({ name: type.name, unit: type.unit, direction: type.direction });
+    setTypeForm({
+      name: type.name,
+      unit: type.unit,
+      direction: type.direction,
+      min_value: type.min_value != null ? String(type.min_value) : '',
+      max_value: type.max_value != null ? String(type.max_value) : '',
+    });
     setShowTypeForm(true);
   };
 
@@ -303,7 +320,7 @@ export default function SettingsPage() {
           <button
             onClick={() => {
               setEditingType(null);
-              setTypeForm({ name: '', unit: '', direction: 'higher' });
+              setTypeForm({ name: '', unit: '', direction: 'higher', min_value: '', max_value: '' });
               setShowTypeForm(true);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
@@ -356,6 +373,28 @@ export default function SettingsPage() {
                   </select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">허용 최소값</label>
+                  <input
+                    type="number"
+                    value={typeForm.min_value}
+                    onChange={e => setTypeForm({ ...typeForm, min_value: e.target.value })}
+                    placeholder="비워두면 제한 없음"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">허용 최대값</label>
+                  <input
+                    type="number"
+                    value={typeForm.max_value}
+                    onChange={e => setTypeForm({ ...typeForm, max_value: e.target.value })}
+                    placeholder="비워두면 제한 없음"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+              </div>
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   onClick={() => setShowTypeForm(false)}
@@ -382,6 +421,7 @@ export default function SettingsPage() {
                   <th className="text-left py-3 px-4 font-medium text-slate-600 dark:text-slate-300">종목명</th>
                   <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">단위</th>
                   <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">방향</th>
+                  <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">허용 범위</th>
                   <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">상태</th>
                   <th className="text-right py-3 px-4 font-medium text-slate-600 dark:text-slate-300">관리</th>
                 </tr>
@@ -399,6 +439,11 @@ export default function SettingsPage() {
                       }`}>
                         {type.direction === 'higher' ? '높을수록↑' : '낮을수록↓'}
                       </span>
+                    </td>
+                    <td className="py-3 px-4 text-center text-xs text-slate-500 dark:text-slate-400">
+                      {type.min_value != null || type.max_value != null
+                        ? `${type.min_value ?? '~'} ~ ${type.max_value ?? '~'}`
+                        : '-'}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${

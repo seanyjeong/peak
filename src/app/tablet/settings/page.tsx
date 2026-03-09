@@ -12,6 +12,8 @@ interface RecordType {
   direction: 'higher' | 'lower';
   is_active: boolean;
   display_order: number;
+  min_value: number | null;
+  max_value: number | null;
 }
 
 interface ScoreTable {
@@ -49,8 +51,8 @@ export default function TabletSettingsPage() {
 
   const [showTypeForm, setShowTypeForm] = useState(false);
   const [editingType, setEditingType] = useState<RecordType | null>(null);
-  const [typeForm, setTypeForm] = useState<{ name: string; unit: string; direction: 'higher' | 'lower' }>({
-    name: '', unit: '', direction: 'higher'
+  const [typeForm, setTypeForm] = useState<{ name: string; unit: string; direction: 'higher' | 'lower'; min_value: string; max_value: string }>({
+    name: '', unit: '', direction: 'higher', min_value: '', max_value: ''
   });
 
   const [showScoreForm, setShowScoreForm] = useState(false);
@@ -93,18 +95,25 @@ export default function TabletSettingsPage() {
 
   const saveType = async () => {
     try {
+      const payload = {
+        name: typeForm.name,
+        unit: typeForm.unit,
+        direction: typeForm.direction,
+        min_value: typeForm.min_value ? parseFloat(typeForm.min_value) : null,
+        max_value: typeForm.max_value ? parseFloat(typeForm.max_value) : null,
+      };
       if (editingType) {
         await apiClient.put(`/record-types/${editingType.id}`, {
-          ...typeForm,
+          ...payload,
           is_active: editingType.is_active,
           display_order: editingType.display_order
         });
       } else {
-        await apiClient.post('/record-types', typeForm);
+        await apiClient.post('/record-types', payload);
       }
       setShowTypeForm(false);
       setEditingType(null);
-      setTypeForm({ name: '', unit: '', direction: 'higher' });
+      setTypeForm({ name: '', unit: '', direction: 'higher', min_value: '', max_value: '' });
       fetchData();
     } catch (error) {
       console.error('Failed to save type:', error);
@@ -122,7 +131,9 @@ export default function TabletSettingsPage() {
         unit: type.unit,
         direction: type.direction,
         is_active: newStatus,
-        display_order: type.display_order
+        display_order: type.display_order,
+        min_value: type.min_value,
+        max_value: type.max_value
       });
       fetchData();
     } catch (error) {
@@ -132,7 +143,13 @@ export default function TabletSettingsPage() {
 
   const startEditType = (type: RecordType) => {
     setEditingType(type);
-    setTypeForm({ name: type.name, unit: type.unit, direction: type.direction });
+    setTypeForm({
+      name: type.name,
+      unit: type.unit,
+      direction: type.direction,
+      min_value: type.min_value != null ? String(type.min_value) : '',
+      max_value: type.max_value != null ? String(type.max_value) : '',
+    });
     setShowTypeForm(true);
   };
 
@@ -296,7 +313,7 @@ export default function TabletSettingsPage() {
           <button
             onClick={() => {
               setEditingType(null);
-              setTypeForm({ name: '', unit: '', direction: 'higher' });
+              setTypeForm({ name: '', unit: '', direction: 'higher', min_value: '', max_value: '' });
               setShowTypeForm(true);
             }}
             className="flex items-center gap-2 px-4 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition"
@@ -364,6 +381,27 @@ export default function TabletSettingsPage() {
                         낮을수록 좋음 ↓
                       </button>
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">허용 범위</label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="number"
+                        value={typeForm.min_value}
+                        onChange={e => setTypeForm({ ...typeForm, min_value: e.target.value })}
+                        placeholder="최소값"
+                        className="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                      />
+                      <span className="text-slate-400">~</span>
+                      <input
+                        type="number"
+                        value={typeForm.max_value}
+                        onChange={e => setTypeForm({ ...typeForm, max_value: e.target.value })}
+                        placeholder="최대값"
+                        className="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-base"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">비워두면 제한 없음</p>
                   </div>
                 </div>
                 <div className="px-5 py-4 border-t border-slate-100 flex justify-end gap-2">

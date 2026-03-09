@@ -42,7 +42,7 @@ router.get('/', verifyToken, async (req, res) => {
 router.post('/', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-        const { name, unit, direction, display_order, short_name } = req.body;
+        const { name, unit, direction, display_order, short_name, min_value, max_value } = req.body;
 
         if (!name || !unit) {
             return res.status(400).json({ error: '종목명과 단위는 필수입니다.' });
@@ -52,8 +52,8 @@ router.post('/', verifyToken, async (req, res) => {
         const finalShortName = short_name || generateShortName(name);
 
         const [result] = await db.query(
-            'INSERT INTO record_types (academy_id, name, short_name, unit, direction, display_order) VALUES (?, ?, ?, ?, ?, ?)',
-            [academyId, name, finalShortName, unit, direction || 'higher', display_order || 0]
+            'INSERT INTO record_types (academy_id, name, short_name, unit, direction, display_order, min_value, max_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [academyId, name, finalShortName, unit, direction || 'higher', display_order || 0, min_value ?? null, max_value ?? null]
         );
 
         res.status(201).json({
@@ -72,7 +72,7 @@ router.post('/', verifyToken, async (req, res) => {
 router.put('/:id', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-        const { name, short_name, unit, direction, is_active, display_order } = req.body;
+        const { name, short_name, unit, direction, is_active, display_order, min_value, max_value } = req.body;
 
         // 줄임말이 없고 이름이 바뀌면 자동 생성
         let finalShortName = short_name;
@@ -81,8 +81,8 @@ router.put('/:id', verifyToken, async (req, res) => {
         }
 
         const [result] = await db.query(
-            'UPDATE record_types SET name = ?, short_name = ?, unit = ?, direction = ?, is_active = ?, display_order = ? WHERE id = ? AND academy_id = ?',
-            [name, finalShortName, unit, direction, is_active, display_order, req.params.id, academyId]
+            'UPDATE record_types SET name = ?, short_name = ?, unit = ?, direction = ?, is_active = ?, display_order = ?, min_value = ?, max_value = ? WHERE id = ? AND academy_id = ?',
+            [name, finalShortName, unit, direction, is_active, display_order, min_value ?? null, max_value ?? null, req.params.id, academyId]
         );
 
         if (result.affectedRows === 0) {

@@ -4,6 +4,8 @@ export interface RecordType {
   unit: string;
   direction: 'higher' | 'lower';
   is_active: boolean;
+  min_value: number | null;
+  max_value: number | null;
 }
 
 export interface Student {

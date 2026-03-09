@@ -35,9 +35,11 @@ export default function TabletRecordsPage() {
     toggleStudent,
     getInputCount,
     getTotalScore,
+    isOutOfRange,
   } = useRecordInput({
     measuredAt,
     slots,
+    recordTypes,
     calculateScore,
   });
 
@@ -266,7 +268,11 @@ export default function TabletRecordsPage() {
                                         onChange={e => handleInputChange(student.student_id, type.id, e.target.value, student.gender)}
                                         onBlur={() => handleInputBlur(student.student_id, type.id)}
                                         placeholder={`0${decimalPlaces > 0 ? '.' + '0'.repeat(decimalPlaces) : ''}`}
-                                        className="w-full px-4 py-3 pr-16 border border-slate-200 rounded-xl text-lg focus:ring-2 focus:ring-orange-500"
+                                        className={`w-full px-4 py-3 pr-16 border rounded-xl text-lg focus:ring-2 ${
+                                          isOutOfRange(type.id, inputData.value)
+                                            ? 'border-red-500 bg-red-50 focus:ring-red-500'
+                                            : 'border-slate-200 focus:ring-orange-500'
+                                        }`}
                                       />
                                       {inputData.score !== null && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -324,7 +330,11 @@ export default function TabletRecordsPage() {
                                   onChange={e => handleInputChange(student.student_id, currentRecordType.id, e.target.value, student.gender)}
                                   onBlur={() => handleInputBlur(student.student_id, currentRecordType.id)}
                                   placeholder="0"
-                                  className="w-28 px-4 py-3 border border-slate-200 rounded-xl text-center text-lg focus:ring-2 focus:ring-orange-500"
+                                  className={`w-28 px-4 py-3 border rounded-xl text-center text-lg focus:ring-2 ${
+                                    isOutOfRange(currentRecordType.id, inputData.value)
+                                      ? 'border-red-500 bg-red-50 focus:ring-red-500'
+                                      : 'border-slate-200 focus:ring-orange-500'
+                                  }`}
                                 />
                                 <div className="w-16 text-center">
                                   {inputData.score !== null ? (

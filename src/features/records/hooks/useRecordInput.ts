@@ -4,12 +4,14 @@ import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api/client';
 import {
   RecordInput,
+  RecordType,
   SlotData,
 } from '@/components/records';
 
 export interface UseRecordInputOptions {
   measuredAt: string;
   slots: Record<string, SlotData>;
+  recordTypes: RecordType[];
   calculateScore: (value: number, gender: 'M' | 'F', recordTypeId: number) => number | null;
 }
 
@@ -28,10 +30,11 @@ export interface UseRecordInputReturn {
   // 유틸
   getInputCount: (studentId: number) => number;
   getTotalScore: (studentId: number) => number | null;
+  isOutOfRange: (recordTypeId: number, value: string) => boolean;
 }
 
 export function useRecordInput(options: UseRecordInputOptions): UseRecordInputReturn {
-  const { measuredAt, slots, calculateScore } = options;
+  const { measuredAt, slots, recordTypes, calculateScore } = options;
 
   const [inputs, setInputs] = useState<Record<number, Record<number, RecordInput>>>({});
   const [expandedStudents, setExpandedStudents] = useState<Set<number>>(new Set());
@@ -94,13 +97,67 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
 
   const handleInputBlur = useCallback(async (studentId: number, recordTypeId: number) => {
     const inputData = inputs[studentId]?.[recordTypeId];
-    if (!inputData?.value?.trim() || saving) return;
+    if (saving) return;
+
+    // 값이 비어있거나 0이면 DB에서 삭제 (입력칸 터치만으로 0 저장 방지)
+    const trimmed = inputData?.value?.trim() || '';
+    if (!trimmed || parseFloat(trimmed) === 0) {
+      try {
+        setSaving(true);
+        await apiClient.delete('/records', {
+          data: { student_id: studentId, record_type_id: recordTypeId, measured_at: measuredAt }
+        });
+        setInputs(prev => {
+          const updated = { ...prev };
+          if (updated[studentId]) {
+            const { [recordTypeId]: _, ...rest } = updated[studentId];
+            if (Object.keys(rest).length === 0) {
+              delete updated[studentId];
+            } else {
+              updated[studentId] = rest;
+            }
+          }
+          return updated;
+        });
+        setSavedStudents(prev => {
+          const remaining = Object.keys(inputs[studentId] || {}).filter(k => Number(k) !== recordTypeId && inputs[studentId]?.[Number(k)]?.value?.trim());
+          if (remaining.length === 0) {
+            const newSet = new Set(prev);
+            newSet.delete(studentId);
+            return newSet;
+          }
+          return prev;
+        });
+      } catch (error) {
+        console.error('Delete record failed:', error);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    // 범위 체크
+    const numValue = parseFloat(inputData.value);
+    const recordType = recordTypes.find(rt => rt.id === recordTypeId);
+    if (recordType) {
+      const { min_value, max_value } = recordType;
+      const outOfRange =
+        (min_value != null && numValue < min_value) ||
+        (max_value != null && numValue > max_value);
+      if (outOfRange) {
+        const rangeText = `${min_value ?? ''} ~ ${max_value ?? ''}`;
+        if (!confirm(`입력값 ${numValue}이(가) 허용 범위(${rangeText})를 벗어났습니다.\n정말 저장하시겠습니까?`)) {
+          return;
+        }
+      }
+    }
+
     try {
       setSaving(true);
       await apiClient.post('/records/batch', {
         student_id: studentId,
         measured_at: measuredAt,
-        records: [{ record_type_id: recordTypeId, value: parseFloat(inputData.value), notes: null }]
+        records: [{ record_type_id: recordTypeId, value: numValue, notes: null }]
       });
       setSavedStudents(prev => new Set([...prev, studentId]));
     } catch (error) {
@@ -108,7 +165,7 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
     } finally {
       setSaving(false);
     }
-  }, [inputs, saving, measuredAt]);
+  }, [inputs, saving, measuredAt, recordTypes]);
 
   const toggleStudent = useCallback((studentId: number) => {
     setExpandedStudents(prev => {
@@ -141,6 +198,17 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
     return scores.length === 0 ? null : scores.reduce((sum, s) => sum + s, 0);
   }, [inputs]);
 
+  const isOutOfRange = useCallback((recordTypeId: number, value: string): boolean => {
+    const trimmed = value?.trim();
+    if (!trimmed) return false;
+    const numValue = parseFloat(trimmed);
+    if (isNaN(numValue)) return false;
+    const recordType = recordTypes.find(rt => rt.id === recordTypeId);
+    if (!recordType) return false;
+    const { min_value, max_value } = recordType;
+    return (min_value != null && numValue < min_value) || (max_value != null && numValue > max_value);
+  }, [recordTypes]);
+
   return {
     inputs,
     expandedStudents,
@@ -155,5 +223,6 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
 
     getInputCount,
     getTotalScore,
+    isOutOfRange,
   };
 }

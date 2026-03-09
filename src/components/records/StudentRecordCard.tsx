@@ -13,6 +13,7 @@ interface StudentRecordCardProps {
   onInputChange: (recordTypeId: number, value: string) => void;
   onInputBlur: (recordTypeId: number) => void;
   getDecimalPlaces: (recordTypeId: number) => number;
+  isOutOfRange?: (recordTypeId: number, value: string) => boolean;
 }
 
 export function StudentRecordCard({
@@ -25,6 +26,7 @@ export function StudentRecordCard({
   onInputChange,
   onInputBlur,
   getDecimalPlaces,
+  isOutOfRange,
 }: StudentRecordCardProps) {
   const inputCount = Object.values(inputs).filter(d => d.value && d.value.trim() !== '').length;
   const scores = Object.values(inputs).filter(d => d.score !== null).map(d => d.score as number);
@@ -76,6 +78,7 @@ export function StudentRecordCard({
             {recordTypes.map(type => {
               const inputData = inputs[type.id] || { value: '', score: null };
               const decimalPlaces = getDecimalPlaces(type.id);
+              const outOfRange = isOutOfRange?.(type.id, inputData.value) ?? false;
 
               return (
                 <div key={type.id} className="relative">
@@ -90,7 +93,11 @@ export function StudentRecordCard({
                       onChange={e => onInputChange(type.id, e.target.value)}
                       onBlur={() => onInputBlur(type.id)}
                       placeholder="0"
-                      className="w-full px-2 py-1.5 pr-12 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                      className={`w-full px-2 py-1.5 pr-12 text-sm border rounded focus:ring-1 ${
+                        outOfRange
+                          ? 'border-red-500 bg-red-50 focus:ring-red-500 focus:border-red-500'
+                          : 'border-slate-200 focus:ring-orange-500 focus:border-orange-500'
+                      }`}
                     />
                     {inputData.score !== null && (
                       <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">

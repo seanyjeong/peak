@@ -66,6 +66,8 @@ UNIQUE KEY uk_academy_paca (academy_id, paca_student_id)
 | `direction` | ENUM | `higher`: 높을수록 좋음, `lower`: 낮을수록 좋음 |
 | `is_active` | TINYINT | 활성화 여부 |
 | `display_order` | INT | 표시 순서 |
+| `min_value` | DECIMAL(10,2) | 허용 최소값 (NULL=제한없음) |
+| `max_value` | DECIMAL(10,2) | 허용 최대값 (NULL=제한없음) |
 
 ---
 

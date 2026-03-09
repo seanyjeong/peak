@@ -94,6 +94,7 @@ router.post('/batch', verifyToken, async (req, res) => {
 
         try {
             const results = [];
+            const warnings = [];
             for (const record of records) {
                 if (record.value === null || record.value === undefined || record.value === '') {
                     continue;
@@ -101,12 +102,29 @@ router.post('/batch', verifyToken, async (req, res) => {
 
                 const newValue = parseFloat(record.value);
 
-                // 종목의 direction 확인 (higher/lower)
+                // 0값은 저장하지 않음 (입력칸 터치만으로 0 저장 방지)
+                if (newValue === 0) {
+                    continue;
+                }
+
+                // 종목의 direction, 범위 확인
                 const [typeRows] = await connection.query(
-                    'SELECT direction FROM record_types WHERE id = ?',
+                    'SELECT direction, min_value, max_value FROM record_types WHERE id = ?',
                     [record.record_type_id]
                 );
                 const direction = typeRows[0]?.direction || 'higher';
+                const minValue = typeRows[0]?.min_value != null ? parseFloat(typeRows[0].min_value) : null;
+                const maxValue = typeRows[0]?.max_value != null ? parseFloat(typeRows[0].max_value) : null;
+
+                // 범위 체크 (저장은 허용, warning 플래그)
+                if ((minValue !== null && newValue < minValue) || (maxValue !== null && newValue > maxValue)) {
+                    warnings.push({
+                        record_type_id: record.record_type_id,
+                        value: newValue,
+                        min_value: minValue,
+                        max_value: maxValue
+                    });
+                }
 
                 // 해당 날짜에 기존 기록이 있는지 확인 - 해당 학원만
                 const [existing] = await connection.query(
@@ -135,7 +153,8 @@ router.post('/batch', verifyToken, async (req, res) => {
             res.status(201).json({
                 success: true,
                 count: results.filter(r => r.action !== 'skipped').length,
-                results
+                results,
+                warnings
             });
         } catch (err) {
             await connection.rollback();
@@ -278,6 +297,28 @@ router.get('/stats/:student_id', verifyToken, async (req, res) => {
         res.json({ success: true, stats });
     } catch (error) {
         console.error('Get stats error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// DELETE /peak/records - 특정 학생의 특정 종목 기록 삭제 (해당 날짜)
+router.delete('/', verifyToken, async (req, res) => {
+    try {
+        const academyId = req.user.academyId;
+        const { student_id, record_type_id, measured_at } = req.body;
+
+        if (!student_id || !record_type_id || !measured_at) {
+            return res.status(400).json({ error: '필수 항목이 누락되었습니다.' });
+        }
+
+        const [result] = await db.query(
+            'DELETE FROM student_records WHERE academy_id = ? AND student_id = ? AND record_type_id = ? AND measured_at = ?',
+            [academyId, student_id, record_type_id, measured_at]
+        );
+
+        res.json({ success: true, deleted: result.affectedRows });
+    } catch (error) {
+        console.error('Delete record error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });

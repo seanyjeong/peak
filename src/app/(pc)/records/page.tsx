@@ -41,9 +41,11 @@ export default function RecordsPage() {
     toggleStudent,
     expandAll,
     collapseAll,
+    isOutOfRange,
   } = useRecordInput({
     measuredAt,
     slots,
+    recordTypes,
     calculateScore,
   });
 
@@ -162,6 +164,7 @@ export default function RecordsPage() {
                       onInputChange={(recordTypeId, value) => handleInputChange(student.student_id, recordTypeId, value, student.gender)}
                       onInputBlur={(recordTypeId) => handleInputBlur(student.student_id, recordTypeId)}
                       getDecimalPlaces={getDecimalPlaces}
+                      isOutOfRange={isOutOfRange}
                     />
                   ))}
                 </div>
@@ -189,6 +192,7 @@ export default function RecordsPage() {
                         isSaved={savedStudents.has(student.student_id)}
                         onInputChange={(value) => handleInputChange(student.student_id, currentRecordType.id, value, student.gender)}
                         onInputBlur={() => handleInputBlur(student.student_id, currentRecordType.id)}
+                        isOutOfRange={isOutOfRange(currentRecordType.id, inputs[student.student_id]?.[currentRecordType.id]?.value || '')}
                       />
                     ))}
                   </div>
