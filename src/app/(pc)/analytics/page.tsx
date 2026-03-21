@@ -5,9 +5,6 @@ import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { authAPI } from '@/lib/api/auth';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from 'recharts';
-import {
   Download, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight,
   AlertTriangle, BarChart3, Trophy, Info, Activity
 } from 'lucide-react';
@@ -202,33 +199,6 @@ export default function AnalyticsReportPage() {
   const selectedRanking = rankings.find(r => r.recordTypeId === selectedEvent);
   const selectedTrend = eventTrends.find(t => t.recordTypeId === selectedEvent);
 
-  // 종목별 상대 비교 (0~100% 정규화)
-  // - 종목마다 단위가 달라서 절대값 비교 불가 (멀리뛰기 250cm vs 메디신볼 9m)
-  // - lower-is-better 종목은 반전 처리 (낮을수록 높은 바)
-  const chartData = eventAverages.map(e => {
-    const mVal = e.maleAvg || 0;
-    const fVal = e.femaleAvg || 0;
-    const maxVal = Math.max(mVal, fVal);
-    if (maxVal === 0) return { name: e.shortName || e.recordTypeName, '남자': 0, '여자': 0 };
-
-    if (e.direction === 'lower') {
-      // 낮을수록 좋음: 최소값이 100%, 높은 값일수록 낮은 %
-      const minVal = Math.min(mVal || Infinity, fVal || Infinity);
-      return {
-        name: e.shortName || e.recordTypeName,
-        '남자': mVal > 0 ? Math.round((minVal / mVal) * 100) : 0,
-        '여자': fVal > 0 ? Math.round((minVal / fVal) * 100) : 0,
-      };
-    }
-
-    // 높을수록 좋음: 최대값이 100%
-    return {
-      name: e.shortName || e.recordTypeName,
-      '남자': Math.round((mVal / maxVal) * 100),
-      '여자': Math.round((fVal / maxVal) * 100),
-    };
-  });
-
   const trendLabel = (trend: string) => {
     if (trend === 'improving') return '상승';
     if (trend === 'declining') return '하락';
@@ -292,28 +262,12 @@ export default function AnalyticsReportPage() {
           종목별 남/여 평균
         </h2>
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-xs text-slate-400">높을수록 좋은 성적 (종목별 상대 비교 %)</p>
-            <div className="flex gap-5">
-              <LegendDot color="bg-[#4666FF]" label="남자" />
-              <LegendDot color="bg-brand-orange" label="여자" />
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#64748b', fontSize: 10 }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px' }}
-                formatter={(value: number | undefined) => [`${value ?? 0}%`, '']}
-              />
-              <Bar dataKey="남자" fill="#4666FF" radius={[4,4,0,0]} />
-              <Bar dataKey="여자" fill="#FE5A1D" radius={[4,4,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            각 종목별로 남/여 학생의 <strong className="text-slate-700 dark:text-slate-200">가장 최근 측정 기록</strong>을 기준으로 계산한 평균입니다.
+            학생 1명당 종목별 최신 1회 기록만 반영됩니다.
+          </p>
 
-          <div className="mt-4 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+          <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-700/50">
@@ -350,6 +304,11 @@ export default function AnalyticsReportPage() {
           <Trophy className="w-5 h-5 text-brand-orange" />
           종목별 상세 (순위 + 트렌드)
         </h2>
+        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4 text-sm text-slate-600 dark:text-slate-400 space-y-1">
+          <p><strong className="text-slate-700 dark:text-slate-300">순위</strong> — 각 학생의 가장 최근 측정 기록 기준으로 순위를 매깁니다.</p>
+          <p><strong className="text-slate-700 dark:text-slate-300">트렌드 분석</strong> — 최근 <strong>5회 측정 기록</strong>의 변화 추세를 분석합니다. 매 측정마다 기록이 의미 있게 변화하면 상승 또는 하락으로 분류합니다.</p>
+          <p className="text-xs text-slate-400">* 기록이 5회 미만인 학생은 트렌드 분석에서 제외됩니다. &nbsp;|&nbsp; 최근 기록 = 가장 마지막 측정값</p>
+        </div>
 
         {/* Event Tabs */}
         <div className="flex flex-wrap gap-2">
@@ -392,6 +351,9 @@ export default function AnalyticsReportPage() {
             )}
 
             {/* Trend Groups */}
+            <p className="text-xs text-slate-400 dark:text-slate-500 pt-2">
+              아래 목록은 최근 5회 측정 기록의 변화 추세입니다. &quot;최근 기록&quot;은 가장 마지막 측정값이며, 변화량은 5회 측정 동안의 평균 변화를 나타냅니다.
+            </p>
             <div className="space-y-3">
               {selectedTrend.declining.length > 0 && (
                 <TrendGroup
@@ -468,15 +430,6 @@ function KPICard({ label, value, unit, valueColor }: { label: string; value: str
         <span className={`text-2xl font-bold ${valueColor || 'text-slate-900 dark:text-white'}`}>{value}</span>
         <span className="text-sm text-slate-400 mb-0.5">{unit}</span>
       </div>
-    </div>
-  );
-}
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className={`w-3 h-3 rounded-sm ${color}`} />
-      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">{label}</span>
     </div>
   );
 }
