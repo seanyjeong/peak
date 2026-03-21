@@ -156,6 +156,7 @@ app.use('/peak/stats', verifyToken, require('./routes/stats'));
 app.use('/peak/settings', verifyToken, require('./routes/peakSettings'));
 app.use('/peak/mobile', verifyToken, require('./routes/mobile'));
 app.use("/peak/presets", verifyToken, require("./routes/presets"));
+app.use('/peak/analytics', verifyToken, require('./routes/analytics'));
 
 // 월말테스트
 app.use('/peak/monthly-tests', verifyToken, require('./routes/monthlyTests'));

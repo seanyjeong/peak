@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-const APP_VERSION = 'v5.4.0';
+const APP_VERSION = 'v5.6.0';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -21,6 +21,7 @@ import {
   Layers,
   Settings,
   Trophy,
+  BarChart3,
   Sun,
   Moon
 } from 'lucide-react';
@@ -41,6 +42,7 @@ const navigation = [
   { name: '기록 측정', href: '/records', icon: Medal },
   { name: '월말테스트', href: '/monthly-test', icon: Trophy },
   { name: '학생 관리', href: '/students', icon: Calendar },
+  { name: '분석 리포트', href: '/analytics', icon: BarChart3, adminOnly: true, academyOnly: 2 },
   { name: '실기측정설정', href: '/settings', icon: Settings, adminOnly: true },
 ];
 
@@ -62,7 +64,7 @@ const getRoleDisplayName = (role?: string, position?: string | null): string => 
 
 function PCLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<{ name: string; role?: string; position?: string | null } | null>(null);
+  const [user, setUser] = useState<{ name: string; role?: string; position?: string | null; academyId?: number } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showAlertPopup, setShowAlertPopup] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -164,6 +166,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
           <div className={`space-y-1 ${sidebarOpen ? 'px-3' : 'px-1'}`}>
             {navigation
               .filter(item => !item.adminOnly || user?.role === 'admin' || user?.role === 'owner')
+              .filter(item => !item.academyOnly || item.academyOnly === user?.academyId)
               .map((item) => {
               const isActive = pathname === item.href;
               return (
