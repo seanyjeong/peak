@@ -7,9 +7,10 @@ import { authAPI } from '@/lib/api/auth';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { Download, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import {
+  Download, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight,
+  AlertTriangle, BarChart3, Trophy, Info, Activity
+} from 'lucide-react';
 
 interface EventAverage {
   recordTypeId: number;
@@ -78,6 +79,27 @@ interface AnalyticsData {
   insufficientData: { studentId: number; studentName: string; gender: string; events: { recordTypeName: string; recordCount: number }[] }[];
 }
 
+/**
+ * 기울기를 원장이 이해할 수 있는 말로 변환
+ * "매회 약 1.6cm 감소" / "매회 약 0.3m 증가"
+ */
+function slopeToText(slope: number, unit: string, direction: string): string {
+  const absSlope = Math.abs(slope);
+  const perMeasure = absSlope < 0.1 ? absSlope.toFixed(2) : absSlope.toFixed(1);
+
+  if (direction === 'higher') {
+    // 높을수록 좋음: 양수 slope = 좋아짐, 음수 slope = 나빠짐
+    return slope > 0
+      ? `매회 약 ${perMeasure}${unit} 증가`
+      : `매회 약 ${perMeasure}${unit} 감소`;
+  } else {
+    // 낮을수록 좋음 (달리기): 음수 slope = 좋아짐, 양수 slope = 나빠짐
+    return slope < 0
+      ? `매회 약 ${perMeasure}${unit} 단축`
+      : `매회 약 ${perMeasure}${unit} 느려짐`;
+  }
+}
+
 export default function AnalyticsReportPage() {
   const router = useRouter();
   const reportRef = useRef<HTMLDivElement>(null);
@@ -112,18 +134,19 @@ export default function AnalyticsReportPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  const toggleAccordion = (id: number) => {
-    setOpenAccordions(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
   const downloadPDF = async () => {
     if (!reportRef.current) return;
     setPdfLoading(true);
     try {
+      // dynamic import로 번들 최적화 + SSR 안전
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
+        logging: false,
       });
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -138,7 +161,8 @@ export default function AnalyticsReportPage() {
       }
       pdf.save(`분석리포트_${data?.summary.reportDate || 'report'}.pdf`);
     } catch (e) {
-      console.error('PDF error:', e);
+      console.error('PDF generation error:', e);
+      alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setPdfLoading(false);
     }
@@ -178,22 +202,37 @@ export default function AnalyticsReportPage() {
   const selectedRanking = rankings.find(r => r.recordTypeId === selectedEvent);
   const selectedTrend = eventTrends.find(t => t.recordTypeId === selectedEvent);
 
-  const chartData = eventAverages.map(e => ({
-    name: e.shortName || e.recordTypeName,
-    '남자 평균': e.maleAvg,
-    '여자 평균': e.femaleAvg,
-  }));
+  // 종목별 상대 비교 (0~100% 정규화)
+  // - 종목마다 단위가 달라서 절대값 비교 불가 (멀리뛰기 250cm vs 메디신볼 9m)
+  // - lower-is-better 종목은 반전 처리 (낮을수록 높은 바)
+  const chartData = eventAverages.map(e => {
+    const mVal = e.maleAvg || 0;
+    const fVal = e.femaleAvg || 0;
+    const maxVal = Math.max(mVal, fVal);
+    if (maxVal === 0) return { name: e.shortName || e.recordTypeName, '남자': 0, '여자': 0 };
 
-  const trendIcon = (trend: string) => {
-    if (trend === 'improving') return <TrendingUp className="w-4 h-4 text-green-500" />;
-    if (trend === 'declining') return <TrendingDown className="w-4 h-4 text-red-500" />;
-    return <Minus className="w-4 h-4 text-slate-400" />;
-  };
+    if (e.direction === 'lower') {
+      // 낮을수록 좋음: 최소값이 100%, 높은 값일수록 낮은 %
+      const minVal = Math.min(mVal || Infinity, fVal || Infinity);
+      return {
+        name: e.shortName || e.recordTypeName,
+        '남자': mVal > 0 ? Math.round((minVal / mVal) * 100) : 0,
+        '여자': fVal > 0 ? Math.round((minVal / fVal) * 100) : 0,
+      };
+    }
+
+    // 높을수록 좋음: 최대값이 100%
+    return {
+      name: e.shortName || e.recordTypeName,
+      '남자': Math.round((mVal / maxVal) * 100),
+      '여자': Math.round((fVal / maxVal) * 100),
+    };
+  });
 
   const trendLabel = (trend: string) => {
-    if (trend === 'improving') return '↑ 향상';
-    if (trend === 'declining') return '↓ 하락';
-    return '→ 유지';
+    if (trend === 'improving') return '상승';
+    if (trend === 'declining') return '하락';
+    return '유지';
   };
 
   const trendColor = (trend: string) => {
@@ -212,13 +251,16 @@ export default function AnalyticsReportPage() {
     <div ref={reportRef} className="p-8 space-y-8 max-w-[1200px]">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            📊 {summary.academyName} 분석 리포트
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-mono">
-            생성일: {summary.reportDate}
-          </p>
+        <div className="flex items-center gap-3">
+          <BarChart3 className="w-7 h-7 text-brand-orange" />
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              {summary.academyName} 분석 리포트
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
+              생성일: {summary.reportDate}
+            </p>
+          </div>
         </div>
         <button
           onClick={downloadPDF}
@@ -245,22 +287,29 @@ export default function AnalyticsReportPage() {
 
       {/* Section 1: Event Averages */}
       <section className="space-y-4">
-        <SectionTitle icon="📊" text="종목별 남/여 평균" />
+        <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+          <Activity className="w-5 h-5 text-[#4666FF]" />
+          종목별 남/여 평균
+        </h2>
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6">
-          <div className="flex justify-end gap-5 mb-4">
-            <LegendDot color="bg-[#4666FF]" label="남자 평균" />
-            <LegendDot color="bg-brand-orange" label="여자 평균" />
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs text-slate-400">높을수록 좋은 성적 (종목별 상대 비교 %)</p>
+            <div className="flex gap-5">
+              <LegendDot color="bg-[#4666FF]" label="남자" />
+              <LegendDot color="bg-brand-orange" label="여자" />
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#64748b', fontSize: 10 }} />
+              <YAxis tick={{ fill: '#64748b', fontSize: 10 }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px' }}
+                formatter={(value: number | undefined) => [`${value ?? 0}%`, '']}
               />
-              <Bar dataKey="남자 평균" fill="#4666FF" radius={[4,4,0,0]} />
-              <Bar dataKey="여자 평균" fill="#FE5A1D" radius={[4,4,0,0]} />
+              <Bar dataKey="남자" fill="#4666FF" radius={[4,4,0,0]} />
+              <Bar dataKey="여자" fill="#FE5A1D" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
 
@@ -297,7 +346,10 @@ export default function AnalyticsReportPage() {
 
       {/* Section 2: Event Detail (Rankings + Trends) */}
       <section className="space-y-4">
-        <SectionTitle icon="🏆" text="종목별 상세 (순위 + 트렌드)" />
+        <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+          <Trophy className="w-5 h-5 text-brand-orange" />
+          종목별 상세 (순위 + 트렌드)
+        </h2>
 
         {/* Event Tabs */}
         <div className="flex flex-wrap gap-2">
@@ -322,31 +374,31 @@ export default function AnalyticsReportPage() {
             <div className="flex items-center gap-4 px-5 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
               <span className="font-bold text-slate-800 dark:text-white">{selectedTrend.recordTypeName}</span>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded ${trendBg(selectedTrend.avgTrend)} ${trendColor(selectedTrend.avgTrend)}`}>
-                평균추세 {trendLabel(selectedTrend.avgTrend)}
+                평균추세: {trendLabel(selectedTrend.avgTrend)}
               </span>
-              <div className="flex items-center gap-3 ml-auto text-sm font-mono">
-                <span className="text-green-500 font-semibold">↑{selectedTrend.improving.length}</span>
-                <span className="text-slate-400">→{selectedTrend.maintaining.length}</span>
-                <span className="text-red-500 font-semibold">↓{selectedTrend.declining.length}</span>
+              <div className="flex items-center gap-3 ml-auto text-sm">
+                <span className="text-green-500 font-semibold">상승 {selectedTrend.improving.length}명</span>
+                <span className="text-slate-400">유지 {selectedTrend.maintaining.length}명</span>
+                <span className="text-red-500 font-semibold">하락 {selectedTrend.declining.length}명</span>
               </div>
             </div>
 
             {/* Rankings */}
             {selectedRanking && (
               <div className="grid grid-cols-2 gap-4">
-                <RankingTable title="🏅 남자 Top 10" color="blue" data={selectedRanking.male} unit={selectedRanking.unit} />
-                <RankingTable title="🏅 여자 Top 10" color="orange" data={selectedRanking.female} unit={selectedRanking.unit} />
+                <RankingTable title="남자 Top 10" color="blue" data={selectedRanking.male} unit={selectedRanking.unit} />
+                <RankingTable title="여자 Top 10" color="orange" data={selectedRanking.female} unit={selectedRanking.unit} />
               </div>
             )}
 
             {/* Trend Groups */}
             <div className="space-y-3">
-              {/* Declining - always shown first */}
               {selectedTrend.declining.length > 0 && (
                 <TrendGroup
                   type="declining"
                   students={selectedTrend.declining}
                   unit={selectedTrend.unit}
+                  direction={selectedTrend.direction}
                   open={openAccordions[-1] !== false}
                   onToggle={() => setOpenAccordions(p => ({ ...p, [-1]: p[-1] === false ? true : false }))}
                 />
@@ -356,6 +408,7 @@ export default function AnalyticsReportPage() {
                   type="improving"
                   students={selectedTrend.improving}
                   unit={selectedTrend.unit}
+                  direction={selectedTrend.direction}
                   open={!!openAccordions[-2]}
                   onToggle={() => setOpenAccordions(p => ({ ...p, [-2]: !p[-2] }))}
                 />
@@ -365,6 +418,7 @@ export default function AnalyticsReportPage() {
                   type="maintaining"
                   students={selectedTrend.maintaining}
                   unit={selectedTrend.unit}
+                  direction={selectedTrend.direction}
                   open={!!openAccordions[-3]}
                   onToggle={() => setOpenAccordions(p => ({ ...p, [-3]: !p[-3] }))}
                 />
@@ -377,16 +431,19 @@ export default function AnalyticsReportPage() {
       {/* Section 3: Insufficient Data */}
       {insufficientData.length > 0 && (
         <section className="space-y-3">
-          <SectionTitle icon="ℹ️" text="데이터 부족 안내" muted />
+          <h2 className="text-lg font-bold tracking-tight text-slate-500 dark:text-slate-400 flex items-center gap-2">
+            <Info className="w-5 h-5" />
+            데이터 부족 안내
+          </h2>
           <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-5">
             <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
-              ⚠️ 다음 학생은 종목별 기록 5개 미만으로 트렌드 분석에서 제외되었습니다.
+              다음 학생은 종목별 기록 5개 미만으로 트렌드 분석에서 제외되었습니다.
             </p>
             <div className="grid grid-cols-2 gap-2 text-sm">
               {insufficientData.slice(0, 20).map(s => (
                 <div key={s.studentId} className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                   <span className="font-medium text-slate-800 dark:text-slate-200">{s.studentName}</span>
-                  <span className="text-slate-400">—</span>
+                  <span className="text-slate-400">-</span>
                   <span className="text-xs">{s.events.map(e => `${e.recordTypeName}(${e.recordCount}개)`).join(', ')}</span>
                 </div>
               ))}
@@ -415,14 +472,6 @@ function KPICard({ label, value, unit, valueColor }: { label: string; value: str
   );
 }
 
-function SectionTitle({ icon, text, muted }: { icon: string; text: string; muted?: boolean }) {
-  return (
-    <h2 className={`text-lg font-bold tracking-tight ${muted ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white'}`}>
-      {icon} {text}
-    </h2>
-  );
-}
-
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -435,10 +484,12 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 function RankingTable({ title, color, data, unit }: { title: string; color: string; data: RankStudent[]; unit: string }) {
   const headerBg = color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20';
   const titleColor = color === 'blue' ? 'text-[#4666FF]' : 'text-brand-orange';
+  const Icon = color === 'blue' ? Trophy : Trophy;
 
   return (
     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-      <div className={`px-4 py-3 ${headerBg}`}>
+      <div className={`px-4 py-3 ${headerBg} flex items-center gap-2`}>
+        <Icon className={`w-4 h-4 ${titleColor}`} />
         <span className={`font-semibold text-sm ${titleColor}`}>{title}</span>
       </div>
       <div className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -456,44 +507,66 @@ function RankingTable({ title, color, data, unit }: { title: string; color: stri
   );
 }
 
-function TrendGroup({ type, students, unit, open, onToggle }: {
+function TrendGroup({ type, students, unit, direction, open, onToggle }: {
   type: 'improving' | 'maintaining' | 'declining';
   students: TrendStudent[];
   unit: string;
+  direction: string;
   open: boolean;
   onToggle: () => void;
 }) {
   const config = {
-    declining: { emoji: '📉', label: '하락', borderColor: 'border-l-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10', textColor: 'text-red-500', slopeColor: 'text-red-400' },
-    improving: { emoji: '📈', label: '상승', borderColor: 'border-l-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10', textColor: 'text-green-500', slopeColor: 'text-green-400' },
-    maintaining: { emoji: '➡️', label: '유지', borderColor: 'border-l-slate-400', bg: 'bg-slate-50/50 dark:bg-slate-800', textColor: 'text-slate-500', slopeColor: 'text-slate-400' },
+    declining: {
+      label: '하락',
+      borderColor: 'border-l-red-500',
+      bg: 'bg-red-50/50 dark:bg-red-900/10',
+      textColor: 'text-red-500',
+      descColor: 'text-red-400',
+      Icon: TrendingDown,
+    },
+    improving: {
+      label: '상승',
+      borderColor: 'border-l-green-500',
+      bg: 'bg-green-50/50 dark:bg-green-900/10',
+      textColor: 'text-green-500',
+      descColor: 'text-green-400',
+      Icon: TrendingUp,
+    },
+    maintaining: {
+      label: '유지',
+      borderColor: 'border-l-slate-400',
+      bg: 'bg-slate-50/50 dark:bg-slate-800',
+      textColor: 'text-slate-500',
+      descColor: 'text-slate-400',
+      Icon: Minus,
+    },
   }[type];
 
   return (
     <div className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden border-l-4 ${config.borderColor}`}>
       <button onClick={onToggle} className={`w-full flex items-center gap-3 px-5 py-3 ${config.bg}`}>
         {open ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-        <span className="text-sm">{config.emoji}</span>
+        <config.Icon className={`w-4 h-4 ${config.textColor}`} />
         <span className={`font-semibold text-sm ${config.textColor}`}>{config.label}</span>
-        <span className={`font-mono text-xs font-bold ${config.textColor}`}>{students.length}명</span>
+        <span className={`text-xs font-bold ${config.textColor}`}>{students.length}명</span>
       </button>
       {open && (
         <div className="divide-y divide-slate-100 dark:divide-slate-700">
-          {type === 'declining' || type === 'improving' ? (
-            students.map(s => (
-              <div key={s.studentId} className="flex items-center px-5 py-2 text-sm">
-                <span className="flex-1 text-slate-800 dark:text-slate-200">
-                  {s.studentName} <span className="text-slate-400 text-xs">({s.gender === 'M' ? '남' : '여'})</span>
+          {students.map(s => (
+            <div key={s.studentId} className="flex items-center px-5 py-2 text-sm">
+              <span className="flex-1 text-slate-800 dark:text-slate-200">
+                {s.studentName} <span className="text-slate-400 text-xs">({s.gender === 'M' ? '남' : '여'})</span>
+              </span>
+              {type !== 'maintaining' ? (
+                <span className={`text-xs ${config.descColor} w-40`}>
+                  {slopeToText(s.slope, unit, direction)}
                 </span>
-                <span className={`font-mono text-xs ${config.slopeColor} w-24`}>기울기 {s.slope > 0 ? '+' : ''}{s.slope}</span>
-                <span className="font-mono text-sm font-medium text-slate-700 dark:text-slate-300 w-20 text-right">{s.latestValue}{unit}</span>
-              </div>
-            ))
-          ) : (
-            <div className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">
-              {students.map(s => s.studentName).join(', ')}
+              ) : null}
+              <span className="font-mono text-sm font-medium text-slate-700 dark:text-slate-300 w-24 text-right">
+                {s.latestValue} {unit}
+              </span>
             </div>
-          )}
+          ))}
         </div>
       )}
     </div>
