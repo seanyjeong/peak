@@ -495,6 +495,43 @@ function TrendGroup({ type, students, unit, direction, open, onToggle }: {
     },
   }[type];
 
+  // 정렬: 상승=기울기 큰 순, 하락=기울기 절대값 큰 순, 유지=기록 높은 순
+  const sorted = [...students].sort((a, b) => {
+    if (type === 'improving') return Math.abs(b.slope) - Math.abs(a.slope);
+    if (type === 'declining') return Math.abs(b.slope) - Math.abs(a.slope);
+    // maintaining: 기록 높은 순 (lower-is-better면 낮은 순)
+    return direction === 'lower' ? a.latestValue - b.latestValue : b.latestValue - a.latestValue;
+  });
+
+  const males = sorted.filter(s => s.gender === 'M');
+  const females = sorted.filter(s => s.gender === 'F');
+
+  const renderStudent = (s: TrendStudent) => (
+    <div key={s.studentId} className="flex items-center px-5 py-2 text-sm">
+      <span className="flex-1 text-slate-800 dark:text-slate-200">{s.studentName}</span>
+      {type !== 'maintaining' ? (
+        <span className={`text-xs ${config.descColor} w-40`}>
+          {slopeToText(s.slope, unit, direction)}
+        </span>
+      ) : null}
+      <span className="font-mono text-sm font-medium text-slate-700 dark:text-slate-300 w-24 text-right">
+        {s.latestValue} {unit}
+      </span>
+    </div>
+  );
+
+  const renderGenderSection = (label: string, list: TrendStudent[]) => {
+    if (list.length === 0) return null;
+    return (
+      <>
+        <div className="px-5 py-1.5 bg-slate-50 dark:bg-slate-700/30">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label} ({list.length}명)</span>
+        </div>
+        {list.map(renderStudent)}
+      </>
+    );
+  };
+
   return (
     <div className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden border-l-4 ${config.borderColor}`}>
       <button onClick={onToggle} className={`w-full flex items-center gap-3 px-5 py-3 ${config.bg}`}>
@@ -502,24 +539,14 @@ function TrendGroup({ type, students, unit, direction, open, onToggle }: {
         <config.Icon className={`w-4 h-4 ${config.textColor}`} />
         <span className={`font-semibold text-sm ${config.textColor}`}>{config.label}</span>
         <span className={`text-xs font-bold ${config.textColor}`}>{students.length}명</span>
+        {males.length > 0 && females.length > 0 && (
+          <span className="text-xs text-slate-400 ml-1">(남 {males.length} / 여 {females.length})</span>
+        )}
       </button>
       {open && (
         <div className="divide-y divide-slate-100 dark:divide-slate-700">
-          {students.map(s => (
-            <div key={s.studentId} className="flex items-center px-5 py-2 text-sm">
-              <span className="flex-1 text-slate-800 dark:text-slate-200">
-                {s.studentName} <span className="text-slate-400 text-xs">({s.gender === 'M' ? '남' : '여'})</span>
-              </span>
-              {type !== 'maintaining' ? (
-                <span className={`text-xs ${config.descColor} w-40`}>
-                  {slopeToText(s.slope, unit, direction)}
-                </span>
-              ) : null}
-              <span className="font-mono text-sm font-medium text-slate-700 dark:text-slate-300 w-24 text-right">
-                {s.latestValue} {unit}
-              </span>
-            </div>
-          ))}
+          {renderGenderSection('남자', males)}
+          {renderGenderSection('여자', females)}
         </div>
       )}
     </div>
