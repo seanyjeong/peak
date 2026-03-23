@@ -144,6 +144,22 @@ export default function AnalyticsReportPage() {
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        // TailwindCSS v4의 lab()/oklch() 색상을 html2canvas가 못 읽으므로
+        // 클론된 DOM에서 모든 색상을 computed RGB로 강제 변환
+        onclone: (_doc, clonedEl) => {
+          const allElements = clonedEl.querySelectorAll('*');
+          allElements.forEach((el) => {
+            const computed = window.getComputedStyle(el);
+            const htmlEl = el as HTMLElement;
+            htmlEl.style.color = computed.color;
+            htmlEl.style.backgroundColor = computed.backgroundColor;
+            htmlEl.style.borderColor = computed.borderColor;
+            htmlEl.style.borderLeftColor = computed.borderLeftColor;
+            htmlEl.style.borderRightColor = computed.borderRightColor;
+            htmlEl.style.borderTopColor = computed.borderTopColor;
+            htmlEl.style.borderBottomColor = computed.borderBottomColor;
+          });
+        },
       });
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF('p', 'mm', 'a4');
