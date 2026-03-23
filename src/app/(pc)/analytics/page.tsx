@@ -139,26 +139,32 @@ export default function AnalyticsReportPage() {
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
 
-      const canvas = await html2canvas(reportRef.current, {
+      // html2canvas가 TailwindCSS v4의 lab()/oklch() CSS 함수를 파싱 못 함
+      // 해결: 원본 DOM에서 computed style을 읽어 인라인으로 복사한 뒤,
+      //        클론 문서의 스타일시트를 전부 제거하여 파싱 자체를 방지
+      const sourceEl = reportRef.current;
+      const sourceAll = sourceEl.querySelectorAll('*');
+
+      const canvas = await html2canvas(sourceEl, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        // TailwindCSS v4의 lab()/oklch() 색상을 html2canvas가 못 읽으므로
-        // 클론된 DOM에서 모든 색상을 computed RGB로 강제 변환
-        onclone: (_doc, clonedEl) => {
-          const allElements = clonedEl.querySelectorAll('*');
-          allElements.forEach((el) => {
-            const computed = window.getComputedStyle(el);
-            const htmlEl = el as HTMLElement;
-            htmlEl.style.color = computed.color;
-            htmlEl.style.backgroundColor = computed.backgroundColor;
-            htmlEl.style.borderColor = computed.borderColor;
-            htmlEl.style.borderLeftColor = computed.borderLeftColor;
-            htmlEl.style.borderRightColor = computed.borderRightColor;
-            htmlEl.style.borderTopColor = computed.borderTopColor;
-            htmlEl.style.borderBottomColor = computed.borderBottomColor;
+        onclone: (clonedDoc, clonedEl) => {
+          // 1) 원본의 computed style → 클론의 inline style로 복사
+          const props = ['color','backgroundColor','borderColor','borderLeftColor','borderRightColor','borderTopColor','borderBottomColor','boxShadow','outline'] as const;
+          const applyComputed = (src: Element, dst: HTMLElement) => {
+            const cs = window.getComputedStyle(src);
+            props.forEach(p => { dst.style[p as any] = cs.getPropertyValue(p.replace(/[A-Z]/g, m => '-' + m.toLowerCase())); });
+          };
+          applyComputed(sourceEl, clonedEl);
+          const clonedAll = clonedEl.querySelectorAll('*');
+          sourceAll.forEach((el, i) => {
+            if (clonedAll[i]) applyComputed(el, clonedAll[i] as HTMLElement);
           });
+
+          // 2) 스타일시트 전부 제거 → html2canvas가 lab() 파싱 시도 자체를 차단
+          clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(s => s.remove());
         },
       });
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
