@@ -8,7 +8,7 @@ import { authAPI } from '@/lib/api/auth';
 import Image from 'next/image';
 import { ClipboardList, Activity, Medal, BarChart3, LogOut, Sun, Moon } from 'lucide-react';
 
-const APP_VERSION = 'v5.6.6';
+const APP_VERSION = 'v5.6.7';
 
 const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
 
