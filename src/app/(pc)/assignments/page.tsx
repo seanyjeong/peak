@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useToast } from '@/hooks/useToast';
 import {
   DndContext,
   DragOverlay,
@@ -323,6 +324,7 @@ function NewClassZone() {
 }
 
 export default function AssignmentsPage() {
+  const toast = useToast();
   const [slotsData, setSlotsData] = useState<SlotsData>({
     morning: { waitingStudents: [], waitingInstructors: [], classes: [] },
     afternoon: { waitingStudents: [], waitingInstructors: [], classes: [] },
@@ -424,6 +426,7 @@ export default function AssignmentsPage() {
       else if (hasStudents(slots.morning)) setActiveSlot('morning');
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -472,6 +475,7 @@ export default function AssignmentsPage() {
         else if (hasStudents(slots.morning)) setActiveSlot('morning');
       } catch (error) {
         console.error('Failed to sync and fetch:', error);
+        toast.error(error);
       } finally {
         setSyncing(false);
         setLoading(false);
@@ -561,6 +565,7 @@ export default function AssignmentsPage() {
       await fetchData();
     } catch (error) {
       console.error('Failed to update:', error);
+      toast.error(error);
     }
   };
 
@@ -581,7 +586,7 @@ export default function AssignmentsPage() {
       await fetchData();
     } catch (error) {
       console.error('Failed to reset:', error);
-      alert('초기화에 실패했습니다.');
+      toast.error('초기화에 실패했습니다.');
     } finally {
       setResetting(false);
     }

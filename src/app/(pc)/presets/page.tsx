@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/hooks/useToast';
 import {
   DndContext,
   DragOverlay,
@@ -243,6 +244,7 @@ function UnassignedArea({ students }: { students: Student[] }) {
 }
 
 export default function PresetsPage() {
+  const toast = useToast();
   const [presets, setPresets] = useState<Preset[]>([]);
   const [activePresetId, setActivePresetId] = useState<number | null>(null);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
@@ -266,6 +268,7 @@ export default function PresetsPage() {
       }
     } catch (e) {
       console.error('Failed to fetch presets:', e);
+      toast.error(e);
     }
   }, [activePresetId]);
 
@@ -276,6 +279,7 @@ export default function PresetsPage() {
       setAllStudents(res.data.students || []);
     } catch (e) {
       console.error('Failed to fetch students:', e);
+      toast.error(e);
     }
   }, []);
 
@@ -286,6 +290,7 @@ export default function PresetsPage() {
       setInstructors(list.map((inst: any) => ({ id: inst.id, name: inst.name, isOwner: inst.id < 0 })));
     } catch (e) {
       console.error('Failed to fetch instructors:', e);
+      toast.error(e);
     }
   }, []);
 
@@ -322,6 +327,7 @@ export default function PresetsPage() {
       await fetchPresets();
     } catch (e) {
       console.error('Failed to create preset:', e);
+      toast.error(e);
     }
   };
 
@@ -334,6 +340,7 @@ export default function PresetsPage() {
       await fetchPresets();
     } catch (e) {
       console.error('Failed to delete preset:', e);
+      toast.error(e);
     }
   };
 
@@ -347,6 +354,7 @@ export default function PresetsPage() {
       await fetchPresets();
     } catch (e) {
       console.error('Failed to add group:', e);
+      toast.error(e);
     }
   };
 
@@ -357,6 +365,7 @@ export default function PresetsPage() {
       await fetchPresets();
     } catch (e) {
       console.error('Failed to update group:', e);
+      toast.error(e);
     }
   };
 
@@ -368,6 +377,7 @@ export default function PresetsPage() {
       await fetchPresets();
     } catch (e) {
       console.error('Failed to delete group:', e);
+      toast.error(e);
     }
   };
 
@@ -408,6 +418,7 @@ export default function PresetsPage() {
       await fetchPresets();
     } catch (e) {
       console.error('Failed to move student:', e);
+      toast.error(e);
     }
   };
 

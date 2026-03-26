@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, use } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
@@ -88,6 +89,7 @@ export default function TabletSessionRecordsPage({
 }: {
   params: Promise<{ testId: string; sessionId: string }>
 }) {
+  const toast = useToast();
   const { testId, sessionId } = use(params);
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
@@ -139,6 +141,7 @@ export default function TabletSessionRecordsPage({
       setInputs(initialInputs);
     } catch (error) {
       console.error('데이터 로드 오류:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -168,10 +171,11 @@ export default function TabletSessionRecordsPage({
       setSavedMap(prev => ({ ...prev, [saveKey]: true }));
     } catch (error) {
       console.error('저장 오류:', error);
+      toast.error(error);
       setErrorMap(prev => ({ ...prev, [saveKey]: true }));
       setSavedMap(prev => ({ ...prev, [saveKey]: false }));
       // 저장 실패 알림
-      alert(`⚠️ ${participant.name} 기록 저장 실패!\n다시 시도해주세요.`);
+      toast.error(`⚠️ ${participant.name} 기록 저장 실패!\n다시 시도해주세요.`);
     } finally {
       setSavingMap(prev => ({ ...prev, [saveKey]: false }));
     }

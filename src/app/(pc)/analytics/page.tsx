@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { authAPI } from '@/lib/api/auth';
@@ -98,6 +99,7 @@ function slopeToText(slope: number, unit: string, direction: string): string {
 }
 
 export default function AnalyticsReportPage() {
+  const toast = useToast();
   const router = useRouter();
   const reportRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<AnalyticsData | null>(null);
@@ -159,7 +161,7 @@ export default function AnalyticsReportPage() {
       pdf.save(`분석리포트_${data?.summary.reportDate || 'report'}.pdf`);
     } catch (e) {
       console.error('PDF generation error:', e);
-      alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
+      toast.error('PDF 생성에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setPdfLoading(false);
     }

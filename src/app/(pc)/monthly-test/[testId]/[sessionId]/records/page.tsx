@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, use } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
@@ -88,6 +89,7 @@ export default function SessionRecordsPage({
 }: {
   params: Promise<{ testId: string; sessionId: string }>
 }) {
+  const toast = useToast();
   const { testId, sessionId } = use(params);
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
@@ -142,6 +144,7 @@ export default function SessionRecordsPage({
       setInputs(initialInputs);
     } catch (error) {
       console.error('데이터 로드 오류:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -170,6 +173,7 @@ export default function SessionRecordsPage({
       setSavedMap(prev => ({ ...prev, [saveKey]: true }));
     } catch (error) {
       console.error('저장 오류:', error);
+      toast.error(error);
     } finally {
       setSavingMap(prev => ({ ...prev, [saveKey]: false }));
     }
@@ -210,17 +214,17 @@ export default function SessionRecordsPage({
     // 2단계: "삭제" 입력 확인
     const input = prompt('삭제를 진행하려면 "삭제"를 입력하세요:');
     if (input !== '삭제') {
-      alert('삭제가 취소되었습니다.');
+      toast.success('삭제가 취소되었습니다.');
       return;
     }
 
     try {
       const res = await apiClient.delete(`/test-sessions/${sessionId}/records`);
-      alert(`${res.data.deleted?.total || 0}개 기록이 삭제되었습니다.`);
+      toast.success(`${res.data.deleted?.total || 0}개 기록이 삭제되었습니다.`);
       fetchData();
     } catch (error) {
       console.error('삭제 오류:', error);
-      alert('삭제 중 오류가 발생했습니다.');
+      toast.error('삭제 중 오류가 발생했습니다.');
     }
   };
 

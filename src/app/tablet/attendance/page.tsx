@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { UserCheck, Clock, RefreshCw, Sunrise, Sun, Moon } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { useOrientation } from '../layout';
@@ -42,6 +43,7 @@ const STATUS_INFO: Record<string, { label: string; color: string; bgColor: strin
 };
 
 export default function TabletAttendancePage() {
+  const toast = useToast();
   const orientation = useOrientation();
   const [slotsData, setSlotsData] = useState<SlotsData>({ morning: [], afternoon: [], evening: [] });
   const [stats, setStats] = useState<Stats>({ total: 0, checkedIn: 0, uniqueInstructors: 0 });
@@ -75,6 +77,7 @@ export default function TabletAttendancePage() {
       else if (slots.morning?.length > 0) setActiveSlot('morning');
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }

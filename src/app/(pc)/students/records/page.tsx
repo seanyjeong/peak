@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useToast } from '@/hooks/useToast';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpDown, ArrowUp, ArrowDown, Search, Loader2 } from 'lucide-react';
 import apiClient from '@/lib/api/client';
@@ -34,6 +35,7 @@ const STATUS_FILTERS = [
 ];
 
 export default function AllStudentRecordsPage() {
+  const toast = useToast();
   const [students, setStudents] = useState<Student[]>([]);
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
   const [latestRecords, setLatestRecords] = useState<LatestRecord[]>([]);
@@ -63,6 +65,7 @@ export default function AllStudentRecordsPage() {
       setLatestRecords(recordsRes.data.records || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }

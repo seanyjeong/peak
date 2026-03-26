@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, use, useRef } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -93,6 +94,7 @@ export default function TabletStudentProfilePage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  const toast = useToast();
   const { id: studentId } = use(params);
   const router = useRouter();
   const orientation = useOrientation();
@@ -233,7 +235,7 @@ export default function TabletStudentProfilePage({
 
     } catch (error) {
       console.error('PDF download error:', error);
-      alert('PDF 다운로드에 실패했습니다.');
+      toast.error('PDF 다운로드에 실패했습니다.');
     } finally {
       setPdfLoading(false);
     }
@@ -285,6 +287,7 @@ export default function TabletStudentProfilePage({
       setSelectedRadarTypes(typesWithRecords.slice(0, 5).map((t: RecordType) => t.id));
     } catch (error) {
       console.error('Failed to load profile data:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }

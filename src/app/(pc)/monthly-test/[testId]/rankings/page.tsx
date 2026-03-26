@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, use } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
@@ -48,6 +49,7 @@ export default function RankingsPage({
 }: {
   params: Promise<{ testId: string }>
 }) {
+  const toast = useToast();
   const { testId } = use(params);
   const router = useRouter();
   const [test, setTest] = useState<Test | null>(null);
@@ -70,6 +72,7 @@ export default function RankingsPage({
       setParticipants(res.data.participants || []);
     } catch (error) {
       console.error('데이터 로드 오류:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +21,7 @@ interface MonthlyTest {
 }
 
 export default function TabletMonthlyTestListPage() {
+  const toast = useToast();
   const router = useRouter();
   const [tests, setTests] = useState<MonthlyTest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +37,7 @@ export default function TabletMonthlyTestListPage() {
       setTests(res.data.tests || []);
     } catch (error) {
       console.error('데이터 로드 오류:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useToast } from '@/hooks/useToast';
 import Link from 'next/link';
 import { Users, RefreshCw, Search, User, X, Activity, Plus, ExternalLink, TableProperties } from 'lucide-react';
 import apiClient from '@/lib/api/client';
@@ -21,6 +22,7 @@ import type { Student } from '@/features/students';
 import { groupByChosung, getSortedGroups } from '@/lib/utils/korean';
 
 export default function StudentsPage() {
+  const toast = useToast();
   const {
     filteredStudents,
     loading,
@@ -86,6 +88,7 @@ export default function StudentsPage() {
       setScoreTables(tables);
     } catch (error) {
       console.error('Failed to fetch record types:', error);
+      toast.error(error);
     }
   };
 
@@ -113,15 +116,15 @@ export default function StudentsPage() {
     const records = Object.entries(recordInputs)
       .filter(([, data]) => data.value?.trim())
       .map(([typeId, data]) => ({ record_type_id: parseInt(typeId), value: parseFloat(data.value), notes: null }));
-    if (records.length === 0) { alert('입력된 기록이 없습니다.'); return; }
+    if (records.length === 0) { toast.error('입력된 기록이 없습니다.'); return; }
     try {
       setSavingRecord(true);
       await apiClient.post('/records/batch', { student_id: selectedStudent.id, measured_at: recordDate, records });
-      alert('기록이 저장되었습니다.');
+      toast.success('기록이 저장되었습니다.');
       setShowAddRecord(false);
       setRecordInputs({});
       fetchStudentRecords(selectedStudent.id);
-    } catch (error) { console.error('Failed to save record:', error); alert('저장에 실패했습니다.'); }
+    } catch (error) { console.error('Failed to save record:', error); toast.error('저장에 실패했습니다.'); }
     finally { setSavingRecord(false); }
   };
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
@@ -51,6 +52,7 @@ const TIME_SLOT_LABELS: Record<string, string> = {
 };
 
 export default function MonthlyTestDetailPage({ params }: { params: Promise<{ testId: string }> }) {
+  const toast = useToast();
   const { testId } = use(params);
   const router = useRouter();
   const [test, setTest] = useState<MonthlyTest | null>(null);
@@ -80,6 +82,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       setAllRecordTypes((res.data.recordTypes || []).filter((t: AllRecordType) => t.is_active));
     } catch (error) {
       console.error('종목 목록 로드 오류:', error);
+      toast.error(error);
     }
   };
 
@@ -90,6 +93,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       setTest(res.data.test);
     } catch (error) {
       console.error('테스트 로드 오류:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -111,13 +115,13 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('엑셀 다운로드 오류:', error);
-      alert('엑셀 다운로드에 실패했습니다.');
+      toast.error('엑셀 다운로드에 실패했습니다.');
     }
   };
 
   const handleAddSession = async () => {
     if (!newSessionDate) {
-      alert('날짜를 선택해주세요.');
+      toast.error('날짜를 선택해주세요.');
       return;
     }
 
@@ -131,7 +135,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       setNewSessionDate('');
       fetchTest();
     } catch (error: any) {
-      alert(error.response?.data?.message || '세션 추가 실패');
+      toast.error(error);
     } finally {
       setAddingSession(false);
     }
@@ -145,6 +149,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       fetchTest();
     } catch (error) {
       console.error('세션 삭제 오류:', error);
+      toast.error(error);
     }
   };
 
@@ -158,6 +163,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       fetchTest();
     } catch (error) {
       console.error('상태 변경 오류:', error);
+      toast.error(error);
     }
   };
 
@@ -172,6 +178,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       setEditConflicts(conflictSet);
     } catch (error) {
       console.error('충돌 목록 로드 오류:', error);
+      toast.error(error);
     }
   };
 
@@ -213,11 +220,11 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) {
-      alert('테스트 이름을 입력해주세요.');
+      toast.error('테스트 이름을 입력해주세요.');
       return;
     }
     if (editSelectedTypes.length === 0) {
-      alert('최소 1개 이상의 종목을 선택해주세요.');
+      toast.error('최소 1개 이상의 종목을 선택해주세요.');
       return;
     }
 
@@ -250,7 +257,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       setShowEditModal(false);
       fetchTest();
     } catch (error: any) {
-      alert(error.response?.data?.message || '수정 실패');
+      toast.error(error);
     } finally {
       setSaving(false);
     }

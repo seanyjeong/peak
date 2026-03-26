@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { Users, RefreshCw, Sunrise, Sun, Moon, Check, X, Clock, AlertCircle } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 
@@ -50,6 +51,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
 };
 
 export default function StudentAttendancePage() {
+  const toast = useToast();
   const [slotsData, setSlotsData] = useState<SlotsData>({ morning: [], afternoon: [], evening: [] });
   const [stats, setStats] = useState<Stats>({ total: 0, present: 0, absent: 0, late: 0, excused: 0, unchecked: 0 });
   const [loading, setLoading] = useState(true);
@@ -80,6 +82,7 @@ export default function StudentAttendancePage() {
       else if (slots.morning?.length > 0) setActiveSlot('morning');
     } catch (error) {
       console.error('Failed to fetch student attendance:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -132,6 +135,7 @@ export default function StudentAttendancePage() {
       });
     } catch (error) {
       console.error('Failed to update attendance:', error);
+      toast.error(error);
     } finally {
       setUpdating(null);
     }
@@ -173,6 +177,7 @@ export default function StudentAttendancePage() {
       });
     } catch (error) {
       console.error('Failed to update attendance:', error);
+      toast.error(error);
     } finally {
       setUpdating(null);
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
@@ -52,6 +53,7 @@ const TIME_SLOT_LABELS: Record<string, string> = {
 };
 
 export default function TabletMonthlyTestDetailPage({ params }: { params: Promise<{ testId: string }> }) {
+  const toast = useToast();
   const { testId } = use(params);
   const router = useRouter();
   const [test, setTest] = useState<MonthlyTest | null>(null);
@@ -77,6 +79,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
       setAllRecordTypes((res.data.recordTypes || []).filter((t: AllRecordType) => t.is_active));
     } catch (error) {
       console.error('종목 목록 로드 오류:', error);
+      toast.error(error);
     }
   };
 
@@ -87,6 +90,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
       setTest(res.data.test);
     } catch (error) {
       console.error('테스트 로드 오류:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -102,6 +106,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
       fetchTest();
     } catch (error) {
       console.error('상태 변경 오류:', error);
+      toast.error(error);
     }
   };
 
@@ -116,6 +121,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
       setEditConflicts(conflictSet);
     } catch (error) {
       console.error('충돌 목록 로드 오류:', error);
+      toast.error(error);
     }
   };
 
@@ -157,11 +163,11 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) {
-      alert('테스트 이름을 입력해주세요.');
+      toast.error('테스트 이름을 입력해주세요.');
       return;
     }
     if (editSelectedTypes.length === 0) {
-      alert('최소 1개 이상의 종목을 선택해주세요.');
+      toast.error('최소 1개 이상의 종목을 선택해주세요.');
       return;
     }
 
@@ -193,7 +199,7 @@ export default function TabletMonthlyTestDetailPage({ params }: { params: Promis
       setShowEditModal(false);
       fetchTest();
     } catch (error: any) {
-      alert(error.response?.data?.message || '수정 실패');
+      toast.error(error);
     } finally {
       setSaving(false);
     }

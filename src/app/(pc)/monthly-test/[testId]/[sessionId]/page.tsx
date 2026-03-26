@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
@@ -343,6 +344,7 @@ export default function SessionGroupPage({
 }: {
   params: Promise<{ testId: string; sessionId: string }>
 }) {
+  const toast = useToast();
   const { testId, sessionId } = use(params);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'grouping' | 'schedule'>('grouping');
@@ -386,6 +388,7 @@ export default function SessionGroupPage({
       setWaitingSupervisors(res.data.waitingInstructors || []);
     } catch (error) {
       console.error('데이터 로드 오류:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -418,12 +421,13 @@ export default function SessionGroupPage({
       setRecordTypes(scheduleData.recordTypes || []);
     } catch (error) {
       console.error('스케줄 로드 오류:', error);
+      toast.error(error);
     }
   };
 
   const handleGenerateSchedule = async () => {
     if (groups.length === 0) {
-      alert('조가 없습니다. 먼저 조를 편성해주세요.');
+      toast.error('조가 없습니다. 먼저 조를 편성해주세요.');
       return;
     }
 
@@ -432,7 +436,7 @@ export default function SessionGroupPage({
       await apiClient.post(`/test-sessions/${sessionId}/schedule/generate`);
       await fetchSchedule();
     } catch (error: any) {
-      alert(error.response?.data?.message || '스케줄 생성 실패');
+      toast.error(error);
     } finally {
       setGeneratingSchedule(false);
     }
@@ -445,6 +449,7 @@ export default function SessionGroupPage({
       fetchData();
     } catch (error) {
       console.error('동기화 오류:', error);
+      toast.error(error);
     } finally {
       setSyncing(false);
     }
@@ -475,6 +480,7 @@ export default function SessionGroupPage({
       fetchData();
     } catch (error) {
       console.error('자동배치 오류:', error);
+      toast.error(error);
     }
   };
 
@@ -572,6 +578,7 @@ export default function SessionGroupPage({
       fetchData();
     } catch (error) {
       console.error('❌ 배치 오류:', error);
+      toast.error(error);
     }
   };
 
@@ -583,6 +590,7 @@ export default function SessionGroupPage({
       fetchData();
     } catch (error) {
       console.error('조 삭제 오류:', error);
+      toast.error(error);
     }
   };
 
@@ -802,6 +810,7 @@ function ScheduleTable({ schedule, groups, recordTypes, sessionId, onSwapped }: 
   onSwapped: () => void;
 }) {
   const [dragItem, setDragItem] = useState<{ timeOrder: number; groupId: number; name: string } | null>(null);
+  const toast = useToast();
 
   const scheduleSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -838,7 +847,7 @@ function ScheduleTable({ schedule, groups, recordTypes, sessionId, onSwapped }: 
       });
       onSwapped();
     } catch (error: any) {
-      alert(error.response?.data?.message || '교체 실패');
+      toast.error(error);
     }
   };
 
@@ -939,6 +948,7 @@ function AddParticipantModal({
 }) {
   const [activeTab, setActiveTab] = useState<'rest' | 'trial' | 'pending' | 'test_new'>('rest');
   const [students, setStudents] = useState<any[]>([]);
+  const toast = useToast();
   const [applicants, setApplicants] = useState<any[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -972,6 +982,7 @@ function AddParticipantModal({
       }
     } catch (error) {
       console.error('목록 조회 오류:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -1013,7 +1024,7 @@ function AddParticipantModal({
       onAdded();
       onClose();
     } catch (error: any) {
-      alert(error.response?.data?.message || '추가 실패');
+      toast.error(error);
     } finally {
       setAdding(false);
     }
@@ -1021,7 +1032,7 @@ function AddParticipantModal({
 
   const handleAddNew = async () => {
     if (!newName.trim()) {
-      alert('이름을 입력해주세요.');
+      toast.error('이름을 입력해주세요.');
       return;
     }
 
@@ -1049,7 +1060,7 @@ function AddParticipantModal({
       onAdded();
       onClose();
     } catch (error: any) {
-      alert(error.response?.data?.message || '등록 실패');
+      toast.error(error);
     } finally {
       setAdding(false);
     }

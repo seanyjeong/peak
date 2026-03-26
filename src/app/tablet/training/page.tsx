@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/useToast';
 import Link from 'next/link';
 import { Activity, RefreshCw, Check, User, Smile, Meh, Frown, AlertCircle, ThumbsUp, Thermometer, Droplets, Plus, ClipboardList, X, Calendar, ExternalLink } from 'lucide-react';
 import apiClient from '@/lib/api/client';
@@ -92,6 +93,7 @@ const SLOT_LABELS: Record<string, string> = {
 };
 
 export default function TabletTrainingPage() {
+  const toast = useToast();
   const orientation = useOrientation();
   const [slots, setSlots] = useState<Record<string, SlotData>>({});
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -191,6 +193,7 @@ export default function TabletTrainingPage() {
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -293,6 +296,7 @@ export default function TabletTrainingPage() {
       ));
     } catch (error) {
       console.error('Failed to save conditions:', error);
+      toast.error(error);
     }
   };
 
@@ -323,6 +327,7 @@ export default function TabletTrainingPage() {
       ));
     } catch (error) {
       console.error('Failed to save conditions:', error);
+      toast.error(error);
     }
   };
 
@@ -337,6 +342,7 @@ export default function TabletTrainingPage() {
       ));
     } catch (error) {
       console.error('Failed to toggle exercise:', error);
+      toast.error(error);
     }
   };
 
@@ -351,6 +357,7 @@ export default function TabletTrainingPage() {
       ));
     } catch (error) {
       console.error('Failed to toggle extra exercise:', error);
+      toast.error(error);
     }
   };
 
@@ -371,6 +378,7 @@ export default function TabletTrainingPage() {
       setShowAddExercise(false);
     } catch (error) {
       console.error('Failed to add exercise:', error);
+      toast.error(error);
     }
   };
 
@@ -398,6 +406,7 @@ export default function TabletTrainingPage() {
 
     if (!trainerId) {
       console.error('Cannot save: no trainer_id available');
+      toast.error('Cannot save: no trainer_id available');
       return;
     }
 
@@ -430,6 +439,7 @@ export default function TabletTrainingPage() {
       }
     } catch (error) {
       console.error('Failed to save condition:', error);
+      toast.error(error);
     }
   };
 
@@ -444,6 +454,7 @@ export default function TabletTrainingPage() {
       });
     } catch (error) {
       console.error('Failed to save notes:', error);
+      toast.error(error);
     }
   };
 

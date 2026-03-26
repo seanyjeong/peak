@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, use, useRef } from 'react';
+import { useState, useEffect, useMemo, use } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -35,8 +36,7 @@ import {
   PolarRadiusAxis,
   Radar,
 } from 'recharts';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+// PDF: server-side Playwright (replaced jsPDF + html2canvas)
 import apiClient from '@/lib/api/client';
 
 interface RecordType {
@@ -95,9 +95,9 @@ export default function StudentProfilePage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  const toast = useToast();
   const { id: studentId } = use(params);
   const router = useRouter();
-  const contentRef = useRef<HTMLDivElement>(null);
 
   const [student, setStudent] = useState<Student | null>(null);
   const [stats, setStats] = useState<StudentStats | null>(null);
@@ -123,110 +123,27 @@ export default function StudentProfilePage({
   };
 
   const handleDownloadPDF = async () => {
-    if (!contentRef.current || !student) return;
+    if (!student) return;
 
     try {
       setPdfLoading(true);
-
-      // 1. 모든 요소의 computed style을 미리 수집
-      const styleMap = new Map<Element, Record<string, string>>();
-      const cssProps = [
-        'background-color', 'color', 'border-color', 'border-width', 'border-style', 'border-radius',
-        'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
-        'padding', 'margin', 'font-size', 'font-weight', 'font-family', 'line-height', 'text-align',
-        'display', 'flex-direction', 'justify-content', 'align-items', 'flex-wrap', 'gap',
-        'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
-        'position', 'top', 'right', 'bottom', 'left', 'overflow', 'opacity', 'box-shadow',
-        'grid-template-columns', 'grid-template-rows', 'fill', 'stroke'
-      ];
-
-      const collectStyles = (el: Element) => {
-        const computed = window.getComputedStyle(el);
-        const styles: Record<string, string> = {};
-        cssProps.forEach(prop => {
-          const value = computed.getPropertyValue(prop);
-          if (value && value !== 'none' && value !== 'normal' && value !== 'auto' && value !== '0px') {
-            styles[prop] = value;
-          }
-        });
-        styleMap.set(el, styles);
-        Array.from(el.children).forEach(collectStyles);
-      };
-      collectStyles(contentRef.current);
-
-      // 2. iframe 생성 (격리된 환경)
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'position:fixed;left:-9999px;width:1800px;height:900px;border:none;';
-      document.body.appendChild(iframe);
-
-      const iframeDoc = iframe.contentDocument!;
-      const isDark = document.documentElement.classList.contains('dark');
-      const bgColor = isDark ? '#0f172a' : '#f1f5f9';
-
-      // 3. iframe에 HTML 복사 (스타일 없이)
-      iframeDoc.open();
-      iframeDoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:${bgColor};"></body></html>`);
-      iframeDoc.close();
-
-      // 4. 요소 클론 및 인라인 스타일 적용
-      const cloneWithStyles = (original: Element, parent: Element) => {
-        const clone = iframeDoc.createElement(original.tagName.toLowerCase());
-
-        // 속성 복사 (class 제외)
-        Array.from(original.attributes).forEach(attr => {
-          if (attr.name !== 'class') {
-            clone.setAttribute(attr.name, attr.value);
-          }
-        });
-
-        // 저장된 스타일 적용
-        const styles = styleMap.get(original);
-        if (styles && clone instanceof HTMLElement) {
-          Object.entries(styles).forEach(([prop, value]) => {
-            clone.style.setProperty(prop, value);
-          });
-        }
-
-        // 텍스트 노드 복사
-        Array.from(original.childNodes).forEach(child => {
-          if (child.nodeType === Node.TEXT_NODE) {
-            clone.appendChild(iframeDoc.createTextNode(child.textContent || ''));
-          } else if (child.nodeType === Node.ELEMENT_NODE) {
-            cloneWithStyles(child as Element, clone);
-          }
-        });
-
-        parent.appendChild(clone);
-      };
-
-      cloneWithStyles(contentRef.current, iframeDoc.body);
-
-      // 5. html2canvas로 캡처 (CSS 파싱 없음)
-      const canvas = await html2canvas(iframeDoc.body.firstElementChild as HTMLElement, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: bgColor,
+      const token = localStorage.getItem('peak_token');
+      const response = await apiClient.get(`/students/${studentId}/export-pdf`, {
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      // 6. iframe 제거
-      document.body.removeChild(iframe);
-
-      // 7. PDF 생성
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
-      const scaledWidth = canvas.width * ratio;
-      const scaledHeight = canvas.height * ratio;
-      const x = (pdfWidth - scaledWidth) / 2;
-      const y = (pdfHeight - scaledHeight) / 2;
-      pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
-      pdf.save(`${student.name}_실기기록_${new Date().toISOString().split('T')[0]}.pdf`);
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${student.name}_실기기록_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('PDF download error:', error);
-      alert('PDF 다운로드에 실패했습니다.');
+      toast.error('PDF 다운로드에 실패했습니다.');
     } finally {
       setPdfLoading(false);
     }
@@ -276,6 +193,7 @@ export default function StudentProfilePage({
       setSelectedRadarTypes(typesWithRecords.slice(0, 5).map((t: RecordType) => t.id));
     } catch (error) {
       console.error('Failed to load profile data:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -454,7 +372,7 @@ export default function StudentProfilePage({
 
   return (
     <div className="h-[calc(100vh-56px)] bg-slate-100 dark:bg-slate-900 p-3 overflow-hidden">
-      <div ref={contentRef} className="h-full flex flex-col gap-2">
+      <div className="h-full flex flex-col gap-2">
         {/* Header - Compact */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

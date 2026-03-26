@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
@@ -30,6 +31,7 @@ interface RecordType {
 }
 
 export default function MonthlyTestListPage() {
+  const toast = useToast();
   const router = useRouter();
   const [tests, setTests] = useState<MonthlyTest[]>([]);
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
@@ -71,6 +73,7 @@ export default function MonthlyTestListPage() {
       }
     } catch (error) {
       console.error('데이터 로드 오류:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -78,7 +81,7 @@ export default function MonthlyTestListPage() {
 
   const handleCreate = async () => {
     if (!newTestMonth || selectedTypes.length === 0) {
-      alert('월과 종목을 선택해주세요.');
+      toast.error('월과 종목을 선택해주세요.');
       return;
     }
 
@@ -98,7 +101,7 @@ export default function MonthlyTestListPage() {
       setSelectedTypes([]);
       fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.message || '생성 실패');
+      toast.error(error);
     } finally {
       setCreating(false);
     }
@@ -112,12 +115,13 @@ export default function MonthlyTestListPage() {
       fetchData();
     } catch (error) {
       console.error('삭제 오류:', error);
+      toast.error(error);
     }
   };
 
   const handleSaveSlug = async () => {
     if (!slugInput.trim()) {
-      alert('슬러그를 입력해주세요.');
+      toast.error('슬러그를 입력해주세요.');
       return;
     }
     if (!/^[a-z0-9-]+$/.test(slugInput)) {
@@ -129,9 +133,9 @@ export default function MonthlyTestListPage() {
       await apiClient.put('/monthly-tests/academy/slug', { slug: slugInput.trim() });
       setCurrentSlug(slugInput.trim());
       setShowSlugModal(false);
-      alert('슬러그가 저장되었습니다.');
+      toast.success('슬러그가 저장되었습니다.');
     } catch (error: any) {
-      alert(error.response?.data?.message || '저장 실패');
+      toast.error(error);
     } finally {
       setSavingSlug(false);
     }
@@ -139,13 +143,13 @@ export default function MonthlyTestListPage() {
 
   const copyBoardUrl = () => {
     if (!currentSlug) {
-      alert('전광판 슬러그를 먼저 설정해주세요.');
+      toast.error('전광판 슬러그를 먼저 설정해주세요.');
       setShowSlugModal(true);
       return;
     }
     const url = `${window.location.origin}/board/${currentSlug}`;
     navigator.clipboard.writeText(url);
-    alert(`전광판 URL이 복사되었습니다.\n${url}`);
+    toast.success(`전광판 URL이 복사되었습니다.\n${url}`);
   };
 
   const getStatusBadge = (status: string) => {

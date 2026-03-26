@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { Dumbbell, Plus, Edit2, Trash2, Save, X, RefreshCw, Tag, Package, Download, Upload, ArrowLeft, Video } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
@@ -55,6 +56,7 @@ const TAG_COLORS = [
 ];
 
 export default function TabletExercisesPage() {
+  const toast = useToast();
   const orientation = useOrientation();
   const [activeTab, setActiveTab] = useState<'list' | 'tags' | 'packs'>('list');
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -99,6 +101,7 @@ export default function TabletExercisesPage() {
       setExercisePacks(packsRes.data.packs || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -141,7 +144,7 @@ export default function TabletExercisesPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to save exercise:', error);
-      alert('저장에 실패했습니다.');
+      toast.error('저장에 실패했습니다.');
     }
   };
 
@@ -152,6 +155,7 @@ export default function TabletExercisesPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to delete exercise:', error);
+      toast.error(error);
     }
   };
 
@@ -188,7 +192,7 @@ export default function TabletExercisesPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to save tag:', error);
-      alert('저장에 실패했습니다.');
+      toast.error('저장에 실패했습니다.');
     }
   };
 
@@ -199,6 +203,7 @@ export default function TabletExercisesPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to delete tag:', error);
+      toast.error(error);
     }
   };
 
@@ -220,7 +225,7 @@ export default function TabletExercisesPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to save pack:', error);
-      alert('저장에 실패했습니다.');
+      toast.error('저장에 실패했습니다.');
     }
   };
 
@@ -231,6 +236,7 @@ export default function TabletExercisesPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to delete pack:', error);
+      toast.error(error);
     }
   };
 
@@ -247,7 +253,7 @@ export default function TabletExercisesPage() {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to export pack:', error);
-      alert('내보내기에 실패했습니다.');
+      toast.error('내보내기에 실패했습니다.');
     }
   };
 
@@ -265,11 +271,11 @@ export default function TabletExercisesPage() {
       }
 
       const res = await apiClient.post('/exercise-packs/import', data);
-      alert(res.data.message);
+      toast.success(res.data.message);
       fetchData();
     } catch (error) {
       console.error('Failed to import pack:', error);
-      alert('가져오기에 실패했습니다.');
+      toast.error('가져오기에 실패했습니다.');
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -290,12 +296,12 @@ export default function TabletExercisesPage() {
     try {
       setApplyingPack(true);
       const res = await apiClient.post(`/exercise-packs/${packId}/apply`);
-      alert(res.data.message);
+      toast.success(res.data.message);
       setShowPackApplyModal(false);
       fetchData();
     } catch (error) {
       console.error('Apply pack error:', error);
-      alert('팩 불러오기에 실패했습니다.');
+      toast.error('팩 불러오기에 실패했습니다.');
     } finally {
       setApplyingPack(false);
     }

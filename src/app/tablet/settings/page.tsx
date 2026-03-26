@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { Settings, Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check, ToggleLeft, ToggleRight } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { useOrientation } from '../layout';
@@ -43,6 +44,7 @@ interface ScoreRange {
 }
 
 export default function TabletSettingsPage() {
+  const toast = useToast();
   const orientation = useOrientation();
   const [activeTab, setActiveTab] = useState<'types' | 'scores'>('types');
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
@@ -84,6 +86,7 @@ export default function TabletSettingsPage() {
       setScoreTables(tablesRes.data.scoreTables || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -94,6 +97,14 @@ export default function TabletSettingsPage() {
   }, []);
 
   const saveType = async () => {
+    if (!typeForm.name.trim()) {
+      toast.error('종목명을 입력해주세요.');
+      return;
+    }
+    if (!typeForm.unit.trim()) {
+      toast.error('단위를 입력해주세요.');
+      return;
+    }
     try {
       const payload = {
         name: typeForm.name,
@@ -117,7 +128,7 @@ export default function TabletSettingsPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to save type:', error);
-      alert('저장에 실패했습니다.');
+      toast.error('저장에 실패했습니다.');
     }
   };
 
@@ -138,6 +149,7 @@ export default function TabletSettingsPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to toggle type:', error);
+      toast.error(error);
     }
   };
 
@@ -155,11 +167,11 @@ export default function TabletSettingsPage() {
 
   const createScoreTable = async () => {
     if (!selectedTypeForScore) {
-      alert('종목을 선택하세요.');
+      toast.error('종목을 선택하세요.');
       return;
     }
     if (!scoreForm.score_step || scoreForm.score_step < 1) {
-      alert('급간 점수는 1 이상이어야 합니다.');
+      toast.error('급간 점수는 1 이상이어야 합니다.');
       return;
     }
     try {
@@ -170,10 +182,10 @@ export default function TabletSettingsPage() {
       setShowScoreForm(false);
       setSelectedTypeForScore(null);
       fetchData();
-      alert('배점표가 생성되었습니다!');
+      toast.success('배점표가 생성되었습니다!');
     } catch (error) {
       console.error('Failed to create score table:', error);
-      alert('배점표 생성에 실패했습니다.');
+      toast.error('배점표 생성에 실패했습니다.');
     }
   };
 
@@ -195,6 +207,7 @@ export default function TabletSettingsPage() {
       setEditingRanges({});
     } catch (error) {
       console.error('Failed to fetch ranges:', error);
+      toast.error(error);
     } finally {
       setLoadingRanges(false);
     }
@@ -207,6 +220,7 @@ export default function TabletSettingsPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to delete score table:', error);
+      toast.error(error);
     }
   };
 
@@ -244,7 +258,7 @@ export default function TabletSettingsPage() {
       cancelEditRange(rangeId);
     } catch (error) {
       console.error('Failed to save range:', error);
-      alert('저장에 실패했습니다.');
+      toast.error('저장에 실패했습니다.');
     } finally {
       setSavingRange(null);
     }

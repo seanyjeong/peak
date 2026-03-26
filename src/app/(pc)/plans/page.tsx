@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useToast } from '@/hooks/useToast';
 import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight, Settings2, Trash2, Video, Search } from 'lucide-react';
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
@@ -73,6 +74,7 @@ function TagBadge({ tagId, tags, small = false }: { tagId: string; tags: Exercis
 }
 
 export default function PlansPage() {
+  const toast = useToast();
   const [slotsData, setSlotsData] = useState<SlotsData>({ morning: [], afternoon: [], evening: [] });
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [exerciseTags, setExerciseTags] = useState<ExerciseTag[]>([]);
@@ -143,6 +145,7 @@ export default function PlansPage() {
       else if (slots.morning?.length > 0) setActiveSlot('morning');
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      toast.error(error);
     } finally {
       setLoading(false);
     }
@@ -240,12 +243,12 @@ export default function PlansPage() {
   const handleSubmit = async () => {
     const instructorId = isOwner ? selectedInstructor : myInstructorId;
     if (!instructorId) {
-      alert('강사를 선택하세요.');
+      toast.error('강사를 선택하세요.');
       return;
     }
 
     if (selectedExercises.length === 0) {
-      alert('최소 1개 이상의 운동을 선택하세요.');
+      toast.error('최소 1개 이상의 운동을 선택하세요.');
       return;
     }
 
@@ -270,7 +273,7 @@ export default function PlansPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to save plan:', error);
-      alert('저장에 실패했습니다.');
+      toast.error('저장에 실패했습니다.');
     }
   };
 
@@ -302,7 +305,7 @@ export default function PlansPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to delete plan:', error);
-      alert('삭제에 실패했습니다.');
+      toast.error('삭제에 실패했습니다.');
     }
   };
 
