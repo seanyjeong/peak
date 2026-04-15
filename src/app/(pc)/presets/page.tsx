@@ -7,6 +7,7 @@ import {
   DragOverlay,
   pointerWithin,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragStartEvent,
@@ -256,7 +257,8 @@ export default function PresetsPage() {
   const [activeItem, setActiveItem] = useState<{ student: Student } | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   );
 
   const fetchPresets = useCallback(async () => {
