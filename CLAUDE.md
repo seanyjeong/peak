@@ -1,209 +1,77 @@
-# P-EAK (피크)
+# peak (P-EAK · IlsanMaxTraining)
 
-> **P**hysical **E**xcellence **A**chievement **K**eeper
-> 체대입시 실기 훈련관리 시스템
+@ARCHITECTURE.md
+@API-SPEC.md
+@DB-SCHEMA.md
+@BUSINESS-LOGIC.md
+@DEPLOYMENT.md
+@RELATIONSHIPS.md
 
-**Version**: v4.3.9 | **Port**: 8330
+체대입시 학생 실기 기록 시스템. Socket.io 실시간. Express 5 + MySQL + Next.js 16. **n100 primary + vultr failover 이중화** (pacapro 와 동일 토폴로지).
 
----
+## 🏗 구조
+- **Primary**: n100 `peak.service` · `/home/sean/ilsanmaxtraining/backend/peak.js` · **port 8330**
+- **Failover**: vultr `peak-failover.service` · `/root/peak/backend/peak.js` · **port 8330** (enabled·inactive)
+- **DB**: n100 MySQL `peak` + pacapro 의 `paca` DB readonly 접근 (users 테이블)
+- **도메인**: chejump.com (CF DNS A=218.148.190.61 → etserver Caddy → n100:8330 / 페일오버 시 → vultr 158.247.250.58)
+- **Frontend**: Next.js 16 + React 19 + Tailwind v4
 
-## Quick Reference
+## 🔁 페일오버
+pacapro 와 함께 auto-failover.sh 가 동시 전환. 매 1분 cron, 헬스체크 실패 시 DNS → vultr + 서비스 기동.
 
-### Commands
+## 🔌 라우트 23개 모듈 (`peak.js`)
+```
+/peak/auth           → routes/auth (no auth)
+/peak/trainers       → routes/trainers (verifyToken)
+/peak/students       → routes/students (verifyToken)
+/peak/plans          → routes/plans (verifyToken)
+/peak/assignments    → routes/assignments (verifyToken)
+/peak/training       → routes/training (verifyToken)
+/peak/records        → routes/records (verifyToken)
+/peak/attendance     → routes/attendance (verifyToken)
+/peak/exercises      → routes/exercises (verifyToken)
+/peak/exercise-tags  → routes/exercise-tags (verifyToken)
+/peak/exercise-packs → routes/exercise-packs (verifyToken)
+/peak/record-types   → routes/recordTypes (verifyToken)
+/peak/score-tables   → routes/scoreTable (verifyToken)
+/peak/stats          → routes/stats (verifyToken)
+/peak/settings       → routes/peakSettings (verifyToken)
+/peak/mobile         → routes/mobile (verifyToken)
+/peak/analytics      → routes/analytics (verifyToken)
+/peak/monthly-tests  → routes/monthlyTests (verifyToken)
+/peak/test-sessions  → routes/testSessions (verifyToken)
+/peak/test-applicants→ routes/testApplicants (verifyToken)
+/peak/presets        → routes/presets (verifyToken)
+/peak/notifications  → routes/notifications (verifyToken)
+/peak/public         → routes/publicBoard (no auth)
+/peak/push           → routes/push (no auth)
+```
+
+## 🌐 도메인
+- prod: `chejump.com/peak/*` (+ `/socket.io/*`) — **etserver Caddy → n100:8330** (페일오버 시 vultr Caddy → localhost:8330)
+- dev: `dev.sean8320.dedyn.io/peak/*` — etserver Caddy → n100
+- 맥미니 internal: `http://192.168.35.249:8330`
+
+## 🗄 DB (MySQL `peak`, 36 tables)
+학생 기록/훈련/시험/출결 중심. `paca` DB 와 cross-DB JOIN (users 인증).
+
+## 🔐 인증
+- JWT (**pacapro 와 secret 공유** — `.env` PACA_* + peak 자체)
+- verifyToken 미들웨어
+- Socket.io: JWT `auth.token` 또는 `handshake.query.token`
+
+## 🚨 절대 규칙
+1. **systemd** (PM2 아님)
+2. **출결 해석 주의**: `checked_at IS NOT NULL` = 체크완료 (COUNT 오용 금지)
+3. **paca DB readonly** — peak 에서 INSERT/UPDATE 금지
+4. **JWT secret 변경 시 pacapro 도 동시 재시작**
+5. Socket.io path `/socket.io/` — Caddy `proxy_http_version 1.1` + Upgrade header 필수
+6. **Next.js 16.1 + React 19** — 의존성 민감, build 시 node 버전 (v22.x) 확인
+7. 시간 KST
+
+## 🛠 자주 쓰는 명령
 ```bash
-# 개발
-npm run dev
-
-# 빌드 & 배포
-npm run build && git add -A && git commit -m "..." && git push
-
-# 백엔드 재시작
-echo '$SUDO_PASSWORD' | sudo -S systemctl restart peak
-
-# 로그 확인
-echo '$SUDO_PASSWORD' | sudo -S journalctl -u peak -f
-
-# DB 접속
-mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE
+ssh n100 'sudo systemctl restart peak && sudo journalctl -u peak -f'
+ssh n100 'sudo mysql peak -e "SHOW TABLES"'
+curl -s https://chejump.com/peak-health
 ```
-
-> 비밀번호는 `.secrets` 파일 참조 (gitignore됨)
-
-### 버전 업데이트 위치
-- `package.json` → `"version"`
-- `src/app/(pc)/layout.tsx` → `APP_VERSION`
-- `src/app/tablet/layout.tsx` → `APP_VERSION`
-- `src/app/mobile/layout.tsx` → `APP_VERSION`
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         Frontend                            │
-│  Next.js 16 + React 19 + TailwindCSS 4 + Recharts          │
-├─────────────────────────────────────────────────────────────┤
-│  PC (/)  │  Tablet (/tablet)  │  Mobile (/mobile)          │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────────┐
-│                      Backend                                │
-│  Express.js 5 + MySQL (mysql2) + JWT                       │
-│  Caddy → localhost:8330 (peak.service)                     │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────────┐
-│                      Database                               │
-│  peak (메인) ←→ paca (P-ACA 연동)                           │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Project Structure
-
-```
-ilsanmaxtraining/
-├── src/
-│   ├── app/
-│   │   ├── (pc)/           # PC 버전 (기본)
-│   │   ├── tablet/         # 태블릿 버전
-│   │   ├── mobile/         # 모바일 버전 (강사용)
-│   │   └── login/
-│   ├── components/
-│   │   ├── ui/             # 공통 UI 컴포넌트
-│   │   └── students/       # 학생 관련 컴포넌트
-│   └── lib/
-│       └── api/            # API 클라이언트
-├── backend/
-│   ├── peak.js             # 메인 서버
-│   ├── routes/             # API 라우트 (20개)
-│   ├── middleware/
-│   └── utils/
-│       └── encryption.js   # P-ACA 암호화 처리
-└── docs/
-    ├── API.md              # API 명세서
-    └── DATABASE.md         # DB 스키마
-```
-
----
-
-## Core Features
-
-| 기능 | 설명 | 페이지 |
-|------|------|--------|
-| **반 배치** | 학생/강사 드래그앤드롭 배치 | /assignments |
-| **기록 측정** | 종목별 기록 입력 (UPSERT) | /records |
-| **수업 계획** | 운동 계획 + 환경 체크 | /plans |
-| **수업 기록** | 학생별 컨디션/메모 | /training |
-| **월말테스트** | 테스트 세션 + 조편성 + 기록 | /monthly-test |
-| **학생 프로필** | 종합 통계 + 차트 | /students/[id] |
-
----
-
-## P-ACA Integration
-
-```
-P-ACA (paca DB)                    P-EAK (peak DB)
-─────────────────                  ─────────────────
-students ──────────────────────→ students (sync)
-instructors ───────────────────→ 강사 배치
-instructor_schedules ──────────→ 출근 스케줄
-instructor_attendance ─────────→ 출근 상태
-academy_settings ──────────────→ 시간대 설정
-```
-
-### 동기화 API
-- `POST /peak/students/sync` - 학생 동기화 (active, paused, trial, pending만)
-- `POST /peak/assignments/sync` - 출석 동기화
-
-### 암호화
-P-ACA `name`, `phone`은 `ENC:` 접두사로 암호화됨
-→ `backend/utils/encryption.js`의 `decrypt()` 사용
-
----
-
-## Key Implementation Details
-
-### 1. 기록 측정 UPSERT
-```javascript
-// 하루에 한 종목당 최고 기록만 저장
-// direction: 'higher' → 높을수록 좋음 (멀리뛰기)
-// direction: 'lower' → 낮을수록 좋음 (달리기)
-POST /peak/records/batch
-```
-
-### 2. 반 배치 시스템 (v2.0.0)
-- 반(Class) 중심 구조
-- 한 반에 여러 강사 배치 가능 (주강사 + 보조)
-- dnd-kit: `pointerWithin` 충돌감지
-
-### 3. 원장 표시
-- 원장은 P-ACA `instructors`에 없음 (월급 대상 아님)
-- `users` 테이블의 `id`를 음수로 변환 (user_id 2 → trainer_id -2)
-
-### 4. 태블릿 감지
-- middleware.ts: User-Agent 기반 리다이렉트
-- PC layout: 클라이언트 사이드 fallback (터치 + 화면 크기)
-
----
-
-## Database
-
-> 상세: [docs/DATABASE.md](docs/DATABASE.md)
-
-### 핵심 테이블
-| 테이블 | 설명 |
-|--------|------|
-| `students` | 학생 (P-ACA sync) |
-| `record_types` | 측정 종목 |
-| `student_records` | 학생 기록 |
-| `score_tables` + `score_ranges` | 배점표 |
-| `daily_assignments` | 학생 반배치 |
-| `class_instructors` | 강사 반배치 |
-| `daily_plans` | 수업 계획 |
-| `training_logs` | 수업 기록 |
-| `monthly_tests` + `test_sessions` | 월말테스트 |
-
-### UNIQUE KEY
-```sql
-students: uk_academy_paca (academy_id, paca_student_id)
-student_records: (student_id, record_type_id, measured_at)
-daily_assignments: uk_date_slot_student (date, time_slot, student_id)
-```
-
----
-
-## API
-
-> 상세: [docs/API.md](docs/API.md)
-
-### 주요 엔드포인트
-| Method | Path | 설명 |
-|--------|------|------|
-| POST | `/auth/login` | P-ACA 로그인 |
-| GET/POST | `/students` | 학생 CRUD |
-| POST | `/students/sync` | P-ACA 동기화 |
-| GET | `/assignments` | 반배치 조회 |
-| POST | `/records/batch` | 기록 일괄 저장 |
-| GET | `/students/:id/stats` | 학생 통계 |
-
----
-
-## Permissions
-
-| 기능 | staff | owner | admin |
-|------|-------|-------|-------|
-| 설정 메뉴 | ❌ | ✅ | ✅ |
-| 운동/팩 관리 | ❌ | ✅ | ✅ |
-| 태그 관리 | ❌ | ❌ | ✅ |
-| 기록 측정 (전체) | ❌ | ✅ | ✅ |
-| 수업 계획 (전체) | ❌ | ✅ | ✅ |
-
----
-
-## Login
-
-> `.secrets` 파일의 `LOGIN_EMAIL`, `LOGIN_PASSWORD` 참조
-> Role: admin

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-const APP_VERSION = 'v5.7.0';
+const APP_VERSION = 'v5.7.1';
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -42,7 +42,7 @@ const navigation = [
   { name: '기록 측정', href: '/records', icon: Medal },
   { name: '월말테스트', href: '/monthly-test', icon: Trophy },
   { name: '학생 관리', href: '/students', icon: Calendar },
-  { name: '분석 리포트', href: '/analytics', icon: BarChart3, adminOnly: true, academyOnly: 2 },
+  { name: '분석 리포트', href: '/analytics', icon: BarChart3, adminOnly: true },
   { name: '실기측정설정', href: '/settings', icon: Settings, adminOnly: true },
 ];
 
