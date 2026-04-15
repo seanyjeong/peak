@@ -166,7 +166,6 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
           <div className={`space-y-1 ${sidebarOpen ? 'px-3' : 'px-1'}`}>
             {navigation
               .filter(item => !item.adminOnly || user?.role === 'admin' || user?.role === 'owner')
-              .filter(item => !item.academyOnly || item.academyOnly === user?.academyId)
               .map((item) => {
               const isActive = pathname === item.href;
               return (
