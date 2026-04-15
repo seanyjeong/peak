@@ -93,9 +93,22 @@ WantedBy=multi-user.target
 
 ## 🔁 GitHub repo & push
 - **repo**: `https://github.com/seanyjeong/peak.git` (HTTPS)
-- **현재 HEAD**: `54e98c8 fix: add supermax.kr to CSP connect-src for failover`
 - **push 위치**: n100 `/home/sean/ilsanmaxtraining` 또는 맥미니 (collab)
 - ⚠️ etserver 에는 peak clone 없음
+
+## 🏷 버전 관리
+**배포 전 반드시 버전 업데이트!**
+
+| 파일 | 위치 | 현재 버전 |
+|------|------|-----------|
+| `src/app/(pc)/layout.tsx` | line 8: `const APP_VERSION = 'vX.Y.Z'` | v5.7.1 |
+| `src/app/tablet/layout.tsx` | line 32: `const APP_VERSION = 'vX.Y.Z'` | v5.7.1 |
+
+버전 규칙:
+- **MAJOR.MINOR.PATCH** (예: v5.7.1)
+- PATCH: 버그 수정, 작은 변경
+- MINOR: 새 기능 추가
+- MAJOR: 큰 구조 변경
 
 ## 🚀 배포 흐름
 
