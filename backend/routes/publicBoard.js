@@ -412,4 +412,24 @@ router.get('/:slug/scores', async (req, res) => {
   }
 });
 
+// DID 용 결석 학생 paca_student_id 배열 (인증 불필요, slug 기반)
+router.get('/:slug/absent', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { date, time_slot = 'evening' } = req.query;
+    const [settings] = await pool.query('SELECT academy_id FROM peak_settings WHERE slug = ?', [slug]);
+    if (settings.length === 0) return res.status(404).json({ success: false, message: 'slug not found' });
+    const academyId = settings[0].academy_id;
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    const [absent] = await pacaPool.query(
+      'SELECT DISTINCT a.student_id AS paca_student_id FROM attendance a JOIN class_schedules cs ON a.class_schedule_id = cs.id WHERE cs.academy_id = ? AND cs.class_date = ? AND cs.time_slot = ? AND a.attendance_status = ?',
+      [academyId, targetDate, time_slot, 'absent']
+    );
+    res.json({ success: true, absent_paca_student_ids: absent.map(r => r.paca_student_id) });
+  } catch (err) {
+    console.error('did/absent error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
