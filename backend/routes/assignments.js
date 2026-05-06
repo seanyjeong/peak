@@ -133,6 +133,21 @@ router.get('/', verifyToken, async (req, res) => {
             };
         });
 
+        // [peak-attendance-cache] paca attendance 를 peak.daily_assignments 에 lazy upsert
+        // → DID 가 peak DB 만 봐도 결석 정보 알 수 있게 함 (사장님 룰 정합)
+        if (pacaAttendance.length > 0) {
+            const updates = pacaAttendance
+                .filter(att => att.attendance_status)
+                .map(att => [att.attendance_status, academyId, targetDate, att.time_slot, att.paca_student_id]);
+            for (const params of updates) {
+                await db.query(
+                    'UPDATE daily_assignments SET attendance_status = ? WHERE academy_id = ? AND date = ? AND time_slot = ? AND student_id IN (SELECT id FROM students WHERE paca_student_id = ?) ',
+                    params
+                ).catch(() => {});
+            }
+        }
+
+
         // 배치된 강사 ID Set 생성 (시간대별)
         const assignedInstructorsBySlot = { morning: new Set(), afternoon: new Set(), evening: new Set() };
         classInstructors.forEach(ci => {
