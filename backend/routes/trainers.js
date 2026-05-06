@@ -48,6 +48,18 @@ async function syncAcademyTrainers(academyId) {
         active: i.status === 'active' ? 1 : 0,
     }));
 
+    // 원장(owner role) 도 trainers 에 sync — paca_user_id 음수로 박아 instructors.id 와 충돌 회피 (paca 컨벤션 정합)
+    const [pacaOwners] = await pacaPool.query("SELECT id, academy_id, name, phone FROM users WHERE academy_id = ? AND role = 'owner' AND deleted_at IS NULL AND is_active = 1", [academyId]);
+    pacaOwners.forEach(u => {
+        processed.push({
+            academyId: u.academy_id,
+            pacaId: -u.id,
+            name: decryptField(u.name) || '원장',
+            phone: decryptField(u.phone) || null,
+            active: 1,
+        });
+    });
+
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
