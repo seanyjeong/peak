@@ -30,7 +30,9 @@ import {
 import { ThemeProvider, useTheme } from '@/components/theme-provider';
 import { SlideUpSheet } from '@/components/animations';
 
-const APP_VERSION = 'v5.7.2';
+import packageJson from '../../../package.json';
+const APP_VERSION = "v" + packageJson.version;
+const APP_UPDATED = packageJson.lastUpdate;
 
 // 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
 const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
@@ -176,7 +178,7 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
                 <LogOut size={20} />
                 <span className="text-[10px] mt-1">로그아웃</span>
               </button>
-              <p className="text-[8px] text-neutral-500 text-center mt-2">{APP_VERSION}</p>
+              <p className="text-[8px] text-neutral-500 text-center mt-2">{APP_VERSION} · {APP_UPDATED}</p>
             </div>
           </aside>
 
@@ -239,7 +241,7 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
             />
             <div>
               <h1 className="text-white font-bold">P-EAK</h1>
-              <p className="text-[10px] text-neutral-400">{APP_VERSION}</p>
+              <p className="text-[10px] text-neutral-400">{APP_VERSION} · {APP_UPDATED}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

@@ -103,3 +103,22 @@ ssh n100 'sudo systemctl restart peak && sudo journalctl -u peak -f'
 ssh n100 'sudo mysql peak -e "SHOW TABLES"'
 curl -s https://chejump.com/peak-health
 ```
+
+
+## 📦 버전 관리 룰 (2026-05-06 명시)
+
+### Frontend bump 시 *반드시* 두 필드 동시
+- `package.json` 의 "version" + "lastUpdate" 둘 다 갱신
+- 명령:
+  ```
+  jq '.version = "X.Y.Z" | .lastUpdate = "YYYY-MM-DD"' package.json > /tmp/p.json && mv /tmp/p.json package.json
+  ```
+
+### Sidebar 표시 자동화
+- `src/app/(pc)/layout.tsx` + `src/app/tablet/layout.tsx` 가 `packageJson` 을 import 해서 자동 표시
+- 표시 형식: `v{version} · {lastUpdate}`
+- 새 hardcoded version 박기 *절대 금지* — package.json bump만으로 sidebar 자동 갱신
+
+### 위반 시 증상
+- PWA 사용자가 사이드바에서 옛 버전 보고 새로고침 안 함
+- 캐시 문제로 기능 적용 안 된 것처럼 오해

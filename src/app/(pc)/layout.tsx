@@ -5,7 +5,9 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-const APP_VERSION = 'v5.7.2';
+import packageJson from '../../../package.json';
+const APP_VERSION = "v" + packageJson.version;
+const APP_UPDATED = packageJson.lastUpdate;
 import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
@@ -212,7 +214,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
             )}
           </button>
           {sidebarOpen && (
-            <p className="text-[10px] text-neutral-500 text-center mt-3">{APP_VERSION}</p>
+            <p className="text-[10px] text-neutral-500 text-center mt-3">{APP_VERSION} · {APP_UPDATED}</p>
           )}
         </div>
       </aside>
