@@ -6,6 +6,7 @@ import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, Chevron
 import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 import { authAPI, User } from '@/lib/api/auth';
+import { ReorderButtons } from '@/components/ui/reorder-buttons';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening';
 
@@ -207,6 +208,24 @@ export default function PlansPage() {
       } else {
         return [...prev, { exercise_id: exerciseId, note: '' }];
       }
+    });
+  };
+
+  // 운동 순서 변경 (peak-plan-reorder)
+  const moveExerciseUp = (index: number) => {
+    if (index === 0) return;
+    setSelectedExercises(prev => {
+      const next = [...prev];
+      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      return next;
+    });
+  };
+  const moveExerciseDown = (index: number) => {
+    setSelectedExercises(prev => {
+      if (index === prev.length - 1) return prev;
+      const next = [...prev];
+      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      return next;
     });
   };
 
@@ -556,11 +575,12 @@ export default function PlansPage() {
                 선택된 운동 ({selectedExercises.length}개)
               </label>
               <div className="space-y-2">
-                {selectedExercises.map(sel => {
+                {selectedExercises.map((sel, index) => {
                   const ex = exercises.find(e => e.id === sel.exercise_id);
                   if (!ex) return null;
                   return (
-                    <div key={sel.exercise_id} className="bg-orange-50 dark:bg-orange-900 p-3 rounded-lg">
+                    <div key={sel.exercise_id} className="bg-orange-50 dark:bg-orange-900 p-3 rounded-lg flex items-start gap-2">
+                      <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <button
                           onClick={() => toggleExercise(sel.exercise_id)}
@@ -611,6 +631,14 @@ export default function PlansPage() {
                         />
                       </div>
                     </div>
+                    <ReorderButtons
+                      index={index}
+                      total={selectedExercises.length}
+                      onMoveUp={() => moveExerciseUp(index)}
+                      onMoveDown={() => moveExerciseDown(index)}
+                      size="md"
+                    />
+                </div>
                   );
                 })}
               </div>

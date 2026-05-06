@@ -12,6 +12,29 @@ const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
 
+/**
+ * exercises JSON 정규화
+ * 클라이언트가 name 없이 exercise_id만 보내도 서버에서 exercises 테이블 조회해 name 채움.
+ */
+async function normalizeExercisesForSave(exercises) {
+    if (!Array.isArray(exercises)) return [];
+    const needIds = exercises
+        .filter(e => e && !e.name && (e.exercise_id || e.id))
+        .map(e => e.exercise_id || e.id);
+    let nameMap = {};
+    if (needIds.length > 0) {
+        const uniq = [...new Set(needIds)];
+        const [rows] = await db.query('SELECT id, name FROM exercises WHERE id IN (?)', [uniq]);
+        rows.forEach(r => { nameMap[r.id] = r.name; });
+    }
+    return exercises.map(e => {
+        if (!e || typeof e !== 'object') return e;
+        const eid = e.exercise_id || e.id;
+        const name = e.name || nameMap[eid] || (eid ? `운동 #${eid}` : '운동');
+        return { ...e, name, exercise_id: eid };
+    });
+}
+
 // GET /peak/plans - 수업 계획 목록 (시간대별 + 스케줄된 강사)
 router.get('/', verifyToken, async (req, res) => {
     try {
@@ -155,6 +178,8 @@ router.post('/', verifyToken, async (req, res) => {
         // trainer_id는 요청한 사용자의 instructor_id 사용
         const trainer_id = req.user?.instructorId || instructor_id;
 
+        const normalizedExercises = await normalizeExercisesForSave(exercises);
+
         const [result] = await db.query(
             `INSERT INTO daily_plans (academy_id, date, time_slot, trainer_id, instructor_id, tags, exercises, description)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -165,7 +190,7 @@ router.post('/', verifyToken, async (req, res) => {
                 trainer_id,
                 instructor_id,
                 JSON.stringify(tags || []),
-                JSON.stringify(exercises || []),
+                JSON.stringify(normalizedExercises),
                 description || null
             ]
         );
@@ -369,13 +394,15 @@ router.put('/:id', verifyToken, async (req, res) => {
         const academyId = req.user.academyId;
         const { tags, exercises, description } = req.body;
 
+        const normalizedExercises = await normalizeExercisesForSave(exercises);
+
         await db.query(
             `UPDATE daily_plans
              SET tags = ?, exercises = ?, description = ?, updated_at = NOW()
              WHERE id = ? AND academy_id = ?`,
             [
                 JSON.stringify(tags || []),
-                JSON.stringify(exercises || []),
+                JSON.stringify(normalizedExercises),
                 description || null,
                 req.params.id,
                 academyId

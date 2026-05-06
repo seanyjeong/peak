@@ -7,6 +7,7 @@ import Link from 'next/link';
 import apiClient from '@/lib/api/client';
 import { authAPI, User } from '@/lib/api/auth';
 import { useOrientation } from '../layout';
+import { ReorderButtons } from '@/components/ui/reorder-buttons';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening';
 
@@ -181,6 +182,24 @@ export default function TabletPlansPage() {
       const exists = prev.find(e => e.exercise_id === exerciseId);
       if (exists) return prev.filter(e => e.exercise_id !== exerciseId);
       return [...prev, { exercise_id: exerciseId, note: '' }];
+    });
+  };
+
+  // 운동 순서 변경 (peak-plan-reorder)
+  const moveExerciseUp = (index: number) => {
+    if (index === 0) return;
+    setSelectedExercises(prev => {
+      const next = [...prev];
+      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      return next;
+    });
+  };
+  const moveExerciseDown = (index: number) => {
+    setSelectedExercises(prev => {
+      if (index === prev.length - 1) return prev;
+      const next = [...prev];
+      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      return next;
     });
   };
 
@@ -489,11 +508,12 @@ export default function TabletPlansPage() {
                     선택된 운동 ({selectedExercises.length}개)
                   </label>
                   <div className="space-y-2">
-                    {selectedExercises.map(sel => {
+                    {selectedExercises.map((sel, index) => {
                       const ex = exercises.find(e => e.id === sel.exercise_id);
                       if (!ex) return null;
                       return (
-                        <div key={sel.exercise_id} className="bg-orange-50 p-3 rounded-xl">
+                        <div key={sel.exercise_id} className="bg-orange-50 p-3 rounded-xl flex items-start gap-2">
+                          <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <button
                               onClick={() => toggleExercise(sel.exercise_id)}
@@ -544,6 +564,14 @@ export default function TabletPlansPage() {
                             />
                           </div>
                         </div>
+                        <ReorderButtons
+                          index={index}
+                          total={selectedExercises.length}
+                          onMoveUp={() => moveExerciseUp(index)}
+                          onMoveDown={() => moveExerciseDown(index)}
+                          size="lg"
+                        />
+                    </div>
                       );
                     })}
                   </div>

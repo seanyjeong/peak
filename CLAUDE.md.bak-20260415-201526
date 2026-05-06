@@ -1,31 +1,3 @@
----
-product: peak
-display_name: Peak (IlsanMaxTraining)
-server: n100
-base_url: https://chejump.com/peak
-tags:
-  - domain:체대입시
-  - domain:실기기록
-  - domain:realtime
-  - stack:node
-  - stack:express
-  - stack:nextjs
-  - stack:socketio
-  - db:mysql
-  - deploy:n100-systemd
-  - deploy:vultr-failover
-  - auth:jwt
-provides:
-  - realtime-record-api
-  - practice-measurement
-shares_with:
-  - pacapro:jwt-secret
-  - pacapro:data-encryption-key
-  - pacapro:paca-student-id
-depends_on:
-  - pacapro:paca-db
----
-
 # peak (P-EAK · IlsanMaxTraining)
 
 @ARCHITECTURE.md

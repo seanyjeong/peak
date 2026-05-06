@@ -1,0 +1,285 @@
+{
+  "timestamp": "2026-02-25T20:47:08.617Z",
+  "reason": "compaction",
+  "status": {
+    "version": "2.0",
+    "lastUpdated": "2026-02-25T19:57:28.552Z",
+    "activeFeatures": [
+      "all-student-records",
+      "records",
+      "students",
+      "(pc)",
+      "tablet",
+      "backend",
+      "pacapro"
+    ],
+    "primaryFeature": "all-student-records",
+    "features": {
+      "ilsanmaxtraining": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-02-24T14:47:08.073Z",
+          "lastUpdated": "2026-02-24T14:47:08.073Z"
+        },
+        "lastFile": "/home/sean/ilsanmaxtraining/next.config.js"
+      },
+      "(pc)": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-02-24T14:54:18.548Z",
+          "lastUpdated": "2026-02-25T19:02:53.023Z"
+        },
+        "lastFile": "/home/sean/ilsanmaxtraining/src/app/(pc)/layout.tsx"
+      },
+      "tablet": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-02-24T14:54:19.481Z",
+          "lastUpdated": "2026-02-25T19:02:54.152Z"
+        },
+        "lastFile": "/home/sean/ilsanmaxtraining/src/app/tablet/layout.tsx"
+      },
+      "all-student-records": {
+        "phase": "design",
+        "phaseNumber": 2,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [
+          "FR-01~08",
+          "NFR-01~03"
+        ],
+        "documents": {
+          "plan": "docs/01-plan/features/all-student-records.plan.md",
+          "design": "docs/02-design/features/all-student-records.design.md"
+        },
+        "timestamps": {
+          "started": "2026-02-25T00:30:00.000Z",
+          "lastUpdated": "2026-02-25T00:45:00.000Z"
+        }
+      },
+      "records": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-02-25T09:54:19.147Z",
+          "lastUpdated": "2026-02-25T18:21:30.428Z"
+        },
+        "lastFile": "/home/sean/ilsanmaxtraining/src/app/(pc)/students/records/page.tsx"
+      },
+      "students": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-02-25T09:54:39.880Z",
+          "lastUpdated": "2026-02-25T09:54:46.915Z"
+        },
+        "lastFile": "/home/sean/ilsanmaxtraining/src/app/(pc)/students/page.tsx"
+      },
+      "backend": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-02-25T18:57:46.075Z",
+          "lastUpdated": "2026-02-25T18:57:58.966Z"
+        },
+        "lastFile": "/home/sean/ilsanmaxtraining/backend/peak.js"
+      },
+      "pacapro": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-02-25T19:49:10.800Z",
+          "lastUpdated": "2026-02-25T19:57:28.552Z"
+        },
+        "lastFile": "/home/sean/pacapro/next.config.js"
+      }
+    },
+    "pipeline": {
+      "currentPhase": 1,
+      "level": "Dynamic",
+      "phaseHistory": []
+    },
+    "session": {
+      "startedAt": "2026-02-24T14:43:32.524Z",
+      "onboardingCompleted": false,
+      "lastActivity": "2026-02-25T19:57:28.552Z"
+    },
+    "history": [
+      {
+        "timestamp": "2026-02-24T14:47:08.073Z",
+        "feature": "ilsanmaxtraining",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-24T14:54:18.548Z",
+        "feature": "(pc)",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-24T14:54:19.481Z",
+        "feature": "tablet",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T09:54:19.147Z",
+        "feature": "records",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T09:54:39.880Z",
+        "feature": "students",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T09:54:46.915Z",
+        "feature": "students",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T10:48:57.067Z",
+        "feature": "(pc)",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T10:48:58.087Z",
+        "feature": "tablet",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:20:56.188Z",
+        "feature": "records",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:21:00.426Z",
+        "feature": "records",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:21:04.561Z",
+        "feature": "records",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:21:09.314Z",
+        "feature": "records",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:21:18.303Z",
+        "feature": "records",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:21:30.428Z",
+        "feature": "records",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:23:09.582Z",
+        "feature": "(pc)",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:23:10.654Z",
+        "feature": "tablet",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:57:46.075Z",
+        "feature": "backend",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:57:53.808Z",
+        "feature": "backend",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T18:57:58.966Z",
+        "feature": "backend",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T19:02:53.023Z",
+        "feature": "(pc)",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T19:02:54.152Z",
+        "feature": "tablet",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T19:49:10.800Z",
+        "feature": "pacapro",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T19:50:48.885Z",
+        "feature": "pacapro",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-25T19:57:28.552Z",
+        "feature": "pacapro",
+        "phase": "do",
+        "action": "updated"
+      }
+    ]
+  }
+}
