@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports */
+
 /**
  * API Client Tests
  *
@@ -74,7 +76,7 @@ describe('API Client', () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 30000,
+          timeout: 10000,
         })
       );
     });

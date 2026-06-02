@@ -1,12 +1,15 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * 데이터 암호화/복호화 유틸리티
  * P-ACA와 동일한 암호화 방식 사용
  */
 
 const crypto = require('crypto');
+const { requireEnv } = require('../config/env');
 
 // 환경변수에서 암호화 키 가져오기 (32바이트 = 256비트)
-const ENCRYPTION_KEY = process.env.DATA_ENCRYPTION_KEY || 'paca-default-encryption-key-32b!'; // 32자
+const ENCRYPTION_KEY = requireEnv('DATA_ENCRYPTION_KEY');
 
 // 암호화 키를 32바이트로 맞추기
 function getKey() {

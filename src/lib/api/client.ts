@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * P-EAK API Client (with failover)
  */
@@ -13,8 +15,20 @@ import {
 const PRIMARY_URL = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
 const FALLBACK_URL = process.env.NEXT_PUBLIC_FALLBACK_API_URL || 'https://supermax.kr/peak';
 
-function isNetworkError(error: any): boolean {
+function isNetworkError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) {
+    return error instanceof Error;
+  }
+
   return !error.response || error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK';
+}
+
+function redirectToLogin(): void {
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') {
+    return;
+  }
+
+  window.location.href = '/login';
 }
 
 function createInstance(baseURL: string): AxiosInstance {
@@ -59,7 +73,7 @@ function createInstance(baseURL: string): AxiosInstance {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('peak_token');
           localStorage.removeItem('peak_user');
-          window.location.href = '/login';
+          redirectToLogin();
         }
         error.message = AUTH_ERRORS.SESSION_EXPIRED;
         return Promise.reject(error);
@@ -99,7 +113,7 @@ const apiClient = {
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     try {
       return await getClient().get<T>(url, config);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (!usingFallback && isNetworkError(error)) {
         switchToFallback();
         return await fallback.get<T>(url, config);
@@ -110,7 +124,7 @@ const apiClient = {
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     try {
       return await getClient().post<T>(url, data, config);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (!usingFallback && isNetworkError(error)) {
         switchToFallback();
         return await fallback.post<T>(url, data, config);
@@ -121,7 +135,7 @@ const apiClient = {
   async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     try {
       return await getClient().put<T>(url, data, config);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (!usingFallback && isNetworkError(error)) {
         switchToFallback();
         return await fallback.put<T>(url, data, config);
@@ -132,7 +146,7 @@ const apiClient = {
   async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     try {
       return await getClient().delete<T>(url, config);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (!usingFallback && isNetworkError(error)) {
         switchToFallback();
         return await fallback.delete<T>(url, config);
@@ -143,7 +157,7 @@ const apiClient = {
   async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     try {
       return await getClient().patch<T>(url, data, config);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (!usingFallback && isNetworkError(error)) {
         switchToFallback();
         return await fallback.patch<T>(url, data, config);

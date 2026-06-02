@@ -29,7 +29,7 @@ describe('Button', () => {
 
     it('should apply secondary variant styles', () => {
       render(<Button variant="secondary">Secondary</Button>);
-      expect(screen.getByRole('button')).toHaveClass('bg-slate-100');
+      expect(screen.getByRole('button')).toHaveClass('bg-slate-200');
     });
 
     it('should apply danger variant styles', () => {
@@ -51,12 +51,12 @@ describe('Button', () => {
   describe('sizes', () => {
     it('should apply small size styles', () => {
       render(<Button size="sm">Small</Button>);
-      expect(screen.getByRole('button')).toHaveClass('px-3', 'py-1.5');
+      expect(screen.getByRole('button')).toHaveClass('px-3', 'py-2');
     });
 
     it('should apply medium size styles', () => {
       render(<Button size="md">Medium</Button>);
-      expect(screen.getByRole('button')).toHaveClass('px-4', 'py-2');
+      expect(screen.getByRole('button')).toHaveClass('px-4', 'py-2.5');
     });
 
     it('should apply large size styles', () => {

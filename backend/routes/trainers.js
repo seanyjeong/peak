@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * Trainers Routes (P-ACA 강사 연동)
  * v2.0 - POST /sync, POST /sync-all 추가 (2026-04-22)
@@ -6,25 +8,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const mysql = require('mysql2/promise');
+const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
 
-// P-ACA DB 연결
-const pacaPool = mysql.createPool({
-    host: process.env.PACA_DB_HOST || 'localhost',
-    port: parseInt(process.env.PACA_DB_PORT) || 3306,
-    user: process.env.PACA_DB_USER || 'paca',
-    password: process.env.PACA_DB_PASSWORD || 'q141171616!',
-    database: 'paca',
-    waitForConnections: true,
-    connectionLimit: 5,
-    timezone: '+09:00'
-});
-
 function decryptField(v) {
     if (v && typeof v === 'string' && v.startsWith('ENC:')) {
-        try { return decrypt(v); } catch (e) { return v; }
+        try { return decrypt(v); } catch { return v; }
     }
     return v;
 }

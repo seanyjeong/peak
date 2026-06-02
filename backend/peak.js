@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * P-EAK 체육 실기 훈련 관리 시스템 Backend Server
  * Port: 8330
@@ -12,6 +14,10 @@ const compression = require('compression');
 const http = require('http');
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
+const {
+    corsOriginDelegate,
+    validateRequiredEnv,
+} = require('./config/env');
 
 // Winston Logger 및 Request Logger
 const logger = require('./utils/logger');
@@ -23,10 +29,17 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 8330;
 
+validateRequiredEnv([
+    'DB_PASSWORD',
+    'PACA_DB_PASSWORD',
+    'JWT_SECRET',
+    'DATA_ENCRYPTION_KEY',
+]);
+
 // Socket.io 설정
 const io = new Server(server, {
     cors: {
-        origin: '*',
+        origin: corsOriginDelegate,
         methods: ['GET', 'POST']
     }
 });
@@ -65,7 +78,7 @@ app.set('trust proxy', 1);
 // ==========================================
 
 app.use(cors({
-    origin: '*',
+    origin: corsOriginDelegate,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: false,
     optionsSuccessStatus: 200
@@ -175,6 +188,7 @@ app.use('/peak/notifications', verifyToken, require('./routes/notifications'));
 // ==========================================
 
 app.use((err, req, res, next) => {
+    void next;
     logger.error('Unhandled error', {
         error: err.message,
         stack: err.stack,

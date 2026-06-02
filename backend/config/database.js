@@ -1,14 +1,17 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * P-EAK MySQL Database Connection
  */
 
 const mysql = require('mysql2/promise');
+const { requireEnv } = require('./env');
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER || 'paca',
-    password: process.env.DB_PASSWORD || 'q141171616!',
+    password: requireEnv('DB_PASSWORD'),
     database: process.env.DB_NAME || 'peak',
     waitForConnections: true,
     connectionLimit: 10,

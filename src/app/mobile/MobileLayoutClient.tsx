@@ -8,7 +8,7 @@ import { authAPI } from '@/lib/api/auth';
 import Image from 'next/image';
 import { ClipboardList, Activity, Medal, BarChart3, LogOut, Sun, Moon } from 'lucide-react';
 
-const APP_VERSION = 'v5.6.7';
+const APP_VERSION = 'v5.7.8';
 
 const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
 
@@ -36,6 +36,7 @@ export default function MobileLayoutClient({ children }: { children: React.React
   const [showAlertPopup, setShowAlertPopup] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const currentUser = authAPI.getCurrentUser();
     if (!currentUser) {
@@ -55,6 +56,7 @@ export default function MobileLayoutClient({ children }: { children: React.React
       document.documentElement.classList.add('dark');
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';

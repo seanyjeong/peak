@@ -1,15 +1,18 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * P-ACA MySQL Database Connection
  * P-EAK에서 P-ACA 데이터 조회용
  */
 
 const mysql = require('mysql2/promise');
+const { requireEnv } = require('./env');
 
 const pool = mysql.createPool({
     host: process.env.PACA_DB_HOST || 'localhost',
     port: parseInt(process.env.PACA_DB_PORT) || 3306,
     user: process.env.PACA_DB_USER || 'paca',
-    password: process.env.PACA_DB_PASSWORD || 'q141171616!',
+    password: requireEnv('PACA_DB_PASSWORD'),
     database: process.env.PACA_DB_NAME || 'paca',
     waitForConnections: true,
     connectionLimit: 5,

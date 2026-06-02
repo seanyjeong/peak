@@ -69,3 +69,27 @@ describe('academy scoped route SQL', () => {
     expect(testApplicants).toContain('SELECT * FROM test_records WHERE academy_id = ? AND test_applicant_id = ?');
   });
 });
+
+describe('backend runtime safety guards', () => {
+  const peakServer = source('backend/peak.js');
+  const databaseConfig = source('backend/config/database.js');
+  const pacaDatabaseConfig = source('backend/config/paca-database.js');
+  const trainersRoute = source('backend/routes/trainers.js');
+  const encryptionUtil = source('backend/utils/encryption.js');
+
+  it('does not allow every browser origin in backend CORS settings', () => {
+    expect(peakServer).not.toContain("origin: '*'");
+  });
+
+  it('does not keep hardcoded database password or encryption fallbacks', () => {
+    const runtimeSources = [
+      databaseConfig,
+      pacaDatabaseConfig,
+      trainersRoute,
+      encryptionUtil,
+    ].join('\n');
+
+    expect(runtimeSources).not.toMatch(/password:\s*process\.env\.[A-Z0-9_]+\s*\|\|/);
+    expect(runtimeSources).not.toMatch(/DATA_ENCRYPTION_KEY\s*\|\|/);
+  });
+});
