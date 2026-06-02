@@ -12,24 +12,39 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [autoLoginLoading, setAutoLoginLoading] = useState(false);
 
-  // P-ACA에서 토큰으로 자동 로그인
+  // P-ACA에서 1회용 코드로 자동 로그인
   useEffect(() => {
-    // URL에서 token 파라미터 추출
     const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
     const token = urlParams.get('token');
+
+    if (code) {
+      setAutoLoginLoading(true);
+      authAPI.exchangeSsoCode(code)
+        .then((result) => {
+          if (result.success) {
+            window.location.href = '/dashboard';
+          } else {
+            setAutoLoginLoading(false);
+            setError('자동 로그인 시간이 만료되었습니다. P-ACA에서 다시 열어주세요.');
+          }
+        })
+        .catch(() => {
+          setAutoLoginLoading(false);
+          setError('자동 로그인 시간이 만료되었습니다. P-ACA에서 다시 열어주세요.');
+        });
+      return;
+    }
 
     if (token) {
       setAutoLoginLoading(true);
-      // 토큰 저장 후 검증
       localStorage.setItem('peak_token', token);
       authAPI.verifyToken()
         .then((user) => {
           if (user) {
             localStorage.setItem('peak_user', JSON.stringify(user));
-            // URL에서 token 파라미터 제거 후 이동
             window.location.href = '/dashboard';
           } else {
-            // 토큰 검증 실패 시 제거
             localStorage.removeItem('peak_token');
             setAutoLoginLoading(false);
           }

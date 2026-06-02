@@ -47,9 +47,11 @@ jest.mock('@/lib/api/client', () => ({
 
 // Mock next/link
 jest.mock('next/link', () => {
-  return ({ children, ...props }: { children: React.ReactNode; href: string }) => (
+  const MockLink = ({ children, ...props }: { children: React.ReactNode; href: string }) => (
     <a {...props}>{children}</a>
   );
+  MockLink.displayName = 'MockLink';
+  return MockLink;
 });
 
 // Mock useSocket

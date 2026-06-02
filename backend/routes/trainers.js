@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-
 /**
  * Trainers Routes (P-ACA 강사 연동)
  * v2.0 - POST /sync, POST /sync-all 추가 (2026-04-22)

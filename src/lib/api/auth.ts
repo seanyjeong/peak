@@ -40,6 +40,21 @@ export const authAPI = {
     return data;
   },
 
+  async exchangeSsoCode(code: string): Promise<LoginResponse> {
+    const { data } = await apiClient.post('/auth/sso/exchange', { code });
+
+    if (data.success && data.token) {
+      localStorage.setItem('peak_token', data.token);
+      localStorage.setItem('peak_user', JSON.stringify(data.user));
+
+      if (data.user?.academyId) {
+        apiClient.post('/students/sync', { academyId: data.user.academyId }).catch(() => {});
+      }
+    }
+
+    return data;
+  },
+
   /**
    * 로그아웃
    */

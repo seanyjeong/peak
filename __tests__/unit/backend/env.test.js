@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-
 function loadEnvConfig() {
   jest.resetModules();
   return require('../../../backend/config/env');

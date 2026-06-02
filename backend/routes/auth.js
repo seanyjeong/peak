@@ -10,6 +10,7 @@ const bcrypt = require('bcryptjs');
 const mysql = require('mysql2/promise');
 const rateLimit = require('express-rate-limit');
 const { decrypt } = require('../utils/encryption');
+const { PeakSsoError, exchangePeakSsoCode } = require('../utils/peak-sso');
 
 if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET environment variable is required');
@@ -120,6 +121,45 @@ router.post('/login', loginLimiter, async (req, res) => {
         res.status(500).json({
             error: 'Internal Server Error',
             message: '로그인 처리 중 오류가 발생했습니다.'
+        });
+    }
+});
+
+router.post('/sso/exchange', loginLimiter, async (req, res) => {
+    try {
+        const { code } = req.body;
+        const user = await exchangePeakSsoCode(pacaPool, code);
+        const token = jwt.sign(
+            { userId: user.user_id, academyId: user.academy_id },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user.user_id,
+                email: user.email,
+                name: decrypt(user.name),
+                role: user.role,
+                academyId: user.academy_id,
+                position: user.position,
+                instructorId: user.instructor_id
+            }
+        });
+    } catch (error) {
+        if (error instanceof PeakSsoError) {
+            return res.status(401).json({
+                error: 'Unauthorized',
+                message: error.publicMessage
+            });
+        }
+
+        console.error('[Auth] SSO exchange error:', error.message);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: '자동 로그인 처리 중 오류가 발생했습니다.'
         });
     }
 });

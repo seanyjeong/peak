@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-
 /**
  * 데이터 암호화/복호화 유틸리티
  * P-ACA와 동일한 암호화 방식 사용

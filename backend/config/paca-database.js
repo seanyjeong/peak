@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-
 /**
  * P-ACA MySQL Database Connection
  * P-EAK에서 P-ACA 데이터 조회용

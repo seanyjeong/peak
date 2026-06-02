@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-
 /**
  * P-EAK 체육 실기 훈련 관리 시스템 Backend Server
  * Port: 8330

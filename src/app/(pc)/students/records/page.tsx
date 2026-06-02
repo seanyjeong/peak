@@ -89,7 +89,7 @@ export default function AllStudentRecordsPage() {
 
   // 필터링 + 정렬
   const filteredRows = useMemo(() => {
-    let rows = students.filter(s => {
+    const rows = students.filter(s => {
       // 검색
       const matchesSearch = !searchTerm ||
         s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
