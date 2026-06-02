@@ -113,7 +113,7 @@ export default function TabletSessionRecordsPage({
     return () => {
       Object.values(saveTimers.current).forEach(timer => clearTimeout(timer));
     };
-  }, [sessionId]);
+  }, [sessionId, toast]);
 
   const fetchData = async () => {
     try {
@@ -174,12 +174,10 @@ export default function TabletSessionRecordsPage({
       toast.error(error);
       setErrorMap(prev => ({ ...prev, [saveKey]: true }));
       setSavedMap(prev => ({ ...prev, [saveKey]: false }));
-      // 저장 실패 알림
-      toast.error(`⚠️ ${participant.name} 기록 저장 실패!\n다시 시도해주세요.`);
     } finally {
       setSavingMap(prev => ({ ...prev, [saveKey]: false }));
     }
-  }, [sessionId]);
+  }, [sessionId, toast]);
 
   const handleInputChange = (participant: Participant, typeId: number, value: string) => {
     const key = getParticipantKey(participant);

@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { encrypt, decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
+const { StudentRecordScopeError, saveStudentRecord } = require('../utils/student-records');
 
 // 테스트 신규 학생 목록 조회
 router.get('/', verifyToken, async (req, res) => {
@@ -156,10 +157,10 @@ router.delete('/:id', verifyToken, async (req, res) => {
     }
 
     // 참가자에서도 제거
-    await pool.query('DELETE FROM test_participants WHERE test_applicant_id = ?', [id]);
+    await pool.query('DELETE FROM test_participants WHERE academy_id = ? AND test_applicant_id = ?', [academyId, id]);
 
     // 기록도 삭제
-    await pool.query('DELETE FROM test_records WHERE test_applicant_id = ?', [id]);
+    await pool.query('DELETE FROM test_records WHERE academy_id = ? AND test_applicant_id = ?', [academyId, id]);
 
     // 테스트신규 삭제
     await pacaPool.query('DELETE FROM test_applicants WHERE id = ? AND academy_id = ?', [id, academyId]);
@@ -185,8 +186,8 @@ router.post('/:id/convert', verifyToken, async (req, res) => {
 
     // 테스트신규 정보 조회
     const [applicants] = await pacaConn.query(`
-      SELECT * FROM test_applicants WHERE id = ?
-    `, [id]);
+      SELECT * FROM test_applicants WHERE id = ? AND academy_id = ?
+    `, [id, academyId]);
 
     if (applicants.length === 0) {
       throw new Error('테스트 신규 학생을 찾을 수 없습니다.');
@@ -241,15 +242,18 @@ router.post('/:id/convert', verifyToken, async (req, res) => {
 
     // test_records → student_records 마이그레이션
     const [testRecords] = await peakConn.query(`
-      SELECT * FROM test_records WHERE test_applicant_id = ?
-    `, [id]);
+      SELECT * FROM test_records WHERE academy_id = ? AND test_applicant_id = ?
+    `, [academyId, id]);
 
     for (const tr of testRecords) {
-      await peakConn.query(`
-        INSERT INTO student_records (student_id, record_type_id, value, measured_at, notes)
-        VALUES (?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE value = VALUES(value)
-      `, [peakStudentId, tr.record_type_id, tr.value, tr.measured_at, tr.notes]);
+      await saveStudentRecord(peakConn, {
+        academyId,
+        studentId: peakStudentId,
+        recordTypeId: tr.record_type_id,
+        measuredAt: tr.measured_at,
+        value: tr.value,
+        notes: tr.notes
+      });
     }
 
     // test_participants의 student_id 업데이트
@@ -271,6 +275,10 @@ router.post('/:id/convert', verifyToken, async (req, res) => {
   } catch (error) {
     await pacaConn.rollback();
     await peakConn.rollback();
+    if (error instanceof StudentRecordScopeError) {
+      console.warn('Student record scope blocked:', error.message);
+      return res.status(error.statusCode).json({ success: false, message: error.publicMessage });
+    }
     console.error('정식등록 전환 오류:', error);
     res.status(500).json({ success: false, message: error.message });
   } finally {

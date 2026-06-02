@@ -7,6 +7,7 @@ const router = express.Router();
 const db = require('../config/database');
 const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
+const { StudentRecordScopeError, assertStudentInAcademy, saveStudentRecord } = require('../utils/student-records');
 
 // GET /peak/records - 기록 목록
 router.get('/', verifyToken, async (req, res) => {
@@ -62,17 +63,27 @@ router.post('/', verifyToken, async (req, res) => {
             return res.status(400).json({ error: '필수 항목이 누락되었습니다.' });
         }
 
-        const [result] = await db.query(`
-            INSERT INTO student_records
-            (academy_id, student_id, record_type_id, measured_at, value, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [academyId, student_id, record_type_id, measured_at, value, notes]);
+        const result = await saveStudentRecord(db, {
+            academyId,
+            studentId: student_id,
+            recordTypeId: record_type_id,
+            measuredAt: measured_at,
+            value,
+            notes
+        });
 
         res.status(201).json({
             success: true,
-            recordId: result.insertId
+            recordId: result.id
         });
     } catch (error) {
+        if (error instanceof StudentRecordScopeError) {
+            console.warn('Student record scope blocked:', error.message);
+            return res.status(error.statusCode).json({
+                error: error.publicMessage,
+                message: error.publicMessage
+            });
+        }
         console.error('Create record error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
@@ -126,28 +137,15 @@ router.post('/batch', verifyToken, async (req, res) => {
                     });
                 }
 
-                // 해당 날짜에 기존 기록이 있는지 확인 - 해당 학원만
-                const [existing] = await connection.query(
-                    'SELECT id, value FROM student_records WHERE academy_id = ? AND student_id = ? AND record_type_id = ? AND measured_at = ?',
-                    [academyId, student_id, record.record_type_id, measured_at]
-                );
-
-                if (existing.length > 0) {
-                    const oldValue = parseFloat(existing[0].value);
-                    // 항상 새 값으로 업데이트 (수정 가능하도록)
-                    await connection.query(
-                        'UPDATE student_records SET value = ?, notes = ?, created_at = NOW() WHERE id = ?',
-                        [newValue, record.notes || null, existing[0].id]
-                    );
-                    results.push({ id: existing[0].id, action: 'updated', oldValue, newValue });
-                } else {
-                    // 새 기록 삽입 - academy_id 포함
-                    const [result] = await connection.query(
-                        'INSERT INTO student_records (academy_id, student_id, record_type_id, measured_at, value, notes) VALUES (?, ?, ?, ?, ?, ?)',
-                        [academyId, student_id, record.record_type_id, measured_at, newValue, record.notes || null]
-                    );
-                    results.push({ id: result.insertId, action: 'inserted', newValue });
-                }
+                const result = await saveStudentRecord(connection, {
+                    academyId,
+                    studentId: student_id,
+                    recordTypeId: record.record_type_id,
+                    measuredAt: measured_at,
+                    value: newValue,
+                    notes: record.notes || null
+                });
+                results.push(result);
             }
             await connection.commit();
             res.status(201).json({
@@ -163,6 +161,13 @@ router.post('/batch', verifyToken, async (req, res) => {
             connection.release();
         }
     } catch (error) {
+        if (error instanceof StudentRecordScopeError) {
+            console.warn('Student record scope blocked:', error.message);
+            return res.status(error.statusCode).json({
+                error: error.publicMessage,
+                message: error.publicMessage
+            });
+        }
         console.error('Batch create records error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
@@ -311,6 +316,8 @@ router.delete('/', verifyToken, async (req, res) => {
             return res.status(400).json({ error: '필수 항목이 누락되었습니다.' });
         }
 
+        await assertStudentInAcademy(db, academyId, student_id);
+
         const [result] = await db.query(
             'DELETE FROM student_records WHERE academy_id = ? AND student_id = ? AND record_type_id = ? AND measured_at = ?',
             [academyId, student_id, record_type_id, measured_at]
@@ -318,6 +325,13 @@ router.delete('/', verifyToken, async (req, res) => {
 
         res.json({ success: true, deleted: result.affectedRows });
     } catch (error) {
+        if (error instanceof StudentRecordScopeError) {
+            console.warn('Student record scope blocked:', error.message);
+            return res.status(error.statusCode).json({
+                error: error.publicMessage,
+                message: error.publicMessage
+            });
+        }
         console.error('Delete record error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }

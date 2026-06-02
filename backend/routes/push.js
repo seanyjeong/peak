@@ -27,6 +27,7 @@ router.get('/vapid-public-key', (req, res) => {
  */
 router.post('/subscribe', verifyToken, async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { subscription, deviceName } = req.body;
 
         if (!subscription || !subscription.endpoint || !subscription.keys) {
@@ -49,16 +50,16 @@ router.post('/subscribe', verifyToken, async (req, res) => {
             // 업데이트
             await pool.query(
                 `UPDATE push_subscriptions
-                 SET p256dh = ?, auth = ?, device_name = ?, updated_at = NOW()
+                 SET academy_id = ?, p256dh = ?, auth = ?, device_name = ?, updated_at = NOW()
                  WHERE id = ?`,
-                [p256dh, auth, deviceName || null, existing[0].id]
+                [academyId, p256dh, auth, deviceName || null, existing[0].id]
             );
         } else {
             // 새로 등록
             await pool.query(
-                `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, device_name)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [req.user.id, endpoint, p256dh, auth, deviceName || null]
+                `INSERT INTO push_subscriptions (academy_id, user_id, endpoint, p256dh, auth, device_name)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [academyId, req.user.id, endpoint, p256dh, auth, deviceName || null]
             );
         }
 

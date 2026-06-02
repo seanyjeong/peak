@@ -62,8 +62,8 @@ router.get('/report', async (req, res) => {
             FROM student_records sr
             JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
             JOIN paca.students ps ON s.paca_student_id = ps.id
-            WHERE ps.status = 'active'
-        `, [academyId]);
+            WHERE sr.academy_id = ? AND ps.status = 'active'
+        `, [academyId, academyId]);
 
         const totalRecords = summaryRows[0].totalRecords;
         const totalStudents = summaryRows[0].totalStudents;
@@ -104,6 +104,7 @@ router.get('/report', async (req, res) => {
             INNER JOIN (
                 SELECT student_id, record_type_id, MAX(measured_at) as max_date
                 FROM student_records
+                WHERE academy_id = ?
                 GROUP BY student_id, record_type_id
             ) latest ON sr.student_id = latest.student_id
                 AND sr.record_type_id = latest.record_type_id
@@ -111,10 +112,10 @@ router.get('/report', async (req, res) => {
             JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
             JOIN paca.students ps ON s.paca_student_id = ps.id
             JOIN record_types rt ON sr.record_type_id = rt.id AND rt.is_active = 1
-            WHERE ps.status = 'active' AND s.academy_id = ?
+            WHERE sr.academy_id = ? AND ps.status = 'active' AND s.academy_id = ?
             GROUP BY rt.id, s.gender
             ORDER BY rt.display_order, s.gender
-        `, [academyId, academyId]);
+        `, [academyId, academyId, academyId, academyId]);
 
         // eventAverages 구조화
         const avgMap = {};
@@ -152,30 +153,30 @@ router.get('/report', async (req, res) => {
                 FROM student_records sr
                 INNER JOIN (
                     SELECT student_id, MAX(measured_at) as max_date
-                    FROM student_records WHERE record_type_id = ?
+                    FROM student_records WHERE record_type_id = ? AND academy_id = ?
                     GROUP BY student_id
                 ) latest ON sr.student_id = latest.student_id AND sr.measured_at = latest.max_date
                 JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
                 JOIN paca.students ps ON s.paca_student_id = ps.id
-                WHERE sr.record_type_id = ? AND ps.status = 'active' AND s.gender = 'M'
+                WHERE sr.academy_id = ? AND sr.record_type_id = ? AND ps.status = 'active' AND s.gender = 'M'
                 ORDER BY sr.value ${orderDir}
                 LIMIT 10
-            `, [rt.id, academyId, rt.id]);
+            `, [rt.id, academyId, academyId, academyId, rt.id]);
 
             const [femaleRank] = await db.query(`
                 SELECT sr.student_id, ps.name as student_name, ps.gender, sr.value, sr.measured_at
                 FROM student_records sr
                 INNER JOIN (
                     SELECT student_id, MAX(measured_at) as max_date
-                    FROM student_records WHERE record_type_id = ?
+                    FROM student_records WHERE record_type_id = ? AND academy_id = ?
                     GROUP BY student_id
                 ) latest ON sr.student_id = latest.student_id AND sr.measured_at = latest.max_date
                 JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
                 JOIN paca.students ps ON s.paca_student_id = ps.id
-                WHERE sr.record_type_id = ? AND ps.status = 'active' AND s.gender = 'F'
+                WHERE sr.academy_id = ? AND sr.record_type_id = ? AND ps.status = 'active' AND s.gender = 'F'
                 ORDER BY sr.value ${orderDir}
                 LIMIT 10
-            `, [rt.id, academyId, rt.id]);
+            `, [rt.id, academyId, academyId, academyId, rt.id]);
 
             const maleDecrypted = decryptStudentFields(maleRank);
             const femaleDecrypted = decryptStudentFields(femaleRank);
@@ -204,9 +205,9 @@ router.get('/report', async (req, res) => {
             FROM student_records sr
             JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
             JOIN paca.students ps ON s.paca_student_id = ps.id
-            WHERE ps.status = 'active' AND s.academy_id = ?
+            WHERE sr.academy_id = ? AND ps.status = 'active' AND s.academy_id = ?
             ORDER BY sr.student_id, sr.record_type_id, sr.measured_at ASC
-        `, [academyId, academyId]);
+        `, [academyId, academyId, academyId]);
 
         const decryptedRecords = decryptStudentFields(allRecords);
 

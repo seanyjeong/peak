@@ -262,6 +262,7 @@ router.post('/import', requireRole('admin', 'owner'), async (req, res) => {
     const connection = await db.getConnection();
 
     try {
+        const academyId = req.user.academyId;
         const importData = req.body;
 
         // 형식 검증
@@ -275,15 +276,14 @@ router.post('/import', requireRole('admin', 'owner'), async (req, res) => {
         if (importData.tags && importData.tags.length > 0) {
             for (const tag of importData.tags) {
                 await connection.query(`
-                    INSERT INTO exercise_tags (tag_id, label, color)
-                    VALUES (?, ?, ?)
+                    INSERT INTO exercise_tags (academy_id, tag_id, label, color)
+                    VALUES (?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE label = VALUES(label), color = VALUES(color)
-                `, [tag.tag_id, tag.label, tag.color]);
+                `, [academyId, tag.tag_id, tag.label, tag.color]);
             }
         }
 
         // 2. 팩 생성
-        const academyId = req.user.academyId;
         const [packResult] = await connection.query(`
             INSERT INTO exercise_packs (academy_id, name, description, version, author)
             VALUES (?, ?, ?, ?, ?)
@@ -412,10 +412,10 @@ router.post('/:id/apply', requireRole('admin', 'owner'), async (req, res) => {
         if (snapshotData.tags && snapshotData.tags.length > 0) {
             for (const tag of snapshotData.tags) {
                 await connection.query(`
-                    INSERT INTO exercise_tags (tag_id, label, color)
-                    VALUES (?, ?, ?)
+                    INSERT INTO exercise_tags (academy_id, tag_id, label, color)
+                    VALUES (?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE label = VALUES(label), color = VALUES(color)
-                `, [tag.tag_id, tag.label, tag.color]);
+                `, [academyId, tag.tag_id, tag.label, tag.color]);
             }
         }
 

@@ -160,9 +160,10 @@ router.post('/sync', verifyToken, async (req, res) => {
 // GET /peak/trainers/:id - 트레이너 상세
 router.get('/:id', async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const [trainers] = await db.query(
-            'SELECT * FROM trainers WHERE id = ?',
-            [req.params.id]
+            'SELECT * FROM trainers WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
         );
         if (trainers.length === 0) {
             return res.status(404).json({ error: 'Not Found' });
@@ -177,10 +178,11 @@ router.get('/:id', async (req, res) => {
 // POST /peak/trainers - 트레이너 등록
 router.post('/', async (req, res) => {
     try {
+        const academyId = req.user.academyId;
         const { paca_user_id, name, phone } = req.body;
         const [result] = await db.query(
-            'INSERT INTO trainers (paca_user_id, name, phone) VALUES (?, ?, ?)',
-            [paca_user_id, name, phone]
+            'INSERT INTO trainers (academy_id, paca_user_id, name, phone) VALUES (?, ?, ?, ?)',
+            [academyId, paca_user_id, name, phone]
         );
         res.status(201).json({
             success: true,

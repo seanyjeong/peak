@@ -97,8 +97,8 @@ router.get('/academy-average', verifyToken, async (req, res) => {
                 AND r1.measured_at = r2.max_date
             JOIN students s ON r1.student_id = s.id
             JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
-            WHERE ps.status = 'active' AND s.academy_id = ?
-        `, [academyId, academyId, academyId]);
+            WHERE r1.academy_id = ? AND ps.status = 'active' AND s.academy_id = ?
+        `, [academyId, academyId, academyId, academyId]);
 
         // Convert Paca gender format for JS filtering
         latestRecords.forEach(r => {

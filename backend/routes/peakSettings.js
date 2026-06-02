@@ -5,7 +5,7 @@ const pool = require('../config/database');
 // 설정 조회
 router.get('/', async (req, res) => {
   try {
-    const academyId = req.user?.academy_id || 2;
+    const academyId = req.user.academyId;
 
     const [settings] = await pool.query(`
       SELECT id, academy_id, slug, academy_name, created_at, updated_at
@@ -38,7 +38,7 @@ router.get('/', async (req, res) => {
 // 설정 저장 (upsert)
 router.post('/', async (req, res) => {
   try {
-    const academyId = req.user?.academy_id || 2;
+    const academyId = req.user.academyId;
     const { slug, academy_name } = req.body;
 
     if (!slug || !academy_name) {

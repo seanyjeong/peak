@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import apiClient from '@/lib/api/client';
+import { useToast } from '@/hooks/useToast';
 import {
   RecordInput,
   RecordType,
@@ -35,6 +36,7 @@ export interface UseRecordInputReturn {
 
 export function useRecordInput(options: UseRecordInputOptions): UseRecordInputReturn {
   const { measuredAt, slots, recordTypes, calculateScore } = options;
+  const toast = useToast();
 
   const [inputs, setInputs] = useState<Record<number, Record<number, RecordInput>>>({});
   const [expandedStudents, setExpandedStudents] = useState<Set<number>>(new Set());
@@ -110,7 +112,8 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
         setInputs(prev => {
           const updated = { ...prev };
           if (updated[studentId]) {
-            const { [recordTypeId]: _, ...rest } = updated[studentId];
+            const rest = { ...updated[studentId] };
+            delete rest[recordTypeId];
             if (Object.keys(rest).length === 0) {
               delete updated[studentId];
             } else {
@@ -130,6 +133,7 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
         });
       } catch (error) {
         console.error('Delete record failed:', error);
+        toast.error(error);
       } finally {
         setSaving(false);
       }
@@ -162,10 +166,11 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
       setSavedStudents(prev => new Set([...prev, studentId]));
     } catch (error) {
       console.error('Auto-save failed:', error);
+      toast.error(error);
     } finally {
       setSaving(false);
     }
-  }, [inputs, saving, measuredAt, recordTypes]);
+  }, [inputs, saving, measuredAt, recordTypes, toast]);
 
   const toggleStudent = useCallback((studentId: number) => {
     setExpandedStudents(prev => {

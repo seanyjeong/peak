@@ -173,8 +173,11 @@ router.get('/check', verifyToken, async (req, res) => {
 async function createNotification(userId, type, title, message, data = null) {
     try {
         await pool.query(
-            `INSERT INTO notifications (user_id, type, title, message, data) VALUES (?, ?, ?, ?, ?)`,
-            [userId, type, title, message, data ? JSON.stringify(data) : null]
+            `INSERT INTO notifications (academy_id, user_id, type, title, message, data)
+             SELECT academy_id, ?, ?, ?, ?, ?
+             FROM paca.users
+             WHERE id = ? AND deleted_at IS NULL`,
+            [userId, type, title, message, data ? JSON.stringify(data) : null, userId]
         );
     } catch (error) {
         console.error('Error creating notification:', error);

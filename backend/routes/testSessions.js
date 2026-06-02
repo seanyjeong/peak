@@ -5,6 +5,7 @@ const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
+const { StudentRecordScopeError, saveStudentRecord } = require('../utils/student-records');
 
 // Middleware: verify session belongs to user's academy
 async function verifySessionOwnership(req, res, next) {
@@ -30,9 +31,14 @@ async function verifySessionOwnership(req, res, next) {
 // 세션 삭제
 router.delete('/:sessionId', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
+    const academyId = req.user.academyId;
     const { sessionId } = req.params;
 
-    await pool.query('DELETE FROM test_sessions WHERE id = ?', [sessionId]);
+    await pool.query(`
+      DELETE ts FROM test_sessions ts
+      JOIN monthly_tests mt ON ts.monthly_test_id = mt.id
+      WHERE ts.id = ? AND mt.academy_id = ?
+    `, [sessionId, academyId]);
     res.json({ success: true, message: '세션이 삭제되었습니다.' });
   } catch (error) {
     console.error('세션 삭제 오류:', error);
@@ -90,8 +96,8 @@ router.get('/:sessionId/groups', verifyToken, verifySessionOwnership, async (req
       // P-EAK students에서 paca_student_id로 매칭
       const toAddPacaIds = toAdd.map(s => s.id);
       const [peakStudents] = await conn.query(`
-        SELECT id, paca_student_id FROM students WHERE paca_student_id IN (?)
-      `, [toAddPacaIds]);
+        SELECT id, paca_student_id FROM students WHERE academy_id = ? AND paca_student_id IN (?)
+      `, [academyId, toAddPacaIds]);
 
       const peakStudentMap = {};
       peakStudents.forEach(s => { peakStudentMap[s.paca_student_id] = s.id; });
@@ -114,28 +120,28 @@ router.get('/:sessionId/groups', verifyToken, verifySessionOwnership, async (req
           ]);
         } else {
           // 이미 있는 학생은 바로 참가자로 추가
-          participantsToAdd.push([sessionId, peakStudentId, 'enrolled']);
+          participantsToAdd.push([academyId, sessionId, peakStudentId, 'enrolled']);
         }
       }
 
       // Bulk Insert: 새 학생 생성
       if (studentsToCreate.length > 0) {
         const [insertResult] = await conn.query(`
-          INSERT INTO students (paca_student_id, name, gender, school, grade, status, is_trial)
+          INSERT INTO students (academy_id, paca_student_id, name, gender, school, grade, status, is_trial)
           VALUES ?
-        `, [studentsToCreate.map(s => [...s, 'active', 0])]);
+        `, [studentsToCreate.map(s => [academyId, ...s, 'active', 0])]);
 
         // 새로 생성된 학생들을 참가자로 추가
         const startId = insertResult.insertId;
         for (let i = 0; i < studentsToCreate.length; i++) {
-          participantsToAdd.push([sessionId, startId + i, 'enrolled']);
+          participantsToAdd.push([academyId, sessionId, startId + i, 'enrolled']);
         }
       }
 
       // Bulk Insert: 참가자 추가
       if (participantsToAdd.length > 0) {
         await conn.query(`
-          INSERT INTO test_participants (test_session_id, student_id, participant_type)
+          INSERT INTO test_participants (academy_id, test_session_id, student_id, participant_type)
           VALUES ?
         `, [participantsToAdd]);
       }
@@ -154,7 +160,10 @@ router.get('/:sessionId/groups', verifyToken, verifySessionOwnership, async (req
 
     if (toRemove.length > 0) {
       const toRemoveIds = toRemove.map(p => p.id);
-      await conn.query(`DELETE FROM test_participants WHERE id IN (?)`, [toRemoveIds]);
+      await conn.query(
+        'DELETE FROM test_participants WHERE id IN (?) AND test_session_id = ?',
+        [toRemoveIds, sessionId]
+      );
     }
     // === 동기화 끝 ===
 
@@ -344,6 +353,7 @@ router.get('/:sessionId/groups', verifyToken, verifySessionOwnership, async (req
 // 조 생성
 router.post('/:sessionId/groups', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
+    const academyId = req.user.academyId;
     const { sessionId } = req.params;
     const { group_name } = req.body || {};
 
@@ -355,9 +365,9 @@ router.post('/:sessionId/groups', verifyToken, verifySessionOwnership, async (re
     const nextNum = (maxNum[0].max_num || 0) + 1;
 
     const [result] = await pool.query(`
-      INSERT INTO test_groups (test_session_id, group_num, group_name)
-      VALUES (?, ?, ?)
-    `, [sessionId, nextNum, group_name || `${nextNum}조`]);
+      INSERT INTO test_groups (academy_id, test_session_id, group_num, group_name)
+      VALUES (?, ?, ?, ?)
+    `, [academyId, sessionId, nextNum, group_name || `${nextNum}조`]);
 
     res.json({ success: true, id: result.insertId, group_num: nextNum });
   } catch (error) {
@@ -372,15 +382,16 @@ router.delete('/:sessionId/groups/:groupId', verifyToken, verifySessionOwnership
   try {
     await conn.beginTransaction();
 
-    const { groupId } = req.params;
+    const { sessionId, groupId } = req.params;
 
     // 해당 조의 학생들을 미배치로 변경
     await conn.query(`
-      UPDATE test_participants SET test_group_id = NULL WHERE test_group_id = ?
-    `, [groupId]);
+      UPDATE test_participants SET test_group_id = NULL
+      WHERE test_group_id = ? AND test_session_id = ?
+    `, [groupId, sessionId]);
 
     // 조 삭제 (감독관은 CASCADE로 삭제)
-    await conn.query('DELETE FROM test_groups WHERE id = ?', [groupId]);
+    await conn.query('DELETE FROM test_groups WHERE id = ? AND test_session_id = ?', [groupId, sessionId]);
 
     await conn.commit();
     res.json({ success: true, message: '조가 삭제되었습니다.' });
@@ -422,12 +433,23 @@ router.post('/:sessionId/supervisor', verifyToken, verifySessionOwnership, async
     `, [sessionId, instructor_id]);
 
     // 새 조에 배치
+    const [groupCheck] = await conn.query(
+      'SELECT id FROM test_groups WHERE id = ? AND test_session_id = ?',
+      [to_group_id, sessionId]
+    );
+    if (groupCheck.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: '조를 찾을 수 없습니다.' });
+    }
+
     // 주감독 지정 시 기존 주감독은 보조로
     if (is_main) {
       await conn.query(`
-        UPDATE test_group_supervisors SET is_main = 0
-        WHERE test_group_id = ? AND is_main = 1
-      `, [to_group_id]);
+        UPDATE test_group_supervisors tgs
+        JOIN test_groups tg ON tgs.test_group_id = tg.id
+        SET tgs.is_main = 0
+        WHERE tgs.test_group_id = ? AND tg.test_session_id = ? AND tgs.is_main = 1
+      `, [to_group_id, sessionId]);
     }
 
     // 다음 order_num
@@ -456,14 +478,24 @@ router.post('/:sessionId/supervisor', verifyToken, verifySessionOwnership, async
 // 참가자 조 배치 변경
 router.put('/:sessionId/participants/:participantId', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
-    const { participantId } = req.params;
+    const { sessionId, participantId } = req.params;
     const { test_group_id, order_num } = req.body;
+
+    if (test_group_id) {
+      const [groupCheck] = await pool.query(
+        'SELECT id FROM test_groups WHERE id = ? AND test_session_id = ?',
+        [test_group_id, sessionId]
+      );
+      if (groupCheck.length === 0) {
+        return res.status(404).json({ success: false, message: '조를 찾을 수 없습니다.' });
+      }
+    }
 
     await pool.query(`
       UPDATE test_participants
       SET test_group_id = ?, order_num = ?
-      WHERE id = ?
-    `, [test_group_id, order_num || 0, participantId]);
+      WHERE id = ? AND test_session_id = ?
+    `, [test_group_id, order_num || 0, participantId, sessionId]);
 
     res.json({ success: true, message: '참가자가 배치되었습니다.' });
   } catch (error) {
@@ -516,8 +548,8 @@ router.post('/:sessionId/participants/sync', verifyToken, verifySessionOwnership
     let peakStudentMap = {};
     if (pacaIds.length > 0) {
       const [peakStudents] = await conn.query(`
-        SELECT id, paca_student_id FROM students WHERE paca_student_id IN (?)
-      `, [pacaIds]);
+        SELECT id, paca_student_id FROM students WHERE academy_id = ? AND paca_student_id IN (?)
+      `, [academyId, pacaIds]);
       peakStudents.forEach(s => {
         peakStudentMap[s.paca_student_id] = s.id;
       });
@@ -541,7 +573,7 @@ router.post('/:sessionId/participants/sync', verifyToken, verifySessionOwnership
         ]);
       } else if (!existingIds.has(peakStudentId)) {
         // 기존 P-EAK 학생이 이미 등록되지 않았으면 추가 대기열에 추가
-        participantsToAdd.push([sessionId, peakStudentId, 'enrolled']);
+        participantsToAdd.push([academyId, sessionId, peakStudentId, 'enrolled']);
       }
     }
 
@@ -550,16 +582,16 @@ router.post('/:sessionId/participants/sync', verifyToken, verifySessionOwnership
     // Bulk Insert: 새 학생 생성
     if (studentsToCreate.length > 0) {
       const [insertResult] = await conn.query(`
-        INSERT INTO students (paca_student_id, name, gender, school, grade, status, is_trial)
+        INSERT INTO students (academy_id, paca_student_id, name, gender, school, grade, status, is_trial)
         VALUES ?
-      `, [studentsToCreate.map(s => [...s, 'active', 0])]);
+      `, [studentsToCreate.map(s => [academyId, ...s, 'active', 0])]);
 
       // 새로 생성된 학생들을 참가자로 추가
       const startId = insertResult.insertId;
       for (let i = 0; i < studentsToCreate.length; i++) {
         const newStudentId = startId + i;
         if (!existingIds.has(newStudentId)) {
-          participantsToAdd.push([sessionId, newStudentId, 'enrolled']);
+          participantsToAdd.push([academyId, sessionId, newStudentId, 'enrolled']);
         }
       }
     }
@@ -567,7 +599,7 @@ router.post('/:sessionId/participants/sync', verifyToken, verifySessionOwnership
     // Bulk Insert: 참가자 추가
     if (participantsToAdd.length > 0) {
       await conn.query(`
-        INSERT INTO test_participants (test_session_id, student_id, participant_type)
+        INSERT INTO test_participants (academy_id, test_session_id, student_id, participant_type)
         VALUES ?
       `, [participantsToAdd]);
       added = participantsToAdd.length;
@@ -691,6 +723,7 @@ router.get('/:sessionId/available-students', verifyToken, verifySessionOwnership
 // 참가자 수동 추가 (휴원생/체험생/테스트신규)
 router.post('/:sessionId/participants', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
+    const academyId = req.user.academyId;
     const { sessionId } = req.params;
     let { student_id, paca_student_id, test_applicant_id, participant_type } = req.body;
 
@@ -698,8 +731,8 @@ router.post('/:sessionId/participants', verifyToken, verifySessionOwnership, asy
     if (paca_student_id && !student_id) {
       // P-EAK students에서 조회
       const [existing] = await pool.query(`
-        SELECT id FROM students WHERE paca_student_id = ?
-      `, [paca_student_id]);
+        SELECT id FROM students WHERE academy_id = ? AND paca_student_id = ?
+      `, [academyId, paca_student_id]);
 
       if (existing.length > 0) {
         student_id = existing[0].id;
@@ -707,8 +740,8 @@ router.post('/:sessionId/participants', verifyToken, verifySessionOwnership, asy
         // P-ACA에서 학생 정보 가져와서 P-EAK에 생성
         const [pacaStudent] = await pacaPool.query(`
           SELECT id, name, gender, school, grade, status
-          FROM students WHERE id = ?
-        `, [paca_student_id]);
+          FROM students WHERE id = ? AND academy_id = ?
+        `, [paca_student_id, academyId]);
 
         if (pacaStudent.length === 0) {
           return res.status(404).json({ success: false, message: '학생을 찾을 수 없습니다.' });
@@ -719,9 +752,9 @@ router.post('/:sessionId/participants', verifyToken, verifySessionOwnership, asy
         const peakStatus = ps.status === 'paused' ? 'rest' : (ps.status === 'trial' ? 'active' : ps.status);
 
         const [insertResult] = await pool.query(`
-          INSERT INTO students (paca_student_id, name, gender, school, grade, status, is_trial)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `, [paca_student_id, decrypt(ps.name), ps.gender === 'male' ? 'M' : 'F', ps.school, ps.grade, peakStatus, isTrial ? 1 : 0]);
+          INSERT INTO students (academy_id, paca_student_id, name, gender, school, grade, status, is_trial)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [academyId, paca_student_id, decrypt(ps.name), ps.gender === 'male' ? 'M' : 'F', ps.school, ps.grade, peakStatus, isTrial ? 1 : 0]);
 
         student_id = insertResult.insertId;
       }
@@ -729,6 +762,14 @@ router.post('/:sessionId/participants', verifyToken, verifySessionOwnership, asy
 
     // 중복 체크
     if (student_id) {
+      const [studentCheck] = await pool.query(
+        'SELECT id FROM students WHERE id = ? AND academy_id = ?',
+        [student_id, academyId]
+      );
+      if (studentCheck.length === 0) {
+        return res.status(404).json({ success: false, message: '학생을 찾을 수 없습니다.' });
+      }
+
       const [dup] = await pool.query(`
         SELECT id FROM test_participants
         WHERE test_session_id = ? AND student_id = ?
@@ -740,6 +781,14 @@ router.post('/:sessionId/participants', verifyToken, verifySessionOwnership, asy
     }
 
     if (test_applicant_id) {
+      const [applicantCheck] = await pacaPool.query(
+        'SELECT id FROM test_applicants WHERE id = ? AND academy_id = ?',
+        [test_applicant_id, academyId]
+      );
+      if (applicantCheck.length === 0) {
+        return res.status(404).json({ success: false, message: '학생을 찾을 수 없습니다.' });
+      }
+
       const [dup] = await pool.query(`
         SELECT id FROM test_participants
         WHERE test_session_id = ? AND test_applicant_id = ?
@@ -751,9 +800,9 @@ router.post('/:sessionId/participants', verifyToken, verifySessionOwnership, asy
     }
 
     const [result] = await pool.query(`
-      INSERT INTO test_participants (test_session_id, student_id, test_applicant_id, participant_type)
-      VALUES (?, ?, ?, ?)
-    `, [sessionId, student_id, test_applicant_id, participant_type]);
+      INSERT INTO test_participants (academy_id, test_session_id, student_id, test_applicant_id, participant_type)
+      VALUES (?, ?, ?, ?, ?)
+    `, [academyId, sessionId, student_id, test_applicant_id, participant_type]);
 
     res.json({ success: true, id: result.insertId });
   } catch (error) {
@@ -765,9 +814,9 @@ router.post('/:sessionId/participants', verifyToken, verifySessionOwnership, asy
 // 참가자 제거
 router.delete('/:sessionId/participants/:participantId', verifyToken, verifySessionOwnership, async (req, res) => {
   try {
-    const { participantId } = req.params;
+    const { sessionId, participantId } = req.params;
 
-    await pool.query('DELETE FROM test_participants WHERE id = ?', [participantId]);
+    await pool.query('DELETE FROM test_participants WHERE id = ? AND test_session_id = ?', [participantId, sessionId]);
 
     res.json({ success: true, message: '참가자가 제거되었습니다.' });
   } catch (error) {
@@ -852,8 +901,8 @@ router.get('/:sessionId/records', verifyToken, verifySessionOwnership, async (re
       const [records] = await pool.query(`
         SELECT student_id, record_type_id, value
         FROM student_records
-        WHERE student_id IN (?) AND measured_at = ?
-      `, [studentIds, session.test_date]);
+        WHERE academy_id = ? AND student_id IN (?) AND measured_at = ?
+      `, [academyId, studentIds, session.test_date]);
 
       records.forEach(r => {
         if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
@@ -867,8 +916,8 @@ router.get('/:sessionId/records', verifyToken, verifySessionOwnership, async (re
       const [records] = await pool.query(`
         SELECT test_applicant_id, record_type_id, value
         FROM test_records
-        WHERE test_session_id = ? AND test_applicant_id IN (?)
-      `, [sessionId, testApplicantIds]);
+        WHERE academy_id = ? AND test_session_id = ? AND test_applicant_id IN (?)
+      `, [academyId, sessionId, testApplicantIds]);
 
       records.forEach(r => {
         if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
@@ -1013,14 +1062,18 @@ router.post('/:sessionId/records/batch', verifyToken, verifySessionOwnership, as
   try {
     await conn.beginTransaction();
 
+    const academyId = req.user.academyId;
     const { sessionId } = req.params;
     const { records } = req.body;
     // records: [{ participant_id, student_id?, test_applicant_id?, record_type_id, value }]
 
     // 세션 날짜 조회
     const [sessions] = await conn.query(`
-      SELECT test_date FROM test_sessions WHERE id = ?
-    `, [sessionId]);
+      SELECT ts.test_date
+      FROM test_sessions ts
+      JOIN monthly_tests mt ON ts.monthly_test_id = mt.id
+      WHERE ts.id = ? AND mt.academy_id = ?
+    `, [sessionId, academyId]);
 
     if (sessions.length === 0) {
       await conn.rollback();
@@ -1041,19 +1094,31 @@ router.post('/:sessionId/records/batch', verifyToken, verifySessionOwnership, as
     for (const r of records) {
       if (r.student_id) {
         // 재원생: student_records에 UPSERT (항상 덮어쓰기 - 수정 가능하도록)
-        await conn.query(`
-          INSERT INTO student_records (student_id, record_type_id, value, measured_at)
-          VALUES (?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE value = VALUES(value)
-        `, [r.student_id, r.record_type_id, r.value, testDate]);
+        await saveStudentRecord(conn, {
+          academyId,
+          studentId: r.student_id,
+          recordTypeId: r.record_type_id,
+          measuredAt: testDate,
+          value: r.value,
+          notes: null
+        });
         results.push({ action: 'saved', student_id: r.student_id });
       } else if (r.test_applicant_id) {
+        const [applicantCheck] = await pacaPool.query(
+          'SELECT id FROM test_applicants WHERE id = ? AND academy_id = ?',
+          [r.test_applicant_id, academyId]
+        );
+        if (applicantCheck.length === 0) {
+          await conn.rollback();
+          return res.status(404).json({ success: false, message: '학생을 찾을 수 없습니다.' });
+        }
+
         // 테스트신규: test_records에 UPSERT
         await conn.query(`
-          INSERT INTO test_records (test_session_id, test_applicant_id, record_type_id, value, measured_at)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO test_records (academy_id, test_session_id, test_applicant_id, record_type_id, value, measured_at)
+          VALUES (?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE value = VALUES(value)
-        `, [sessionId, r.test_applicant_id, r.record_type_id, r.value, testDate]);
+        `, [academyId, sessionId, r.test_applicant_id, r.record_type_id, r.value, testDate]);
         results.push({ action: 'saved', test_applicant_id: r.test_applicant_id });
       }
     }
@@ -1062,6 +1127,10 @@ router.post('/:sessionId/records/batch', verifyToken, verifySessionOwnership, as
     res.json({ success: true, count: results.length, results });
   } catch (error) {
     await conn.rollback();
+    if (error instanceof StudentRecordScopeError) {
+      console.warn('Student record scope blocked:', error.message);
+      return res.status(error.statusCode).json({ success: false, message: error.publicMessage });
+    }
     console.error('기록 저장 오류:', error);
     res.status(500).json({ success: false, message: error.message });
   } finally {
@@ -1075,12 +1144,16 @@ router.delete('/:sessionId/records', verifyToken, verifySessionOwnership, async 
   try {
     await conn.beginTransaction();
 
+    const academyId = req.user.academyId;
     const { sessionId } = req.params;
 
     // 세션 정보 조회
     const [sessions] = await conn.query(`
-      SELECT id, test_date FROM test_sessions WHERE id = ?
-    `, [sessionId]);
+      SELECT ts.id, ts.test_date
+      FROM test_sessions ts
+      JOIN monthly_tests mt ON ts.monthly_test_id = mt.id
+      WHERE ts.id = ? AND mt.academy_id = ?
+    `, [sessionId, academyId]);
 
     if (sessions.length === 0) {
       await conn.rollback();
@@ -1104,8 +1177,8 @@ router.delete('/:sessionId/records', verifyToken, verifySessionOwnership, async 
     if (studentIds.length > 0) {
       const [result] = await conn.query(`
         DELETE FROM student_records
-        WHERE student_id IN (?) AND measured_at = ?
-      `, [studentIds, testDate]);
+        WHERE academy_id = ? AND student_id IN (?) AND measured_at = ?
+      `, [academyId, studentIds, testDate]);
       deletedStudentRecords = result.affectedRows;
     }
 
@@ -1113,8 +1186,8 @@ router.delete('/:sessionId/records', verifyToken, verifySessionOwnership, async 
     if (applicantIds.length > 0) {
       const [result] = await conn.query(`
         DELETE FROM test_records
-        WHERE test_session_id = ? AND test_applicant_id IN (?)
-      `, [sessionId, applicantIds]);
+        WHERE academy_id = ? AND test_session_id = ? AND test_applicant_id IN (?)
+      `, [academyId, sessionId, applicantIds]);
       deletedApplicantRecords = result.affectedRows;
     }
 
@@ -1511,12 +1584,12 @@ router.put('/:sessionId/schedule/swap', verifyToken, verifySessionOwnership, asy
 
     // record_type_id 교체
     await conn.query(
-      'UPDATE session_schedules SET record_type_id = ? WHERE id = ?',
-      [item2.record_type_id, item1.id]
+      'UPDATE session_schedules SET record_type_id = ? WHERE id = ? AND test_session_id = ?',
+      [item2.record_type_id, item1.id, sessionId]
     );
     await conn.query(
-      'UPDATE session_schedules SET record_type_id = ? WHERE id = ?',
-      [item1.record_type_id, item2.id]
+      'UPDATE session_schedules SET record_type_id = ? WHERE id = ? AND test_session_id = ?',
+      [item1.record_type_id, item2.id, sessionId]
     );
 
     await conn.commit();

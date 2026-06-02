@@ -180,9 +180,9 @@ router.get('/:slug', async (req, res) => {
       const [records] = await pool.query(`
         SELECT student_id, record_type_id, value
         FROM student_records
-        WHERE student_id IN (?) AND record_type_id IN (?) AND measured_at IN (?)
+        WHERE academy_id = ? AND student_id IN (?) AND record_type_id IN (?) AND measured_at IN (?)
         ORDER BY measured_at DESC
-      `, [studentIds, recordTypeIds, testDates]);
+      `, [academyId, studentIds, recordTypeIds, testDates]);
 
       records.forEach(r => {
         if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
@@ -198,8 +198,8 @@ router.get('/:slug', async (req, res) => {
       const [records] = await pool.query(`
         SELECT test_applicant_id, record_type_id, value
         FROM test_records
-        WHERE test_session_id IN (?) AND test_applicant_id IN (?) AND record_type_id IN (?)
-      `, [sessionIds, testApplicantIds, recordTypeIds]);
+        WHERE academy_id = ? AND test_session_id IN (?) AND test_applicant_id IN (?) AND record_type_id IN (?)
+      `, [academyId, sessionIds, testApplicantIds, recordTypeIds]);
 
       records.forEach(r => {
         if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
