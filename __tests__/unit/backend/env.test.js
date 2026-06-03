@@ -22,6 +22,7 @@ describe('backend environment configuration', () => {
 
     expect(isOriginAllowed('https://chejump.com')).toBe(true);
     expect(isOriginAllowed('https://supermax.kr')).toBe(true);
+    expect(isOriginAllowed('https://rec.etlab.kr')).toBe(true);
     expect(isOriginAllowed('https://peak-rose.vercel.app')).toBe(true);
     expect(isOriginAllowed('https://dev.sean8320.dedyn.io')).toBe(true);
   });

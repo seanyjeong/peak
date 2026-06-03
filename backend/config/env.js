@@ -1,6 +1,7 @@
 const DEFAULT_CORS_ORIGINS = [
     'https://chejump.com',
     'https://supermax.kr',
+    'https://rec.etlab.kr',
     'https://peak-rose.vercel.app',
     'https://dev.sean8320.dedyn.io',
     'http://localhost:3000',
