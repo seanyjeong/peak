@@ -66,10 +66,12 @@ JOIN paca.users u ON u.id = n.user_id
 SET n.academy_id = u.academy_id
 WHERE n.academy_id <> u.academy_id;
 
+-- trainers.paca_user_id holds paca.instructors.id (owner rows use negative -users.id),
+-- NOT paca.users.id. Repair/guard must reference paca.instructors.
 UPDATE trainers t
-JOIN paca.users u ON u.id = t.paca_user_id
-SET t.academy_id = u.academy_id
-WHERE t.academy_id <> u.academy_id;
+JOIN paca.instructors i ON i.id = t.paca_user_id
+SET t.academy_id = i.academy_id
+WHERE t.academy_id <> i.academy_id;
 
 ALTER TABLE class_instructors MODIFY academy_id INT NOT NULL;
 ALTER TABLE daily_assignments MODIFY academy_id INT NOT NULL;
@@ -401,7 +403,7 @@ BEGIN
   DECLARE expected_academy_id INT;
 
   SELECT academy_id INTO expected_academy_id
-  FROM paca.users
+  FROM paca.instructors
   WHERE id = NEW.paca_user_id;
 
   IF expected_academy_id IS NOT NULL AND NEW.academy_id <> expected_academy_id THEN
@@ -416,7 +418,7 @@ BEGIN
   DECLARE expected_academy_id INT;
 
   SELECT academy_id INTO expected_academy_id
-  FROM paca.users
+  FROM paca.instructors
   WHERE id = NEW.paca_user_id;
 
   IF expected_academy_id IS NOT NULL AND NEW.academy_id <> expected_academy_id THEN
