@@ -105,7 +105,6 @@ router.post('/batch', verifyToken, async (req, res) => {
 
         try {
             const results = [];
-            const warnings = [];
             for (const record of records) {
                 if (record.value === null || record.value === undefined || record.value === '') {
                     continue;
@@ -116,25 +115,6 @@ router.post('/batch', verifyToken, async (req, res) => {
                 // 0값은 저장하지 않음 (입력칸 터치만으로 0 저장 방지)
                 if (newValue === 0) {
                     continue;
-                }
-
-                // 종목의 direction, 범위 확인
-                const [typeRows] = await connection.query(
-                    'SELECT direction, min_value, max_value FROM record_types WHERE id = ?',
-                    [record.record_type_id]
-                );
-                const direction = typeRows[0]?.direction || 'higher';
-                const minValue = typeRows[0]?.min_value != null ? parseFloat(typeRows[0].min_value) : null;
-                const maxValue = typeRows[0]?.max_value != null ? parseFloat(typeRows[0].max_value) : null;
-
-                // 범위 체크 (저장은 허용, warning 플래그)
-                if ((minValue !== null && newValue < minValue) || (maxValue !== null && newValue > maxValue)) {
-                    warnings.push({
-                        record_type_id: record.record_type_id,
-                        value: newValue,
-                        min_value: minValue,
-                        max_value: maxValue
-                    });
                 }
 
                 const result = await saveStudentRecord(connection, {
@@ -151,8 +131,7 @@ router.post('/batch', verifyToken, async (req, res) => {
             res.status(201).json({
                 success: true,
                 count: results.filter(r => r.action !== 'skipped').length,
-                results,
-                warnings
+                results
             });
         } catch (err) {
             await connection.rollback();

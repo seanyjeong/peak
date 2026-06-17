@@ -103,7 +103,7 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
 
     // 값이 비어있거나 0이면 DB에서 삭제 (입력칸 터치만으로 0 저장 방지)
     const trimmed = inputData?.value?.trim() || '';
-    if (!trimmed || parseFloat(trimmed) === 0) {
+    if (!trimmed || Number(trimmed) === 0) {
       try {
         setSaving(true);
         await apiClient.delete('/records', {
@@ -141,7 +141,11 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
     }
 
     // 범위 체크
-    const numValue = parseFloat(inputData.value);
+    const numValue = Number(inputData.value);
+    if (!Number.isFinite(numValue)) {
+      toast.error('기록은 숫자로 입력해주세요.');
+      return;
+    }
     const recordType = recordTypes.find(rt => rt.id === recordTypeId);
     if (recordType) {
       const { min_value, max_value } = recordType;
@@ -150,9 +154,8 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
         (max_value != null && numValue > max_value);
       if (outOfRange) {
         const rangeText = `${min_value ?? ''} ~ ${max_value ?? ''}`;
-        if (!confirm(`입력값 ${numValue}이(가) 허용 범위(${rangeText})를 벗어났습니다.\n정말 저장하시겠습니까?`)) {
-          return;
-        }
+        toast.error(`${recordType.name} 기록은 ${rangeText}${recordType.unit} 사이로 입력해주세요.`);
+        return;
       }
     }
 

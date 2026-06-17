@@ -16,6 +16,7 @@ import {
   Trophy
 } from 'lucide-react';
 import { authAPI } from '@/lib/api/auth';
+import { saveMobileRecord } from './record-save';
 
 interface Student {
   id: number;
@@ -56,6 +57,8 @@ interface RecordType {
   short_name?: string;
   unit: string;
   direction: 'higher' | 'lower';
+  min_value?: number | null;
+  max_value?: number | null;
 }
 
 interface StudentRecord {
@@ -179,43 +182,36 @@ export default function MobileRecordsPage() {
 
     try {
       const token = authAPI.getToken();
-      const numValue = value === '' ? null : parseFloat(value);
-
-      const response = await fetch(`${API_BASE}/records/batch`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          records: [
-            {
-              student_id: studentId,
-              record_type_id: recordTypeId,
-              value: numValue,
-              measured_at: selectedDate,
-            },
-          ],
-        }),
+      const result = await saveMobileRecord({
+        apiBase: API_BASE,
+        token,
+        studentId,
+        recordTypeId,
+        selectedDate,
+        value,
+        recordTypes,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const saved = data.results?.[0];
-        if (saved) {
-          setRecords(prev => ({
-            ...prev,
-            [key]: {
-              student_id: studentId,
-              record_type_id: recordTypeId,
-              value: numValue,
-              score: saved.score,
-            },
-          }));
-        }
+      if (result.deleted) {
+        setRecords(prev => {
+          const updated = { ...prev };
+          delete updated[key];
+          return updated;
+        });
+        return;
       }
+
+      setRecords(prev => ({
+        ...prev,
+        [key]: {
+          student_id: studentId,
+          record_type_id: recordTypeId,
+          value: result.value,
+        },
+      }));
     } catch (error) {
       console.error('Failed to save:', error);
+      window.alert(error instanceof Error ? error.message : '기록을 저장하지 못했습니다.');
     } finally {
       setTimeout(() => setSaving(null), 500);
     }

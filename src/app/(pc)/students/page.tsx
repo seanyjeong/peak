@@ -15,7 +15,6 @@ import {
   StudentRecord,
   ScoreTableData,
   RecordInput,
-  GENDER_COLORS,
 } from '@/components/students';
 import { useStudentList, STATUS_MAP } from '@/features/students';
 import type { Student } from '@/features/students';
@@ -70,6 +69,7 @@ export default function StudentsPage() {
 
   useEffect(() => {
     fetchRecordTypesAndTables();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchRecordTypesAndTables = async () => {
@@ -124,7 +124,7 @@ export default function StudentsPage() {
       setShowAddRecord(false);
       setRecordInputs({});
       fetchStudentRecords(selectedStudent.id);
-    } catch (error) { console.error('Failed to save record:', error); toast.error('저장에 실패했습니다.'); }
+    } catch (error) { console.error('Failed to save record:', error); toast.error(error); }
     finally { setSavingRecord(false); }
   };
 
