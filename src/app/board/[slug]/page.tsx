@@ -1,427 +1,8 @@
 'use client';
 
 import { useState, useEffect, use, useCallback } from 'react';
-
-interface RankingItem {
-  rank: number;
-  name: string;
-  school?: string;
-  grade?: string;
-  total: number;
-}
-
-interface EventRecord {
-  rank: number;
-  name: string;
-  school?: string;
-  gender: 'M' | 'F';
-  value: number;
-  score: number;
-}
-
-interface EventData {
-  id: number;
-  name: string;
-  shortName?: string;
-  unit: string;
-  records: EventRecord[];
-}
-
-interface BoardData {
-  academy: { name: string; slug: string };
-  test: { name: string; month: string } | null;
-  ranking: { male: RankingItem[]; female: RankingItem[] };
-  events: EventData[];
-}
-
-type ViewMode = 'ranking' | 'event';
-
-// CSS 스포티 배경
-function SportyBackground() {
-  return (
-    <div className="fixed inset-0 overflow-hidden">
-      {/* 베이스 그라데이션 */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" />
-
-      {/* 스포츠 트랙 라인 */}
-      <div className="absolute inset-0 opacity-10">
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute h-full border-l-2 border-white/30"
-            style={{ left: `${20 + i * 15}%` }}
-          />
-        ))}
-      </div>
-
-      {/* 대형 원형 그라데이션 (스포트라이트) */}
-      <div
-        className="absolute w-[800px] h-[800px] rounded-full opacity-20"
-        style={{
-          background: 'radial-gradient(circle, rgba(59,130,246,0.5) 0%, transparent 70%)',
-          top: '-200px',
-          left: '-200px',
-          animation: 'pulse 4s ease-in-out infinite',
-        }}
-      />
-      <div
-        className="absolute w-[600px] h-[600px] rounded-full opacity-15"
-        style={{
-          background: 'radial-gradient(circle, rgba(236,72,153,0.5) 0%, transparent 70%)',
-          bottom: '-150px',
-          right: '-150px',
-          animation: 'pulse 5s ease-in-out infinite reverse',
-        }}
-      />
-
-      {/* 동적 라인 애니메이션 */}
-      <svg className="absolute inset-0 w-full h-full opacity-20" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="transparent" />
-            <stop offset="50%" stopColor="#3b82f6" />
-            <stop offset="100%" stopColor="transparent" />
-          </linearGradient>
-        </defs>
-        {[...Array(3)].map((_, i) => (
-          <line
-            key={i}
-            x1="0"
-            y1={`${30 + i * 20}%`}
-            x2="100%"
-            y2={`${35 + i * 20}%`}
-            stroke="url(#lineGrad)"
-            strokeWidth="2"
-            style={{
-              animation: `slideLine ${3 + i}s linear infinite`,
-              animationDelay: `${i * 0.5}s`,
-            }}
-          />
-        ))}
-      </svg>
-
-      {/* 스포츠 아이콘 (대형) */}
-      <div className="absolute top-10 right-20 text-[200px] opacity-5 select-none">🏆</div>
-      <div className="absolute bottom-20 left-10 text-[150px] opacity-5 select-none rotate-12">🏅</div>
-      <div className="absolute top-1/3 left-1/4 text-[120px] opacity-5 select-none -rotate-6">💪</div>
-
-      {/* 상단/하단 그라데이션 오버레이 */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
-
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.2; }
-          50% { transform: scale(1.1); opacity: 0.3; }
-        }
-        @keyframes slideLine {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-// 3D 카드 등장 애니메이션 컴포넌트
-function Card3D({
-  children,
-  className = '',
-  glowColor = '#3b82f6',
-  index = 0,
-  total = 10,
-  isTop3 = false
-}: {
-  children: React.ReactNode;
-  className?: string;
-  glowColor?: string;
-  index?: number;
-  total?: number;
-  isTop3?: boolean;
-}) {
-  // 10위(index 9)부터 1위(index 0)까지 순서대로 등장
-  // 역순 delay: 10위가 먼저, 1위가 마지막
-  // TOP3는 더 긴 간격으로 웅장하게
-  const baseDelay = (total - 1 - index) * 0.18; // 180ms 간격 (더 느리게)
-  const top3ExtraDelay = isTop3 ? 0.3 : 0; // TOP3는 추가 딜레이
-  const delay = baseDelay + top3ExtraDelay;
-
-  // TOP3는 더 극적인 애니메이션
-  const animationDuration = isTop3 ? '1s' : '0.7s';
-
-  return (
-    <div
-      className={`relative ${className}`}
-      style={{
-        animation: `${isTop3 ? 'cardFlipInTop3' : 'cardFlipIn'} ${animationDuration} cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}s both`,
-        transformStyle: 'preserve-3d',
-      }}
-    >
-      {/* 글로우 효과 */}
-      <div
-        className="absolute -inset-1 rounded-2xl opacity-50 blur-xl transition-opacity"
-        style={{ background: glowColor }}
-      />
-
-      {/* TOP3 스파크 효과 */}
-      {isTop3 && (
-        <>
-          {/* 스파크 파티클들 */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ animation: `sparkBurst 0.8s ease-out ${delay + 0.3}s both` }}
-          >
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-2 h-2 rounded-full"
-                style={{
-                  background: glowColor,
-                  boxShadow: `0 0 10px 3px ${glowColor}`,
-                  left: '50%',
-                  top: '50%',
-                  animation: `sparkParticle 0.6s ease-out ${delay + 0.3 + i * 0.05}s both`,
-                  ['--angle' as any]: `${i * 45}deg`,
-                }}
-              />
-            ))}
-          </div>
-          {/* 중앙 플래시 */}
-          <div
-            className="absolute inset-0 rounded-xl pointer-events-none"
-            style={{
-              background: `radial-gradient(circle at center, ${glowColor}80 0%, transparent 70%)`,
-              animation: `flashBurst 0.5s ease-out ${delay + 0.2}s both`,
-            }}
-          />
-        </>
-      )}
-
-      {/* 카드 본체 */}
-      <div
-        className="relative bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden hover:scale-[1.02] transition-transform duration-200"
-        style={{
-          boxShadow: isTop3
-            ? `0 0 30px ${glowColor}60, 0 20px 40px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3)`
-            : `0 20px 40px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.2)`,
-        }}
-      >
-        {/* 상단 하이라이트 */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-        {children}
-      </div>
-
-      {/* CSS keyframes */}
-      <style jsx>{`
-        @keyframes cardFlipIn {
-          0% {
-            opacity: 0;
-            transform: perspective(1000px) translateY(-100px) rotateX(90deg) scale(0.7);
-          }
-          60% {
-            opacity: 1;
-            transform: perspective(1000px) translateY(8px) rotateX(-8deg) scale(1.02);
-          }
-          80% {
-            transform: perspective(1000px) translateY(-3px) rotateX(3deg) scale(1);
-          }
-          100% {
-            opacity: 1;
-            transform: perspective(1000px) translateY(0) rotateX(0) scale(1);
-          }
-        }
-
-        @keyframes cardFlipInTop3 {
-          0% {
-            opacity: 0;
-            transform: perspective(1000px) translateY(-150px) rotateX(180deg) scale(0.5);
-            filter: brightness(3);
-          }
-          40% {
-            opacity: 1;
-            transform: perspective(1000px) translateY(20px) rotateX(-15deg) scale(1.1);
-            filter: brightness(2);
-          }
-          60% {
-            transform: perspective(1000px) translateY(-10px) rotateX(10deg) scale(1.05);
-            filter: brightness(1.5);
-          }
-          80% {
-            transform: perspective(1000px) translateY(5px) rotateX(-3deg) scale(1.02);
-            filter: brightness(1.2);
-          }
-          100% {
-            opacity: 1;
-            transform: perspective(1000px) translateY(0) rotateX(0) scale(1);
-            filter: brightness(1);
-          }
-        }
-
-        @keyframes sparkParticle {
-          0% {
-            opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(80px) scale(0);
-          }
-        }
-
-        @keyframes flashBurst {
-          0% {
-            opacity: 0;
-            transform: scale(0.5);
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.2);
-          }
-          100% {
-            opacity: 0;
-            transform: scale(1.5);
-          }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-// 3D 순위 행 (32인치 FHD 최적화 - 10명 화면에 표시)
-function RankRow3D({ item, index, total, glowColor }: { item: RankingItem; index: number; total: number; glowColor: string }) {
-  const isTop3 = item.rank <= 3;
-  const rankColors = ['#fbbf24', '#9ca3af', '#cd7f32'];
-  const rankBg = isTop3 ? rankColors[item.rank - 1] : 'rgba(255,255,255,0.1)';
-
-  return (
-    <Card3D glowColor={isTop3 ? rankColors[item.rank - 1] : glowColor + '20'} className="mb-1.5" index={index} total={total} isTop3={isTop3}>
-      <div className="flex items-center gap-3 px-3 py-2">
-        {/* 순위 */}
-        <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg shadow-lg flex-shrink-0"
-          style={{
-            background: isTop3
-              ? `linear-gradient(135deg, ${rankBg}, ${rankBg}cc)`
-              : 'rgba(255,255,255,0.1)',
-            color: isTop3 ? '#000' : '#fff',
-            boxShadow: isTop3 ? `0 4px 15px ${rankBg}60` : 'none',
-          }}
-        >
-          {item.rank}
-        </div>
-
-        {/* 이름 & 학교 */}
-        <div className="flex-1 min-w-0">
-          <div className={`font-bold truncate ${isTop3 ? 'text-white text-lg' : 'text-white/90 text-base'}`}>
-            {item.name}
-          </div>
-          {item.school && (
-            <div className="text-xs text-white/50 truncate">{item.school}</div>
-          )}
-        </div>
-
-        {/* 점수 */}
-        <div
-          className="text-right font-black text-xl flex-shrink-0"
-          style={{ color: isTop3 ? rankBg : '#fff' }}
-        >
-          {item.total}
-          <span className="text-xs font-normal text-white/40 ml-0.5">점</span>
-        </div>
-      </div>
-    </Card3D>
-  );
-}
-
-// 3D 종목별 순위 행 (32인치 FHD 최적화)
-function EventRow3D({ record, index, total, unit, glowColor }: { record: EventRecord; index: number; total: number; unit: string; glowColor: string }) {
-  const isTop3 = record.rank <= 3;
-  const rankColors = ['#fbbf24', '#9ca3af', '#cd7f32'];
-  const rankBg = isTop3 ? rankColors[record.rank - 1] : 'rgba(255,255,255,0.1)';
-
-  return (
-    <Card3D glowColor={isTop3 ? rankColors[record.rank - 1] : glowColor + '20'} className="mb-1.5" index={index} total={total} isTop3={isTop3}>
-      <div className="flex items-center gap-3 px-3 py-2">
-        {/* 순위 */}
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-base flex-shrink-0"
-          style={{
-            background: isTop3
-              ? `linear-gradient(135deg, ${rankBg}, ${rankBg}cc)`
-              : 'rgba(255,255,255,0.1)',
-            color: isTop3 ? '#000' : '#fff',
-            boxShadow: isTop3 ? `0 4px 15px ${rankBg}60` : 'none',
-          }}
-        >
-          {record.rank}
-        </div>
-
-        {/* 이름 & 학교 */}
-        <div className="flex-1 min-w-0">
-          <div className={`font-bold truncate ${isTop3 ? 'text-white text-base' : 'text-white/90 text-sm'}`}>
-            {record.name}
-          </div>
-          {record.school && (
-            <div className="text-xs text-white/50 truncate">{record.school}</div>
-          )}
-        </div>
-
-        {/* 기록 & 점수 */}
-        <div className="text-right flex-shrink-0">
-          <div className="font-black text-lg text-white">
-            {record.value}
-            <span className="text-xs font-normal text-white/40 ml-0.5">{unit}</span>
-          </div>
-          <div className="text-xs" style={{ color: isTop3 ? rankBg : 'rgba(255,255,255,0.5)' }}>
-            {record.score}점
-          </div>
-        </div>
-      </div>
-    </Card3D>
-  );
-}
-
-// 성별 컬럼 (32인치 FHD 최적화)
-function GenderColumn({
-  title,
-  color,
-  children
-}: {
-  title: string;
-  color: 'blue' | 'pink';
-  children: React.ReactNode;
-}) {
-  const colors = {
-    blue: { main: '#3b82f6', glow: 'rgba(59, 130, 246, 0.3)' },
-    pink: { main: '#ec4899', glow: 'rgba(236, 72, 153, 0.3)' }
-  };
-
-  return (
-    <div className="flex-1 flex flex-col min-w-0">
-      {/* 헤더 */}
-      <div
-        className="flex-shrink-0 py-2 px-4 rounded-t-xl border-b border-white/10"
-        style={{
-          background: `linear-gradient(135deg, ${colors[color].glow}, transparent)`,
-        }}
-      >
-        <h3
-          className="text-2xl font-black"
-          style={{
-            color: colors[color].main,
-            textShadow: `0 0 30px ${colors[color].main}`,
-          }}
-        >
-          {title}
-        </h3>
-      </div>
-
-      {/* 컨텐츠 */}
-      <div className="flex-1 p-2 overflow-y-auto">
-        {children}
-      </div>
-    </div>
-  );
-}
+import type { BoardData, EventRecord, ViewMode } from './board-model';
+import { Card3D, EventRow3D, GenderColumn, RankRow3D, SportyBackground } from './board-ui';
 
 export default function BoardPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -535,17 +116,12 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   return (
     <div className="h-screen overflow-hidden text-white">
-      {/* CSS 스포티 배경 */}
       <SportyBackground />
-
       <div className="relative z-10 h-full flex flex-col p-4">
-        {/* 헤더 */}
         <header className="flex-shrink-0 mb-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                {data.academy.name}
-              </h1>
+              <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">{data.academy.name}</h1>
               <p className="text-base text-white/40">{data.test.name}</p>
             </div>
             <div className="flex items-center gap-4">
@@ -554,55 +130,26 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
                 <span className="text-sm text-white/60">LIVE</span>
                 <span className="text-sm text-white/30">{lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
-              <button
-                onClick={handleFullscreen}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-sm font-medium transition-all border border-white/10"
-              >
+              <button onClick={handleFullscreen} className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-sm font-medium transition-all border border-white/10">
                 전체화면
               </button>
             </div>
           </div>
-
-          {/* 모드 선택 */}
           <div className="flex items-center gap-2 mt-2">
-            {hasRankings && (
-              <button
-                onClick={() => setViewMode('ranking')}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  viewMode === 'ranking'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                    : 'bg-white/5 text-white/50 hover:bg-white/10'
-                }`}
-              >
-                종합순위
-              </button>
-            )}
+            {hasRankings && <ModeButton active={viewMode === 'ranking'} onClick={() => setViewMode('ranking')} label="종합순위" />}
             {eventsWithRecords.length > 0 && (
               <>
-                <button
-                  onClick={() => setViewMode('event')}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    viewMode === 'event'
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                      : 'bg-white/5 text-white/50 hover:bg-white/10'
-                  }`}
-                >
-                  종목별
-                </button>
+                <ModeButton active={viewMode === 'event'} onClick={() => setViewMode('event')} label="종목별" />
                 {viewMode === 'event' && (
                   <>
                     <div className="w-px h-6 bg-white/20 mx-1" />
-                    {eventsWithRecords.map((e, idx) => (
+                    {eventsWithRecords.map((event, idx) => (
                       <button
-                        key={e.id}
+                        key={event.id}
                         onClick={() => setCurrentEventIndex(idx)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                          idx === currentEventIndex
-                            ? 'bg-white/20 text-white'
-                            : 'bg-white/5 text-white/50 hover:bg-white/10'
-                        }`}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${idx === currentEventIndex ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
                       >
-                        {e.shortName || e.name}
+                        {event.shortName || event.name}
                       </button>
                     ))}
                   </>
@@ -612,21 +159,15 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
           </div>
         </header>
 
-        {/* 타이틀 바 */}
         <div className="flex-shrink-0 mb-2">
           <Card3D glowColor="rgba(139, 92, 246, 0.3)">
             <div className="py-2 px-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">
-                {viewMode === 'ranking' ? '종합순위' : currentEvent?.shortName || currentEvent?.name}
-              </h2>
-              {viewMode === 'event' && currentEvent && (
-                <span className="text-white/50 text-sm">단위: {currentEvent.unit}</span>
-              )}
+              <h2 className="text-lg font-bold text-white">{viewMode === 'ranking' ? '종합순위' : currentEvent?.shortName || currentEvent?.name}</h2>
+              {viewMode === 'event' && currentEvent && <span className="text-white/50 text-sm">단위: {currentEvent.unit}</span>}
             </div>
           </Card3D>
         </div>
 
-        {/* 메인 컨텐츠 */}
         <div className="flex-1 overflow-hidden">
           {hasNoData ? (
             <div className="h-full flex items-center justify-center">
@@ -637,47 +178,87 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
             </div>
           ) : (
             <div key={`view-${viewMode}-${currentEventIndex}`} className="h-full flex gap-6">
-              <GenderColumn title="남자" color="blue">
-                {viewMode === 'ranking' ? (
-                  data.ranking.male.length > 0 ? (
-                    data.ranking.male.slice(0, 10).map((item, idx, arr) => (
-                      <RankRow3D key={`m-${idx}`} item={item} index={idx} total={arr.length} glowColor="#3b82f6" />
-                    ))
-                  ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
-                ) : currentEvent ? (
-                  (() => {
-                    const maleRecords = getEventRecordsByGender(currentEvent.records, 'M');
-                    return maleRecords.length > 0 ? (
-                      maleRecords.map((record, idx) => (
-                        <EventRow3D key={`m-${idx}`} record={record} index={idx} total={maleRecords.length} unit={currentEvent.unit} glowColor="#3b82f6" />
-                      ))
-                    ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>;
-                  })()
-                ) : null}
-              </GenderColumn>
-
-              <GenderColumn title="여자" color="pink">
-                {viewMode === 'ranking' ? (
-                  data.ranking.female.length > 0 ? (
-                    data.ranking.female.slice(0, 10).map((item, idx, arr) => (
-                      <RankRow3D key={`f-${idx}`} item={item} index={idx} total={arr.length} glowColor="#ec4899" />
-                    ))
-                  ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
-                ) : currentEvent ? (
-                  (() => {
-                    const femaleRecords = getEventRecordsByGender(currentEvent.records, 'F');
-                    return femaleRecords.length > 0 ? (
-                      femaleRecords.map((record, idx) => (
-                        <EventRow3D key={`f-${idx}`} record={record} index={idx} total={femaleRecords.length} unit={currentEvent.unit} glowColor="#ec4899" />
-                      ))
-                    ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>;
-                  })()
-                ) : null}
-              </GenderColumn>
+              <RankingColumn
+                color="blue"
+                currentEvent={currentEvent}
+                gender="M"
+                getEventRecordsByGender={getEventRecordsByGender}
+                ranking={data.ranking.male}
+                viewMode={viewMode}
+              />
+              <RankingColumn
+                color="pink"
+                currentEvent={currentEvent}
+                gender="F"
+                getEventRecordsByGender={getEventRecordsByGender}
+                ranking={data.ranking.female}
+                viewMode={viewMode}
+              />
             </div>
           )}
         </div>
       </div>
     </div>
   );
+}
+
+function ModeButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${active ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function RankingColumn({
+  color,
+  currentEvent,
+  gender,
+  getEventRecordsByGender,
+  ranking,
+  viewMode,
+}: {
+  color: 'blue' | 'pink';
+  currentEvent: BoardData['events'][number] | undefined;
+  gender: 'M' | 'F';
+  getEventRecordsByGender: (records: EventRecord[], gender: 'M' | 'F') => EventRecord[];
+  ranking: BoardData['ranking']['male'];
+  viewMode: ViewMode;
+}) {
+  const title = gender === 'M' ? '남자' : '여자';
+
+  return (
+    <GenderColumn title={title} color={color}>
+      {viewMode === 'ranking' ? (
+        ranking.length > 0 ? (
+          ranking.slice(0, 10).map((item, idx, arr) => (
+            <RankRow3D key={`${gender}-${idx}`} item={item} index={idx} total={arr.length} glowColor={gender === 'M' ? '#3b82f6' : '#ec4899'} />
+          ))
+        ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
+      ) : currentEvent ? (
+        <EventRecords
+          gender={gender}
+          records={getEventRecordsByGender(currentEvent.records, gender)}
+          unit={currentEvent.unit}
+        />
+      ) : null}
+    </GenderColumn>
+  );
+}
+
+function EventRecords({ gender, records, unit }: { gender: 'M' | 'F'; records: EventRecord[]; unit: string }) {
+  if (records.length === 0) return <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>;
+  return records.map((record, idx) => (
+    <EventRow3D
+      key={`${gender}-${idx}`}
+      record={record}
+      index={idx}
+      total={records.length}
+      unit={unit}
+      glowColor={gender === 'M' ? '#3b82f6' : '#ec4899'}
+    />
+  ));
 }

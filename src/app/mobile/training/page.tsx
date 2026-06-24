@@ -1,13 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import {
   Calendar,
-  Sunrise,
-  Sun,
-  Moon,
   RefreshCw,
   Check,
   Thermometer,
@@ -17,74 +14,20 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { authAPI } from '@/lib/api/auth';
-
-interface Student {
-  id: number;
-  assignment_id: number;
-  training_log_id?: number;
-  name: string;
-  gender: 'male' | 'female';
-  condition_score?: number;
-  notes?: string;
-  is_trial?: boolean;
-  trial_total?: number;
-  trial_remaining?: number;
-}
-
-interface ClassInstructor {
-  id: number;
-  name: string;
-  isOwner?: boolean;
-  isMain?: boolean;
-}
-
-interface ClassData {
-  class_num: number;
-  instructors: ClassInstructor[];
-  students: Array<{
-    id: number;
-    student_id: number;
-    student_name: string;
-    gender: string;
-    is_trial?: boolean;
-    trial_total?: number;
-    trial_remaining?: number;
-  }>;
-}
-
-interface PlannedExercise {
-  id: number;
-  name: string;
-  sets?: number;
-  reps?: number;
-  completed?: boolean;
-  completed_at?: string;
-}
-
-interface DailyPlan {
-  id: number;
-  exercises: PlannedExercise[];
-  completed_exercises: number[];
-  exercise_times: Record<number, string>;
-}
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
-
-const timeSlotConfig = [
-  { key: 'morning', label: '오전', icon: Sunrise },
-  { key: 'afternoon', label: '오후', icon: Sun },
-  { key: 'evening', label: '저녁', icon: Moon },
-];
-
-const conditionEmojis = [
-  { score: 1, emoji: '😞', label: '나쁨' },
-  { score: 2, emoji: '😐', label: '보통' },
-  { score: 3, emoji: '🙂', label: '좋음' },
-  { score: 4, emoji: '😃', label: '매우좋음' },
-  { score: 5, emoji: '👍', label: '최상' },
-];
+import { useToast } from '@/hooks/useToast';
+import {
+  API_BASE,
+  conditionEmojis,
+  timeSlotConfig,
+  type ClassData,
+  type ClassInstructor,
+  type DailyPlan,
+  type Student,
+} from './training-model';
 
 export default function MobileTrainingPage() {
+  const toast = useToast();
+  const toastRef = useRef(toast);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('morning');
   const [activeTab, setActiveTab] = useState<'checklist' | 'condition'>('condition');
@@ -98,6 +41,10 @@ export default function MobileTrainingPage() {
 
   // 유저 정보
   const [user, setUser] = useState<{ id: number; name: string } | null>(null);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   useEffect(() => {
     const currentUser = authAPI.getCurrentUser();
@@ -116,6 +63,7 @@ export default function MobileTrainingPage() {
         `${API_BASE}/assignments?date=${selectedDate}`,
         { headers }
       );
+      if (!assignmentsRes.ok) throw new Error('assignments');
       const assignmentsData = await assignmentsRes.json();
 
       // 기존 수업 기록 로드
@@ -123,6 +71,7 @@ export default function MobileTrainingPage() {
         `${API_BASE}/training?date=${selectedDate}`,
         { headers }
       );
+      if (!trainingRes.ok) throw new Error('training');
       const trainingData = await trainingRes.json();
       const existingLogs = trainingData.logs || [];
 
@@ -173,6 +122,7 @@ export default function MobileTrainingPage() {
         `${API_BASE}/plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
         { headers }
       );
+      if (!planRes.ok) throw new Error('plans');
       const planData = await planRes.json();
 
       const myInstructorId = userInstructorId || userNegativeId;
@@ -180,8 +130,8 @@ export default function MobileTrainingPage() {
         p.instructor_id === myInstructorId
       );
       setPlans(myPlans);
-    } catch (error) {
-      console.error('Failed to load data:', error);
+    } catch {
+      toastRef.current.error('수업 기록 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
@@ -198,7 +148,7 @@ export default function MobileTrainingPage() {
 
     try {
       const token = authAPI.getToken();
-      await fetch(`${API_BASE}/training/${trainingLogId}`, {
+      const response = await fetch(`${API_BASE}/training/${trainingLogId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -206,6 +156,7 @@ export default function MobileTrainingPage() {
         },
         body: JSON.stringify({ condition_score: conditionScore }),
       });
+      if (!response.ok) throw new Error('condition');
 
       setStudents(prev =>
         prev.map(s =>
@@ -214,8 +165,8 @@ export default function MobileTrainingPage() {
             : s
         )
       );
-    } catch (error) {
-      console.error('Failed to save condition:', error);
+    } catch {
+      toastRef.current.error('학생 컨디션을 저장하지 못했습니다. 다시 시도해주세요.');
     } finally {
       setTimeout(() => setSaving(null), 500);
     }
@@ -228,7 +179,7 @@ export default function MobileTrainingPage() {
 
     try {
       const token = authAPI.getToken();
-      await fetch(`${API_BASE}/training/${trainingLogId}`, {
+      const response = await fetch(`${API_BASE}/training/${trainingLogId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -236,6 +187,7 @@ export default function MobileTrainingPage() {
         },
         body: JSON.stringify({ notes }),
       });
+      if (!response.ok) throw new Error('notes');
 
       setStudents(prev =>
         prev.map(s =>
@@ -244,8 +196,8 @@ export default function MobileTrainingPage() {
             : s
         )
       );
-    } catch (error) {
-      console.error('Failed to save notes:', error);
+    } catch {
+      toastRef.current.error('학생 메모를 저장하지 못했습니다. 다시 시도해주세요.');
     } finally {
       setTimeout(() => setSaving(null), 500);
     }
@@ -265,6 +217,7 @@ export default function MobileTrainingPage() {
         },
         body: JSON.stringify({ exercise_id: exerciseId }),
       });
+      if (!res.ok) throw new Error('toggle');
       const data = await res.json();
 
       setPlans(prev => prev.map(p =>
@@ -272,8 +225,8 @@ export default function MobileTrainingPage() {
           ? { ...p, completed_exercises: data.completed_exercises || [], exercise_times: data.exercise_times || {} }
           : p
       ));
-    } catch (error) {
-      console.error('Failed to toggle exercise:', error);
+    } catch {
+      toastRef.current.error('운동 완료 상태를 저장하지 못했습니다. 다시 시도해주세요.');
     }
   };
 

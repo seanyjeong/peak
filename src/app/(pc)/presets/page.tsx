@@ -1,251 +1,34 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useToast } from '@/hooks/useToast';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
+  DragEndEvent,
   DragOverlay,
-  pointerWithin,
+  DragStartEvent,
   PointerSensor,
   TouchSensor,
+  pointerWithin,
   useSensor,
   useSensors,
-  DragStartEvent,
-  DragEndEvent,
-  useDroppable,
 } from '@dnd-kit/core';
-import { useDraggable } from '@dnd-kit/core';
-import { Layers, Plus, Trash2, RefreshCw, Users, UserCheck, Edit3, X, Check, ChevronDown } from 'lucide-react';
+import { Layers, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import apiClient from '@/lib/api/client';
-
-interface Student {
-  id?: number;
-  student_id: number;
-  name: string;
-  gender: string;
-  grade: string;
-  school: string;
-  status: string;
-}
-
-interface Group {
-  id: number;
-  name: string;
-  instructor_id: number | null;
-  instructor_name?: string;
-  order_num: number;
-  members: Student[];
-}
-
-interface Preset {
-  id: number;
-  name: string;
-  type: 'homeroom' | 'group';
-  is_active: boolean;
-  groups: Group[];
-}
-
-interface InstructorOption {
-  id: number;
-  name: string;
-  isOwner: boolean;
-}
-
-// Draggable student pill
-function DragStudentPill({ student, groupId }: { student: Student; groupId: string }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `student-${groupId}-${student.student_id}`,
-    data: { type: 'student', student, fromGroup: groupId },
-  });
-
-  const genderColor = student.gender === 'M' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700';
-
-  return (
-    <div
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      className={`inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-slate-800 rounded-lg border cursor-grab active:cursor-grabbing text-sm transition ${
-        isDragging ? 'opacity-40 border-orange-400' : 'hover:border-slate-300 dark:hover:border-slate-600'
-      }`}
-    >
-      <span className={`px-1 py-0.5 rounded text-[10px] font-medium ${genderColor}`}>
-        {student.gender === 'M' ? '남' : '여'}
-      </span>
-      <span className="text-slate-800 dark:text-slate-100 truncate max-w-[60px]">{student.name}</span>
-    </div>
-  );
-}
-
-// Static student pill (for overlay)
-function StudentPill({ student }: { student: Student }) {
-  const genderColor = student.gender === 'M' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700';
-  return (
-    <div className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-lg border border-orange-400 shadow-lg text-sm">
-      <span className={`px-1 py-0.5 rounded text-[10px] font-medium ${genderColor}`}>
-        {student.gender === 'M' ? '남' : '여'}
-      </span>
-      <span className="text-slate-800 truncate max-w-[60px]">{student.name}</span>
-    </div>
-  );
-}
-
-// Droppable group column
-function GroupColumn({
-  group,
-  preset,
-  instructors,
-  onUpdateGroup,
-  onDeleteGroup,
-}: {
-  group: Group;
-  preset: Preset;
-  instructors: InstructorOption[];
-  onUpdateGroup: (groupId: number, data: Partial<Group>) => void;
-  onDeleteGroup: (groupId: number) => void;
-}) {
-  const { setNodeRef, isOver } = useDroppable({ id: `group-${group.id}` });
-  const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(group.name);
-  const [showInstructorPicker, setShowInstructorPicker] = useState(false);
-
-  const handleSaveName = () => {
-    if (editName.trim() && editName !== group.name) {
-      onUpdateGroup(group.id, { name: editName.trim() });
-    }
-    setEditing(false);
-  };
-
-  const handlePickInstructor = (instructorId: number | null) => {
-    if (instructorId !== null) {
-      const instructor = instructors.find(i => i.id === instructorId);
-      if (instructor) {
-        onUpdateGroup(group.id, { instructor_id: instructorId, name: `${instructor.name}반` } as Partial<Group>);
-      } else {
-        onUpdateGroup(group.id, { instructor_id: instructorId } as Partial<Group>);
-      }
-    } else {
-      onUpdateGroup(group.id, { instructor_id: instructorId } as Partial<Group>);
-    }
-    setShowInstructorPicker(false);
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`w-56 flex-shrink-0 rounded-xl border-2 transition ${
-        isOver ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
-      }`}
-    >
-      {/* Group Header */}
-      <div className="p-3 border-b border-slate-100 dark:border-slate-700">
-        <div className="flex items-center justify-between mb-1.5">
-          {editing ? (
-            <div className="flex items-center gap-1 flex-1">
-              <input
-                value={editName}
-                onChange={e => setEditName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSaveName()}
-                className="flex-1 px-2 py-0.5 text-sm border rounded bg-white dark:bg-slate-700 dark:text-white"
-                autoFocus
-              />
-              <button onClick={handleSaveName} className="p-0.5 text-green-600 hover:bg-green-50 rounded"><Check size={14} /></button>
-              <button onClick={() => setEditing(false)} className="p-0.5 text-slate-400 hover:bg-slate-50 rounded"><X size={14} /></button>
-            </div>
-          ) : (
-            <>
-              <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate">{group.name}</h3>
-              <div className="flex items-center gap-0.5">
-                <button onClick={() => { setEditName(group.name); setEditing(true); }} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"><Edit3 size={12} /></button>
-                <button onClick={() => onDeleteGroup(group.id)} className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"><Trash2 size={12} /></button>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Instructor */}
-        <div className="relative">
-          <button
-            onClick={() => setShowInstructorPicker(!showInstructorPicker)}
-            className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-700 text-xs hover:bg-slate-100 dark:hover:bg-slate-600 transition"
-          >
-            <span className={group.instructor_name ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400'}>
-              {group.instructor_name || '강사 선택'}
-            </span>
-            <ChevronDown size={12} className="text-slate-400" />
-          </button>
-
-          {showInstructorPicker && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-20 max-h-40 overflow-auto">
-              <button
-                onClick={() => handlePickInstructor(null)}
-                className="w-full text-left px-3 py-2 text-xs text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
-              >
-                선택 안 함
-              </button>
-              {instructors.map(inst => (
-                <button
-                  key={inst.id}
-                  onClick={() => handlePickInstructor(inst.id)}
-                  className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 ${
-                    inst.id === group.instructor_id ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600' : 'text-slate-700 dark:text-slate-200'
-                  }`}
-                >
-                  {inst.name} {inst.isOwner && '(원장)'}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Students */}
-      <div className="p-2 min-h-[80px] flex flex-wrap gap-1.5 content-start">
-        {group.members.map(s => (
-          <DragStudentPill key={s.student_id} student={s} groupId={String(group.id)} />
-        ))}
-        {group.members.length === 0 && (
-          <p className="w-full text-center text-slate-300 dark:text-slate-600 text-xs py-4">학생을 드래그하세요</p>
-        )}
-      </div>
-
-      <div className="px-3 pb-2 text-right">
-        <span className="text-[11px] text-slate-400">{group.members.length}명</span>
-      </div>
-    </div>
-  );
-}
-
-// Droppable unassigned area
-function UnassignedArea({ students }: { students: Student[] }) {
-  const { setNodeRef, isOver } = useDroppable({ id: 'unassigned' });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`rounded-xl border-2 border-dashed p-3 transition ${
-        isOver ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20' : 'border-slate-200 dark:border-slate-700'
-      }`}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <Users size={14} className="text-slate-500" />
-        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">미배정 학생</span>
-        <span className="text-xs text-slate-400">({students.length}명)</span>
-      </div>
-      <div className="flex flex-wrap gap-1.5 min-h-[40px]">
-        {students.map(s => (
-          <DragStudentPill key={s.student_id} student={s} groupId="unassigned" />
-        ))}
-        {students.length === 0 && (
-          <p className="text-xs text-slate-300 dark:text-slate-600 py-2">모든 학생이 그룹에 배정되었습니다</p>
-        )}
-      </div>
-    </div>
-  );
-}
+import { useToast } from '@/hooks/useToast';
+import {
+  getPresetTypeLabel,
+  toPresetStudent,
+  type Group,
+  type InstructorOption,
+  type NewPresetType,
+  type Preset,
+  type Student,
+} from './presets-model';
+import { GroupColumn, StudentPill, UnassignedArea } from './presets-dnd';
 
 export default function PresetsPage() {
   const toast = useToast();
+  const toastRef = useRef(toast);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [activePresetId, setActivePresetId] = useState<number | null>(null);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
@@ -253,8 +36,12 @@ export default function PresetsPage() {
   const [loading, setLoading] = useState(true);
   const [showNewPreset, setShowNewPreset] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
-  const [newPresetType, setNewPresetType] = useState<'homeroom' | 'group'>('homeroom');
+  const [newPresetType, setNewPresetType] = useState<NewPresetType>('homeroom');
   const [activeItem, setActiveItem] = useState<{ student: Student } | null>(null);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -262,91 +49,75 @@ export default function PresetsPage() {
   );
 
   const fetchPresets = useCallback(async () => {
-    try {
-      const res = await apiClient.get('/presets');
-      setPresets(res.data.presets);
-      if (res.data.presets.length > 0 && !activePresetId) {
-        setActivePresetId(res.data.presets[0].id);
-      }
-    } catch (e) {
-      console.error('Failed to fetch presets:', e);
-      toast.error(e);
-    }
-  }, [activePresetId]);
+    const res = await apiClient.get<{ presets?: Preset[] }>('/presets');
+    const nextPresets = res.data.presets || [];
+    setPresets(nextPresets);
+    setActivePresetId((current) => current || nextPresets[0]?.id || null);
+  }, []);
 
   const fetchStudents = useCallback(async () => {
-    try {
-      // Get all active students
-      const res = await apiClient.get('/students?status=active');
-      setAllStudents(res.data.students || []);
-    } catch (e) {
-      console.error('Failed to fetch students:', e);
-      toast.error(e);
-    }
+    const res = await apiClient.get<{ students?: Student[] }>('/students?status=active');
+    setAllStudents(res.data.students || []);
   }, []);
 
   const fetchInstructors = useCallback(async () => {
-    try {
-      const res = await apiClient.get('/presets/instructors');
-      const list = res.data.instructors || [];
-      setInstructors(list.map((inst: any) => ({ id: inst.id, name: inst.name, isOwner: inst.id < 0 })));
-    } catch (e) {
-      console.error('Failed to fetch instructors:', e);
-      toast.error(e);
-    }
+    const res = await apiClient.get<{ instructors?: Array<{ id: number; name: string }> }>('/presets/instructors');
+    setInstructors((res.data.instructors || []).map((instructor) => ({
+      id: instructor.id,
+      name: instructor.name,
+      isOwner: instructor.id < 0,
+    })));
   }, []);
 
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      await Promise.all([fetchPresets(), fetchStudents(), fetchInstructors()]);
+    } catch {
+      toastRef.current.error('프리셋 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchInstructors, fetchPresets, fetchStudents]);
+
   useEffect(() => {
-    Promise.all([fetchPresets(), fetchStudents(), fetchInstructors()])
-      .finally(() => setLoading(false));
-  }, [fetchPresets, fetchStudents, fetchInstructors]);
+    loadData();
+  }, [loadData]);
 
-  const activePreset = presets.find(p => p.id === activePresetId) || null;
-
-  // Unassigned students = all active students NOT in any group of the active preset
-  const assignedStudentIds = new Set(
-    activePreset?.groups.flatMap(g => g.members.map(m => m.student_id)) || []
-  );
+  const activePreset = presets.find((preset) => preset.id === activePresetId) || null;
+  const assignedStudentIds = useMemo(() => new Set(
+    activePreset?.groups.flatMap((group) => group.members.map((member) => member.student_id)) || []
+  ), [activePreset]);
   const unassignedStudents = allStudents
-    .filter(s => !assignedStudentIds.has(s.id as number))
-    .map(s => ({
-      student_id: s.id ?? s.student_id,
-      name: s.name,
-      gender: s.gender,
-      grade: s.grade,
-      school: s.school,
-      status: s.status,
-    }));
+    .filter((student) => !assignedStudentIds.has(student.id ?? student.student_id))
+    .map(toPresetStudent);
+  const assignedCount = activePreset?.groups.reduce((sum, group) => sum + group.members.length, 0) || 0;
 
-  // Create preset
   const handleCreatePreset = async () => {
     if (!newPresetName.trim()) return;
     try {
-      const res = await apiClient.post('/presets', { name: newPresetName.trim(), type: newPresetType });
+      const res = await apiClient.post<{ id: number }>('/presets', { name: newPresetName.trim(), type: newPresetType });
       setActivePresetId(res.data.id);
       setShowNewPreset(false);
       setNewPresetName('');
       await fetchPresets();
-    } catch (e) {
-      console.error('Failed to create preset:', e);
-      toast.error(e);
+      toastRef.current.success('새 프리셋을 만들었습니다.');
+    } catch {
+      toastRef.current.error('프리셋을 만들지 못했습니다. 다시 시도해주세요.');
     }
   };
 
-  // Delete preset
   const handleDeletePreset = async (id: number) => {
     if (!confirm('이 프리셋을 삭제하시겠습니까? 모든 그룹과 학생 배정이 삭제됩니다.')) return;
     try {
       await apiClient.delete(`/presets/${id}`);
-      if (activePresetId === id) setActivePresetId(null);
+      setActivePresetId((current) => (current === id ? null : current));
       await fetchPresets();
-    } catch (e) {
-      console.error('Failed to delete preset:', e);
-      toast.error(e);
+    } catch {
+      toastRef.current.error('프리셋을 삭제하지 못했습니다. 다시 시도해주세요.');
     }
   };
 
-  // Add group
   const handleAddGroup = async () => {
     if (!activePresetId) return;
     try {
@@ -354,42 +125,33 @@ export default function PresetsPage() {
         name: activePreset?.type === 'homeroom' ? '새 담임반' : '새 그룹',
       });
       await fetchPresets();
-    } catch (e) {
-      console.error('Failed to add group:', e);
-      toast.error(e);
+    } catch {
+      toastRef.current.error('그룹을 추가하지 못했습니다. 다시 시도해주세요.');
     }
   };
 
-  // Update group
   const handleUpdateGroup = async (groupId: number, data: Partial<Group>) => {
     try {
       await apiClient.put(`/presets/groups/${groupId}`, data);
       await fetchPresets();
-    } catch (e) {
-      console.error('Failed to update group:', e);
-      toast.error(e);
+    } catch {
+      toastRef.current.error('그룹 정보를 저장하지 못했습니다. 다시 시도해주세요.');
     }
   };
 
-  // Delete group
   const handleDeleteGroup = async (groupId: number) => {
     if (!confirm('이 그룹을 삭제하시겠습니까?')) return;
     try {
       await apiClient.delete(`/presets/groups/${groupId}`);
       await fetchPresets();
-    } catch (e) {
-      console.error('Failed to delete group:', e);
-      toast.error(e);
+    } catch {
+      toastRef.current.error('그룹을 삭제하지 못했습니다. 다시 시도해주세요.');
     }
   };
 
-  // D&D handlers
   const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const data = active.data.current;
-    if (data?.type === 'student') {
-      setActiveItem({ student: data.student });
-    }
+    const data = event.active.data.current;
+    if (data?.type === 'student') setActiveItem({ student: data.student });
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -399,188 +161,212 @@ export default function PresetsPage() {
 
     const { student, fromGroup } = active.data.current;
     const toGroup = String(over.id).replace('group-', '');
-
     if (fromGroup === toGroup) return;
 
     try {
-      // Remove from old group
       if (fromGroup !== 'unassigned') {
         await apiClient.delete(`/presets/groups/${fromGroup}/members`, {
-          data: { student_ids: [student.student_id] }
+          data: { student_ids: [student.student_id] },
         });
       }
-
-      // Add to new group
       if (toGroup !== 'unassigned') {
         await apiClient.post(`/presets/groups/${toGroup}/members`, {
-          student_ids: [student.student_id]
+          student_ids: [student.student_id],
         });
       }
-
       await fetchPresets();
-    } catch (e) {
-      console.error('Failed to move student:', e);
-      toast.error(e);
+    } catch {
+      toastRef.current.error('학생 배정을 저장하지 못했습니다. 다시 시도해주세요.');
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <RefreshCw size={32} className="animate-spin text-slate-400" />
+      <div className="flex min-h-[520px] items-center justify-center" data-testid="presets-loading">
+        <RefreshCw size={18} className="mr-2 animate-spin text-orange-500" />
+        <span className="text-sm text-slate-500 dark:text-slate-400">프리셋 데이터를 불러오는 중입니다.</span>
       </div>
     );
   }
 
   return (
-    <div className="max-w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-[1480px] space-y-6" data-testid="presets-page">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">반 프리셋</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">자동 반배치를 위한 학생 그룹 설정</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Preset Desk</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">반 프리셋</h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">자동 반 배치에 사용할 학생 그룹과 담당 강사를 관리합니다.</p>
         </div>
         <button
           onClick={() => setShowNewPreset(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+          className="inline-flex h-10 items-center gap-2 rounded-md bg-orange-600 px-4 text-sm font-medium text-white transition hover:bg-orange-700"
         >
-          <Plus size={18} />
-          <span>새 프리셋</span>
+          <Plus size={16} />
+          새 프리셋
         </button>
-      </div>
+      </header>
 
-      {/* New Preset Modal */}
-      {showNewPreset && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">새 프리셋 만들기</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">프리셋 이름</label>
-                <input
-                  value={newPresetName}
-                  onChange={e => setNewPresetName(e.target.value)}
-                  placeholder="예: 담임제, 대학별"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white"
-                  autoFocus
-                  onKeyDown={e => e.key === 'Enter' && handleCreatePreset()}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">타입</label>
-                <div className="flex gap-2">
-                  {[
-                    { key: 'homeroom' as const, label: '담임제', desc: '강사별 고정 학생' },
-                    { key: 'group' as const, label: '그룹별', desc: '이름 기반 자유 그룹' },
-                  ].map(t => (
-                    <button
-                      key={t.key}
-                      onClick={() => setNewPresetType(t.key)}
-                      className={`flex-1 p-3 rounded-lg border-2 text-left transition ${
-                        newPresetType === t.key
-                          ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                          : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
-                      }`}
-                    >
-                      <p className="font-medium text-sm text-slate-800 dark:text-slate-100">{t.label}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{t.desc}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowNewPreset(false)} className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">취소</button>
-              <button onClick={handleCreatePreset} disabled={!newPresetName.trim()} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50">만들기</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <section className="grid gap-3 md:grid-cols-3" aria-label="프리셋 요약">
+        <Metric label="프리셋" value={`${presets.length}개`} detail="사용 가능한 구성" />
+        <Metric label="배정 학생" value={`${assignedCount}명`} detail={activePreset ? activePreset.name : '선택 없음'} />
+        <Metric label="미배정" value={`${unassignedStudents.length}명`} detail="그룹 이동 가능" />
+      </section>
 
-      {/* Preset Tabs */}
-      {presets.length > 0 && (
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          {presets.map(p => (
-            <div key={p.id} className="flex items-center">
-              <button
-                onClick={() => setActivePresetId(p.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  activePresetId === p.id
-                    ? 'bg-orange-500 text-white shadow-sm'
-                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-                }`}
-              >
-                <Layers size={14} />
-                <span>{p.name}</span>
-                <span className={`text-xs px-1.5 rounded-full ${activePresetId === p.id ? 'bg-white/25' : 'bg-slate-100 dark:bg-slate-700'}`}>
-                  {p.type === 'homeroom' ? '담임' : '그룹'}
-                </span>
-              </button>
-              {activePresetId === p.id && (
+      {showNewPreset ? (
+        <NewPresetModal
+          name={newPresetName}
+          type={newPresetType}
+          onNameChange={setNewPresetName}
+          onTypeChange={setNewPresetType}
+          onCancel={() => setShowNewPreset(false)}
+          onSubmit={handleCreatePreset}
+        />
+      ) : null}
+
+      {presets.length === 0 ? (
+        <EmptyPresetState onCreate={() => setShowNewPreset(true)} />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            {presets.map((preset) => (
+              <div key={preset.id} className="flex items-center">
                 <button
-                  onClick={() => handleDeletePreset(p.id)}
-                  className="ml-1 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition"
-                  title="프리셋 삭제"
+                  onClick={() => setActivePresetId(preset.id)}
+                  className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium transition ${
+                    activePresetId === preset.id
+                      ? 'border-orange-500 bg-orange-50 text-orange-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                  }`}
                 >
-                  <Trash2 size={14} />
+                  <Layers size={14} />
+                  {preset.name}
+                  <span className="rounded bg-white px-1.5 py-0.5 text-xs text-slate-500 dark:bg-slate-800">
+                    {getPresetTypeLabel(preset.type)}
+                  </span>
                 </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Empty State */}
-      {presets.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-80 text-slate-400 dark:text-slate-500">
-          <Layers size={48} className="mb-4 opacity-50" />
-          <p className="text-lg font-medium mb-1">프리셋이 없습니다</p>
-          <p className="text-sm">새 프리셋을 만들어 자동 반배치를 설정하세요</p>
-        </div>
-      )}
-
-      {/* Active Preset Content */}
-      {activePreset && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={pointerWithin}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          {/* Unassigned Students */}
-          <div className="mb-4">
-            <UnassignedArea students={unassignedStudents} />
-          </div>
-
-          {/* Groups */}
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {activePreset.groups.map(group => (
-              <GroupColumn
-                key={group.id}
-                group={group}
-                preset={activePreset}
-                instructors={instructors}
-                onUpdateGroup={handleUpdateGroup}
-                onDeleteGroup={handleDeleteGroup}
-              />
+                {activePresetId === preset.id ? (
+                  <button
+                    onClick={() => handleDeletePreset(preset.id)}
+                    className="ml-1 rounded-md p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
+                    title="프리셋 삭제"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                ) : null}
+              </div>
             ))}
-
-            {/* Add Group */}
-            <button
-              onClick={handleAddGroup}
-              className="w-48 flex-shrink-0 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition flex flex-col items-center justify-center gap-2 min-h-[200px]"
-            >
-              <Plus size={24} className="text-slate-300 dark:text-slate-600" />
-              <span className="text-sm text-slate-400 dark:text-slate-500">그룹 추가</span>
-            </button>
           </div>
 
-          {/* Drag Overlay */}
-          <DragOverlay>
-            {activeItem && <StudentPill student={activeItem.student} />}
-          </DragOverlay>
-        </DndContext>
+          {activePreset ? (
+            <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+              <UnassignedArea students={unassignedStudents} />
+              <div className="flex gap-4 overflow-x-auto pb-4" data-testid="preset-groups">
+                {activePreset.groups.map((group) => (
+                  <GroupColumn
+                    key={group.id}
+                    group={group}
+                    preset={activePreset}
+                    instructors={instructors}
+                    onUpdateGroup={handleUpdateGroup}
+                    onDeleteGroup={handleDeleteGroup}
+                  />
+                ))}
+                <button
+                  onClick={handleAddGroup}
+                  className="flex min-h-[220px] w-52 shrink-0 flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-slate-300 bg-white transition hover:border-orange-400 hover:bg-orange-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-orange-950/30"
+                >
+                  <Plus size={24} className="text-slate-300 dark:text-slate-600" />
+                  <span className="text-sm text-slate-400 dark:text-slate-500">그룹 추가</span>
+                </button>
+              </div>
+              <DragOverlay>{activeItem ? <StudentPill student={activeItem.student} /> : null}</DragOverlay>
+            </DndContext>
+          ) : null}
+        </>
       )}
+    </div>
+  );
+}
+
+function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <article className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-3 text-3xl font-semibold text-slate-950 dark:text-slate-50">{value}</p>
+      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{detail}</p>
+    </article>
+  );
+}
+
+function NewPresetModal({
+  name,
+  type,
+  onNameChange,
+  onTypeChange,
+  onCancel,
+  onSubmit,
+}: {
+  name: string;
+  type: NewPresetType;
+  onNameChange: (name: string) => void;
+  onTypeChange: (type: NewPresetType) => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="mx-4 w-full max-w-md rounded-md bg-white p-6 shadow-xl dark:bg-slate-900">
+        <h3 className="text-lg font-semibold text-slate-950 dark:text-slate-50">새 프리셋 만들기</h3>
+        <div className="mt-4 space-y-4">
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">프리셋 이름</span>
+            <input
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+              placeholder="예: 담임제, 대학별"
+              className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              autoFocus
+              onKeyDown={(event) => event.key === 'Enter' && onSubmit()}
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <TypeButton active={type === 'homeroom'} label="담임제" detail="강사별 고정 학생" onClick={() => onTypeChange('homeroom')} />
+            <TypeButton active={type === 'group'} label="그룹별" detail="자유 그룹 구성" onClick={() => onTypeChange('group')} />
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onCancel} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">취소</button>
+          <button onClick={onSubmit} disabled={!name.trim()} className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-orange-700 disabled:opacity-50">만들기</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TypeButton({ active, label, detail, onClick }: { active: boolean; label: string; detail: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-md border-2 p-3 text-left transition ${
+        active ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30' : 'border-slate-200 hover:border-slate-300 dark:border-slate-700'
+      }`}
+    >
+      <p className="text-sm font-medium text-slate-950 dark:text-slate-50">{label}</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{detail}</p>
+    </button>
+  );
+}
+
+function EmptyPresetState({ onCreate }: { onCreate: () => void }) {
+  return (
+    <div className="flex min-h-[360px] flex-col items-center justify-center rounded-md border border-slate-200 bg-white text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <Layers size={44} className="text-slate-300 dark:text-slate-600" />
+      <p className="mt-4 font-medium text-slate-700 dark:text-slate-200">프리셋이 없습니다.</p>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">새 프리셋을 만들어 자동 반 배치를 준비하세요.</p>
+      <button onClick={onCreate} className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-orange-600 px-4 text-sm font-medium text-white hover:bg-orange-700">
+        <Plus size={16} />
+        새 프리셋
+      </button>
     </div>
   );
 }

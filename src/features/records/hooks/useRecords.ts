@@ -135,8 +135,7 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
         }
       }
       setScoreTablesCache(scoreTablesData);
-    } catch (error) {
-      console.error('Failed to fetch records data:', error);
+    } catch {
     } finally {
       setLoading(false);
     }

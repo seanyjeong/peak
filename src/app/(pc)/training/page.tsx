@@ -1,851 +1,326 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/useToast';
-import Link from 'next/link';
-import { Activity, RefreshCw, Check, User, Smile, Meh, Frown, AlertCircle, ThumbsUp, Thermometer, Droplets, Plus, ClipboardList, X, Calendar, ExternalLink } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Calendar, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { authAPI, User as AuthUser } from '@/lib/api/auth';
-
-interface Student {
-  id: number;
-  student_id: number;
-  student_name: string;
-  gender: 'M' | 'F';
-  status: string;
-  attendance_status?: 'scheduled' | 'present' | 'absent' | 'late' | 'early_leave';
-  absence_reason?: string | null;
-}
-
-interface ClassInstructor {
-  id: number;
-  name: string;
-  isOwner: boolean;
-  isMain: boolean;
-}
-
-interface ClassData {
-  class_num: number;
-  instructors: ClassInstructor[];
-  students: Student[];
-}
-
-interface SlotData {
-  waitingStudents: Student[];
-  waitingInstructors: { id: number; name: string; isOwner: boolean }[];
-  classes: ClassData[];
-}
-
-interface Exercise {
-  id: number;
-  name: string;
-  tags: string[];
-}
-
-interface PlanExercise {
-  exercise_id: number;
-  note?: string;
-  weight?: string;
-  reps?: number;
-}
-
-interface ExtraExercise {
-  exercise_id?: number;
-  name: string;
-  note?: string;
-  completed: boolean;
-}
-
-interface Plan {
-  id: number;
-  date: string;
-  time_slot: string;
-  instructor_id: number;
-  instructor_name: string;
-  exercises: PlanExercise[];
-  completed_exercises: number[];
-  extra_exercises: ExtraExercise[];
-  exercise_times: Record<string, string>;
-  conditions_checked: boolean | number;
-  conditions_checked_at: string | null;
-  temperature: number | null;
-  humidity: number | null;
-}
-
-interface ExistingLog {
-  id: number;
-  student_id: number;
-  condition_score: number | null;
-  notes: string;
-}
-
-const CONDITION_OPTIONS = [
-  { score: 1, icon: Frown, label: '매우 나쁨', color: 'text-red-500 bg-red-50 border-red-200' },
-  { score: 2, icon: Frown, label: '나쁨', color: 'text-orange-500 bg-orange-50 border-orange-200' },
-  { score: 3, icon: Meh, label: '보통', color: 'text-yellow-500 bg-yellow-50 border-yellow-200' },
-  { score: 4, icon: Smile, label: '좋음', color: 'text-green-500 bg-green-50 border-green-200' },
-  { score: 5, icon: ThumbsUp, label: '최상', color: 'text-blue-500 bg-blue-50 border-blue-200' },
-];
-
-const SLOT_LABELS: Record<string, string> = {
-  morning: '오전반',
-  afternoon: '오후반',
-  evening: '저녁반'
-};
-
-// plans API에서 받은 강사 목록 타입
-interface ScheduledInstructor {
-  id: number;
-  name: string;
-  user_id: number;
-  time_slot: string;
-  isOwner?: boolean;
-}
+import { useToast } from '@/hooks/useToast';
+import {
+  ExistingLog,
+  Exercise,
+  findTrainerForStudent,
+  formatKoreanDate,
+  getAvailableSlots,
+  getStudentsForSelection,
+  Plan,
+  ScheduledInstructor,
+  shiftIsoDate,
+  SlotData,
+  TimeSlot,
+  todayIsoDate,
+} from './training-model';
+import { ChecklistPanel, EmptyState, SlotTabs, StudentConditionPanel } from './training-ui';
 
 export default function TrainingPage() {
   const toast = useToast();
+  const [selectedDate, setSelectedDate] = useState(todayIsoDate);
   const [slots, setSlots] = useState<Record<string, SlotData>>({});
-  const [planSlots, setPlanSlots] = useState<Record<string, ScheduledInstructor[]>>({});  // plans API의 강사 목록
+  const [planSlots, setPlanSlots] = useState<Record<string, ScheduledInstructor[]>>({});
   const [plans, setPlans] = useState<Plan[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<string>('');
-  const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null);  // instructor_id로 변경
   const [existingLogs, setExistingLogs] = useState<ExistingLog[]>([]);
-
-  // 날짜 선택
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  });
-
-  // 온습도
-  const [temperature, setTemperature] = useState<string>('');
-  const [humidity, setHumidity] = useState<string>('');
-
-  // 추가 운동 모달
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | ''>('');
+  const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [temperature, setTemperature] = useState('');
+  const [humidity, setHumidity] = useState('');
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseNote, setNewExerciseNote] = useState('');
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
-
-  // 선택된 날짜를 한글로 표시
-  const formatDateKorean = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long'
-    });
-  };
+  const availableSlots = useMemo(() => getAvailableSlots(slots), [slots]);
+  const currentSlotData = selectedSlot ? slots[selectedSlot] : undefined;
+  const currentInstructors = selectedSlot ? planSlots[selectedSlot] || [] : [];
+  const currentPlan = selectedSlot
+    ? plans.find((plan) => plan.time_slot === selectedSlot && (selectedInstructorId ? plan.instructor_id === selectedInstructorId : true))
+    : undefined;
+  const students = useMemo(
+    () => getStudentsForSelection(currentSlotData, isAdmin, selectedInstructorId),
+    [currentSlotData, isAdmin, selectedInstructorId]
+  );
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const dateStr = selectedDate;
       const user = authAPI.getCurrentUser();
       setCurrentUser(user);
-
       const [assignmentsRes, trainingRes, plansRes, exercisesRes] = await Promise.all([
-        apiClient.get(`/assignments?date=${dateStr}`),
-        apiClient.get(`/training?date=${dateStr}`),
-        apiClient.get(`/plans?date=${dateStr}`),
-        apiClient.get('/exercises')
+        apiClient.get(`/assignments?date=${selectedDate}`),
+        apiClient.get(`/training?date=${selectedDate}`),
+        apiClient.get(`/plans?date=${selectedDate}`),
+        apiClient.get('/exercises'),
       ]);
 
-      const slotsData = assignmentsRes.data.slots || {};
-      const planSlotsData = plansRes.data.slots || {};  // plans API의 강사 목록
-      setSlots(slotsData);
-      setPlanSlots(planSlotsData);
+      const nextSlots = assignmentsRes.data.slots || {};
+      const nextPlanSlots = plansRes.data.slots || {};
+      setSlots(nextSlots);
+      setPlanSlots(nextPlanSlots);
       setExistingLogs(trainingRes.data.logs || []);
       setPlans(plansRes.data.plans || []);
       setExercises(exercisesRes.data.exercises || []);
-
-      // 자동 시간대 선택 (학생이 있는 시간대)
-      const myInstructorId = user?.instructorId;
-      const availableSlots: string[] = [];
-      let mySlot: string | null = null;
-      let myInstructorIdInSlot: number | null = null;
-
-      ['morning', 'afternoon', 'evening'].forEach(slot => {
-        const slotData = slotsData[slot] as SlotData;
-        if (!slotData) return;
-
-        // 학생이 있는지 확인 (반에 배치된 학생 + 대기 학생)
-        const hasStudentsInClasses = slotData.classes?.some(c => c.students && c.students.length > 0);
-        const hasWaitingStudents = slotData.waitingStudents && slotData.waitingStudents.length > 0;
-
-        if (hasStudentsInClasses || hasWaitingStudents) {
-          availableSlots.push(slot);
-
-          // 내가 해당 시간대에 스케줄되어 있는지 확인 (plans slots 기준)
-          const planInstructors = planSlotsData[slot] || [];
-          const mySchedule = planInstructors.find((i: ScheduledInstructor) => i.id === myInstructorId);
-          if (mySchedule) {
-            mySlot = slot;
-            myInstructorIdInSlot = mySchedule.id;
-          }
-        }
-      });
-
-      const admin = user?.role === 'admin' || user?.role === 'owner';
-      if (!admin && mySlot) {
-        setSelectedSlot(mySlot);
-        setSelectedInstructorId(myInstructorIdInSlot);  // 내 instructor_id
-      } else if (availableSlots.length > 0) {
-        setSelectedSlot(availableSlots[0]);
-        setSelectedInstructorId(null);
-      }
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error(error);
+      applyDefaultSelection(nextSlots, nextPlanSlots, user);
+    } catch {
+      toast.error('수업 기록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, [selectedDate]);
+  const applyDefaultSelection = (
+    nextSlots: Record<string, SlotData>,
+    nextPlanSlots: Record<string, ScheduledInstructor[]>,
+    user: AuthUser | null
+  ) => {
+    const slotsWithStudents = getAvailableSlots(nextSlots);
+    const userInstructorId = user?.instructorId || null;
+    const admin = user?.role === 'admin' || user?.role === 'owner';
 
-  // 학생이 배치된 시간대 목록 (반배치 기준)
-  const availableSlots = ['morning', 'afternoon', 'evening'].filter(slot => {
-    const slotData = slots[slot] as SlotData;
-    if (!slotData) return false;
-    const hasStudentsInClasses = slotData.classes?.some(c => c.students && c.students.length > 0);
-    const hasWaitingStudents = slotData.waitingStudents && slotData.waitingStudents.length > 0;
-    return hasStudentsInClasses || hasWaitingStudents;
-  });
-
-  const currentSlotData = slots[selectedSlot] as SlotData | undefined;
-  const currentClasses = currentSlotData?.classes || [];
-
-  // 현재 시간대/강사의 플랜 찾기 (직접 instructor_id 사용)
-  const currentPlan = plans.find(p =>
-    p.time_slot === selectedSlot &&
-    (selectedInstructorId ? p.instructor_id === selectedInstructorId : true)
-  );
-
-  // 현재 시간대의 강사 목록 (plans API 기준)
-  const currentInstructors = planSlots[selectedSlot] || [];
-
-  // 온습도 로드
-  useEffect(() => {
-    if (currentPlan) {
-      setTemperature(currentPlan.temperature?.toString() || '');
-      setHumidity(currentPlan.humidity?.toString() || '');
-    }
-  }, [currentPlan?.id]);
-
-  // 학생 목록 가져오기 (원장은 전체, 강사는 자기 반)
-  const getMyStudents = (): Student[] => {
-    if (!currentSlotData) return [];
-
-    if (isAdmin) {
-      // 원장/admin: 해당 시간대 전체 학생 (반 배치 + 대기)
-      const allStudents: Student[] = [];
-      currentSlotData.classes?.forEach(c => {
-        if (c.students) {
-          allStudents.push(...c.students);
-        }
-      });
-      if (currentSlotData.waitingStudents) {
-        allStudents.push(...currentSlotData.waitingStudents);
+    if (!admin && userInstructorId) {
+      const mySlot = slotsWithStudents.find((slot) => (
+        (nextPlanSlots[slot] || []).some((instructor) => instructor.id === userInstructorId)
+      ));
+      if (mySlot) {
+        setSelectedSlot(mySlot);
+        setSelectedInstructorId(userInstructorId);
+        return;
       }
-      return allStudents;
+    }
+
+    if (slotsWithStudents.length > 0) {
+      setSelectedSlot((current) => (current && slotsWithStudents.includes(current) ? current : slotsWithStudents[0]));
+      setSelectedInstructorId((current) => (admin ? current : null));
     } else {
-      // 일반 강사: 자기 반 학생만 (instructor_id로 찾기)
-      if (!selectedInstructorId) return [];
-      const myClass = currentClasses.find(c =>
-        c.instructors?.some(i => i.id === selectedInstructorId)
-      );
-      return myClass?.students || [];
+      setSelectedSlot('');
+      setSelectedInstructorId(null);
     }
   };
 
-  const myStudents = getMyStudents();
+  useEffect(() => {
+    void fetchData();
+    // fetchData는 selectedDate 기준 API 호출이라 날짜 변경 때만 재호출합니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
 
-  // 운동 이름 조회 (exercise_id 또는 id 둘 다 지원)
-  const getExerciseName = (exercise: PlanExercise | { id?: number; name?: string; exercise_id?: number }): string => {
-    // 모바일에서 저장된 형식 (id, name) 또는 PC에서 저장된 형식 (exercise_id)
-    if ('name' in exercise && exercise.name) {
-      return exercise.name;
-    }
-    const exerciseId = exercise.exercise_id || ('id' in exercise ? exercise.id : undefined);
-    if (!exerciseId) return '알 수 없음';
-    return exercises.find(e => e.id === exerciseId)?.name || `운동 #${exerciseId}`;
+  useEffect(() => {
+    setTemperature(currentPlan?.temperature?.toString() || '');
+    setHumidity(currentPlan?.humidity?.toString() || '');
+  }, [currentPlan?.id, currentPlan?.temperature, currentPlan?.humidity]);
+
+  const updatePlan = (planId: number, patch: Partial<Plan>) => {
+    setPlans((current) => current.map((plan) => plan.id === planId ? { ...plan, ...patch } : plan));
   };
 
-  // === 즉시 저장 함수들 ===
+  const updateSlotPlans = (slot: TimeSlot, patch: Partial<Plan>) => {
+    setPlans((current) => current.map((plan) => plan.time_slot === slot ? { ...plan, ...patch } : plan));
+  };
 
-  // 온습도 체크 토글
-  const toggleConditions = async (checked: boolean) => {
+  const saveConditions = async (checked?: boolean) => {
     if (!currentPlan) return;
+    const nextChecked = checked ?? Boolean(temperature || humidity || currentPlan.conditions_checked);
     try {
-      const res = await apiClient.put(`/plans/${currentPlan.id}/conditions`, {
-        temperature: temperature ? parseFloat(temperature) : null,
-        humidity: humidity ? parseInt(humidity) : null,
-        checked
+      const response = await apiClient.put(`/plans/${currentPlan.id}/conditions`, {
+        temperature: temperature ? Number(temperature) : null,
+        humidity: humidity ? Number(humidity) : null,
+        checked: nextChecked,
       });
-      // 같은 시간대의 모든 plan에 온습도 공유
-      const newTemp = temperature ? parseFloat(temperature) : null;
-      const newHumid = humidity ? parseInt(humidity) : null;
-      setPlans(prev => prev.map(p =>
-        p.time_slot === currentPlan.time_slot
-          ? { ...p, temperature: newTemp, humidity: newHumid, conditions_checked: checked ? 1 : 0, conditions_checked_at: res.data.checked_at }
-          : p
-      ));
-    } catch (error) {
-      console.error('Failed to save conditions:', error);
-      toast.error(error);
+      updateSlotPlans(currentPlan.time_slot, {
+        temperature: temperature ? Number(temperature) : null,
+        humidity: humidity ? Number(humidity) : null,
+        conditions_checked: nextChecked ? 1 : 0,
+        conditions_checked_at: response.data.checked_at,
+      });
+    } catch {
+      toast.error('체육관 환경 정보를 저장하지 못했습니다.');
     }
   };
 
-  // 온습도 값 저장 (blur시) - 값 있으면 자동 체크
-  const saveConditions = async () => {
-    if (!currentPlan) return;
-    const hasValues = temperature || humidity;
-    const shouldCheck = hasValues ? true : currentPlan.conditions_checked ? true : false;
-
-    try {
-      const res = await apiClient.put(`/plans/${currentPlan.id}/conditions`, {
-        temperature: temperature ? parseFloat(temperature) : null,
-        humidity: humidity ? parseInt(humidity) : null,
-        checked: shouldCheck
-      });
-      // 같은 시간대의 모든 plan에 온습도 공유
-      const newTemp = temperature ? parseFloat(temperature) : null;
-      const newHumid = humidity ? parseInt(humidity) : null;
-      setPlans(prev => prev.map(p =>
-        p.time_slot === currentPlan.time_slot
-          ? {
-              ...p,
-              temperature: newTemp,
-              humidity: newHumid,
-              conditions_checked: shouldCheck ? 1 : 0,
-              conditions_checked_at: res.data.checked_at
-            }
-          : p
-      ));
-    } catch (error) {
-      console.error('Failed to save conditions:', error);
-      toast.error(error);
-    }
-  };
-
-  // 계획 운동 토글
   const toggleExercise = async (exerciseId: number) => {
     if (!currentPlan) return;
     try {
-      const res = await apiClient.put(`/plans/${currentPlan.id}/toggle-exercise`, { exercise_id: exerciseId });
-      // 로컬 상태 업데이트 (스크롤 유지)
-      setPlans(prev => prev.map(p =>
-        p.id === currentPlan.id
-          ? { ...p, completed_exercises: res.data.completed_exercises, exercise_times: res.data.exercise_times || {} }
-          : p
-      ));
-    } catch (error) {
-      console.error('Failed to toggle exercise:', error);
-      toast.error(error);
+      const response = await apiClient.put(`/plans/${currentPlan.id}/toggle-exercise`, { exercise_id: exerciseId });
+      updatePlan(currentPlan.id, {
+        completed_exercises: response.data.completed_exercises,
+        exercise_times: response.data.exercise_times || {},
+      });
+    } catch {
+      toast.error('운동 완료 상태를 저장하지 못했습니다.');
     }
   };
 
-  // 추가 운동 토글
   const toggleExtraExercise = async (index: number) => {
     if (!currentPlan) return;
     try {
-      const res = await apiClient.put(`/plans/${currentPlan.id}/toggle-extra`, { index });
-      // 로컬 상태 업데이트 (스크롤 유지)
-      setPlans(prev => prev.map(p =>
-        p.id === currentPlan.id
-          ? { ...p, extra_exercises: res.data.extra_exercises }
-          : p
-      ));
-    } catch (error) {
-      console.error('Failed to toggle extra exercise:', error);
-      toast.error(error);
+      const response = await apiClient.put(`/plans/${currentPlan.id}/toggle-extra`, { index });
+      updatePlan(currentPlan.id, { extra_exercises: response.data.extra_exercises });
+    } catch {
+      toast.error('추가 운동 상태를 저장하지 못했습니다.');
     }
   };
 
-  // 추가 운동 등록
   const addExtraExercise = async () => {
     if (!currentPlan || !newExerciseName.trim()) return;
     try {
-      const res = await apiClient.post(`/plans/${currentPlan.id}/extra-exercise`, {
+      const response = await apiClient.post(`/plans/${currentPlan.id}/extra-exercise`, {
         name: newExerciseName.trim(),
-        note: newExerciseNote.trim() || undefined
+        note: newExerciseNote.trim() || undefined,
       });
-      // 로컬 상태 업데이트 (스크롤 유지)
-      setPlans(prev => prev.map(p =>
-        p.id === currentPlan.id
-          ? { ...p, extra_exercises: res.data.extra_exercises }
-          : p
-      ));
-      setNewExerciseName('');
-      setNewExerciseNote('');
-      setShowAddExercise(false);
-    } catch (error) {
-      console.error('Failed to add exercise:', error);
-      toast.error(error);
+      updatePlan(currentPlan.id, { extra_exercises: response.data.extra_exercises });
+      closeAddExercise();
+    } catch {
+      toast.error('추가 운동을 저장하지 못했습니다.');
     }
   };
 
-  // Find trainer ID for a student from their class assignment
-  const findTrainerForStudent = (studentId: number): number | null => {
-    if (!currentSlotData) return null;
-    for (const cls of (currentSlotData.classes || [])) {
-      if (cls.students?.some(s => s.student_id === studentId)) {
-        return cls.instructors?.[0]?.id ?? null;
-      }
-    }
-    return null;
+  const closeAddExercise = () => {
+    setShowAddExercise(false);
+    setNewExerciseName('');
+    setNewExerciseNote('');
   };
 
-  // 컨디션 즉시 저장 (스크롤 유지를 위해 로컬 state 업데이트)
   const saveCondition = async (studentId: number, score: number | null) => {
-    const existing = existingLogs.find(l => l.student_id === studentId);
-    const dateStr = selectedDate;
-
-    // Resolve trainer_id: selected > student's class trainer > current user
-    const trainerId = selectedInstructorId
-      || findTrainerForStudent(studentId)
-      || currentUser?.instructorId
-      || null;
+    const existing = existingLogs.find((log) => log.student_id === studentId);
+    const trainerId = selectedInstructorId || findTrainerForStudent(currentSlotData, studentId) || currentUser?.instructorId || null;
 
     if (!trainerId) {
-      console.error('Cannot save: no trainer_id available');
-      toast.error('Cannot save: no trainer_id available');
+      toast.error('컨디션을 저장할 담당 강사를 확인하지 못했습니다.');
       return;
     }
 
     try {
       if (existing) {
-        await apiClient.put(`/training/${existing.id}`, {
-          condition_score: score,
-          notes: existing.notes || ''
-        });
-        // 로컬 state 업데이트 (스크롤 유지)
-        setExistingLogs(prev => prev.map(l =>
-          l.student_id === studentId ? { ...l, condition_score: score } : l
-        ));
-      } else {
-        const res = await apiClient.post('/training', {
-          date: dateStr,
-          student_id: studentId,
-          trainer_id: trainerId,
-          plan_id: currentPlan?.id || null,
-          condition_score: score,
-          notes: ''
-        });
-        // 새 로그 추가 (스크롤 유지) - API는 logId 반환
-        if (res.data.logId) {
-          setExistingLogs(prev => [...prev, {
-            id: res.data.logId,
-            student_id: studentId,
-            condition_score: score,
-            notes: ''
-          }]);
-        }
+        await apiClient.put(`/training/${existing.id}`, { condition_score: score, notes: existing.notes || '' });
+        setExistingLogs((current) => current.map((log) => log.student_id === studentId ? { ...log, condition_score: score } : log));
+        return;
       }
-    } catch (error) {
-      console.error('Failed to save condition:', error);
-      toast.error(error);
+
+      const response = await apiClient.post('/training', {
+        date: selectedDate,
+        student_id: studentId,
+        trainer_id: trainerId,
+        plan_id: currentPlan?.id || null,
+        condition_score: score,
+        notes: '',
+      });
+      setExistingLogs((current) => [...current, { id: response.data.logId, student_id: studentId, condition_score: score, notes: '' }]);
+    } catch {
+      toast.error('학생 컨디션을 저장하지 못했습니다.');
     }
   };
 
-  // 메모 저장 (blur시)
   const saveNotes = async (studentId: number, notes: string) => {
-    const existing = existingLogs.find(l => l.student_id === studentId);
+    const existing = existingLogs.find((log) => log.student_id === studentId);
     if (!existing) return;
 
     try {
-      await apiClient.put(`/training/${existing.id}`, {
-        condition_score: existing.condition_score,
-        notes
-      });
-    } catch (error) {
-      console.error('Failed to save notes:', error);
-      toast.error(error);
+      await apiClient.put(`/training/${existing.id}`, { condition_score: existing.condition_score, notes });
+      setExistingLogs((current) => current.map((log) => log.student_id === studentId ? { ...log, notes } : log));
+    } catch {
+      toast.error('학생 메모를 저장하지 못했습니다.');
     }
   };
 
-  const getStudentLog = (studentId: number) => existingLogs.find(l => l.student_id === studentId);
-
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-[1500px] space-y-6">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">수업 기록</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">{formatDateKorean(selectedDate)}</p>
+          <p className="text-xs font-bold uppercase tracking-normal text-emerald-700">TRAINING LOG</p>
+          <h1 className="mt-1 text-3xl font-black tracking-normal text-slate-950">수업 기록</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-500">{formatKoreanDate(selectedDate)}</p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* 날짜 선택 */}
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-            <Calendar size={18} className="text-slate-400 dark:text-slate-500" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="border-none focus:ring-0 text-slate-700 dark:text-slate-200 dark:bg-slate-800"
-            />
-          </div>
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
-          >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, -1))} className="rounded-lg border border-slate-200 bg-white p-2">
+            <ChevronLeft className="size-4" />
+          </button>
+          <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
+            <Calendar className="size-4 text-slate-400" />
+            <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="bg-transparent outline-none" />
+          </label>
+          <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, 1))} className="rounded-lg border border-slate-200 bg-white p-2">
+            <ChevronRight className="size-4" />
+          </button>
+          <button type="button" onClick={fetchData} disabled={loading} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 disabled:opacity-50">
+            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
-      </div>
+      </header>
 
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw size={32} className="animate-spin text-slate-400" />
-        </div>
-      ) : availableSlots.length === 0 ? (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
-          <AlertCircle size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
-          <p className="text-slate-500 dark:text-slate-400">해당 날짜에 배정된 학생이 없습니다.</p>
-          <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">반 배치 페이지에서 학생을 배치해주세요.</p>
-        </div>
-      ) : (
+      {loading && <div className="rounded-lg border border-slate-200 bg-white p-12 text-center text-sm font-semibold text-slate-500">불러오는 중입니다.</div>}
+      {!loading && availableSlots.length === 0 && (
+        <EmptyState message="해당 날짜에 배정된 학생이 없습니다." subMessage="반 배치에서 학생을 먼저 배정해주세요." />
+      )}
+      {!loading && availableSlots.length > 0 && (
         <>
-          {/* 시간대 탭 */}
-          <div className="flex gap-2 mb-4">
-            {availableSlots.map(slot => (
-              <button
-                key={slot}
-                onClick={() => { setSelectedSlot(slot); if (isAdmin) setSelectedInstructorId(null); }}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  selectedSlot === slot ? 'bg-orange-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-                }`}
-              >
-                {SLOT_LABELS[slot]}
-              </button>
-            ))}
-          </div>
+          <SlotTabs
+            activeSlot={selectedSlot}
+            availableSlots={availableSlots}
+            onSelect={(slot) => {
+              setSelectedSlot(slot);
+              if (isAdmin) setSelectedInstructorId(null);
+            }}
+          />
 
-          {/* 강사 선택 (관리자용) */}
           {isAdmin && selectedSlot && currentInstructors.length > 0 && (
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 mb-4">
-              <select
-                value={selectedInstructorId || ''}
-                onChange={e => setSelectedInstructorId(Number(e.target.value) || null)}
-                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg"
-              >
-                <option value="">전체 보기</option>
-                {currentInstructors.map(inst => (
-                  <option key={inst.id} value={inst.id}>
-                    {inst.name}{inst.isOwner ? '' : 'T'}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <label className="block text-sm font-bold text-slate-700">
+                강사 선택
+                <select
+                  value={selectedInstructorId || ''}
+                  onChange={(event) => setSelectedInstructorId(event.target.value ? Number(event.target.value) : null)}
+                  className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-slate-900"
+                >
+                  <option value="">전체 보기</option>
+                  {currentInstructors.map((instructor) => (
+                    <option key={instructor.id} value={instructor.id}>{instructor.name}</option>
+                  ))}
+                </select>
+              </label>
+            </section>
           )}
 
-          {/* 강사가 스케줄되지 않은 경우 (일반 강사만) */}
           {!isAdmin && !selectedInstructorId ? (
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
-              <AlertCircle size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
-              <p className="text-slate-500 dark:text-slate-400">해당 시간대에 배정된 반이 없습니다.</p>
-              <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">반 배치 페이지에서 반에 배정되어야 합니다.</p>
-            </div>
-          ) : myStudents.length === 0 ? (
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-12 text-center">
-              <AlertCircle size={48} className="mx-auto text-orange-400 mb-4" />
-              <p className="text-slate-600 dark:text-slate-300 font-medium">배정된 학생이 없습니다</p>
-              <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">반 배치 페이지에서 학생을 배치해주세요</p>
-            </div>
+            <EmptyState message="해당 시간대에 배정된 반이 없습니다." subMessage="반 배치에서 담당 반을 확인해주세요." />
+          ) : students.length === 0 ? (
+            <EmptyState message="배정된 학생이 없습니다." subMessage="반 배치에서 학생을 먼저 배정해주세요." />
           ) : (
-            <div className="space-y-4">
-              {/* 체크리스트 - 수업 계획이 있을 때만 표시 */}
-              {currentPlan ? (
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
-                <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
-                  <h2 className="text-white font-bold flex items-center gap-2">
-                    <ClipboardList size={20} />
-                    {currentPlan.instructor_name} 체크리스트
-                  </h2>
-                </div>
-
-                <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {/* 온습도 체크 (첫 번째 항목) */}
-                  <div
-                    className={`p-4 cursor-pointer transition ${currentPlan.conditions_checked ? 'bg-green-50 dark:bg-green-900' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                    onClick={() => toggleConditions(!currentPlan.conditions_checked)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
-                        currentPlan.conditions_checked ? 'bg-green-500 border-green-500' : 'border-slate-300 dark:border-slate-600'
-                      }`}>
-                        {currentPlan.conditions_checked && <Check size={14} className="text-white" />}
-                      </div>
-                      <div className="flex-1">
-                        <span className={`font-medium ${currentPlan.conditions_checked ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
-                          체육관 환경 체크
-                        </span>
-                        {currentPlan.conditions_checked && currentPlan.conditions_checked_at && (
-                          <span className="ml-2 text-xs text-green-600">
-                            ✓ {new Date(currentPlan.conditions_checked_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {/* 온습도 입력 */}
-                    <div className="mt-3 ml-9 flex items-center gap-4" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center gap-2">
-                        <Thermometer size={16} className="text-orange-500" />
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={temperature}
-                          onChange={e => setTemperature(e.target.value)}
-                          onBlur={saveConditions}
-                          placeholder="온도"
-                          className="w-20 px-2 py-1 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded text-sm"
-                        />
-                        <span className="text-slate-500 dark:text-slate-400 text-sm">°C</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Droplets size={16} className="text-blue-500" />
-                        <input
-                          type="number"
-                          value={humidity}
-                          onChange={e => setHumidity(e.target.value)}
-                          onBlur={saveConditions}
-                          placeholder="습도"
-                          className="w-20 px-2 py-1 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded text-sm"
-                        />
-                        <span className="text-slate-500 dark:text-slate-400 text-sm">%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 계획된 운동들 */}
-                  {currentPlan.exercises.map((ex: PlanExercise & { id?: number }) => {
-                    const exId = ex.exercise_id || ex.id;
-                    const isCompleted = exId ? currentPlan.completed_exercises.includes(exId) : false;
-                    const completedTime = exId ? currentPlan.exercise_times?.[exId] : undefined;
-                    return (
-                      <div
-                        key={exId || Math.random()}
-                        className={`p-4 cursor-pointer transition ${isCompleted ? 'bg-green-50 dark:bg-green-900' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                        onClick={() => exId && toggleExercise(exId)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
-                            isCompleted ? 'bg-green-500 border-green-500' : 'border-slate-300 dark:border-slate-600'
-                          }`}>
-                            {isCompleted && <Check size={14} className="text-white" />}
-                          </div>
-                          <div className="flex-1">
-                            <span className={`font-medium ${isCompleted ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
-                              {getExerciseName(ex)}
-                            </span>
-                            {(ex.weight || ex.reps) && (
-                              <span className={`ml-2 font-medium ${isCompleted ? 'text-slate-300 dark:text-slate-600' : 'text-orange-600'}`}>
-                                {ex.weight && ex.weight}{ex.weight && ex.reps && ' × '}{ex.reps && `${ex.reps}회`}
-                              </span>
-                            )}
-                            {ex.note && (
-                              <span className={`ml-2 text-sm ${isCompleted ? 'text-slate-300 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'}`}>
-                                ({ex.note})
-                              </span>
-                            )}
-                            {isCompleted && completedTime && (
-                              <span className="ml-2 text-xs text-green-600">
-                                ✓ {new Date(completedTime).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* 추가된 운동들 */}
-                  {currentPlan.extra_exercises.map((ex, idx) => (
-                    <div
-                      key={`extra-${idx}`}
-                      className={`p-4 cursor-pointer transition ${ex.completed ? 'bg-blue-50 dark:bg-blue-900' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                      onClick={() => toggleExtraExercise(idx)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
-                          ex.completed ? 'bg-blue-500 border-blue-500' : 'border-blue-300 dark:border-blue-600'
-                        }`}>
-                          {ex.completed && <Check size={14} className="text-white" />}
-                        </div>
-                        <div className="flex-1">
-                          <span className={`font-medium ${ex.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-blue-700 dark:text-blue-400'}`}>
-                            {ex.name}
-                          </span>
-                          {ex.note && (
-                            <span className={`ml-2 text-sm ${ex.completed ? 'text-slate-300 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'}`}>
-                              ({ex.note})
-                            </span>
-                          )}
-                          <span className="ml-2 text-xs text-blue-400">(추가)</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* 운동 추가 버튼 */}
-                  <div className="p-4">
-                    {showAddExercise ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={newExerciseName}
-                            onChange={e => setNewExerciseName(e.target.value)}
-                            placeholder="운동 이름"
-                            className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg text-sm"
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => { setShowAddExercise(false); setNewExerciseName(''); setNewExerciseNote(''); }}
-                            className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-                          >
-                            <X size={18} />
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={newExerciseNote}
-                            onChange={e => setNewExerciseNote(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && addExtraExercise()}
-                            placeholder="메모 (선택)"
-                            className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg text-sm"
-                          />
-                          <button
-                            onClick={addExtraExercise}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
-                          >
-                            추가
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setShowAddExercise(true)}
-                        className="flex items-center gap-2 text-blue-500 hover:text-blue-600 text-sm font-medium"
-                      >
-                        <Plus size={18} />
-                        운동 추가
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              ) : (
-                /* 수업 계획 없을 때 안내 (원장/관리자는 학생 컨디션은 볼 수 있음) */
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 text-center">
-                  <ClipboardList size={32} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-                  <p className="text-slate-500 dark:text-slate-400 text-sm">수업 계획이 없습니다.</p>
-                  <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">수업 계획 페이지에서 계획을 작성하면 체크리스트가 표시됩니다.</p>
-                </div>
-              )}
-
-              {/* 학생 컨디션 */}
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
-                <div className="bg-slate-100 dark:bg-slate-900 px-6 py-4">
-                  <h2 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    <User size={20} />
-                    학생 컨디션 ({myStudents.length}명)
-                  </h2>
-                </div>
-
-                {myStudents.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 dark:text-slate-500">
-                    <p>배정된 학생이 없습니다.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                    {myStudents.map(student => {
-                      const log = getStudentLog(student.student_id);
-                      const isAbsent = student.attendance_status === 'absent';
-                      return (
-                        <div key={student.id} className={`p-4 ${isAbsent ? 'bg-red-50 dark:bg-red-900 opacity-60' : ''}`}>
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              isAbsent ? 'bg-red-100 text-red-600' :
-                              student.gender === 'M' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
-                            }`}>
-                              <User size={16} />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className={`font-medium ${isAbsent ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
-                                {student.student_name}
-                              </span>
-                              {isAbsent && (
-                                <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-600">
-                                  결석
-                                </span>
-                              )}
-                              <Link
-                                href={`/students/${student.student_id}`}
-                                className="p-1 hover:bg-orange-100 rounded transition"
-                                title="프로필 보기"
-                              >
-                                <ExternalLink size={12} className="text-orange-500" />
-                              </Link>
-                            </div>
-                            {!isAbsent && log?.condition_score && (
-                              <span className="ml-auto flex items-center gap-1 text-green-600 text-sm">
-                                <Check size={14} /> 저장됨
-                              </span>
-                            )}
-                          </div>
-
-                          {isAbsent ? (
-                            /* 결석 학생 - 컨디션 체크 비활성화 */
-                            <div className="text-center py-4 text-slate-400 dark:text-slate-500 text-sm">
-                              {student.absence_reason ? `사유: ${student.absence_reason}` : '결석한 학생입니다'}
-                            </div>
-                          ) : (
-                            <>
-                              {/* 컨디션 버튼 */}
-                              <div className="flex gap-2 mb-3">
-                                {CONDITION_OPTIONS.map(option => {
-                                  const Icon = option.icon;
-                                  const isSelected = log?.condition_score === option.score;
-                                  return (
-                                    <button
-                                      key={option.score}
-                                      onClick={() => saveCondition(student.student_id, isSelected ? null : option.score)}
-                                      className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg border transition ${
-                                        isSelected ? option.color : 'border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
-                                      }`}
-                                    >
-                                      <Icon size={18} />
-                                      <span className="text-xs">{option.label}</span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-
-                              {/* 메모 */}
-                              <input
-                                type="text"
-                                defaultValue={log?.notes || ''}
-                                onBlur={e => saveNotes(student.student_id, e.target.value)}
-                                placeholder="메모..."
-                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg text-sm"
-                              />
-                            </>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+            <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+              <ChecklistPanel
+                currentPlan={currentPlan}
+                exercises={exercises}
+                humidity={humidity}
+                newExerciseName={newExerciseName}
+                newExerciseNote={newExerciseNote}
+                onAddExtraExercise={addExtraExercise}
+                onCloseAddExercise={closeAddExercise}
+                onHumidityChange={setHumidity}
+                onSaveConditions={() => saveConditions()}
+                onShowAddExercise={() => setShowAddExercise(true)}
+                onTemperatureChange={setTemperature}
+                onToggleConditions={(checked) => saveConditions(checked)}
+                onToggleExercise={toggleExercise}
+                onToggleExtraExercise={toggleExtraExercise}
+                setNewExerciseName={setNewExerciseName}
+                setNewExerciseNote={setNewExerciseNote}
+                showAddExercise={showAddExercise}
+                temperature={temperature}
+              />
+              <StudentConditionPanel
+                logs={existingLogs}
+                onSaveCondition={saveCondition}
+                onSaveNotes={saveNotes}
+                students={students}
+              />
             </div>
           )}
         </>

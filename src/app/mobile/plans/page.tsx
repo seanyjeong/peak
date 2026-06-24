@@ -1,14 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { format, addDays, subDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import {
   ChevronLeft,
   ChevronRight,
-  Sunrise,
-  Sun,
-  Moon,
   Plus,
   Edit2,
   Trash2,
@@ -20,42 +17,12 @@ import {
   Search
 } from 'lucide-react';
 import { authAPI } from '@/lib/api/auth';
-
-interface ExerciseTag {
-  id: number;
-  tag_id: string;
-  label: string;
-  color: string;
-}
-
-interface Exercise {
-  id: number;
-  name: string;
-  tags: string[];
-  default_sets?: number;
-  default_reps?: number;
-}
-
-interface DailyPlan {
-  id: number;
-  date: string;
-  time_slot: string;
-  instructor_id: number;
-  instructor_name: string;
-  tags: string[];
-  exercises: { exercise_id: number; note?: string; id?: number; name?: string }[];
-  description: string;
-}
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
-
-const timeSlotConfig = [
-  { key: 'morning', label: '오전', icon: Sunrise },
-  { key: 'afternoon', label: '오후', icon: Sun },
-  { key: 'evening', label: '저녁', icon: Moon },
-];
+import { useToast } from '@/hooks/useToast';
+import { API_BASE, timeSlotConfig, type DailyPlan, type Exercise, type ExerciseTag } from './plans-model';
 
 export default function MobilePlansPage() {
+  const toast = useToast();
+  const toastRef = useRef(toast);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('morning');
   const [plans, setPlans] = useState<DailyPlan[]>([]);
@@ -78,6 +45,10 @@ export default function MobilePlansPage() {
   const isOwner = user?.role === 'admin' || user?.role === 'owner';
 
   useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+
+  useEffect(() => {
     const currentUser = authAPI.getCurrentUser();
     setUser(currentUser);
   }, []);
@@ -94,20 +65,23 @@ export default function MobilePlansPage() {
         `${API_BASE}/plans?date=${selectedDate}&time_slot=${selectedTimeSlot}`,
         { headers }
       );
+      if (!planRes.ok) throw new Error('plans');
       const planData = await planRes.json();
       setPlans(planData.plans || []);
 
       // 태그 로드
       const tagRes = await fetch(`${API_BASE}/exercise-tags`, { headers });
+      if (!tagRes.ok) throw new Error('tags');
       const tagData = await tagRes.json();
       setTags((tagData.tags || []).filter((t: ExerciseTag) => t.tag_id));
 
       // 운동 로드
       const exRes = await fetch(`${API_BASE}/exercises`, { headers });
+      if (!exRes.ok) throw new Error('exercises');
       const exData = await exRes.json();
       setExercises(exData.exercises || []);
-    } catch (error) {
-      console.error('Failed to load data:', error);
+    } catch {
+      toastRef.current.error('수업 계획을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
@@ -221,12 +195,11 @@ export default function MobilePlansPage() {
         body: JSON.stringify(body),
       });
 
-      if (response.ok) {
-        closeForm();
-        loadData();
-      }
-    } catch (error) {
-      console.error('Failed to save:', error);
+      if (!response.ok) throw new Error('save');
+      closeForm();
+      loadData();
+    } catch {
+      toastRef.current.error('수업 계획을 저장하지 못했습니다. 다시 시도해주세요.');
     } finally {
       setSaving(false);
     }
@@ -238,13 +211,14 @@ export default function MobilePlansPage() {
 
     try {
       const token = authAPI.getToken();
-      await fetch(`${API_BASE}/plans/${planId}`, {
+      const response = await fetch(`${API_BASE}/plans/${planId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!response.ok) throw new Error('delete');
       loadData();
-    } catch (error) {
-      console.error('Failed to delete:', error);
+    } catch {
+      toastRef.current.error('수업 계획을 삭제하지 못했습니다. 다시 시도해주세요.');
     }
   };
 

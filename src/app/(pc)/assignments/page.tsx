@@ -1,389 +1,213 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useToast } from '@/hooks/useToast';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DndContext,
+  DragEndEvent,
   DragOverlay,
-  pointerWithin,
+  DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
+  pointerWithin,
   useSensor,
   useSensors,
-  DragStartEvent,
-  DragEndEvent,
-  useDroppable,
 } from '@dnd-kit/core';
-import { useDraggable } from '@dnd-kit/core';
-import { Users, RefreshCw, Calendar, Star, Crown, Plus, ExternalLink, RotateCcw, Layers, ChevronDown } from 'lucide-react';
-import Link from 'next/link';
+import { Calendar, ChevronDown, Layers, RefreshCw, RotateCcw } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { useSocket } from '@/hooks/useSocket';
+import { useToast } from '@/hooks/useToast';
+import {
+  SLOT_ORDER,
+  TIME_SLOT_INFO,
+  createEmptySlots,
+  formatDateKorean,
+  getAssignedStudentCount,
+  getDefaultSlot,
+  getLocalDateString,
+  getSlotStudentCount,
+  type AssignmentPreset,
+  type Instructor,
+  type SlotsData,
+  type Student,
+  type TimeSlot,
+} from './assignments-model';
+import {
+  ClassColumn,
+  CompactStudentCard,
+  InstructorChip,
+  NewClassZone,
+  WaitingArea,
+} from './assignments-dnd';
+import { AssignmentLegend, PresetConfirmModal, ResetConfirmModal } from './assignments-overlays';
 
-type TimeSlot = 'morning' | 'afternoon' | 'evening';
+type ActiveDragItem =
+  | { type: 'student'; data: Student }
+  | { type: 'instructor'; data: Instructor };
 
-interface Student {
-  id: number;
-  student_id: number;
-  student_name: string;
-  gender: 'M' | 'F';
-  school: string | null;
-  grade: string | null;
-  is_trial: boolean;
-  trial_total: number;
-  trial_remaining: number;
-  status: 'enrolled' | 'trial' | 'rest' | 'injury';
-  attendance_status?: 'scheduled' | 'present' | 'absent' | 'late' | 'early_leave';
-  absence_reason?: string | null;
-}
-
-interface Instructor {
-  id: number;
-  name: string;
-  isOwner: boolean;
-  isMain?: boolean;
-  order_num?: number;
-}
-
-interface ClassData {
-  class_num: number;
-  instructors: Instructor[];
-  students: Student[];
-}
-
-interface SlotData {
-  waitingStudents: Student[];
-  waitingInstructors: Instructor[];
-  classes: ClassData[];
-}
-
-interface SlotsData {
-  morning: SlotData;
-  afternoon: SlotData;
-  evening: SlotData;
-}
-
-const TIME_SLOT_INFO: Record<TimeSlot, { label: string; color: string; bgColor: string }> = {
-  morning: { label: '오전', color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  afternoon: { label: '오후', color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  evening: { label: '저녁', color: 'text-purple-600', bgColor: 'bg-purple-100' },
-};
-
-// 컴팩트 학생 카드
-function CompactStudentCard({ student, isDragging }: { student: Student; isDragging?: boolean }) {
-  const genderColor = student.gender === 'M' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700';
-  const isAbsent = student.attendance_status === 'absent';
-
-  return (
-    <div
-      className={`px-2 py-1.5 bg-white dark:bg-slate-800 rounded-lg border shadow-sm cursor-grab active:cursor-grabbing transition ${
-        isDragging ? 'opacity-50 border-orange-400 shadow-lg scale-105' : ''
-      } ${isAbsent ? 'opacity-60 border-red-200 bg-red-50 dark:bg-red-900' : 'hover:border-slate-300 dark:hover:border-slate-600'}`}
-    >
-      <div className="flex items-center gap-1.5">
-        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${genderColor}`}>
-          {student.gender === 'M' ? '남' : '여'}
-        </span>
-        <span className={`font-medium text-sm truncate max-w-[70px] ${
-          isAbsent ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'
-        }`}>
-          {student.student_name}
-        </span>
-        <Link
-          href={`/students/${student.student_id}`}
-          className="p-0.5 hover:bg-orange-100 rounded transition"
-          title="프로필"
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <ExternalLink size={10} className="text-orange-500" />
-        </Link>
-        {student.status === 'trial' && (
-          <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-100 text-purple-700">
-            {student.trial_total - student.trial_remaining}/{student.trial_total}
-          </span>
-        )}
-        {isAbsent && (
-          <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-red-100 text-red-600">
-            결석
-          </span>
-        )}
-      </div>
-      {isAbsent && student.absence_reason && (
-        <p className="text-[10px] text-red-500 mt-0.5 pl-6 truncate" title={student.absence_reason}>
-          {student.absence_reason}
-        </p>
-      )}
-    </div>
-  );
-}
-
-// 드래그 가능한 학생
-function DraggableStudent({ student }: { student: Student }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `student-${student.id}`,
-    data: { type: 'student', student }
-  });
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <CompactStudentCard student={student} isDragging={isDragging} />
-    </div>
-  );
-}
-
-// 강사 칩
-function InstructorChip({ instructor, isDragging, showMain = false }: { instructor: Instructor; isDragging?: boolean; showMain?: boolean }) {
-  return (
-    <div
-      className={`flex items-center gap-1 px-2 py-1 rounded-full border cursor-grab active:cursor-grabbing transition ${
-        isDragging
-          ? 'bg-orange-200 border-orange-400 shadow-lg scale-105'
-          : 'bg-orange-50 border-orange-200 hover:bg-orange-100'
-      }`}
-    >
-      {showMain && instructor.isMain && (
-        <Star size={12} className="text-orange-500 fill-orange-500" />
-      )}
-      {instructor.isOwner && (
-        <Crown size={12} className="text-amber-500" />
-      )}
-      <span className="text-sm font-medium text-orange-700">{instructor.name}</span>
-    </div>
-  );
-}
-
-// 드래그 가능한 강사
-function DraggableInstructor({ instructor, showMain = false }: { instructor: Instructor; showMain?: boolean }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `instructor-${instructor.id}`,
-    data: { type: 'instructor', instructor }
-  });
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <InstructorChip instructor={instructor} isDragging={isDragging} showMain={showMain} />
-    </div>
-  );
-}
-
-// 대기 영역
-function WaitingArea({
-  waitingStudents,
-  waitingInstructors
-}: {
-  waitingStudents: Student[];
-  waitingInstructors: Instructor[];
-}) {
-  const { setNodeRef: setStudentRef, isOver: isOverStudents } = useDroppable({ id: 'waiting-students' });
-  const { setNodeRef: setInstructorRef, isOver: isOverInstructors } = useDroppable({ id: 'waiting-instructors' });
-
-  return (
-    <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 mb-6">
-      <div className="grid grid-cols-2 gap-4">
-        {/* 학생 대기 */}
-        <div
-          ref={setStudentRef}
-          className={`bg-white dark:bg-slate-800 rounded-lg p-3 min-h-[80px] transition ${
-            isOverStudents ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900' : ''
-          }`}
-        >
-          <div className="flex items-center gap-2 mb-2 text-slate-600 dark:text-slate-300">
-            <Users size={16} />
-            <span className="text-sm font-medium">학생 대기</span>
-            <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-xs">{waitingStudents.length}명</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {waitingStudents.map((student) => (
-              <DraggableStudent key={student.id} student={student} />
-            ))}
-            {waitingStudents.length === 0 && (
-              <span className="text-slate-400 dark:text-slate-500 text-sm">대기 중인 학생 없음</span>
-            )}
-          </div>
-        </div>
-
-        {/* 강사 대기 */}
-        <div
-          ref={setInstructorRef}
-          className={`bg-white dark:bg-slate-800 rounded-lg p-3 min-h-[80px] transition ${
-            isOverInstructors ? 'ring-2 ring-orange-400 bg-orange-50 dark:bg-orange-900' : ''
-          }`}
-        >
-          <div className="flex items-center gap-2 mb-2 text-slate-600 dark:text-slate-300">
-            <Users size={16} />
-            <span className="text-sm font-medium">강사 대기</span>
-            <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-xs">{waitingInstructors.length}명</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {waitingInstructors.map((instructor) => (
-              <DraggableInstructor key={instructor.id} instructor={instructor} />
-            ))}
-            {waitingInstructors.length === 0 && (
-              <span className="text-slate-400 dark:text-slate-500 text-sm">대기 중인 강사 없음</span>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// 반 컬럼
-function ClassColumn({ classData }: { classData: ClassData }) {
-  const { setNodeRef: setStudentRef, isOver: isOverStudents } = useDroppable({
-    id: `class-${classData.class_num}-students`
-  });
-  const { setNodeRef: setInstructorRef, isOver: isOverInstructors } = useDroppable({
-    id: `class-${classData.class_num}-instructors`
-  });
-
-  // 주강사 이름으로 반 이름 생성
-  const mainInstructor = classData.instructors.find(i => i.isMain);
-  const className = mainInstructor ? `${mainInstructor.name}반` : `${classData.class_num}반`;
-
-  return (
-    <div className="flex flex-col w-48 bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 overflow-hidden">
-      {/* 헤더: 반 이름 */}
-      <div className="bg-orange-500 text-white px-3 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-bold truncate">{className}</span>
-          <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded shrink-0">
-            {classData.students.length}명
-          </span>
-        </div>
-      </div>
-
-      {/* 강사 영역 */}
-      <div
-        ref={setInstructorRef}
-        className={`p-2 bg-orange-50 dark:bg-orange-900 border-b dark:border-slate-700 min-h-[40px] transition ${
-          isOverInstructors ? 'ring-2 ring-inset ring-orange-400 bg-orange-100 dark:bg-orange-800' : ''
-        }`}
-      >
-        <div className="flex flex-wrap gap-1">
-          {classData.instructors.map((inst) => (
-            <DraggableInstructor key={inst.id} instructor={inst} showMain />
-          ))}
-          {classData.instructors.length === 0 && (
-            <span className="text-orange-400 text-xs">강사 배치 필요</span>
-          )}
-        </div>
-      </div>
-
-      {/* 학생 영역 */}
-      <div
-        ref={setStudentRef}
-        className={`flex-1 p-2 min-h-[120px] max-h-[300px] overflow-y-auto transition ${
-          isOverStudents ? 'ring-2 ring-inset ring-blue-400 bg-blue-50 dark:bg-blue-900' : ''
-        }`}
-      >
-        <div className="space-y-1.5">
-          {classData.students.map((student) => (
-            <DraggableStudent key={student.id} student={student} />
-          ))}
-          {classData.students.length === 0 && (
-            <div className="text-slate-400 dark:text-slate-500 text-xs text-center py-4">
-              학생을 드래그하세요
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// 새 반 생성 드롭존
-function NewClassZone() {
-  const { setNodeRef, isOver } = useDroppable({ id: 'new-class' });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`flex flex-col items-center justify-center w-48 min-h-[200px] rounded-xl border-2 border-dashed transition ${
-        isOver
-          ? 'border-orange-400 bg-orange-50 dark:bg-orange-900'
-          : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500'
-      }`}
-    >
-      <Plus size={32} className={isOver ? 'text-orange-500' : 'text-slate-400 dark:text-slate-500'} />
-      <span className={`mt-2 text-sm font-medium ${isOver ? 'text-orange-600' : 'text-slate-500 dark:text-slate-400'}`}>
-        새 반 생성
-      </span>
-      <span className="text-xs text-slate-400 dark:text-slate-500 mt-1">강사를 드롭하세요</span>
-    </div>
-  );
-}
+type PresetConfirm = { id: number; name: string } | null;
 
 export default function AssignmentsPage() {
   const toast = useToast();
-  const [slotsData, setSlotsData] = useState<SlotsData>({
-    morning: { waitingStudents: [], waitingInstructors: [], classes: [] },
-    afternoon: { waitingStudents: [], waitingInstructors: [], classes: [] },
-    evening: { waitingStudents: [], waitingInstructors: [], classes: [] }
-  });
+  const toastRef = useRef(toast);
+  const presetMenuRef = useRef<HTMLDivElement>(null);
+  const [slotsData, setSlotsData] = useState<SlotsData>(createEmptySlots);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [activeItem, setActiveItem] = useState<{ type: 'student' | 'instructor'; data: Student | Instructor } | null>(null);
+  const [activeItem, setActiveItem] = useState<ActiveDragItem | null>(null);
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
-  const [presets, setPresets] = useState<{id:number;name:string;type:string}[]>([]);  const [showPresetMenu, setShowPresetMenu] = useState(false);  const [showPresetConfirm, setShowPresetConfirm] = useState<{id:number;name:string}|null>(null);  const [applyingPreset, setApplyingPreset] = useState(false);
+  const [presets, setPresets] = useState<AssignmentPreset[]>([]);
+  const [showPresetMenu, setShowPresetMenu] = useState(false);
+  const [showPresetConfirm, setShowPresetConfirm] = useState<PresetConfirm>(null);
+  const [applyingPreset, setApplyingPreset] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString);
 
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  });
-
-  // Socket.io 실시간 동기화
-  const { isConnected } = useSocket({
-    onAssignmentsUpdated: (data) => {
-      // 같은 날짜의 업데이트만 처리
-      if (data.date === selectedDate) {
-        console.log('[Realtime] Assignments updated, refreshing...');
-        fetchData();
-      }
-    }
-  });
-
-  const formatDateKorean = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long'
-    });
-  };
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 150, tolerance: 5 },
-    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
     useSensor(KeyboardSensor)
   );
 
-  // Fetch presets for apply button
-  const fetchPresets = async () => {
+  const loadAssignments = useCallback(async ({ sync = false }: { sync?: boolean } = {}) => {
     try {
-      const res = await apiClient.get("/presets");
+      setLoading(true);
+      if (sync) {
+        setSyncing(true);
+        setSlotsData(createEmptySlots());
+        await apiClient.post('/assignments/sync', { date: selectedDate });
+      }
+
+      const res = await apiClient.get<{ slots?: SlotsData }>(`/assignments?date=${selectedDate}`);
+      const slots = res.data.slots || createEmptySlots();
+      setSlotsData(slots);
+      setActiveSlot(getDefaultSlot(slots));
+    } catch {
+      toastRef.current.error('반 배치 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setSyncing(false);
+      setLoading(false);
+    }
+  }, [selectedDate]);
+
+  const fetchPresets = useCallback(async () => {
+    try {
+      const res = await apiClient.get<{ presets?: AssignmentPreset[] }>('/presets');
       setPresets(res.data.presets || []);
-    } catch (e) { console.error(e); }
+    } catch {
+    }
+  }, []);
+
+  const { isConnected } = useSocket({
+    onAssignmentsUpdated: (data) => {
+      if (data.date === selectedDate) {
+        loadAssignments();
+      }
+    },
+  });
+
+  useEffect(() => {
+    fetchPresets();
+  }, [fetchPresets]);
+
+  useEffect(() => {
+    loadAssignments({ sync: true });
+  }, [loadAssignments]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (presetMenuRef.current && !presetMenuRef.current.contains(event.target as Node)) {
+        setShowPresetMenu(false);
+      }
+    };
+    if (showPresetMenu) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPresetMenu]);
+
+  const currentSlotData = slotsData[activeSlot];
+  const totalStudents = getSlotStudentCount(currentSlotData);
+  const assignedStudents = getAssignedStudentCount(currentSlotData);
+  const waitingStudents = currentSlotData.waitingStudents.length;
+  const instructorCount = currentSlotData.waitingInstructors.length
+    + currentSlotData.classes.reduce((sum, classData) => sum + classData.instructors.length, 0);
+
+  const getNextClassNum = () => {
+    const classNums = currentSlotData.classes.map((classData) => classData.class_num);
+    return classNums.length > 0 ? Math.max(...classNums) + 1 : 1;
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const data = event.active.data.current;
+    if (data?.type === 'student') setActiveItem({ type: 'student', data: data.student });
+    if (data?.type === 'instructor') setActiveItem({ type: 'instructor', data: data.instructor });
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    const data = active.data.current;
+    setActiveItem(null);
+    if (!over) return;
+
+    try {
+      const overId = String(over.id);
+
+      if (data?.type === 'student') {
+        const student = data.student as Student;
+        if (overId === 'waiting-students') {
+          await apiClient.put(`/assignments/${student.id}`, { class_id: null });
+        } else if (overId.startsWith('class-') && overId.endsWith('-students')) {
+          await apiClient.put(`/assignments/${student.id}`, { class_id: Number(overId.split('-')[1]) });
+        }
+      }
+
+      if (data?.type === 'instructor') {
+        const instructor = data.instructor as Instructor;
+        const payload = {
+          date: selectedDate,
+          time_slot: activeSlot,
+          instructor_id: instructor.id,
+        };
+
+        if (overId === 'waiting-instructors') {
+          await apiClient.post('/assignments/instructor', { ...payload, to_class_num: null });
+        } else if (overId.startsWith('class-') && overId.endsWith('-instructors')) {
+          await apiClient.post('/assignments/instructor', {
+            ...payload,
+            to_class_num: Number(overId.split('-')[1]),
+            is_main: false,
+          });
+        } else if (overId === 'new-class') {
+          await apiClient.post('/assignments/instructor', {
+            ...payload,
+            to_class_num: getNextClassNum(),
+            is_main: true,
+          });
+        }
+      }
+
+      await loadAssignments();
+    } catch {
+      toastRef.current.error('배치를 저장하지 못했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  const handleReset = async () => {
+    try {
+      setResetting(true);
+      await apiClient.post('/assignments/reset', { date: selectedDate, time_slot: activeSlot });
+      setShowResetConfirm(false);
+      await loadAssignments();
+      toastRef.current.success('현재 시간대 배치를 초기화했습니다.');
+    } catch {
+      toastRef.current.error('초기화에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setResetting(false);
+    }
   };
 
   const handleApplyPreset = async (presetId: number) => {
@@ -392,430 +216,205 @@ export default function AssignmentsPage() {
       setShowPresetConfirm(null);
       const res = await apiClient.post(`/presets/${presetId}/apply`, {
         date: selectedDate,
-        time_slot: activeSlot
+        time_slot: activeSlot,
       });
+      await loadAssignments();
       const result = res.data?.result;
-      await fetchData();
-      if (result) {
-        alert(`프리셋 적용 완료!
-생성된 반: ${result.classes_created}개
-배정 학생: ${result.students_assigned}명
-미매칭: ${result.students_unmatched}명${result.instructors_absent > 0 ? `
-미출근 강사: ${result.instructors_absent}명` : ''}`);
-      }
-    } catch (e) {
-      console.error("Failed to apply preset:", e);
-      alert("프리셋 적용에 실패했습니다.");
+      const summary = result
+        ? `반 ${result.classes_created}개, 학생 ${result.students_assigned}명 배정`
+        : '프리셋을 적용했습니다.';
+      toastRef.current.success(summary);
+    } catch {
+      toastRef.current.error('프리셋 적용에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setApplyingPreset(false);
     }
   };
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const res = await apiClient.get(`/assignments?date=${selectedDate}`);
-      const slots = res.data.slots || {
-        morning: { waitingStudents: [], waitingInstructors: [], classes: [] },
-        afternoon: { waitingStudents: [], waitingInstructors: [], classes: [] },
-        evening: { waitingStudents: [], waitingInstructors: [], classes: [] }
-      };
-      setSlotsData(slots);
-
-      // 학생이 있는 슬롯 선택
-      const hasStudents = (slot: SlotData) =>
-        slot.waitingStudents.length > 0 || slot.classes.some(c => c.students.length > 0);
-
-      if (hasStudents(slots.evening)) setActiveSlot('evening');
-      else if (hasStudents(slots.afternoon)) setActiveSlot('afternoon');
-      else if (hasStudents(slots.morning)) setActiveSlot('morning');
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 날짜 변경 시 자동으로 P-ACA 동기화 후 데이터 로드
-  const presetMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (presetMenuRef.current && !presetMenuRef.current.contains(e.target as Node)) {
-        setShowPresetMenu(false);
-      }
-    };
-    if (showPresetMenu) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showPresetMenu]);
-
-  useEffect(() => { fetchPresets(); }, []);
-  useEffect(() => {
-    const syncAndFetch = async () => {
-      try {
-        setSyncing(true);
-        setLoading(true);
-        // Reset data first to avoid showing stale data
-        setSlotsData({
-          morning: { waitingStudents: [], waitingInstructors: [], classes: [] },
-          afternoon: { waitingStudents: [], waitingInstructors: [], classes: [] },
-          evening: { waitingStudents: [], waitingInstructors: [], classes: [] }
-        });
-        await apiClient.post('/assignments/sync', { date: selectedDate });
-
-        const res = await apiClient.get(`/assignments?date=${selectedDate}`);
-        const slots = res.data.slots || {
-          morning: { waitingStudents: [], waitingInstructors: [], classes: [] },
-          afternoon: { waitingStudents: [], waitingInstructors: [], classes: [] },
-          evening: { waitingStudents: [], waitingInstructors: [], classes: [] }
-        };
-        setSlotsData(slots);
-
-        // 학생이 있는 슬롯 선택
-        const hasStudents = (slot: SlotData) =>
-          slot.waitingStudents.length > 0 || slot.classes.some(c => c.students.length > 0);
-
-        if (hasStudents(slots.evening)) setActiveSlot('evening');
-        else if (hasStudents(slots.afternoon)) setActiveSlot('afternoon');
-        else if (hasStudents(slots.morning)) setActiveSlot('morning');
-      } catch (error) {
-        console.error('Failed to sync and fetch:', error);
-        toast.error(error);
-      } finally {
-        setSyncing(false);
-        setLoading(false);
-      }
-    };
-
-    syncAndFetch();
-  }, [selectedDate]);
-
-  const currentSlotData = slotsData[activeSlot];
-
-  const getNextClassNum = () => {
-    const classNums = currentSlotData.classes.map(c => c.class_num);
-    return classNums.length > 0 ? Math.max(...classNums) + 1 : 1;
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const data = active.data.current;
-    if (data?.type === 'student') {
-      setActiveItem({ type: 'student', data: data.student });
-    } else if (data?.type === 'instructor') {
-      setActiveItem({ type: 'instructor', data: data.instructor });
-    }
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveItem(null);
-
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-    const data = active.data.current;
-
-    try {
-      // 학생 드래그
-      if (data?.type === 'student') {
-        const student = data.student as Student;
-
-        if (overId === 'waiting-students') {
-          // 대기로 이동
-          await apiClient.put(`/assignments/${student.id}`, { class_id: null });
-        } else if (overId.startsWith('class-') && overId.endsWith('-students')) {
-          // 반으로 이동
-          const classNum = parseInt(overId.split('-')[1]);
-          await apiClient.put(`/assignments/${student.id}`, { class_id: classNum });
-        }
-      }
-
-      // 강사 드래그
-      if (data?.type === 'instructor') {
-        const instructor = data.instructor as Instructor;
-
-        if (overId === 'waiting-instructors') {
-          // 대기로 이동
-          await apiClient.post('/assignments/instructor', {
-            date: selectedDate,
-            time_slot: activeSlot,
-            instructor_id: instructor.id,
-            to_class_num: null
-          });
-        } else if (overId.startsWith('class-') && overId.endsWith('-instructors')) {
-          // 기존 반으로 이동
-          const classNum = parseInt(overId.split('-')[1]);
-          await apiClient.post('/assignments/instructor', {
-            date: selectedDate,
-            time_slot: activeSlot,
-            instructor_id: instructor.id,
-            to_class_num: classNum,
-            is_main: false
-          });
-        } else if (overId === 'new-class') {
-          // 새 반 생성
-          const newClassNum = getNextClassNum();
-          await apiClient.post('/assignments/instructor', {
-            date: selectedDate,
-            time_slot: activeSlot,
-            instructor_id: instructor.id,
-            to_class_num: newClassNum,
-            is_main: true
-          });
-        }
-      }
-
-      await fetchData();
-    } catch (error) {
-      console.error('Failed to update:', error);
-      toast.error(error);
-    }
-  };
-
-  const getSlotStudentCount = (slot: TimeSlot) => {
-    const data = slotsData[slot];
-    return data.waitingStudents.length + data.classes.reduce((sum, c) => sum + c.students.length, 0);
-  };
-
-  // 반배치 초기화
-  const handleReset = async () => {
-    try {
-      setResetting(true);
-      await apiClient.post('/assignments/reset', {
-        date: selectedDate,
-        time_slot: activeSlot
-      });
-      setShowResetConfirm(false);
-      await fetchData();
-    } catch (error) {
-      console.error('Failed to reset:', error);
-      toast.error('초기화에 실패했습니다.');
-    } finally {
-      setResetting(false);
-    }
-  };
-
-  const totalStudents = currentSlotData.waitingStudents.length +
-    currentSlotData.classes.reduce((sum, c) => sum + c.students.length, 0);
-  const assignedStudents = currentSlotData.classes.reduce((sum, c) => sum + c.students.length, 0);
 
   return (
-    <div className="max-w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-[1540px] space-y-6" data-testid="assignments-page">
+      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">반 배치</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">{formatDateKorean(selectedDate)}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Class Assignment</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">반 배치</h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{formatDateKorean(selectedDate)}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-            <Calendar size={18} className="text-slate-400 dark:text-slate-500" />
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+            <Calendar size={16} className="text-slate-400" />
             <input
               type="date"
               value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="border-none focus:ring-0 text-slate-700 dark:text-slate-200 dark:bg-slate-800"
+              onChange={(event) => setSelectedDate(event.target.value)}
+              className="border-none bg-transparent text-sm focus:ring-0"
             />
-          </div>
-          <div className="px-4 py-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
-            <span className="text-slate-500 dark:text-slate-400 text-sm">배정</span>
-            <span className="ml-2 font-bold text-orange-500">{assignedStudents}/{totalStudents}명</span>
-          </div>
-          {/* Preset Apply Button */}
-          {presets.length > 0 && (
-            <div className="relative" ref={presetMenuRef}>
-              <button
-                onClick={() => setShowPresetMenu(!showPresetMenu)}
-                disabled={loading || applyingPreset}
-                className="flex items-center gap-2 px-4 py-2 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition disabled:opacity-50"
-              >
-                <Layers size={18} />
-                <span className="hidden sm:inline">{applyingPreset ? '적용 중...' : '프리셋 적용'}</span>
-                <ChevronDown size={14} />
-              </button>
-              {showPresetMenu && (
-                <div className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg z-30">
-                  {presets.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => { setShowPresetMenu(false); setShowPresetConfirm({id: p.id, name: p.name}); }}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 first:rounded-t-lg last:rounded-b-lg"
-                    >
-                      <span className="text-slate-800 dark:text-slate-100">{p.name}</span>
-                      <span className="ml-2 text-xs text-slate-400">{p.type === 'homeroom' ? '담임' : '그룹'}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          </label>
+          <PresetMenu
+            presets={presets}
+            disabled={loading || applyingPreset}
+            open={showPresetMenu}
+            menuRef={presetMenuRef}
+            onToggle={() => setShowPresetMenu((open) => !open)}
+            onSelect={(preset) => {
+              setShowPresetMenu(false);
+              setShowPresetConfirm({ id: preset.id, name: preset.name });
+            }}
+          />
           <button
             onClick={() => setShowResetConfirm(true)}
             disabled={loading || resetting}
-            className="flex items-center gap-2 px-4 py-2 text-red-600 dark:text-red-400 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-50"
-            title="현재 시간대 반배치 초기화"
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-red-200 bg-white px-3 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:bg-slate-900 dark:text-red-300 dark:hover:bg-red-950/30"
           >
-            <RotateCcw size={18} />
-            <span className="hidden sm:inline">초기화</span>
+            <RotateCcw size={16} />
+            초기화
           </button>
           <button
-            onClick={fetchData}
+            onClick={() => loadAssignments()}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            새로고침
           </button>
-          {/* 실시간 연결 상태 표시 */}
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} title={isConnected ? '실시간 연결됨' : '연결 끊김'} />
+          <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} title={isConnected ? '실시간 연결됨' : '연결 끊김'} />
         </div>
-      </div>
+      </header>
 
-      {/* 초기화 확인 모달 */}
-      {showResetConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md mx-4 shadow-xl">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">반배치 초기화</h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-4">
-              {formatDateKorean(selectedDate)} <span className="font-semibold text-orange-500">{TIME_SLOT_INFO[activeSlot].label}</span> 시간대의 모든 반 배치가 초기화됩니다.
-              <br /><br />
-              <span className="text-sm text-slate-500">* 학생들은 대기 영역으로 이동됩니다.</span>
-              <br />
-              <span className="text-sm text-slate-500">* 생성된 반은 삭제됩니다.</span>
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowResetConfirm(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleReset}
-                disabled={resetting}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50"
-              >
-                {resetting ? '초기화 중...' : '초기화'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <section className="grid gap-3 md:grid-cols-4" aria-label="반 배치 요약">
+        <Metric label="배정" value={`${assignedStudents}/${totalStudents}`} detail={syncing ? '동기화 중' : '현재 시간대'} />
+        <Metric label="대기 학생" value={`${waitingStudents}명`} detail="배치 필요" />
+        <Metric label="운영 반" value={`${currentSlotData.classes.length}개`} detail="강사 기준" />
+        <Metric label="강사" value={`${instructorCount}명`} detail={isConnected ? '실시간 연결' : '수동 새로고침'} />
+      </section>
 
-      {/* 프리셋 적용 확인 모달 */}
-      {showPresetConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md mx-4 shadow-xl">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">프리셋 적용</h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-4">
-              <span className="font-semibold text-indigo-500">{showPresetConfirm.name}</span> 프리셋을 적용하시겠습니까?
-              <br /><br />
-              <span className="text-sm text-red-500">⚠ 현재 {TIME_SLOT_INFO[activeSlot].label} 시간대 배치가 초기화된 후 프리셋이 적용됩니다.</span>
-            </p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setShowPresetConfirm(null)} className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">취소</button>
-              <button onClick={() => handleApplyPreset(showPresetConfirm.id)} className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition">적용</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 시간대 탭 */}
-      <div className="flex gap-2 mb-4">
-        {(Object.keys(TIME_SLOT_INFO) as TimeSlot[]).map((slot) => {
+      <div className="flex flex-wrap gap-2">
+        {SLOT_ORDER.map((slot) => {
           const info = TIME_SLOT_INFO[slot];
-          const count = getSlotStudentCount(slot);
+          const count = getSlotStudentCount(slotsData[slot]);
           const isActive = activeSlot === slot;
-
           return (
             <button
               key={slot}
               onClick={() => setActiveSlot(slot)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+              className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium transition ${
                 isActive
-                  ? `${info.bgColor} ${info.color} ring-2 ring-offset-1`
-                  : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  ? 'border-orange-400 bg-orange-50 text-orange-700 shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
               }`}
             >
-              <span className="font-medium">{info.label}</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs ${
-                isActive ? 'bg-white/50' : 'bg-slate-100 dark:bg-slate-700'
-              }`}>
-                {count}명
-              </span>
+              {info.label}
+              <span className="rounded bg-white px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">{count}명</span>
             </button>
           );
         })}
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-96">
-          <RefreshCw size={32} className="animate-spin text-slate-400" />
+        <div className="flex min-h-[420px] items-center justify-center rounded-md border border-slate-200 bg-white text-sm text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+          <RefreshCw size={18} className="mr-2 animate-spin text-orange-500" />
+          반 배치 데이터를 불러오는 중입니다.
         </div>
       ) : totalStudents === 0 && currentSlotData.waitingInstructors.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-96 text-slate-400">
-          <p className="text-lg">{TIME_SLOT_INFO[activeSlot].label} 수업 데이터가 없습니다.</p>
+        <div className="flex min-h-[420px] flex-col items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+          <p className="font-medium">{TIME_SLOT_INFO[activeSlot].label} 수업 데이터가 없습니다.</p>
+          <p className="mt-1 text-sm">날짜 또는 P-ACA 출석 동기화를 확인하세요.</p>
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={pointerWithin}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          {/* 대기 영역 */}
-          <WaitingArea
-            waitingStudents={currentSlotData.waitingStudents}
-            waitingInstructors={currentSlotData.waitingInstructors}
-          />
-
-          {/* 반 그리드 */}
-          <div className="flex flex-wrap gap-4">
-            {currentSlotData.classes.map((classData) => (
-              <ClassColumn key={classData.class_num} classData={classData} />
-            ))}
-            <NewClassZone />
+        <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div data-testid="assignments-board">
+            <WaitingArea
+              waitingStudents={currentSlotData.waitingStudents}
+              waitingInstructors={currentSlotData.waitingInstructors}
+            />
+            <div className="flex flex-wrap gap-4">
+              {currentSlotData.classes.map((classData) => (
+                <ClassColumn key={classData.class_num} classData={classData} />
+              ))}
+              <NewClassZone />
+            </div>
           </div>
-
-          {/* 드래그 오버레이 */}
           <DragOverlay>
-            {activeItem?.type === 'student' && (
-              <CompactStudentCard student={activeItem.data as Student} isDragging />
-            )}
-            {activeItem?.type === 'instructor' && (
-              <InstructorChip instructor={activeItem.data as Instructor} isDragging />
-            )}
+            {activeItem?.type === 'student' ? <CompactStudentCard student={activeItem.data} isDragging /> : null}
+            {activeItem?.type === 'instructor' ? <InstructorChip instructor={activeItem.data} isDragging /> : null}
           </DragOverlay>
         </DndContext>
       )}
 
-      {/* 범례 */}
-      <div className="mt-6 flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
-        <div className="flex items-center gap-2">
-          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">남</span>
-          <span>남학생</span>
+      <AssignmentLegend />
+
+      {showResetConfirm ? (
+        <ResetConfirmModal
+          activeSlot={activeSlot}
+          date={selectedDate}
+          resetting={resetting}
+          onCancel={() => setShowResetConfirm(false)}
+          onConfirm={handleReset}
+        />
+      ) : null}
+      {showPresetConfirm ? (
+        <PresetConfirmModal
+          activeSlot={activeSlot}
+          presetName={showPresetConfirm.name}
+          onCancel={() => setShowPresetConfirm(null)}
+          onConfirm={() => handleApplyPreset(showPresetConfirm.id)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <article className="rounded-md border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-slate-50">{value}</p>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{detail}</p>
+    </article>
+  );
+}
+
+function PresetMenu({
+  presets,
+  disabled,
+  open,
+  menuRef,
+  onToggle,
+  onSelect,
+}: {
+  presets: AssignmentPreset[];
+  disabled: boolean;
+  open: boolean;
+  menuRef: React.RefObject<HTMLDivElement | null>;
+  onToggle: () => void;
+  onSelect: (preset: AssignmentPreset) => void;
+}) {
+  if (presets.length === 0) return null;
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={onToggle}
+        disabled={disabled}
+        className="inline-flex h-10 items-center gap-2 rounded-md border border-indigo-200 bg-white px-3 text-sm font-medium text-indigo-600 transition hover:bg-indigo-50 disabled:opacity-50 dark:border-indigo-900 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/30"
+      >
+        <Layers size={16} />
+        프리셋
+        <ChevronDown size={14} />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+          {presets.map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => onSelect(preset)}
+              className="w-full px-4 py-2.5 text-left text-sm transition hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              <span className="text-slate-800 dark:text-slate-100">{preset.name}</span>
+              <span className="ml-2 text-xs text-slate-400">{preset.type === 'homeroom' ? '담임' : '그룹'}</span>
+            </button>
+          ))}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="px-1.5 py-0.5 bg-pink-100 text-pink-700 rounded text-xs">여</span>
-          <span>여학생</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="px-1 py-0.5 bg-purple-100 text-purple-700 rounded text-[9px]">1/2</span>
-          <span>체험 (완료/전체)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="px-1 py-0.5 bg-red-100 text-red-600 rounded text-[9px]">결석</span>
-          <span className="line-through">결석</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Star size={12} className="text-orange-500 fill-orange-500" />
-          <span>주강사</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Crown size={12} className="text-amber-500" />
-          <span>원장</span>
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import {
@@ -16,6 +16,7 @@ import {
   Trophy
 } from 'lucide-react';
 import { authAPI } from '@/lib/api/auth';
+import { useToast } from '@/hooks/useToast';
 import { saveMobileRecord } from './record-save';
 
 interface Student {
@@ -77,6 +78,8 @@ const timeSlotConfig = [
 ];
 
 export default function MobileRecordsPage() {
+  const toast = useToast();
+  const toastRef = useRef(toast);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('morning');
   const [students, setStudents] = useState<Student[]>([]);
@@ -87,6 +90,10 @@ export default function MobileRecordsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<'student' | 'type'>('student');
   const [selectedType, setSelectedType] = useState<number | null>(null);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   // 데이터 로드
   const loadData = useCallback(async () => {
@@ -164,8 +171,8 @@ export default function MobileRecordsPage() {
       } else {
         setRecords({});
       }
-    } catch (error) {
-      console.error('Failed to load data:', error);
+    } catch {
+      toastRef.current.error('기록 입력 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
@@ -210,8 +217,7 @@ export default function MobileRecordsPage() {
         },
       }));
     } catch (error) {
-      console.error('Failed to save:', error);
-      window.alert(error instanceof Error ? error.message : '기록을 저장하지 못했습니다.');
+      toastRef.current.error(getMobileRecordErrorMessage(error));
     } finally {
       setTimeout(() => setSaving(null), 500);
     }
@@ -473,4 +479,11 @@ export default function MobileRecordsPage() {
       )}
     </div>
   );
+}
+
+function getMobileRecordErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message && !/(axios|error|failed|stack|status|network|{|}|<|>)/i.test(error.message)) {
+    return error.message;
+  }
+  return '기록을 저장하지 못했습니다. 입력값을 확인한 뒤 다시 시도해주세요.';
 }

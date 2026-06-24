@@ -81,8 +81,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     const registration = await navigator.serviceWorker.register('/sw-push.js');
     console.log('[Push] Service worker registered');
     return registration;
-  } catch (error) {
-    console.error('[Push] Service worker registration failed:', error);
+  } catch {
     return null;
   }
 }
@@ -105,8 +104,7 @@ export async function subscribeToPush(vapidPublicKey: string): Promise<PushSubsc
     }
 
     return subscription.toJSON();
-  } catch (error) {
-    console.error('푸시 구독 실패:', error);
+  } catch {
     return null;
   }
 }
@@ -122,8 +120,7 @@ export async function unsubscribeFromPush(): Promise<boolean> {
     }
 
     return true;
-  } catch (error) {
-    console.error('푸시 구독 해제 실패:', error);
+  } catch {
     return false;
   }
 }
@@ -185,8 +182,7 @@ export async function setupPushNotifications(deviceName?: string): Promise<boole
 
     console.log('[Push] Setup complete');
     return true;
-  } catch (error) {
-    console.error('[Push] Setup failed:', error);
+  } catch {
     return false;
   }
 }

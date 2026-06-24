@@ -28,6 +28,10 @@ function redirectToLogin(): void {
     return;
   }
 
+  if (window.location.pathname === '/login') {
+    return;
+  }
+
   window.location.href = '/login';
 }
 

@@ -15,18 +15,19 @@ interface RecordTypeCardProps {
 export function RecordTypeCard({ type, value, trend, isSelected, hasData, onClick }: RecordTypeCardProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={!hasData}
-      className={`text-left rounded-xl p-4 transition ${
+      className={`rounded-lg border p-4 text-left transition ${
         isSelected
-          ? 'bg-orange-500 text-white ring-2 ring-orange-300'
+          ? 'border-slate-950 bg-slate-950 text-white'
           : hasData
-            ? 'bg-slate-50 hover:bg-slate-100'
-            : 'bg-slate-50 opacity-50 cursor-not-allowed'
+            ? 'border-slate-200 bg-white hover:bg-slate-50'
+            : 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-50'
       }`}
     >
-      <div className="flex items-center justify-between mb-1">
-        <p className={`text-xs ${isSelected ? 'text-orange-100' : 'text-slate-500'}`}>
+      <div className="mb-1 flex items-center justify-between">
+        <p className={`text-xs font-bold ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
           {type.name}
         </p>
         {hasData && (
@@ -34,9 +35,9 @@ export function RecordTypeCard({ type, value, trend, isSelected, hasData, onClic
         )}
       </div>
       <div className="flex items-end justify-between">
-        <p className={`text-2xl font-bold ${isSelected ? 'text-white' : 'text-slate-800'}`}>
+        <p className={`text-2xl font-black ${isSelected ? 'text-white' : 'text-slate-950'}`}>
           {value !== null ? value : '-'}
-          <span className={`text-sm font-normal ml-1 ${isSelected ? 'text-orange-200' : 'text-slate-400'}`}>
+          <span className={`ml-1 text-sm font-semibold ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
             {type.unit}
           </span>
         </p>
@@ -44,7 +45,7 @@ export function RecordTypeCard({ type, value, trend, isSelected, hasData, onClic
           <div className={`flex items-center gap-1 text-sm ${
             isSelected
               ? 'text-white'
-              : trend.direction === 'up' ? 'text-green-600'
+              : trend.direction === 'up' ? 'text-emerald-600'
               : trend.direction === 'down' ? 'text-red-600'
               : 'text-slate-400'
           }`}>

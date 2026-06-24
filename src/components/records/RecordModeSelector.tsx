@@ -23,26 +23,28 @@ export function RecordModeSelector({
   onCollapseAll,
 }: RecordModeSelectorProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
-      <div className="flex items-center justify-between">
+    <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={() => setInputMode('student')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
+            className={`flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-black transition ${
               inputMode === 'student'
-                ? 'bg-orange-500 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-slate-950 text-white'
+                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
             }`}
           >
             <Users size={18} />
             학생별 입력
           </button>
           <button
+            type="button"
             onClick={() => setInputMode('event')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
+            className={`flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-black transition ${
               inputMode === 'event'
-                ? 'bg-orange-500 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-slate-950 text-white'
+                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
             }`}
           >
             <List size={18} />
@@ -51,15 +53,16 @@ export function RecordModeSelector({
         </div>
 
         {inputMode === 'event' && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {recordTypes.map(type => (
               <button
                 key={type.id}
+                type="button"
                 onClick={() => setSelectedRecordType(type.id)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                className={`h-9 rounded-lg px-3 text-sm font-bold transition ${
                   selectedRecordType === type.id
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-emerald-600 text-white'
+                    : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 {type.name}
@@ -71,20 +74,22 @@ export function RecordModeSelector({
         {inputMode === 'student' && (
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={onExpandAll}
-              className="text-sm text-slate-500 hover:text-slate-700 px-3 py-1"
+              className="h-9 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-600 hover:bg-slate-50"
             >
               전체 펼치기
             </button>
             <button
+              type="button"
               onClick={onCollapseAll}
-              className="text-sm text-slate-500 hover:text-slate-700 px-3 py-1"
+              className="h-9 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-600 hover:bg-slate-50"
             >
               전체 접기
             </button>
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }

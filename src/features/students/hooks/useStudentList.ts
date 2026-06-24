@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { authAPI } from '@/lib/api/auth';
 import apiClient from '@/lib/api/client';
+import { useToast } from '@/hooks/useToast';
 
 export interface Student {
   id: number;
@@ -76,11 +77,17 @@ interface UseStudentListReturn {
 }
 
 export function useStudentList(): UseStudentListReturn {
+  const toast = useToast();
+  const toastRef = useRef(toast);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   // 상태별 인원수 계산
   const statusCounts = useMemo(() => ({
@@ -117,8 +124,8 @@ export function useStudentList(): UseStudentListReturn {
       setLoading(true);
       const studentsRes = await apiClient.get('/students');
       setStudents(studentsRes.data.students || []);
-    } catch (error) {
-      console.error('Failed to fetch students:', error);
+    } catch {
+      toastRef.current.error('학생 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
@@ -128,18 +135,17 @@ export function useStudentList(): UseStudentListReturn {
   const syncStudents = async () => {
     const user = authAPI.getCurrentUser();
     if (!user?.academyId) {
-      alert('학원 정보를 찾을 수 없습니다.');
+      toastRef.current.error('학원 정보를 찾지 못했습니다. 다시 로그인해주세요.');
       return;
     }
 
     try {
       setSyncing(true);
       const response = await apiClient.post('/students/sync', { academyId: user.academyId });
-      alert(response.data.message);
+      toastRef.current.success(response.data.message || '학생 정보를 동기화했습니다.');
       await fetchStudents();
-    } catch (error) {
-      console.error('Sync error:', error);
-      alert('동기화에 실패했습니다.');
+    } catch {
+      toastRef.current.error('학생 동기화에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setSyncing(false);
     }

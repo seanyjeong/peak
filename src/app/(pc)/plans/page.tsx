@@ -1,305 +1,126 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useToast } from '@/hooks/useToast';
-import { ClipboardList, Plus, RefreshCw, Tag, Edit2, Check, X, Dumbbell, ChevronDown, ChevronUp, Sunrise, Sun, Moon, Calendar, ChevronLeft, ChevronRight, Settings2, Trash2, Video, Search } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import {
+  Calendar,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Dumbbell,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings2,
+  X,
+} from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { authAPI, User } from '@/lib/api/auth';
+import { useToast } from '@/hooks/useToast';
 import { ReorderButtons } from '@/components/ui/reorder-buttons';
-
-type TimeSlot = 'morning' | 'afternoon' | 'evening';
-
-interface Instructor {
-  id: number;
-  name: string;
-  user_id: number | null;
-  time_slot: TimeSlot;
-}
-
-interface SlotsData {
-  morning: Instructor[];
-  afternoon: Instructor[];
-  evening: Instructor[];
-}
-
-interface Exercise {
-  id: number;
-  name: string;
-  tags: string[];
-  default_sets: number | null;
-  default_reps: number | null;
-  description: string | null;
-  video_url?: string | null;
-}
-
-interface SelectedExercise {
-  exercise_id: number;
-  note: string;
-  weight?: string;  // 무게 또는 갯수
-  reps?: number;    // 횟수
-}
-
-interface Plan {
-  id: number;
-  instructor_id: number;
-  instructor_name: string;
-  time_slot: TimeSlot;
-  tags: string[];
-  exercises: SelectedExercise[];
-  description: string;
-  date: string;
-}
-
-interface ExerciseTag {
-  id: number;
-  tag_id: string;
-  label: string;
-  color: string;
-}
-
-const TIME_SLOT_INFO: Record<TimeSlot, { label: string; icon: typeof Sun; color: string; bgColor: string }> = {
-  morning: { label: '오전', icon: Sunrise, color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  afternoon: { label: '오후', icon: Sun, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  evening: { label: '저녁', icon: Moon, color: 'text-purple-600', bgColor: 'bg-purple-100' },
-};
-
-function TagBadge({ tagId, tags, small = false }: { tagId: string; tags: ExerciseTag[]; small?: boolean }) {
-  const tag = tags.find(t => t.tag_id === tagId);
-  if (!tag) return <span className={`${small ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-xs'} rounded-full font-medium bg-slate-100 text-slate-600`}>{tagId}</span>;
-  return (
-    <span className={`${small ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-xs'} rounded-full font-medium ${tag.color}`}>
-      {tag.label}
-    </span>
-  );
-}
+import {
+  EMPTY_SLOTS,
+  Exercise,
+  ExerciseTag,
+  filterExercises,
+  formatKoreanDate,
+  getSlotStats,
+  Plan,
+  SelectedExercise,
+  shiftIsoDate,
+  SLOT_LABELS,
+  TimeSlot,
+  TIME_SLOTS,
+  todayIsoDate,
+} from './plans-model';
+import { ExerciseVideoLink, PlanCard, SlotButton, TagBadge } from './plans-ui';
 
 export default function PlansPage() {
   const toast = useToast();
-  const [slotsData, setSlotsData] = useState<SlotsData>({ morning: [], afternoon: [], evening: [] });
+  const [selectedDate, setSelectedDate] = useState(todayIsoDate);
+  const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [slotsData, setSlotsData] = useState(EMPTY_SLOTS);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [exerciseTags, setExerciseTags] = useState<ExerciseTag[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [expandedPlanId, setExpandedPlanId] = useState<number | null>(null);
-
-  // 날짜 선택
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  });
-
-  // 시간대 탭
-  const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
-
-  // 현재 로그인 사용자 정보
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const isOwner = currentUser?.role === 'admin' || currentUser?.role === 'owner';
-
-  // Form state
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [selectedInstructor, setSelectedInstructor] = useState<number | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedExercises, setSelectedExercises] = useState<SelectedExercise[]>([]);
   const [description, setDescription] = useState('');
   const [exerciseSearch, setExerciseSearch] = useState('');
 
-  const formatDateDisplay = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long'
-    });
-  };
+  const isOwner = currentUser?.role === 'admin' || currentUser?.role === 'owner';
+  const myInstructorId = currentUser?.instructorId || null;
+  const currentInstructors = slotsData[activeSlot];
+  const currentPlans = plans.filter((plan) => plan.time_slot === activeSlot);
+  const instructorsWithoutPlan = currentInstructors.filter(
+    (instructor) => !currentPlans.some((plan) => plan.instructor_id === instructor.id)
+  );
+  const amIScheduled = myInstructorId ? currentInstructors.some((instructor) => instructor.id === myInstructorId) : false;
+  const myPlanExists = myInstructorId ? currentPlans.some((plan) => plan.instructor_id === myInstructorId) : false;
+  const canAddPlan = isOwner ? instructorsWithoutPlan.length > 0 : amIScheduled && !myPlanExists;
 
-  const changeDate = (delta: number) => {
-    const date = new Date(selectedDate + 'T00:00:00');
-    date.setDate(date.getDate() + delta);
-    const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    setSelectedDate(newDate);
-  };
+  const visibleExercises = useMemo(
+    () => filterExercises(exercises, selectedTags, exerciseSearch),
+    [exercises, exerciseSearch, selectedTags]
+  );
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const user = authAPI.getCurrentUser();
-      setCurrentUser(user);
-
+      setCurrentUser(authAPI.getCurrentUser());
       const [plansRes, exercisesRes, tagsRes] = await Promise.all([
         apiClient.get(`/plans?date=${selectedDate}`),
         apiClient.get('/exercises'),
-        apiClient.get('/exercise-tags')
+        apiClient.get('/exercise-tags'),
       ]);
 
-      setSlotsData(plansRes.data.slots || { morning: [], afternoon: [], evening: [] });
-      setExerciseTags(tagsRes.data.tags || []);
+      const nextSlots = plansRes.data.slots || EMPTY_SLOTS;
+      setSlotsData(nextSlots);
       setPlans(plansRes.data.plans || []);
       setExercises(exercisesRes.data.exercises || []);
+      setExerciseTags(tagsRes.data.tags || []);
 
-      // 강사가 있는 슬롯 자동 선택
-      const slots = plansRes.data.slots;
-      if (slots.evening?.length > 0) setActiveSlot('evening');
-      else if (slots.afternoon?.length > 0) setActiveSlot('afternoon');
-      else if (slots.morning?.length > 0) setActiveSlot('morning');
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error(error);
+      const firstSlot = TIME_SLOTS.find((slot) => nextSlots[slot]?.length > 0);
+      if (firstSlot) setActiveSlot((current) => (nextSlots[current]?.length ? current : firstSlot));
+    } catch {
+      toast.error('수업 계획을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
+    // fetchData는 selectedDate 기준 API 호출이라 날짜 변경 때만 재호출합니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
-  // 현재 로그인한 강사의 instructor_id
-  const myInstructorId = currentUser?.instructorId || null;
-
-  // 현재 시간대의 강사들
-  const currentInstructors = slotsData[activeSlot];
-
-  // 현재 시간대의 계획들
-  const currentPlans = plans.filter(p => p.time_slot === activeSlot);
-
-  // 계획이 없는 강사 목록
-  const instructorsWithoutPlan = currentInstructors.filter(
-    i => !currentPlans.some(p => p.instructor_id === i.id)
-  );
-
-  // 내가 이 시간대에 스케줄되어 있는지
-  const amIScheduled = myInstructorId ? currentInstructors.some(i => i.id === myInstructorId) : false;
-
-  // 내 계획이 이미 있는지
-  const myPlanExists = myInstructorId ? currentPlans.some(p => p.instructor_id === myInstructorId) : false;
-
-  // 계획 추가 가능 여부
-  const canAddPlan = isOwner
-    ? instructorsWithoutPlan.length > 0
-    : (amIScheduled && !myPlanExists);
-
-  // 선택된 태그에 해당하는 운동만 필터링
-  const filteredExercises = useMemo(() => {
-    let result = exercises;
-    if (selectedTags.length > 0) {
-      result = result.filter(ex => ex.tags.some(t => selectedTags.includes(t)));
-    }
-    if (exerciseSearch.trim()) {
-      const keyword = exerciseSearch.trim().toLowerCase();
-      result = result.filter(ex => ex.name.toLowerCase().includes(keyword));
-    }
-    return result;
-  }, [exercises, selectedTags, exerciseSearch]);
-
-  const toggleTag = (tagId: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId]
-    );
-  };
-
-  const toggleExercise = (exerciseId: number) => {
-    setSelectedExercises(prev => {
-      const exists = prev.find(e => e.exercise_id === exerciseId);
-      if (exists) {
-        return prev.filter(e => e.exercise_id !== exerciseId);
-      } else {
-        return [...prev, { exercise_id: exerciseId, note: '' }];
-      }
-    });
-  };
-
-  // 운동 순서 변경 (peak-plan-reorder)
-  const moveExerciseUp = (index: number) => {
-    if (index === 0) return;
-    setSelectedExercises(prev => {
-      const next = [...prev];
-      [next[index - 1], next[index]] = [next[index], next[index - 1]];
-      return next;
-    });
-  };
-  const moveExerciseDown = (index: number) => {
-    setSelectedExercises(prev => {
-      if (index === prev.length - 1) return prev;
-      const next = [...prev];
-      [next[index], next[index + 1]] = [next[index + 1], next[index]];
-      return next;
-    });
-  };
-
-  const updateExerciseNote = (exerciseId: number, note: string) => {
-    setSelectedExercises(prev =>
-      prev.map(e => e.exercise_id === exerciseId ? { ...e, note } : e)
-    );
-  };
-
-  const updateExerciseWeight = (exerciseId: number, weight: string) => {
-    setSelectedExercises(prev =>
-      prev.map(e => e.exercise_id === exerciseId ? { ...e, weight } : e)
-    );
-  };
-
-  const updateExerciseReps = (exerciseId: number, reps: number | undefined) => {
-    setSelectedExercises(prev =>
-      prev.map(e => e.exercise_id === exerciseId ? { ...e, reps } : e)
-    );
-  };
-
-  const isExerciseSelected = (exerciseId: number) => selectedExercises.some(e => e.exercise_id === exerciseId);
-
   const resetForm = () => {
+    setShowForm(false);
+    setEditingId(null);
     setSelectedInstructor(null);
     setSelectedTags([]);
     setSelectedExercises([]);
     setDescription('');
     setExerciseSearch('');
-    setShowAddForm(false);
-    setEditingId(null);
   };
 
-  const handleSubmit = async () => {
-    const instructorId = isOwner ? selectedInstructor : myInstructorId;
-    if (!instructorId) {
-      toast.error('강사를 선택하세요.');
-      return;
-    }
-
-    if (selectedExercises.length === 0) {
-      toast.error('최소 1개 이상의 운동을 선택하세요.');
-      return;
-    }
-
-    try {
-      if (editingId) {
-        await apiClient.put(`/plans/${editingId}`, {
-          tags: selectedTags,
-          exercises: selectedExercises,
-          description
-        });
-      } else {
-        await apiClient.post('/plans', {
-          date: selectedDate,
-          time_slot: activeSlot,
-          instructor_id: instructorId,
-          tags: selectedTags,
-          exercises: selectedExercises,
-          description
-        });
-      }
-      resetForm();
-      fetchData();
-    } catch (error) {
-      console.error('Failed to save plan:', error);
-      toast.error('저장에 실패했습니다.');
-    }
+  const startCreate = () => {
+    resetForm();
+    setSelectedInstructor(!isOwner && myInstructorId ? myInstructorId : null);
+    setShowForm(true);
   };
 
   const startEdit = (plan: Plan) => {
-    // 원장이 아니면 자기 계획만 수정 가능
     if (!isOwner && plan.instructor_id !== myInstructorId) {
-      alert('자신의 계획만 수정할 수 있습니다.');
+      toast.error('내가 작성한 계획만 수정할 수 있습니다.');
       return;
     }
     setEditingId(plan.id);
@@ -307,486 +128,322 @@ export default function PlansPage() {
     setSelectedTags(plan.tags || []);
     setSelectedExercises(plan.exercises || []);
     setDescription(plan.description || '');
-    setShowAddForm(true);
+    setShowForm(true);
   };
 
-  const handleDelete = async (plan: Plan) => {
-    // 원장이 아니면 자기 계획만 삭제 가능
+  const savePlan = async () => {
+    const instructorId = isOwner ? selectedInstructor : myInstructorId;
+    if (!instructorId) {
+      toast.error('강사를 선택해주세요.');
+      return;
+    }
+    if (selectedExercises.length === 0) {
+      toast.error('운동을 1개 이상 선택해주세요.');
+      return;
+    }
+
+    try {
+      if (editingId) {
+        await apiClient.put(`/plans/${editingId}`, { tags: selectedTags, exercises: selectedExercises, description });
+        toast.success('수업 계획을 수정했습니다.');
+      } else {
+        await apiClient.post('/plans', {
+          date: selectedDate,
+          time_slot: activeSlot,
+          instructor_id: instructorId,
+          tags: selectedTags,
+          exercises: selectedExercises,
+          description,
+        });
+        toast.success('수업 계획을 저장했습니다.');
+      }
+      resetForm();
+      await fetchData();
+    } catch {
+      toast.error('수업 계획을 저장하지 못했습니다. 입력 내용을 확인해주세요.');
+    }
+  };
+
+  const deletePlan = async (plan: Plan) => {
     if (!isOwner && plan.instructor_id !== myInstructorId) {
-      alert('자신의 계획만 삭제할 수 있습니다.');
+      toast.error('내가 작성한 계획만 삭제할 수 있습니다.');
       return;
     }
-    if (!confirm(`${plan.instructor_name}의 ${TIME_SLOT_INFO[plan.time_slot].label} 계획을 삭제하시겠습니까?`)) {
-      return;
-    }
+    if (!window.confirm(`${plan.instructor_name} ${SLOT_LABELS[plan.time_slot]} 계획을 삭제할까요?`)) return;
+
     try {
       await apiClient.delete(`/plans/${plan.id}`);
-      fetchData();
-    } catch (error) {
-      console.error('Failed to delete plan:', error);
-      toast.error('삭제에 실패했습니다.');
+      toast.success('수업 계획을 삭제했습니다.');
+      await fetchData();
+    } catch {
+      toast.error('수업 계획을 삭제하지 못했습니다.');
     }
   };
 
-  const getExerciseName = (exerciseId: number) => {
-    return exercises.find(e => e.id === exerciseId)?.name || '알 수 없는 운동';
+  const toggleTag = (tagId: string) => {
+    setSelectedTags((current) => current.includes(tagId) ? current.filter((tag) => tag !== tagId) : [...current, tagId]);
   };
 
-  const getSlotStats = (slot: TimeSlot) => {
-    const scheduled = slotsData[slot].length;
-    const planned = plans.filter(p => p.time_slot === slot).length;
-    return { scheduled, planned };
+  const toggleExercise = (exerciseId: number) => {
+    setSelectedExercises((current) => {
+      if (current.some((exercise) => exercise.exercise_id === exerciseId)) {
+        return current.filter((exercise) => exercise.exercise_id !== exerciseId);
+      }
+      return [...current, { exercise_id: exerciseId, note: '' }];
+    });
+  };
+
+  const updateSelectedExercise = (exerciseId: number, patch: Partial<SelectedExercise>) => {
+    setSelectedExercises((current) => (
+      current.map((exercise) => exercise.exercise_id === exerciseId ? { ...exercise, ...patch } : exercise)
+    ));
+  };
+
+  const moveSelectedExercise = (index: number, direction: -1 | 1) => {
+    setSelectedExercises((current) => {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= current.length) return current;
+      const next = [...current];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return next;
+    });
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-[1500px] space-y-6">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">수업 계획</h1>
-          <div className="flex items-center gap-2 mt-2">
-            <button
-              onClick={() => changeDate(-1)}
-              className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-            >
-              <ChevronLeft size={20} />
+          <p className="text-xs font-bold uppercase tracking-normal text-emerald-700">LESSON PLAN</p>
+          <h1 className="mt-1 text-3xl font-black tracking-normal text-slate-950">수업 계획</h1>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, -1))} className="rounded-lg border border-slate-200 bg-white p-2">
+              <ChevronLeft className="size-4" />
             </button>
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-slate-400 dark:text-slate-500" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-2 py-1 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded text-sm"
-              />
-            </div>
-            <button
-              onClick={() => changeDate(1)}
-              className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-            >
-              <ChevronRight size={20} />
+            <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
+              <Calendar className="size-4 text-slate-400" />
+              <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="bg-transparent outline-none" />
+            </label>
+            <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, 1))} className="rounded-lg border border-slate-200 bg-white p-2">
+              <ChevronRight className="size-4" />
             </button>
-            <span className="text-slate-500 dark:text-slate-400 text-sm ml-2">{formatDateDisplay(selectedDate)}</span>
+            <span className="text-sm font-semibold text-slate-500">{formatKoreanDate(selectedDate)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex flex-wrap items-center gap-2">
           {canAddPlan && (
-            <button
-              onClick={() => {
-                resetForm();
-                if (!isOwner && myInstructorId) {
-                  setSelectedInstructor(myInstructorId);
-                }
-                setShowAddForm(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-            >
-              <Plus size={18} />
-              <span>{isOwner ? '계획 추가' : '내 계획 작성'}</span>
+            <button type="button" onClick={startCreate} className="flex h-10 items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white hover:bg-slate-800">
+              <Plus className="size-4" />
+              {isOwner ? '계획 추가' : '내 계획 작성'}
             </button>
           )}
-          {!isOwner && myPlanExists && (
-            <span className="text-sm text-green-600 font-medium">작성 완료</span>
-          )}
-          {!isOwner && amIScheduled && !myPlanExists && !showAddForm && (
-            <span className="text-sm text-orange-500 font-medium">계획 미작성</span>
-          )}
-          <Link
-            href="/exercises"
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-          >
-            <Settings2 size={18} />
-            <span>운동 관리</span>
+          <Link href="/exercises" className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            <Settings2 className="size-4" />
+            운동 관리
           </Link>
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
-          >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          <button type="button" onClick={fetchData} disabled={loading} className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Time Slot Tabs */}
-      <div className="flex gap-2 mb-6">
-        {(Object.keys(TIME_SLOT_INFO) as TimeSlot[]).map((slot) => {
-          const info = TIME_SLOT_INFO[slot];
-          const Icon = info.icon;
-          const stats = getSlotStats(slot);
-          const isActive = activeSlot === slot;
-
+      <section className="grid gap-3 lg:grid-cols-3">
+        {TIME_SLOTS.map((slot) => {
+          const stats = getSlotStats(slotsData, plans, slot);
           return (
-            <button
+            <SlotButton
               key={slot}
+              active={activeSlot === slot}
               onClick={() => setActiveSlot(slot)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-lg transition ${
-                isActive
-                  ? `${info.bgColor} ${info.color} ring-2 ring-offset-2`
-                  : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-              }`}
-            >
-              <Icon size={20} />
-              <span className="font-medium">{info.label}</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs ${
-                isActive ? 'bg-white/50' : 'bg-slate-100 dark:bg-slate-700'
-              }`}>
-                {stats.planned}/{stats.scheduled}
-              </span>
-            </button>
+              planned={stats.planned}
+              scheduled={stats.scheduled}
+              slot={slot}
+            />
           );
         })}
-      </div>
+      </section>
 
-      {/* Add/Edit Form */}
-      {showAddForm && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-slate-800 dark:text-slate-100">
-              {editingId ? '계획 수정' : `${TIME_SLOT_INFO[activeSlot].label} 수업 계획 작성`}
-            </h2>
-            <button onClick={resetForm} className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
-              <X size={20} />
-            </button>
-          </div>
+      {showForm && (
+        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm xl:grid-cols-[1fr_0.9fr]">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-black text-slate-950">{editingId ? '계획 수정' : `${SLOT_LABELS[activeSlot]} 계획 작성`}</h2>
+              <button type="button" onClick={resetForm} className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="size-4" /></button>
+            </div>
 
-          {/* Instructor Select */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">강사</label>
-            {isOwner ? (
-              <select
-                value={selectedInstructor || ''}
-                onChange={e => setSelectedInstructor(Number(e.target.value))}
-                disabled={!!editingId}
-                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-slate-100 dark:disabled:bg-slate-700"
-              >
-                <option value="">선택하세요</option>
-                {(editingId ? currentInstructors : instructorsWithoutPlan).map(i => (
-                  <option key={i.id} value={i.id}>{i.name}</option>
-                ))}
-              </select>
-            ) : (
-              <div className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200">
-                {currentInstructors.find(i => i.id === selectedInstructor)?.name || currentUser?.name}
-              </div>
-            )}
-          </div>
-
-          {/* Tags */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
-              <Tag size={16} className="inline mr-1" />
-              훈련 태그 (운동 필터)
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {exerciseTags.map(tag => (
-                <button
-                  key={tag.tag_id}
-                  onClick={() => toggleTag(tag.tag_id)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition border ${
-                    selectedTags.includes(tag.tag_id)
-                      ? tag.color + ' ring-2 ring-offset-1 ring-slate-300 dark:ring-slate-600'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-transparent hover:bg-slate-200 dark:hover:bg-slate-600'
-                  }`}
+            <label className="block">
+              <span className="mb-2 block text-sm font-bold text-slate-700">강사</span>
+              {isOwner ? (
+                <select
+                  value={selectedInstructor || ''}
+                  onChange={(event) => setSelectedInstructor(event.target.value ? Number(event.target.value) : null)}
+                  disabled={!!editingId}
+                  className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-slate-900 disabled:bg-slate-100"
                 >
-                  {tag.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Exercise Selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
-              <Dumbbell size={16} className="inline mr-1" />
-              운동 선택 {`(${filteredExercises.length}개)`}
-            </label>
-            <div className="relative mb-2">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={exerciseSearch}
-                onChange={(e) => setExerciseSearch(e.target.value)}
-                placeholder="운동 검색..."
-                className="w-full pl-9 pr-8 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
-              />
-              {exerciseSearch && (
-                <button onClick={() => setExerciseSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-            <div className="border border-slate-200 dark:border-slate-700 rounded-lg max-h-64 overflow-y-auto">
-              {filteredExercises.length === 0 ? (
-                <div className="p-4 text-center text-slate-400 dark:text-slate-500 text-sm">
-                  {selectedTags.length === 0 ? '태그를 선택하면 운동이 표시됩니다' : '해당 태그의 운동이 없습니다'}
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {filteredExercises.map(ex => (
-                    <div
-                      key={ex.id}
-                      className={`p-3 cursor-pointer transition ${
-                        isExerciseSelected(ex.id) ? 'bg-orange-50 dark:bg-orange-900' : 'hover:bg-slate-50 dark:hover:bg-slate-700'
-                      }`}
-                      onClick={() => toggleExercise(ex.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                            isExerciseSelected(ex.id)
-                              ? 'bg-orange-500 border-orange-500 text-white'
-                              : 'border-slate-300 dark:border-slate-600'
-                          }`}>
-                            {isExerciseSelected(ex.id) && <Check size={14} />}
-                          </div>
-                          <span className="font-medium text-slate-800 dark:text-slate-100">{ex.name}</span>
-                          {ex.video_url && (
-                            <a
-                              href={ex.video_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              className="p-1 text-blue-500 hover:text-blue-600"
-                              title="영상 보기"
-                            >
-                              <Video size={14} />
-                            </a>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {ex.tags.map(t => <TagBadge key={t} tagId={t} tags={exerciseTags} small />)}
-                        </div>
-                      </div>
-                      {ex.description && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 ml-7">{ex.description}</p>
-                      )}
-                    </div>
+                  <option value="">선택하세요</option>
+                  {(editingId ? currentInstructors : instructorsWithoutPlan).map((instructor) => (
+                    <option key={instructor.id} value={instructor.id}>{instructor.name}</option>
                   ))}
-                </div>
+                </select>
+              ) : (
+                <div className="h-11 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">{currentUser?.name || '내 계정'}</div>
               )}
-            </div>
-          </div>
+            </label>
 
-          {/* Selected Exercises with Notes */}
-          {selectedExercises.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
-                선택된 운동 ({selectedExercises.length}개)
-              </label>
-              <div className="space-y-2">
-                {selectedExercises.map((sel, index) => {
-                  const ex = exercises.find(e => e.id === sel.exercise_id);
-                  if (!ex) return null;
+            <div>
+              <p className="mb-2 text-sm font-bold text-slate-700">훈련 태그</p>
+              <div className="flex flex-wrap gap-2">
+                {exerciseTags.map((tag) => (
+                  <button
+                    key={tag.tag_id}
+                    type="button"
+                    onClick={() => toggleTag(tag.tag_id)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-bold transition ${
+                      selectedTags.includes(tag.tag_id) ? 'border-slate-900 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {tag.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-700">운동 선택</label>
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={exerciseSearch}
+                  onChange={(event) => setExerciseSearch(event.target.value)}
+                  className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-slate-900"
+                  placeholder="운동명 검색"
+                />
+              </div>
+              <div className="grid max-h-72 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
+                {visibleExercises.map((exercise) => {
+                  const selected = selectedExercises.some((item) => item.exercise_id === exercise.id);
                   return (
-                    <div key={sel.exercise_id} className="bg-orange-50 dark:bg-orange-900 p-3 rounded-lg flex items-start gap-2">
-                      <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <button
-                          onClick={() => toggleExercise(sel.exercise_id)}
-                          className="text-slate-400 dark:text-slate-500 hover:text-red-500"
-                        >
-                          <X size={16} />
-                        </button>
-                        <span className="font-medium text-slate-700 dark:text-slate-200">{ex.name}</span>
-                        {ex.video_url && (
-                          <a
-                            href={ex.video_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            className="p-1 text-blue-500 hover:text-blue-600"
-                            title="영상 보기"
-                          >
-                            <Video size={14} />
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 ml-6">
-                        <input
-                          type="text"
-                          value={sel.weight || ''}
-                          onChange={e => updateExerciseWeight(sel.exercise_id, e.target.value)}
-                          onClick={e => e.stopPropagation()}
-                          placeholder="무게/갯수"
-                          className="w-24 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded focus:ring-1 focus:ring-orange-500"
-                        />
-                        <span className="text-slate-400 dark:text-slate-500 text-sm">×</span>
-                        <input
-                          type="number"
-                          value={sel.reps || ''}
-                          onChange={e => updateExerciseReps(sel.exercise_id, e.target.value ? parseInt(e.target.value) : undefined)}
-                          onClick={e => e.stopPropagation()}
-                          placeholder="횟수"
-                          className="w-20 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded focus:ring-1 focus:ring-orange-500"
-                        />
-                        <span className="text-slate-400 dark:text-slate-500 text-sm">회</span>
-                        <input
-                          type="text"
-                          value={sel.note}
-                          onChange={e => updateExerciseNote(sel.exercise_id, e.target.value)}
-                          onClick={e => e.stopPropagation()}
-                          placeholder="세부사항..."
-                          className="flex-1 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded focus:ring-1 focus:ring-orange-500"
-                        />
-                      </div>
-                    </div>
-                    <ReorderButtons
-                      index={index}
-                      total={selectedExercises.length}
-                      onMoveUp={() => moveExerciseUp(index)}
-                      onMoveDown={() => moveExerciseDown(index)}
-                      size="md"
-                    />
-                </div>
+                    <button
+                      key={exercise.id}
+                      type="button"
+                      onClick={() => toggleExercise(exercise.id)}
+                      className={`rounded-lg border p-3 text-left transition ${selected ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                    >
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="font-bold text-slate-900">{exercise.name}</span>
+                        <ExerciseVideoLink url={exercise.video_url} />
+                      </span>
+                      <span className="mt-2 flex flex-wrap gap-1">
+                        {exercise.tags.map((tagId) => <TagBadge key={tagId} tagId={tagId} tags={exerciseTags} small />)}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
             </div>
-          )}
-
-          {/* Description */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">추가 메모</label>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={2}
-              placeholder="수업 방향이나 주의사항..."
-              className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 resize-none"
-            />
           </div>
 
-          {/* Submit */}
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={resetForm}
-              className="px-4 py-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
-            >
-              취소
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-            >
-              <Check size={18} />
-              <span>{editingId ? '수정' : '저장'}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Plans List */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-          <h2 className="font-semibold text-slate-800 dark:text-slate-100">
-            {TIME_SLOT_INFO[activeSlot].label} 수업 계획 ({currentPlans.length}/{currentInstructors.length}명)
-          </h2>
-        </div>
-
-        {loading ? (
-          <div className="p-12 text-center text-slate-400 dark:text-slate-500">
-            <RefreshCw size={32} className="animate-spin mx-auto mb-2" />
-            <p>로딩 중...</p>
-          </div>
-        ) : currentInstructors.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 dark:text-slate-500">
-            <p>{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 강사가 없습니다.</p>
-            <p className="text-sm mt-2">P-ACA에서 강사 스케줄을 등록하세요.</p>
-          </div>
-        ) : currentPlans.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 dark:text-slate-500">
-            <ClipboardList size={48} className="mx-auto mb-4" />
-            <p>아직 작성된 수업 계획이 없습니다.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-700">
-            {currentPlans.map(plan => (
-              <div key={plan.id} className="p-5">
-                {/* Plan Header */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-medium">
-                      {plan.instructor_name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-800 dark:text-slate-100">{plan.instructor_name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{plan.exercises?.length || 0}개 운동</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id)}
-                      className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-                    >
-                      {expandedPlanId === plan.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </button>
-                    {(isOwner || plan.instructor_id === myInstructorId) && (
-                      <>
-                        <button
-                          onClick={() => startEdit(plan)}
-                          className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(plan)}
-                          className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-500"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Tags */}
-                {plan.tags && plan.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {plan.tags.map(tagId => <TagBadge key={tagId} tagId={tagId} tags={exerciseTags} />)}
-                  </div>
-                )}
-
-                {/* Exercises */}
-                {plan.exercises && plan.exercises.length > 0 && (
-                  <div className={expandedPlanId === plan.id ? '' : 'line-clamp-2'}>
-                    <div className="space-y-1">
-                      {plan.exercises.map((sel, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-sm">
-                          <Dumbbell size={14} className="text-orange-500 flex-shrink-0" />
-                          <span className="font-medium text-slate-700 dark:text-slate-200">{getExerciseName(sel.exercise_id)}</span>
-                          {(sel.weight || sel.reps) && (
-                            <span className="text-orange-600 font-medium">
-                              {sel.weight && sel.weight}{sel.weight && sel.reps && ' × '}{sel.reps && `${sel.reps}회`}
-                            </span>
-                          )}
-                          {sel.note && <span className="text-slate-500 dark:text-slate-400">- {sel.note}</span>}
+          <div className="space-y-4 rounded-lg bg-slate-50 p-4">
+            <div>
+              <h3 className="text-sm font-black text-slate-900">선택된 운동 {selectedExercises.length}개</h3>
+              <div className="mt-3 space-y-3">
+                {selectedExercises.map((selected, index) => {
+                  const exercise = exercises.find((item) => item.id === selected.exercise_id);
+                  if (!exercise) return null;
+                  return (
+                    <div key={selected.exercise_id} className="rounded-lg border border-slate-200 bg-white p-3">
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2 font-bold text-slate-900"><Dumbbell className="size-4 text-emerald-600" />{exercise.name}</span>
+                        <div className="flex items-center gap-1">
+                          <ReorderButtons index={index} total={selectedExercises.length} onMoveUp={() => moveSelectedExercise(index, -1)} onMoveDown={() => moveSelectedExercise(index, 1)} size="sm" />
+                          <button type="button" onClick={() => toggleExercise(selected.exercise_id)} className="rounded-md p-1.5 text-red-500 hover:bg-red-50"><X className="size-4" /></button>
                         </div>
-                      ))}
+                      </div>
+                      <div className="grid grid-cols-[1fr_84px] gap-2">
+                        <input value={selected.weight || ''} onChange={(event) => updateSelectedExercise(selected.exercise_id, { weight: event.target.value })} className="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-900" placeholder="무게/개수" />
+                        <input type="number" value={selected.reps || ''} onChange={(event) => updateSelectedExercise(selected.exercise_id, { reps: event.target.value ? Number(event.target.value) : undefined })} className="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-900" placeholder="횟수" />
+                      </div>
+                      <input value={selected.note} onChange={(event) => updateSelectedExercise(selected.exercise_id, { note: event.target.value })} className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-900" placeholder="세부사항" />
                     </div>
-                  </div>
-                )}
-
-                {/* Description */}
-                {plan.description && (
-                  <p className="text-slate-600 dark:text-slate-300 text-sm mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                    {plan.description}
-                  </p>
-                )}
+                  );
+                })}
+                {selectedExercises.length === 0 && <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">왼쪽에서 운동을 선택하세요.</p>}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
 
-      {/* Summary */}
-      {currentInstructors.length > 0 && instructorsWithoutPlan.length > 0 && (
-        <div className="mt-6 bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            미작성: {instructorsWithoutPlan.map(i => i.name).join(', ')}
-          </p>
-        </div>
+            <label className="block">
+              <span className="mb-2 block text-sm font-bold text-slate-700">추가 메모</span>
+              <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} className="w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-slate-900" placeholder="수업 방향이나 주의사항" />
+            </label>
+
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={resetForm} className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700">취소</button>
+              <button type="button" onClick={savePlan} className="flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700">
+                <Check className="size-4" />
+                {editingId ? '수정' : '저장'}
+              </button>
+            </div>
+          </div>
+        </section>
       )}
+
+      <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black text-slate-950">{SLOT_LABELS[activeSlot]} 수업 계획</h2>
+            <span className="text-sm font-semibold text-slate-500">{currentPlans.length} / {currentInstructors.length}명 작성</span>
+          </div>
+          {loading && <div className="rounded-lg border border-slate-200 bg-white p-10 text-center text-slate-500">불러오는 중입니다.</div>}
+          {!loading && currentInstructors.length === 0 && <EmptyState message={`${SLOT_LABELS[activeSlot]}에 스케줄된 강사가 없습니다.`} />}
+          {!loading && currentInstructors.length > 0 && currentPlans.length === 0 && <EmptyState message="아직 작성된 수업 계획이 없습니다." />}
+          {!loading && currentPlans.map((plan) => (
+            <PlanCard
+              key={plan.id}
+              canManage={isOwner || plan.instructor_id === myInstructorId}
+              exerciseTags={exerciseTags}
+              exercises={exercises}
+              expanded={expandedPlanId === plan.id}
+              onDelete={() => deletePlan(plan)}
+              onEdit={() => startEdit(plan)}
+              onToggle={() => setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id)}
+              plan={plan}
+            />
+          ))}
+        </div>
+
+        <aside className="h-fit rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-normal text-slate-500">PLAN STATUS</p>
+          <h3 className="mt-2 text-xl font-black text-slate-950">작성 현황</h3>
+          <div className="mt-4 space-y-2">
+            {currentInstructors.map((instructor) => {
+              const done = currentPlans.some((plan) => plan.instructor_id === instructor.id);
+              return (
+                <div key={instructor.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+                  <span className="font-semibold text-slate-800">{instructor.name}</span>
+                  <span className={`rounded-md px-2 py-1 text-xs font-bold ${done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {done ? '작성' : '미작성'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {!isOwner && amIScheduled && !myPlanExists && !showForm && (
+            <button type="button" onClick={startCreate} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-slate-950 text-sm font-bold text-white">
+              <Plus className="size-4" />
+              내 계획 작성
+            </button>
+          )}
+        </aside>
+      </section>
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center">
+      <ClipboardList className="mx-auto size-10 text-slate-300" />
+      <p className="mt-3 text-sm font-semibold text-slate-500">{message}</p>
     </div>
   );
 }

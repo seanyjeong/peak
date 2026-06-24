@@ -19,6 +19,7 @@ import {
 import { useStudentList, STATUS_MAP } from '@/features/students';
 import type { Student } from '@/features/students';
 import { groupByChosung, getSortedGroups } from '@/lib/utils/korean';
+import { getProfileErrorMessage } from './[id]/student-profile-model';
 
 export default function StudentsPage() {
   const toast = useToast();
@@ -87,8 +88,7 @@ export default function StudentsPage() {
       }
       setScoreTables(tables);
     } catch (error) {
-      console.error('Failed to fetch record types:', error);
-      toast.error(error);
+      toast.error(getProfileErrorMessage(error, '측정 종목을 불러오지 못했습니다.'));
     }
   };
 
@@ -124,7 +124,7 @@ export default function StudentsPage() {
       setShowAddRecord(false);
       setRecordInputs({});
       fetchStudentRecords(selectedStudent.id);
-    } catch (error) { console.error('Failed to save record:', error); toast.error(error); }
+    } catch (error) { toast.error(getProfileErrorMessage(error, '기록을 저장하지 못했습니다.')); }
     finally { setSavingRecord(false); }
   };
 
@@ -145,7 +145,7 @@ export default function StudentsPage() {
       setLoadingRecords(true);
       const response = await apiClient.get(`/students/${studentId}/records`);
       setStudentRecords(response.data.records || []);
-    } catch (error) { console.error('Failed to fetch records:', error); }
+    } catch (error) { toast.error(getProfileErrorMessage(error, '학생 기록을 불러오지 못했습니다.')); }
     finally { setLoadingRecords(false); }
   };
 
@@ -193,47 +193,48 @@ export default function StudentsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="mx-auto max-w-[1500px] space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-12">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">학생 관리</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">총 {statusCounts.all}명</p>
+          <p className="text-xs font-bold uppercase tracking-normal text-emerald-700">STUDENTS</p>
+          <h1 className="mt-1 text-3xl font-black tracking-normal text-slate-950">학생 관리</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-500">총 {statusCounts.all}명</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Link href="/students/records"
-            className="flex items-center gap-2 px-4 py-2.5 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+            className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
             <TableProperties size={18} />
-            <span className="text-sm">전체 기록</span>
+            <span>전체 기록</span>
           </Link>
           <button onClick={fetchStudents} disabled={loading}
-            className="flex items-center gap-2 px-4 py-2.5 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50">
+            className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 mb-8">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              placeholder="이름 검색..." className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" />
+              placeholder="학생 이름 검색" className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-slate-900 outline-none focus:border-slate-900" />
           </div>
           <div className="flex gap-2 flex-wrap">
             <button onClick={() => setStatusFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${statusFilter === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}>
+              className={`h-10 rounded-lg px-4 text-sm font-bold transition ${statusFilter === 'all' ? 'bg-slate-950 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
               전체 <span className="ml-1 opacity-80">{statusCounts.all}</span>
             </button>
             {Object.entries(STATUS_MAP).map(([key, value]) => (
               <button key={key} onClick={() => setStatusFilter(key)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${statusFilter === key ? 'bg-orange-500 text-white' : `bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600`}`}>
+                className={`h-10 rounded-lg px-4 text-sm font-bold transition ${statusFilter === key ? 'bg-slate-950 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
                 {value.label} <span className="ml-1 opacity-80">{statusCounts[key as keyof typeof statusCounts] ?? 0}</span>
               </button>
             ))}
             <button onClick={() => setStatusFilter('trial')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${statusFilter === 'trial' ? 'bg-purple-500 text-white' : 'bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/30'}`}>
+              className={`h-10 rounded-lg px-4 text-sm font-bold transition ${statusFilter === 'trial' ? 'bg-slate-950 text-white' : 'border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>
               체험생 <span className="ml-1 opacity-80">{statusCounts.trial}</span>
             </button>
           </div>
@@ -241,22 +242,22 @@ export default function StudentsPage() {
       </div>
 
       {/* Content */}
-      <div className="flex gap-8">
+      <div className="flex gap-5">
         {/* Student List with Chosung Jump */}
-        <div className={`${selectedStudent ? 'w-1/2' : 'w-full'} transition-all relative`}>
+        <div className={`${selectedStudent ? 'w-1/2' : 'w-full'} relative transition-all`}>
           {loading ? (
-            <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="flex h-64 items-center justify-center rounded-lg border border-slate-200 bg-white">
               <RefreshCw size={32} className="animate-spin text-slate-400" />
             </div>
           ) : filteredStudents.length === 0 ? (
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-16 text-center">
+            <div className="rounded-lg border border-slate-200 bg-white p-16 text-center">
               <Users size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
               <p className="text-slate-500 dark:text-slate-400">학생이 없습니다.</p>
             </div>
           ) : (
             <div className="flex gap-2">
               {/* Student List with Groups */}
-              <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="flex-1 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                 <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
                   {sortedGroups.map(([chosung, students]) => (
                     <div
@@ -264,16 +265,16 @@ export default function StudentsPage() {
                       ref={(el) => { groupRefs.current[chosung] = el; }}
                     >
                       {/* Chosung Header */}
-                      <div className="sticky top-0 z-10 px-5 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-                        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                      <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-5 py-2">
+                        <span className="text-sm font-black text-slate-500">
                           {chosung}
                         </span>
-                        <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">
+                        <span className="ml-2 text-xs font-semibold text-slate-400">
                           {students.length}명
                         </span>
                       </div>
                       {/* Students in Group */}
-                      <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                      <div className="divide-y divide-slate-100">
                         {students.map(student => (
                           <StudentListItem
                             key={student.id}
@@ -302,18 +303,18 @@ export default function StudentsPage() {
         {/* Student Detail */}
         {selectedStudent && (
           <div className="w-1/2">
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden sticky top-8">
-              <div className="bg-slate-900 dark:bg-slate-950 p-8 text-white relative">
+            <div className="sticky top-8 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="relative bg-slate-950 p-6 text-white">
                 <button onClick={() => setSelectedStudent(null)} className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-lg transition">
                   <X size={20} />
                 </button>
-                <div className="flex items-center gap-5">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${selectedStudent.gender === 'M' ? 'bg-blue-500/30' : 'bg-pink-500/30'}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`flex size-14 items-center justify-center rounded-lg ${selectedStudent.gender === 'M' ? 'bg-blue-500/30' : 'bg-pink-500/30'}`}>
                     <User size={32} />
                   </div>
                   <div>
                     <div className="flex items-center gap-3">
-                      <h2 className="text-2xl font-semibold tracking-tight">{selectedStudent.name}</h2>
+                      <h2 className="text-2xl font-black tracking-normal">{selectedStudent.name}</h2>
                       <Link href={`/students/${selectedStudent.id}`} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition" title="프로필 보기">
                         <ExternalLink size={16} />
                       </Link>
@@ -326,7 +327,7 @@ export default function StudentsPage() {
                 </div>
               </div>
 
-              <div className="p-8">
+              <div className="p-5">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2 text-base">
                     <Activity size={18} /> 측정 종목 기록

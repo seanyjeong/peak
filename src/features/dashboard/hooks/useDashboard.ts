@@ -118,8 +118,7 @@ export function useDashboard() {
       if (attendanceRes.data.success) {
         setCurrentAttendance(attendanceRes.data);
       }
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+    } catch {
     } finally {
       setLoading(false);
     }

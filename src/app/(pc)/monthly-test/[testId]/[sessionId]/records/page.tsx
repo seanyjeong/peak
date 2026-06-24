@@ -7,6 +7,8 @@ import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
+import { Trash2 } from 'lucide-react';
+import { getSessionErrorMessage } from '../session-group-model';
 
 interface RecordType {
   id: number;
@@ -143,8 +145,7 @@ export default function SessionRecordsPage({
       });
       setInputs(initialInputs);
     } catch (error) {
-      console.error('데이터 로드 오류:', error);
-      toast.error(error);
+      toast.error(getSessionErrorMessage(error, '기록 입력 정보를 불러오지 못했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -172,8 +173,7 @@ export default function SessionRecordsPage({
       });
       setSavedMap(prev => ({ ...prev, [saveKey]: true }));
     } catch (error) {
-      console.error('저장 오류:', error);
-      toast.error(error);
+      toast.error(getSessionErrorMessage(error, '기록을 저장하지 못했습니다.'));
     } finally {
       setSavingMap(prev => ({ ...prev, [saveKey]: false }));
     }
@@ -209,7 +209,7 @@ export default function SessionRecordsPage({
 
   const handleDeleteAllRecords = async () => {
     // 1단계: 경고
-    if (!confirm('⚠️ 정말 이 세션의 모든 기록을 삭제하시겠습니까?\n\n재원생 기록도 해당 날짜 기록이 모두 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다!')) return;
+    if (!confirm('정말 이 세션의 모든 기록을 삭제하시겠습니까?\n\n재원생 기록도 해당 날짜 기록이 모두 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.')) return;
 
     // 2단계: "삭제" 입력 확인
     const input = prompt('삭제를 진행하려면 "삭제"를 입력하세요:');
@@ -223,8 +223,7 @@ export default function SessionRecordsPage({
       toast.success(`${res.data.deleted?.total || 0}개 기록이 삭제되었습니다.`);
       fetchData();
     } catch (error) {
-      console.error('삭제 오류:', error);
-      toast.error('삭제 중 오류가 발생했습니다.');
+      toast.error(getSessionErrorMessage(error, '기록을 삭제하지 못했습니다.'));
     }
   };
 
@@ -276,8 +275,8 @@ export default function SessionRecordsPage({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleDeleteAllRecords}>
-            🗑️ 기록 전체 삭제
+          <Button variant="outline" onClick={handleDeleteAllRecords} leftIcon={<Trash2 size={16} />}>
+            기록 전체 삭제
           </Button>
         </div>
       </div>

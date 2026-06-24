@@ -177,8 +177,7 @@ export function useStudentProfile(studentId: string, initialGaugeCount: number =
       setSelectedGaugeTypes(typesWithRecords.slice(0, initialGaugeCount).map((t: RecordType) => t.id));
       setSelectedTrendType(typesWithRecords[0]?.id || null);
       setSelectedRadarTypes(typesWithRecords.slice(0, 5).map((t: RecordType) => t.id));
-    } catch (error) {
-      console.error('Failed to load profile data:', error);
+    } catch {
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Plus, Upload, Download, Trash2, Save, X, Package, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import { Exercise, ExerciseTag, ExercisePack, PackFormData } from './types';
 import apiClient from '@/lib/api/client';
+import { useToast } from '@/hooks/useToast';
+import { getExerciseErrorMessage } from './exercise-errors';
 
 interface PackManagerProps {
   packs: ExercisePack[];
@@ -42,6 +44,7 @@ export function PackManager({
   onImport,
   onUpdate,
 }: PackManagerProps) {
+  const toast = useToast();
   const [expandedPackId, setExpandedPackId] = useState<number | null>(null);
   const [packExercises, setPackExercises] = useState<Record<number, PackExercise[]>>({});
   const [loadingPackId, setLoadingPackId] = useState<number | null>(null);
@@ -75,7 +78,7 @@ export function PackManager({
       });
       setShowForm(true);
     } catch (error) {
-      console.error('Failed to load pack details:', error);
+      toast.error(getExerciseErrorMessage(error, '운동 팩 상세를 불러오지 못했습니다.'));
     }
   };
 
@@ -97,7 +100,7 @@ export function PackManager({
         }
         onUpdate?.();
       } catch (error) {
-        console.error('Failed to update pack:', error);
+        toast.error(getExerciseErrorMessage(error, '운동 팩을 수정하지 못했습니다.'));
       }
     } else {
       // 새로 만들기 모드
@@ -127,7 +130,7 @@ export function PackManager({
         [packId]: response.data.exercises
       }));
     } catch (error) {
-      console.error('Failed to load pack exercises:', error);
+      toast.error(getExerciseErrorMessage(error, '운동 팩에 포함된 운동을 불러오지 못했습니다.'));
     } finally {
       setLoadingPackId(null);
     }

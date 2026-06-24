@@ -27,6 +27,17 @@ describe('backend environment configuration', () => {
     expect(isOriginAllowed('https://dev.sean8320.dedyn.io')).toBe(true);
   });
 
+  it('allows isolated local redesign origins without opening every local port in production', () => {
+    process.env.NODE_ENV = 'production';
+    const { isOriginAllowed } = loadEnvConfig();
+
+    expect(isOriginAllowed('http://localhost:3109')).toBe(true);
+    expect(isOriginAllowed('http://localhost:3110')).toBe(true);
+    expect(isOriginAllowed('http://127.0.0.1:3109')).toBe(true);
+    expect(isOriginAllowed('http://127.0.0.1:3110')).toBe(true);
+    expect(isOriginAllowed('http://localhost:5173')).toBe(false);
+  });
+
   it('allows non-browser requests and rejects unknown browser origins', () => {
     process.env.NODE_ENV = 'production';
     const { isOriginAllowed } = loadEnvConfig();

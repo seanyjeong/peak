@@ -19,6 +19,7 @@ import {
   TagFormData,
   PackFormData,
 } from '@/components/exercises';
+import { getExerciseErrorMessage } from '@/components/exercises/exercise-errors';
 
 export default function ExercisesPage() {
   const toast = useToast();
@@ -27,10 +28,8 @@ export default function ExercisesPage() {
   const [exerciseTags, setExerciseTags] = useState<ExerciseTag[]>([]);
   const [exercisePacks, setExercisePacks] = useState<ExercisePack[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const currentUser = authAPI.getCurrentUser();
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
   // 운동 관리 상태
   const [showExerciseForm, setShowExerciseForm] = useState(false);
@@ -67,14 +66,15 @@ export default function ExercisesPage() {
       setExerciseTags(tagsRes.data.tags || []);
       setExercisePacks(packsRes.data.packs || []);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error(error);
+      toast.error(getExerciseErrorMessage(error, '운동 정보를 불러오지 못했습니다.'));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    const currentUser = authAPI.getCurrentUser();
+    setIsAdmin(currentUser?.role === 'admin' || currentUser?.role === 'owner');
     fetchData();
   }, []);
 
@@ -110,8 +110,7 @@ export default function ExercisesPage() {
       setExerciseForm({ name: '', tags: [], default_sets: '', default_reps: '', description: '', video_url: '' });
       fetchData();
     } catch (error) {
-      console.error('Failed to save exercise:', error);
-      toast.error('저장에 실패했습니다.');
+      toast.error(getExerciseErrorMessage(error, '운동을 저장하지 못했습니다.'));
     }
   };
 
@@ -121,8 +120,7 @@ export default function ExercisesPage() {
       await apiClient.delete(`/exercises/${id}`);
       fetchData();
     } catch (error) {
-      console.error('Failed to delete exercise:', error);
-      toast.error(error);
+      toast.error(getExerciseErrorMessage(error, '운동을 삭제하지 못했습니다.'));
     }
   };
 
@@ -155,8 +153,7 @@ export default function ExercisesPage() {
       setTagForm({ tag_id: '', label: '', color: 'bg-slate-100 text-slate-700' });
       fetchData();
     } catch (error) {
-      console.error('Failed to save tag:', error);
-      toast.error('저장에 실패했습니다.');
+      toast.error(getExerciseErrorMessage(error, '태그를 저장하지 못했습니다.'));
     }
   };
 
@@ -166,8 +163,7 @@ export default function ExercisesPage() {
       await apiClient.delete(`/exercise-tags/${id}`);
       fetchData();
     } catch (error) {
-      console.error('Failed to delete tag:', error);
-      toast.error(error);
+      toast.error(getExerciseErrorMessage(error, '태그 상태를 바꾸지 못했습니다.'));
     }
   };
 
@@ -183,8 +179,7 @@ export default function ExercisesPage() {
       setPackForm({ name: '', description: '', exercise_ids: [] });
       fetchData();
     } catch (error) {
-      console.error('Failed to save pack:', error);
-      toast.error('저장에 실패했습니다.');
+      toast.error(getExerciseErrorMessage(error, '운동 팩을 저장하지 못했습니다.'));
     }
   };
 
@@ -194,8 +189,7 @@ export default function ExercisesPage() {
       await apiClient.delete(`/exercise-packs/${id}`);
       fetchData();
     } catch (error) {
-      console.error('Failed to delete pack:', error);
-      toast.error(error);
+      toast.error(getExerciseErrorMessage(error, '운동 팩을 삭제하지 못했습니다.'));
     }
   };
 
@@ -211,8 +205,7 @@ export default function ExercisesPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export pack:', error);
-      toast.error('내보내기에 실패했습니다.');
+      toast.error(getExerciseErrorMessage(error, '운동 팩을 내보내지 못했습니다.'));
     }
   };
 
@@ -223,15 +216,14 @@ export default function ExercisesPage() {
       const text = await file.text();
       const data = JSON.parse(text);
       if (data.format !== 'peak-exercise-pack') {
-        alert('올바른 P-EAK 팩 파일이 아닙니다.');
+        toast.error('올바른 P-EAK 운동 팩 파일이 아닙니다.');
         return;
       }
       const res = await apiClient.post('/exercise-packs/import', data);
       toast.success(res.data.message);
       fetchData();
     } catch (error) {
-      console.error('Failed to import pack:', error);
-      toast.error('가져오기에 실패했습니다.');
+      toast.error(getExerciseErrorMessage(error, '운동 팩을 가져오지 못했습니다.'));
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -250,8 +242,7 @@ export default function ExercisesPage() {
       setShowPackApplyModal(false);
       fetchData();
     } catch (error) {
-      console.error('Apply pack error:', error);
-      toast.error('팩 불러오기에 실패했습니다.');
+      toast.error(getExerciseErrorMessage(error, '운동 팩을 불러오지 못했습니다.'));
     } finally {
       setApplyingPack(false);
     }

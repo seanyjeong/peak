@@ -1,138 +1,191 @@
 'use client';
 
-import { useState, useEffect, useMemo, use } from 'react';
-import { useToast } from '@/hooks/useToast';
+import { use, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft,
-  TrendingUp,
-  TrendingDown,
-  Award,
-  Target,
-  Trophy,
   Activity,
-  FileDown,
+  ArrowLeft,
   BarChart3,
+  Download,
   LineChart as LineChartIcon,
-  PieChart as PieChartIcon,
+  Medal,
+  Plus,
   Radar as RadarIcon,
+  TableProperties,
+  Target,
+  User,
 } from 'lucide-react';
 import {
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
   Bar,
-  RadarChart,
-  PolarGrid,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
   PolarAngleAxis,
+  PolarGrid,
   PolarRadiusAxis,
   Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
-// PDF: server-side Playwright (replaced jsPDF + html2canvas)
+import { useToast } from '@/hooks/useToast';
 import apiClient from '@/lib/api/client';
+import {
+  displayTypeName,
+  formatDate,
+  formatRecordValue,
+  getProfileErrorMessage,
+  getRecordPercentage,
+  gradeClass,
+  RecordHistory,
+  RecordType,
+  ScoreTable,
+  Student,
+  StudentStats,
+  trendClass,
+  trendLabel,
+} from './student-profile-model';
 
-interface RecordType {
-  id: number;
-  name: string;
-  short_name: string;
-  unit: string;
-  direction: 'higher' | 'lower';
-}
-
-interface StudentStats {
-  averages: Record<number, number>;
-  bests: Record<number, { value: number; date: string }>;
-  latests: Record<number, { value: number; date: string }>;
-  scores: Record<number, number>;
-  trends: Record<number, 'up' | 'down' | 'stable'>;
-  totalScore: number;
-  maxPossibleScore: number;
-  percentage: number;
-  grade: string;
-  overallTrend: string;
-  recordCount: number;
-  typesWithRecords: number;
-}
-
-interface Student {
-  id: number;
-  name: string;
-  gender: 'M' | 'F';
-  school: string;
-  grade: string;
-  phone: string;
-  status: string;
-}
-
-interface RecordHistory {
-  measured_at: string;
-  records: {
-    record_type_id: number;
-    record_type_name: string;
-    unit: string;
-    value: number;
-  }[];
-}
-
-interface ScoreTable {
-  id: number;
-  record_type_id: number;
-  male_perfect: number;
-  female_perfect: number;
-  max_score: number;
-}
-
-export default function StudentProfilePage({
-  params
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const toast = useToast();
+export default function StudentProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: studentId } = use(params);
   const router = useRouter();
-
-  const [student, setStudent] = useState<Student | null>(null);
-  const [stats, setStats] = useState<StudentStats | null>(null);
-  const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
-  const [recordHistory, setRecordHistory] = useState<RecordHistory[]>([]);
+  const toast = useToast();
   const [academyAverages, setAcademyAverages] = useState<Record<number, number>>({});
   const [academyScoreAverages, setAcademyScoreAverages] = useState<Record<number, number>>({});
-  const [scoreTables, setScoreTables] = useState<Record<number, ScoreTable>>({});
   const [loading, setLoading] = useState(true);
-
-  const [selectedGaugeTypes, setSelectedGaugeTypes] = useState<number[]>([]);
-  const [selectedTrendType, setSelectedTrendType] = useState<number | null>(null);
-  const [selectedRadarTypes, setSelectedRadarTypes] = useState<number[]>([]);
-  const [showAllRecords, setShowAllRecords] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [recordHistory, setRecordHistory] = useState<RecordHistory[]>([]);
+  const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
+  const [scoreTables, setScoreTables] = useState<Record<number, ScoreTable>>({});
+  const [selectedChartType, setSelectedChartType] = useState<number | null>(null);
+  const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
+  const [showAllRecords, setShowAllRecords] = useState(false);
+  const [stats, setStats] = useState<StudentStats | null>(null);
+  const [student, setStudent] = useState<Student | null>(null);
 
-  const toggleGaugeType = (typeId: number) => {
-    if (selectedGaugeTypes.includes(typeId)) {
-      setSelectedGaugeTypes(selectedGaugeTypes.filter(id => id !== typeId));
-    } else if (selectedGaugeTypes.length < 6) {
-      setSelectedGaugeTypes([...selectedGaugeTypes, typeId]);
+  useEffect(() => {
+    loadData();
+  }, [studentId]);
+
+  const typesWithRecords = useMemo(
+    () => recordTypes.filter((type) => stats?.latests[type.id] !== undefined),
+    [recordTypes, stats],
+  );
+
+  const selectedTypeObjects = useMemo(
+    () => selectedTypes.map((id) => recordTypes.find((type) => type.id === id)).filter((type): type is RecordType => Boolean(type)),
+    [recordTypes, selectedTypes],
+  );
+
+  const selectedSummary = useMemo(() => {
+    if (!stats) return { totalScore: 0, maxScore: 0, percentage: 0, recordedCount: 0, grade: '-' };
+    let totalScore = 0;
+    let maxScore = 0;
+    let recordedCount = 0;
+    selectedTypes.forEach((typeId) => {
+      if (stats.latests[typeId] === undefined) return;
+      recordedCount += 1;
+      maxScore += scoreTables[typeId]?.max_score || 100;
+      totalScore += stats.scores[typeId] || 0;
+    });
+    const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    const grade = recordedCount === 0 ? '-' : percentage >= 90 ? 'A' : percentage >= 80 ? 'B' : percentage >= 70 ? 'C' : percentage >= 60 ? 'D' : 'F';
+    return { totalScore, maxScore, percentage, recordedCount, grade };
+  }, [scoreTables, selectedTypes, stats]);
+
+  const trendChartData = useMemo(() => {
+    if (!selectedChartType) return [];
+    return recordHistory
+      .filter((history) => history.records.some((record) => record.record_type_id === selectedChartType))
+      .map((history) => {
+        const record = history.records.find((item) => item.record_type_id === selectedChartType);
+        return { date: formatDate(history.measured_at), value: record?.value || 0 };
+      })
+      .reverse();
+  }, [recordHistory, selectedChartType]);
+
+  const trendDomain = useMemo(() => {
+    if (trendChartData.length === 0) return [0, 100] as [number, number];
+    const values = trendChartData.map((item) => item.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const padding = Math.max((max - min) * 0.2, 1);
+    return [Math.max(0, min - padding), max + padding] as [number, number];
+  }, [trendChartData]);
+
+  const comparisonData = useMemo(() => {
+    if (!stats || !student) return [];
+    return selectedTypeObjects.map((type) => {
+      const value = stats.latests[type.id]?.value || 0;
+      const academyValue = academyAverages[type.id] || 0;
+      return {
+        name: displayTypeName(type),
+        student: Math.round(getRecordPercentage({ recordTypes, scoreTables, student, typeId: type.id, value })),
+        academy: Math.round(getRecordPercentage({ recordTypes, scoreTables, student, typeId: type.id, value: academyValue })),
+        raw: formatRecordValue(value, type.unit),
+        academyRaw: formatRecordValue(academyValue, type.unit),
+      };
+    });
+  }, [academyAverages, recordTypes, scoreTables, selectedTypeObjects, stats, student]);
+
+  const radarData = useMemo(() => {
+    if (!stats) return [];
+    return selectedTypeObjects.slice(0, 5).map((type) => ({
+      subject: displayTypeName(type),
+      student: stats.scores[type.id] || 0,
+      academy: academyScoreAverages[type.id] || 0,
+    }));
+  }, [academyScoreAverages, selectedTypeObjects, stats]);
+
+  async function loadData() {
+    try {
+      setLoading(true);
+      const [statsRes, historyRes, typesRes, academyRes, scoreTablesRes] = await Promise.all([
+        apiClient.get(`/students/${studentId}/stats`),
+        apiClient.get(`/students/${studentId}/records`),
+        apiClient.get('/record-types?active=true'),
+        apiClient.get('/stats/academy-average'),
+        apiClient.get('/score-tables'),
+      ]);
+
+      const loadedStudent = statsRes.data.student as Student;
+      const loadedStats = statsRes.data.stats as StudentStats;
+      const loadedTypes = typesRes.data.recordTypes || [];
+      const tableMap: Record<number, ScoreTable> = {};
+      (scoreTablesRes.data.scoreTables || []).forEach((table: ScoreTable) => {
+        tableMap[table.record_type_id] = table;
+      });
+
+      setStudent(loadedStudent);
+      setStats(loadedStats);
+      setRecordHistory(historyRes.data.records || []);
+      setRecordTypes(loadedTypes);
+      setScoreTables(tableMap);
+      setAcademyAverages(loadedStudent.gender === 'M' ? academyRes.data.maleAverages || {} : academyRes.data.femaleAverages || {});
+      setAcademyScoreAverages(loadedStudent.gender === 'M' ? academyRes.data.maleScoreAverages || {} : academyRes.data.femaleScoreAverages || {});
+
+      const initialTypes = loadedTypes.filter((type: RecordType) => loadedStats.latests?.[type.id] !== undefined);
+      setSelectedTypes(initialTypes.slice(0, 6).map((type: RecordType) => type.id));
+      setSelectedChartType(initialTypes[0]?.id || null);
+    } catch (error) {
+      toast.error(getProfileErrorMessage(error, '학생 상세 정보를 불러오지 못했습니다.'));
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
-  const handleDownloadPDF = async () => {
+  async function handleDownloadPDF() {
     if (!student) return;
-
     try {
       setPdfLoading(true);
       const token = localStorage.getItem('peak_token');
       const response = await apiClient.get(`/students/${studentId}/export-pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob',
-        headers: { Authorization: `Bearer ${token}` }
       });
-
       const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
@@ -142,551 +195,253 @@ export default function StudentProfilePage({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('PDF download error:', error);
-      toast.error('PDF 다운로드에 실패했습니다.');
+      toast.error(getProfileErrorMessage(error, 'PDF를 저장하지 못했습니다.'));
     } finally {
       setPdfLoading(false);
     }
-  };
+  }
 
-  useEffect(() => {
-    loadData();
-  }, [studentId]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [statsRes, historyRes, typesRes, academyRes, scoreTablesRes] = await Promise.all([
-        apiClient.get(`/students/${studentId}/stats`),
-        apiClient.get(`/students/${studentId}/records`),
-        apiClient.get('/record-types?active=true'),
-        apiClient.get('/stats/academy-average'),
-        apiClient.get('/score-tables')
-      ]);
-
-      setStudent(statsRes.data.student);
-      setStats(statsRes.data.stats);
-      setRecordHistory(historyRes.data.records || []);
-      setRecordTypes(typesRes.data.recordTypes || []);
-      const gender = statsRes.data.student?.gender;
-      if (gender === 'M') {
-        setAcademyAverages(academyRes.data.maleAverages || {});
-        setAcademyScoreAverages(academyRes.data.maleScoreAverages || {});
-      } else {
-        setAcademyAverages(academyRes.data.femaleAverages || {});
-        setAcademyScoreAverages(academyRes.data.femaleScoreAverages || {});
-      }
-
-      const tables: Record<number, ScoreTable> = {};
-      (scoreTablesRes.data.scoreTables || []).forEach((st: ScoreTable) => {
-        tables[st.record_type_id] = st;
-      });
-      setScoreTables(tables);
-
-      const types = typesRes.data.recordTypes || [];
-      const typesWithRecords = types.filter((t: RecordType) =>
-        statsRes.data.stats?.latests?.[t.id] !== undefined
-      );
-
-      setSelectedGaugeTypes(typesWithRecords.slice(0, 6).map((t: RecordType) => t.id));
-      setSelectedTrendType(typesWithRecords[0]?.id || null);
-      setSelectedRadarTypes(typesWithRecords.slice(0, 5).map((t: RecordType) => t.id));
-    } catch (error) {
-      console.error('Failed to load profile data:', error);
-      toast.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const trendChartData = useMemo(() => {
-    if (!selectedTrendType || !recordHistory.length) return [];
-    const data = recordHistory
-      .filter(h => h.records.some(r => r.record_type_id === selectedTrendType))
-      .map(h => {
-        const record = h.records.find(r => r.record_type_id === selectedTrendType);
-        return {
-          date: new Date(h.measured_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
-          value: record?.value || 0
-        };
-      })
-      .reverse();
-    return data;
-  }, [selectedTrendType, recordHistory]);
-
-  const trendYDomain = useMemo(() => {
-    if (!trendChartData.length) return [0, 100];
-    const values = trendChartData.map(d => d.value);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const padding = (max - min) * 0.2 || max * 0.1;
-    return [Math.max(0, min - padding), max + padding];
-  }, [trendChartData]);
-
-  const isTrendTypeLower = useMemo(() => {
-    const type = recordTypes.find(t => t.id === selectedTrendType);
-    return type?.direction === 'lower';
-  }, [selectedTrendType, recordTypes]);
-
-  const radarChartData = useMemo(() => {
-    if (!stats || !selectedRadarTypes.length) return [];
-    return selectedRadarTypes.map(typeId => {
-      const type = recordTypes.find(t => t.id === typeId);
-      const studentScore = stats.scores[typeId] || 0;
-      const academyScore = academyScoreAverages[typeId] || 0;
-      return {
-        subject: type?.short_name || type?.name || `종목${typeId}`,
-        student: studentScore,
-        academy: academyScore
-      };
+  const toggleType = (typeId: number) => {
+    setSelectedTypes((prev) => {
+      if (prev.includes(typeId)) return prev.filter((id) => id !== typeId);
+      if (prev.length >= 6) return prev;
+      return [...prev, typeId];
     });
-  }, [stats, selectedRadarTypes, recordTypes, academyScoreAverages]);
-
-  const compareBarData = useMemo(() => {
-    if (!stats || !recordTypes.length || !student || !selectedGaugeTypes.length) return [];
-    return selectedGaugeTypes
-      .map(typeId => recordTypes.find(t => t.id === typeId))
-      .filter((type): type is RecordType => type !== undefined)
-      .map(type => {
-        const scoreTable = scoreTables[type.id];
-        const perfectValue = scoreTable
-          ? (student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect)
-          : 0;
-        const studentValue = stats.latests[type.id]?.value || 0;
-        const academyValue = academyAverages[type.id] || 0;
-        let studentPercent = 0;
-        let academyPercent = 0;
-        if (perfectValue > 0) {
-          if (type.direction === 'lower') {
-            studentPercent = Math.max(0, Math.min(100, (2 - studentValue / perfectValue) * 100));
-            academyPercent = Math.max(0, Math.min(100, (2 - academyValue / perfectValue) * 100));
-          } else {
-            studentPercent = Math.min(100, (studentValue / perfectValue) * 100);
-            academyPercent = Math.min(100, (academyValue / perfectValue) * 100);
-          }
-        }
-        return {
-          name: type.short_name || type.name,
-          student: Math.round(studentPercent),
-          academy: Math.round(academyPercent),
-          studentRaw: studentValue,
-          academyRaw: Math.round(academyValue * 100) / 100,
-          unit: type.unit
-        };
-      });
-  }, [stats, recordTypes, academyAverages, scoreTables, student, selectedGaugeTypes]);
-
-  const selectedStats = useMemo(() => {
-    if (!stats || !selectedGaugeTypes.length) {
-      return { totalScore: 0, maxScore: 0, percentage: 0, grade: 'F', recordedCount: 0, selectedCount: 0 };
-    }
-    let totalScore = 0;
-    let maxScore = 0;
-    let recordedCount = 0;
-    selectedGaugeTypes.forEach(typeId => {
-      const scoreTable = scoreTables[typeId];
-      const hasRecord = stats.latests[typeId] !== undefined;
-      if (hasRecord) {
-        recordedCount++;
-        if (scoreTable) {
-          maxScore += scoreTable.max_score || 100;
-          if (stats.scores[typeId] !== undefined) {
-            totalScore += stats.scores[typeId];
-          }
-        }
-      }
-    });
-    const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
-    let grade = 'F';
-    if (recordedCount === 0) {
-      grade = '-';
-    } else if (percentage >= 90) grade = 'A';
-    else if (percentage >= 80) grade = 'B';
-    else if (percentage >= 70) grade = 'C';
-    else if (percentage >= 60) grade = 'D';
-    return { totalScore, maxScore, percentage, grade, recordedCount, selectedCount: selectedGaugeTypes.length };
-  }, [stats, selectedGaugeTypes, scoreTables]);
-
-  const getRecordPercentage = (typeId: number, value: number, hasRecord: boolean): number => {
-    if (!hasRecord) return 0;
-    const type = recordTypes.find(t => t.id === typeId);
-    const scoreTable = scoreTables[typeId];
-    if (!type || !scoreTable || !student) return 0;
-    const perfectValue = student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect;
-    if (!perfectValue) return 0;
-    if (type.direction === 'lower') {
-      return Math.max(0, Math.min(100, (2 - value / perfectValue) * 100));
-    } else {
-      return Math.min(100, (value / perfectValue) * 100);
-    }
-  };
-
-  const getScoreColor = (percentage: number) => {
-    if (percentage >= 90) return '#FF8200';
-    if (percentage >= 70) return '#4666FF';
-    if (percentage >= 50) return '#468FEA';
-    return '#64748b';
-  };
-
-  const getGradeColor = (grade: string) => {
-    switch (grade) {
-      case 'A': return 'from-orange-500 to-orange-600';
-      case 'B': return 'from-blue-500 to-blue-600';
-      case 'C': return 'from-cyan-500 to-cyan-600';
-      case 'D': return 'from-slate-500 to-slate-600';
-      default: return 'from-slate-600 to-slate-700';
-    }
-  };
-
-  const TrendIcon = ({ trend, className = "" }: { trend: string; className?: string }) => {
-    if (trend === 'up') return <TrendingUp className={`text-orange-400 ${className}`} size={18} />;
-    if (trend === 'down') return <TrendingDown className={`text-slate-400 ${className}`} size={18} />;
-    return <Activity className={`text-slate-400 ${className}`} size={18} />;
   };
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-56px)] bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-3 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
-          <p className="text-slate-500 dark:text-slate-400 text-sm">불러오는 중...</p>
-        </div>
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <Activity className="h-8 w-8 animate-spin text-slate-400" />
       </div>
     );
   }
 
   if (!student || !stats) {
     return (
-      <div className="h-[calc(100vh-56px)] bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-slate-500 dark:text-slate-400 mb-3">학생 정보를 찾을 수 없습니다.</p>
-          <button onClick={() => router.back()} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white rounded-lg text-sm transition">
-            돌아가기
+      <div className="flex min-h-[70vh] items-center justify-center px-6">
+        <div className="rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
+          <p className="text-sm font-semibold text-slate-600">학생 정보를 찾지 못했습니다.</p>
+          <button type="button" onClick={() => router.push('/students')} className="mt-4 rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white">
+            학생 관리로 이동
           </button>
         </div>
       </div>
     );
   }
 
-  const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 3);
+  const chartType = recordTypes.find((type) => type.id === selectedChartType);
+  const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 5);
 
   return (
-    <div className="h-[calc(100vh-56px)] bg-slate-100 dark:bg-slate-900 p-3 overflow-hidden">
-      <div className="h-full flex flex-col gap-2">
-        {/* Header - Compact */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="p-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition border border-slate-200 dark:border-slate-700"
-            >
-              <ArrowLeft className="text-slate-600 dark:text-slate-300" size={18} />
-            </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">{student.name}</h1>
-                <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 text-xs font-medium rounded border border-orange-200 dark:border-orange-500/30">
-                  {student.gender === 'M' ? '남' : '여'}
-                </span>
-              </div>
-              <p className="text-slate-500 dark:text-slate-400 text-xs">
-                {student.school} • {student.grade}
-              </p>
+    <main className="max-w-[1440px] space-y-5 px-6 py-6 lg:px-8">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <button type="button" onClick={() => router.back()} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <p className="text-sm font-bold text-blue-700">STUDENT PROFILE</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{student.name}</h1>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{student.gender === 'M' ? '남' : '여'}</span>
             </div>
+            <p className="mt-1 text-sm text-slate-500">{student.school || '-'} · {student.grade || '-'} · {trendLabel(stats.overallTrend)} 추세</p>
           </div>
-          <button
-            onClick={handleDownloadPDF}
-            disabled={pdfLoading}
-            className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 flex items-center gap-1.5"
-          >
-            <FileDown size={14} />
-            {pdfLoading ? '생성중...' : 'PDF'}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => router.push('/records')} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            <Plus className="h-4 w-4" />
+            기록 입력
+          </button>
+          <button type="button" onClick={() => router.push('/students/records')} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            <TableProperties className="h-4 w-4" />
+            전체 기록표
+          </button>
+          <button type="button" onClick={handleDownloadPDF} disabled={pdfLoading} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50">
+            <Download className="h-4 w-4" />
+            {pdfLoading ? '저장 중' : 'PDF 저장'}
           </button>
         </div>
+      </header>
 
-        {/* KPI Cards - Compact */}
-        <div className="grid grid-cols-4 gap-2">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-medium">총점</span>
-              <Target className="text-orange-500" size={14} />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{selectedStats.totalScore}</span>
-              <span className="text-slate-400 text-xs">/ {selectedStats.maxScore}</span>
-            </div>
-            <div className="mt-1.5 flex items-center gap-1.5">
-              <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div className="h-full bg-orange-500 rounded-full" style={{ width: `${selectedStats.percentage}%` }} />
-              </div>
-              <span className="text-orange-500 text-xs font-medium">{selectedStats.percentage}%</span>
-            </div>
-          </div>
+      <section className="grid gap-4 md:grid-cols-4">
+        <MetricCard icon={<Target className="h-4 w-4" />} label="선택 종목 점수" value={`${selectedSummary.totalScore}`} sub={`/ ${selectedSummary.maxScore}점 · ${selectedSummary.percentage}%`} />
+        <MetricCard icon={<Medal className="h-4 w-4" />} label="등급" value={selectedSummary.grade} sub={`${selectedSummary.recordedCount}개 종목 반영`} badgeClass={gradeClass(selectedSummary.grade)} />
+        <MetricCard icon={<Activity className="h-4 w-4" />} label="전체 추세" value={trendLabel(stats.overallTrend)} sub={`${stats.recordCount}개 기록`} badgeClass={trendClass(stats.overallTrend)} />
+        <MetricCard icon={<User className="h-4 w-4" />} label="기록 종목" value={`${stats.typesWithRecords}`} sub={`${recordHistory.length}회 측정`} />
+      </section>
 
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-medium">등급</span>
-              <Award className="text-blue-500" size={14} />
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getGradeColor(selectedStats.grade)} flex items-center justify-center`}>
-                <span className="text-xl font-bold text-white">{selectedStats.grade}</span>
-              </div>
-              <div>
-                <p className="text-slate-900 dark:text-white text-lg font-bold">{selectedStats.recordedCount}개</p>
-                <p className="text-slate-500 dark:text-slate-400 text-[10px]">평가 완료</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-medium">추세</span>
-              <Activity className="text-cyan-500" size={14} />
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendIcon trend={stats.overallTrend} className="w-8 h-8" />
-              <div>
-                <p className="text-slate-900 dark:text-white text-lg font-bold">
-                  {stats.overallTrend === 'up' ? '상승' : stats.overallTrend === 'down' ? '하락' : '안정'}
-                </p>
-                <p className="text-slate-500 dark:text-slate-400 text-[10px]">전체 추세</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-medium">기록</span>
-              <Trophy className="text-purple-500" size={14} />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.typesWithRecords}</span>
-              <span className="text-slate-400 text-xs">종목</span>
-            </div>
-            <p className="text-slate-500 dark:text-slate-400 text-[10px] mt-0.5">총 {recordHistory.length}회 측정</p>
-          </div>
-        </div>
-
-        {/* Row 1 - Fixed height charts */}
-        <div className="grid grid-cols-12 gap-1.5 h-[355px]">
-          {/* Gauges - 3 columns */}
-          <div className="col-span-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
-            <div className="flex items-center gap-1 mb-1">
-              <PieChartIcon className="text-orange-500" size={12} />
-              <h3 className="text-xs font-semibold text-slate-900 dark:text-white">종목별 기록</h3>
-            </div>
-
-            <div className="grid grid-cols-3 gap-1">
-              {selectedGaugeTypes.slice(0, 6).map((typeId) => {
-                const type = recordTypes.find(t => t.id === typeId);
-                const latestRecord = stats.latests[typeId];
-                const hasRecord = latestRecord !== undefined && latestRecord !== null;
-                const value = latestRecord?.value || 0;
-                const percentage = getRecordPercentage(typeId, value, hasRecord);
-                const trend = stats.trends[typeId];
-
-                const gaugeData = [
-                  { value: percentage, color: getScoreColor(percentage) },
-                  { value: 100 - percentage, color: '#e2e8f0' }
-                ];
-
+      <section className="grid gap-4 xl:grid-cols-[360px_1fr]">
+        <aside className="space-y-4">
+          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+            <h2 className="text-base font-bold text-slate-950 dark:text-white">종목 선택</h2>
+            <p className="mt-1 text-sm text-slate-500">비교와 점수 요약에 반영할 종목을 고릅니다. 최대 6개입니다.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {typesWithRecords.map((type) => {
+                const selected = selectedTypes.includes(type.id);
                 return (
-                  <div key={typeId} className="flex flex-col items-center">
-                    <div className="relative bg-slate-50 dark:bg-slate-900 rounded w-full aspect-square">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={gaugeData} cx="50%" cy="50%" innerRadius="45%" outerRadius="80%" startAngle={90} endAngle={-270} dataKey="value" stroke="none">
-                            {gaugeData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={index === 1 ? (document.documentElement.classList.contains('dark') ? '#1e293b' : '#e2e8f0') : entry.color} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white leading-none">{hasRecord ? value : '-'}</span>
-                      </div>
-                      <div className="absolute bottom-0.5 right-0.5">
-                        <TrendIcon trend={trend || 'stable'} className="w-2.5 h-2.5" />
-                      </div>
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => toggleType(type.id)}
+                    disabled={!selected && selectedTypes.length >= 6}
+                    className={`rounded-lg border px-3 py-2 text-sm font-bold transition disabled:opacity-40 ${
+                      selected ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {displayTypeName(type)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+            <h2 className="text-base font-bold text-slate-950 dark:text-white">최근 기록 요약</h2>
+            <div className="mt-3 space-y-2">
+              {selectedTypeObjects.map((type) => {
+                const latest = stats.latests[type.id];
+                const score = stats.scores[type.id];
+                return (
+                  <div key={type.id} className="grid grid-cols-[1fr_auto] gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-slate-800">{type.name}</p>
+                      <p className="text-xs text-slate-500">최고 {formatRecordValue(stats.bests[type.id]?.value, type.unit)}</p>
                     </div>
-                    <span className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 truncate w-full text-center">{type?.short_name || type?.name}</span>
+                    <div className="text-right">
+                      <p className="font-mono font-bold text-slate-950">{formatRecordValue(latest?.value, type.unit)}</p>
+                      <p className="text-xs font-bold text-blue-700">{score ?? '-'}점</p>
+                    </div>
                   </div>
                 );
               })}
             </div>
-
-            <div className="flex flex-wrap gap-0.5 mt-1 max-h-[48px] overflow-y-auto">
-              {recordTypes.map(type => (
-                <button
-                  key={type.id}
-                  onClick={() => toggleGaugeType(type.id)}
-                  className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition-all duration-200 ${
-                    selectedGaugeTypes.includes(type.id)
-                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-sm shadow-orange-500/30'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
-                  } ${selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id) ? 'opacity-30 cursor-not-allowed' : 'active:scale-95'}`}
-                  disabled={selectedGaugeTypes.length >= 6 && !selectedGaugeTypes.includes(type.id)}
-                >
-                  {type.short_name || type.name}
-                </button>
-              ))}
-            </div>
           </div>
+        </aside>
 
-          {/* Trend Chart - 5 columns */}
-          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1">
-                <LineChartIcon className="text-blue-500" size={12} />
-                <h3 className="text-xs font-semibold text-slate-900 dark:text-white">기록 추이</h3>
+        <div className="space-y-4">
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <LineChartIcon className="h-5 w-5 text-blue-700" />
+                  <h2 className="text-base font-bold text-slate-950 dark:text-white">기록 추이</h2>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">선택한 종목의 날짜별 기록입니다.</p>
               </div>
               <select
-                className="text-[11px] bg-slate-100 dark:bg-slate-700 border-0 rounded px-2 py-0.5 text-slate-700 dark:text-white"
-                value={selectedTrendType || ''}
-                onChange={(e) => setSelectedTrendType(parseInt(e.target.value))}
+                value={selectedChartType ?? ''}
+                onChange={(event) => setSelectedChartType(Number(event.target.value))}
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
               >
-                {recordTypes.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
+                {typesWithRecords.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
               </select>
             </div>
-
-            <div className="flex-1 min-h-0">
+            <div className="mt-4 h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendChartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <LineChart data={trendChartData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
-                  <YAxis tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" domain={trendYDomain as [number, number]} reversed={isTrendTypeLower} tickFormatter={(v) => Number(v).toFixed(1)} />
-                  <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px', fontSize: '11px' }} formatter={(value) => { const type = recordTypes.find(t => t.id === selectedTrendType); return [`${value}${type?.unit || ''}`, '기록']; }} />
-                  <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 2 }} />
+                  <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 12 }} />
+                  <YAxis domain={trendDomain} reversed={chartType?.direction === 'lower'} tick={{ fill: '#64748b', fontSize: 12 }} />
+                  <Tooltip formatter={(value) => [`${value}${chartType?.unit || ''}`, '기록']} />
+                  <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} dot={{ fill: '#2563eb', r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </section>
 
-          {/* Comparison Chart - 4 columns */}
-          <div className="col-span-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
-            <div className="flex items-center gap-1 mb-1">
-              <BarChart3 className="text-cyan-500" size={12} />
-              <h3 className="text-xs font-semibold text-slate-900 dark:text-white">학원 비교</h3>
-              <span className="text-[10px] text-slate-400 ml-auto">%</span>
-            </div>
-
-            <div className="flex-1 min-h-0">
+          <section className="grid gap-4 lg:grid-cols-2">
+            <ChartCard title="학원 평균 비교" icon={<BarChart3 className="h-5 w-5 text-cyan-700" />}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={compareBarData} layout="vertical" margin={{ top: 2, right: 5, left: -5, bottom: 2 }}>
+                <BarChart data={comparisonData} layout="vertical" margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
-                  <YAxis dataKey="name" type="category" width={45} tick={{ fill: '#64748b', fontSize: 10 }} stroke="#cbd5e1" />
-                  <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px', fontSize: '10px' }} formatter={(value, name, props) => { const data = props.payload; if (name === '학원') return [`${data.academyRaw}${data.unit} (${value}%)`, name]; return [`${data.studentRaw}${data.unit} (${value}%)`, name]; }} />
-                  <Bar dataKey="academy" fill="#94a3b8" radius={[0, 3, 3, 0]} name="학원" />
-                  <Bar dataKey="student" fill="#f97316" radius={[0, 3, 3, 0]} name={student.name} />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <YAxis dataKey="name" type="category" width={70} tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <Tooltip formatter={(value, name, props) => [`${value}%`, name === 'student' ? `${student.name} ${props.payload.raw}` : `학원 ${props.payload.academyRaw}`]} />
+                  <Bar dataKey="academy" name="academy" fill="#94a3b8" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="student" name="student" fill="#f97316" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Row 2 - Fixed height */}
-        <div className="grid grid-cols-12 gap-1.5 h-[315px]">
-          {/* Radar Chart - 5 columns */}
-          <div className="col-span-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <RadarIcon className="text-purple-500" size={12} />
-                <h3 className="text-xs font-semibold text-slate-900 dark:text-white">능력치</h3>
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px]">
-                <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 bg-slate-400 rounded-sm"></span><span className="text-slate-500">학원</span></span>
-                <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 bg-orange-500 rounded-sm"></span><span className="text-slate-500">{student.name}</span></span>
-              </div>
-            </div>
-
-            <div className="flex-1 min-h-0">
+            </ChartCard>
+            <ChartCard title="점수 밸런스" icon={<RadarIcon className="h-5 w-5 text-violet-700" />}>
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarChartData} cx="50%" cy="50%" outerRadius="70%">
+                <RadarChart data={radarData} outerRadius="72%">
                   <PolarGrid stroke="#e2e8f0" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 9 }} stroke="#e2e8f0" />
-                  <Radar name="학원" dataKey="academy" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.2} strokeWidth={1.5} />
-                  <Radar name={student.name} dataKey="student" stroke="#f97316" fill="#f97316" fillOpacity={0.3} strokeWidth={2} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                  <Radar dataKey="academy" name="학원" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.18} />
+                  <Radar dataKey="student" name={student.name} stroke="#f97316" fill="#f97316" fillOpacity={0.28} />
+                  <Tooltip />
                 </RadarChart>
               </ResponsiveContainer>
-            </div>
-
-            <div className="flex flex-wrap gap-0.5 max-h-[44px] overflow-y-auto">
-              {recordTypes.slice(0, 8).map(type => (
-                <button
-                  key={type.id}
-                  className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition-all duration-200 ${
-                    selectedRadarTypes.includes(type.id)
-                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm shadow-purple-500/30'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95'
-                  }`}
-                  onClick={() => {
-                    if (selectedRadarTypes.includes(type.id)) {
-                      setSelectedRadarTypes(selectedRadarTypes.filter(id => id !== type.id));
-                    } else if (selectedRadarTypes.length < 5) {
-                      setSelectedRadarTypes([...selectedRadarTypes, type.id]);
-                    }
-                  }}
-                >
-                  {type.short_name || type.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Records Table - 7 columns */}
-          <div className="col-span-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-xs font-semibold text-slate-900 dark:text-white">최근 기록</h3>
-              {recordHistory.length > 3 && (
-                <button onClick={() => setShowAllRecords(!showAllRecords)} className="text-[10px] text-orange-500 font-medium">
-                  {showAllRecords ? '접기' : `더보기 (${recordHistory.length})`}
-                </button>
-              )}
-            </div>
-
-            <div className={`overflow-auto flex-1`}>
-              <table className="w-full text-[11px]">
-                <thead className="sticky top-0 bg-white dark:bg-slate-800">
-                  <tr className="border-b border-slate-200 dark:border-slate-700">
-                    <th className="text-left py-1 px-1.5 text-slate-500 dark:text-slate-400 font-medium">날짜</th>
-                    {recordTypes.slice(0, 6).map(type => (
-                      <th key={type.id} className="text-center py-1 px-1.5 text-slate-500 dark:text-slate-400 font-medium">
-                        {type.short_name || type.name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRecords.map((history, idx) => (
-                    <tr key={idx} className="border-b border-slate-100 dark:border-slate-700/50">
-                      <td className="py-1 px-1.5 text-slate-700 dark:text-slate-300">
-                        {new Date(history.measured_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
-                      </td>
-                      {recordTypes.slice(0, 6).map(type => {
-                        const record = history.records.find(r => r.record_type_id === type.id);
-                        return (
-                          <td key={type.id} className="text-center py-1 px-1.5">
-                            {record ? (
-                              <span className="font-medium text-slate-900 dark:text-white">{record.value}<span className="text-slate-400 text-[10px] ml-0.5">{type.unit}</span></span>
-                            ) : (
-                              <span className="text-slate-300 dark:text-slate-600">-</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+            </ChartCard>
+          </section>
         </div>
+      </section>
+
+      <section className="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+          <h2 className="text-base font-bold text-slate-950 dark:text-white">최근 기록</h2>
+          {recordHistory.length > 5 && (
+            <button type="button" onClick={() => setShowAllRecords((prev) => !prev)} className="text-sm font-bold text-blue-700">
+              {showAllRecords ? '접기' : `전체 ${recordHistory.length}회 보기`}
+            </button>
+          )}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-slate-500 dark:bg-slate-900">
+              <tr>
+                <th className="px-5 py-3 text-left font-bold">날짜</th>
+                {selectedTypeObjects.map((type) => <th key={type.id} className="px-3 py-3 text-center font-bold">{displayTypeName(type)}</th>)}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {visibleRecords.map((history) => (
+                <tr key={history.measured_at}>
+                  <td className="px-5 py-3 font-semibold text-slate-700 dark:text-slate-200">{formatDate(history.measured_at)}</td>
+                  {selectedTypeObjects.map((type) => {
+                    const record = history.records.find((item) => item.record_type_id === type.id);
+                    return (
+                      <td key={type.id} className="px-3 py-3 text-center font-mono font-semibold text-slate-800 dark:text-slate-200">
+                        {record ? formatRecordValue(record.value, type.unit) : '-'}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function MetricCard({ badgeClass, icon, label, sub, value }: { badgeClass?: string; icon: React.ReactNode; label: string; sub: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <div className="flex items-center justify-between text-slate-500">
+        <span className="text-sm font-bold">{label}</span>
+        {icon}
       </div>
+      <div className="mt-3 flex items-end gap-2">
+        <span className={`rounded-lg border px-3 py-1 text-2xl font-black tracking-tight ${badgeClass || 'border-transparent text-slate-950 dark:text-white'}`}>{value}</span>
+      </div>
+      <p className="mt-2 text-sm text-slate-500">{sub}</p>
+    </div>
+  );
+}
+
+function ChartCard({ children, icon, title }: { children: React.ReactNode; icon: React.ReactNode; title: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <div className="mb-4 flex items-center gap-2">
+        {icon}
+        <h2 className="text-base font-bold text-slate-950 dark:text-white">{title}</h2>
+      </div>
+      <div className="h-72">{children}</div>
     </div>
   );
 }

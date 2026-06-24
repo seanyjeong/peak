@@ -1,138 +1,121 @@
 'use client';
 
-import { useState } from 'react';
-import { RefreshCw, Calendar, Users, AlertCircle, Target } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertCircle, Calendar, ChevronLeft, ChevronRight, RefreshCw, Target, Users } from 'lucide-react';
 import {
-  StudentRecordCard,
   EventRecordCard,
+  InputMode,
   RecordModeSelector,
   SLOT_LABELS,
+  StudentRecordCard,
   getRoleDisplayName,
-  InputMode,
 } from '@/components/records';
-import { useRecords, useRecordInput } from '@/features/records';
-import { motion } from 'framer-motion';
+import { useRecordInput, useRecords } from '@/features/records';
 
 export default function RecordsPage() {
   const {
-    recordTypes,
-    slots,
     availableSlots,
-    myStudents,
+    calculateScore,
     currentUser,
-    selectedSlot,
-    measuredAt,
-    loading,
+    fetchData,
+    getDecimalPlaces,
     isAdmin,
+    loading,
+    measuredAt,
+    myStudents,
+    recordTypes,
+    selectedSlot,
+    setMeasuredAt,
     setSelectedSlot,
     setSelectedTrainerId,
-    setMeasuredAt,
-    fetchData,
-    calculateScore,
-    getDecimalPlaces,
+    slots,
   } = useRecords({ ownClassOnly: false });
 
   const {
-    inputs,
-    expandedStudents,
-    savedStudents,
-    handleInputChange,
-    handleInputBlur,
-    toggleStudent,
-    expandAll,
     collapseAll,
+    expandedStudents,
+    expandAll,
+    handleInputBlur,
+    handleInputChange,
+    inputs,
     isOutOfRange,
-  } = useRecordInput({
-    measuredAt,
-    slots,
-    recordTypes,
-    calculateScore,
-  });
+    savedStudents,
+    toggleStudent,
+  } = useRecordInput({ measuredAt, slots, recordTypes, calculateScore });
 
   const [inputMode, setInputMode] = useState<InputMode>('student');
   const [selectedRecordType, setSelectedRecordType] = useState<number | null>(null);
 
-  // 첫 번째 종목 자동 선택
-  if (selectedRecordType === null && recordTypes.length > 0) {
-    setSelectedRecordType(recordTypes[0].id);
-  }
+  useEffect(() => {
+    if (selectedRecordType === null && recordTypes.length > 0) {
+      setSelectedRecordType(recordTypes[0].id);
+    }
+  }, [recordTypes, selectedRecordType]);
 
-  const currentRecordType = recordTypes.find(t => t.id === selectedRecordType);
+  const currentRecordType = recordTypes.find((recordType) => recordType.id === selectedRecordType);
+  const roleLabel = getRoleDisplayName(currentUser?.role, currentUser?.position);
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-[1500px] space-y-6">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">기록 측정</h1>
-          <p className="text-muted-foreground mt-1">
-            {isAdmin
-              ? `${SLOT_LABELS[selectedSlot] || ''} 전체 학생 기록 입력`
-              : `${currentUser?.name || ''} ${getRoleDisplayName(currentUser?.role, currentUser?.position)}의 반 학생 기록 입력`}
+          <p className="text-xs font-bold uppercase tracking-normal text-emerald-700">RECORD ENTRY</p>
+          <h1 className="mt-1 text-3xl font-black tracking-normal text-slate-950">기록 측정</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-500">
+            {isAdmin ? `${SLOT_LABELS[selectedSlot] || ''} 전체 학생` : `${currentUser?.name || ''} ${roleLabel} 반`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-surface-base px-3 py-2 rounded-lg border border-border">
-            <Calendar size={18} className="text-muted-foreground" />
-            <input
-              type="date"
-              value={measuredAt}
-              onChange={e => setMeasuredAt(e.target.value)}
-              className="border-none focus:ring-0 text-foreground bg-transparent"
-            />
-          </div>
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-foreground bg-surface-base border border-border rounded-lg hover:bg-muted transition-smooth disabled:opacity-50"
-          >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setMeasuredAt(shiftDate(measuredAt, -1))} className="rounded-lg border border-slate-200 bg-white p-2">
+            <ChevronLeft className="size-4" />
+          </button>
+          <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
+            <Calendar className="size-4 text-slate-400" />
+            <input type="date" value={measuredAt} onChange={(event) => setMeasuredAt(event.target.value)} className="bg-transparent outline-none" />
+          </label>
+          <button type="button" onClick={() => setMeasuredAt(shiftDate(measuredAt, 1))} className="rounded-lg border border-slate-200 bg-white p-2">
+            <ChevronRight className="size-4" />
+          </button>
+          <button type="button" onClick={fetchData} disabled={loading} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 disabled:opacity-50">
+            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
-      </div>
+      </header>
 
-      {loading ? (
-        <motion.div 
-          className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <RefreshCw size={32} className="animate-spin text-slate-400 dark:text-slate-500" />
-        </motion.div>
-      ) : availableSlots.length === 0 ? (
-        <motion.div 
-          className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-12 text-center"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
-          <AlertCircle size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
-          <p className="text-slate-600 dark:text-slate-400 font-medium">해당 날짜에 배정된 학생이 없습니다.</p>
-          <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">반 배치 페이지에서 학생을 배치해주세요.</p>
-        </motion.div>
-      ) : (
+      {loading && <div className="rounded-lg border border-slate-200 bg-white p-12 text-center text-sm font-semibold text-slate-500">불러오는 중입니다.</div>}
+      {!loading && availableSlots.length === 0 && (
+        <EmptyState message="해당 날짜에 배정된 학생이 없습니다." subMessage="반 배치에서 학생을 먼저 배정해주세요." />
+      )}
+      {!loading && availableSlots.length > 0 && (
         <>
-          {/* 시간대 탭 */}
-          <div className="flex gap-2 mb-4">
-            {availableSlots.map(slot => (
+          <section className="grid gap-3 lg:grid-cols-3">
+            <MetricCard icon={Calendar} label="측정일" value={formatKoreanDate(measuredAt)} />
+            <MetricCard icon={Users} label="대상 학생" value={`${myStudents.length}명`} />
+            <MetricCard icon={Target} label="측정 종목" value={`${recordTypes.length}개`} />
+          </section>
+
+          <section className="grid gap-2 sm:grid-cols-3">
+            {availableSlots.map((slot) => (
               <button
                 key={slot}
-                onClick={() => { setSelectedSlot(slot); if (isAdmin) setSelectedTrainerId(null); }}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
+                type="button"
+                onClick={() => {
+                  setSelectedSlot(slot);
+                  if (isAdmin) setSelectedTrainerId(null);
+                }}
+                className={`h-12 rounded-lg border px-4 text-left text-sm font-black transition ${
                   selectedSlot === slot
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    ? 'border-slate-950 bg-slate-950 text-white'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 {SLOT_LABELS[slot]}
               </button>
             ))}
-          </div>
+          </section>
 
           {myStudents.length === 0 ? (
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-12 text-center">
-              <AlertCircle size={48} className="mx-auto text-orange-400 mb-4" />
-              <p className="text-slate-600 dark:text-slate-300 font-medium">배정된 학생이 없습니다</p>
-            </div>
+            <EmptyState message="배정된 학생이 없습니다." />
           ) : (
             <>
               <RecordModeSelector
@@ -141,18 +124,13 @@ export default function RecordsPage() {
                 recordTypes={recordTypes}
                 selectedRecordType={selectedRecordType}
                 setSelectedRecordType={setSelectedRecordType}
-                onExpandAll={() => expandAll(myStudents.map(s => s.student_id))}
+                onExpandAll={() => expandAll(myStudents.map((student) => student.student_id))}
                 onCollapseAll={collapseAll}
               />
 
-              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-4">
-                <Users size={16} />
-                <span>{isAdmin ? '수업 참여 학생 수' : '내 반'}: {myStudents.length}명</span>
-              </div>
-
               {inputMode === 'student' ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {myStudents.map(student => (
+                <div className="grid gap-3 xl:grid-cols-3">
+                  {myStudents.map((student) => (
                     <StudentRecordCard
                       key={student.student_id}
                       student={student}
@@ -169,20 +147,18 @@ export default function RecordsPage() {
                   ))}
                 </div>
               ) : currentRecordType && (
-                <div>
-                  <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-800 dark:text-slate-100">{currentRecordType.name}</span>
-                      <span className="text-sm text-slate-500 dark:text-slate-400">({currentRecordType.unit})</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${
-                        currentRecordType.direction === 'higher' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
-                      }`}>
-                        {currentRecordType.direction === 'higher' ? '↑' : '↓'}
+                <section className="space-y-3">
+                  <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-lg font-black text-slate-950">{currentRecordType.name}</span>
+                      <span className="text-sm font-semibold text-slate-500">{currentRecordType.unit}</span>
+                      <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
+                        {currentRecordType.direction === 'higher' ? '높을수록 좋음' : '낮을수록 좋음'}
                       </span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {myStudents.map(student => (
+                  <div className="grid gap-3 xl:grid-cols-3">
+                    {myStudents.map((student) => (
                       <EventRecordCard
                         key={student.student_id}
                         student={student}
@@ -196,12 +172,52 @@ export default function RecordsPage() {
                       />
                     ))}
                   </div>
-                </div>
+                </section>
               )}
             </>
           )}
         </>
       )}
-                                                                                                    </div>
+    </div>
   );
+}
+
+function MetricCard({ icon: Icon, label, value }: { icon: typeof Calendar; label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <span className="flex size-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+          <Icon className="size-5" />
+        </span>
+        <div>
+          <p className="text-xs font-bold text-slate-500">{label}</p>
+          <p className="mt-1 text-lg font-black text-slate-950">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ message, subMessage }: { message: string; subMessage?: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center">
+      <AlertCircle className="mx-auto size-10 text-slate-300" />
+      <p className="mt-3 text-sm font-bold text-slate-600">{message}</p>
+      {subMessage && <p className="mt-1 text-sm text-slate-500">{subMessage}</p>}
+    </div>
+  );
+}
+
+function shiftDate(dateValue: string, delta: number) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  date.setDate(date.getDate() + delta);
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+}
+
+function formatKoreanDate(dateValue: string) {
+  return new Date(`${dateValue}T00:00:00`).toLocaleDateString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  });
 }

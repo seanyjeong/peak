@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { ChevronLeft, Trophy, Medal, Award } from 'lucide-react';
+import { getMonthlyErrorMessage } from '../monthly-detail-model';
 
 interface RecordType {
   id: number;
@@ -71,8 +72,7 @@ export default function RankingsPage({
       setRecordTypes(res.data.record_types || []);
       setParticipants(res.data.participants || []);
     } catch (error) {
-      console.error('데이터 로드 오류:', error);
-      toast.error(error);
+      toast.error(getMonthlyErrorMessage(error, '순위 정보를 불러오지 못했습니다.'));
     } finally {
       setLoading(false);
     }

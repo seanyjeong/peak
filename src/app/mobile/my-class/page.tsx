@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Sunrise, Sun, Moon, RefreshCw, Check, X, Clock, Users, Dumbbell, Thermometer, Droplets } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { useToast } from '@/hooks/useToast';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening';
 
@@ -48,12 +49,18 @@ const ATT_BADGE: Record<string, { label: string; color: string; bg: string }> = 
 };
 
 export default function MyClassPage() {
+  const toast = useToast();
+  const toastRef = useRef(toast);
   const [slots, setSlots] = useState<Record<TimeSlot, SlotData | null>>({ morning: null, afternoon: null, evening: null });
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
   const [loading, setLoading] = useState(true);
   const [hasClass, setHasClass] = useState(true);
 
   const today = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const getLocalDate = () => {
     const n = new Date();
@@ -72,8 +79,8 @@ export default function MyClassPage() {
       if (d.slots.evening) setActiveSlot('evening');
       else if (d.slots.afternoon) setActiveSlot('afternoon');
       else if (d.slots.morning) setActiveSlot('morning');
-    } catch (e) {
-      console.error('Failed to fetch:', e);
+    } catch {
+      toastRef.current.error('내 반 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }

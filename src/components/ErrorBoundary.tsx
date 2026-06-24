@@ -31,8 +31,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo });
 
-    // 프로덕션에서는 에러 리포팅 서비스로 전송할 수 있음
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
+    }
   }
 
   handleRetry = (): void => {

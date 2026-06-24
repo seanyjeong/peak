@@ -17,6 +17,7 @@ export interface Student {
 export interface RecordType {
   id: number;
   name: string;
+  short_name?: string;
   unit: string;
   direction: 'higher' | 'lower';
   is_active: boolean;

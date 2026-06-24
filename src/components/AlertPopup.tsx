@@ -24,8 +24,9 @@ export default function AlertPopup({ onClose }: AlertPopupProps) {
         if (isPushSupported() && getNotificationPermission() === 'default') {
           setShowPushPrompt(true);
         }
-      } catch (error) {
-        console.error('Failed to check alerts:', error);
+      } catch {
+        setAlerts([]);
+        setShowPushPrompt(false);
       } finally {
         setLoading(false);
       }

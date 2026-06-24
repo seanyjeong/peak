@@ -6,6 +6,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
+type PeakSmokeWindow = Window & { __PEAK_SMOKE__?: boolean };
+
 // 프로덕션/개발 환경에 따른 Socket URL 설정
 const getSocketUrl = () => {
   if (typeof window === 'undefined') return 'http://localhost:8330';
@@ -37,6 +39,7 @@ export function useSocket(options: UseSocketOptions = {}) {
 
   const connect = useCallback(() => {
     if (typeof window === 'undefined') return;
+    if ((window as PeakSmokeWindow).__PEAK_SMOKE__) return;
 
     const token = localStorage.getItem('peak_token');
     if (!token) {
@@ -81,16 +84,13 @@ export function useSocket(options: UseSocketOptions = {}) {
       options.onAssignmentsUpdated?.(data);
     });
 
-    socket.on('error', (error) => {
-      console.error('[Socket] Error:', error);
-    });
+    socket.on('error', () => {});
 
     socket.on('disconnect', (reason) => {
       console.log('[Socket] Disconnected:', reason);
     });
 
-    socket.on('connect_error', (error) => {
-      console.error('[Socket] Connection error:', error.message);
+    socket.on('connect_error', () => {
       reconnectAttempts.current++;
 
       if (reconnectAttempts.current >= maxReconnectAttempts) {

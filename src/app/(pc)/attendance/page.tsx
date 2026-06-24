@@ -1,17 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/useToast';
-import { UserCheck, Clock, RefreshCw, Sunrise, Sun, Moon, Download } from 'lucide-react';
+import type { ComponentType } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock3,
+  Moon,
+  RefreshCw,
+  Sun,
+  Sunrise,
+  UserCheck,
+  Users,
+} from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { useToast } from '@/hooks/useToast';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening';
+type AttendanceStatus = 'scheduled' | 'present' | 'absent' | 'late';
 
 interface Instructor {
   id: number;
   name: string;
   time_slot: TimeSlot;
-  attendance_status: 'scheduled' | 'present' | 'absent' | 'late';
+  attendance_status: AttendanceStatus;
   check_in_time: string | null;
   check_out_time: string | null;
 }
@@ -28,209 +40,315 @@ interface Stats {
   uniqueInstructors: number;
 }
 
-const TIME_SLOT_INFO: Record<TimeSlot, { label: string; icon: typeof Sun; color: string; bgColor: string }> = {
-  morning: { label: '오전', icon: Sunrise, color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  afternoon: { label: '오후', icon: Sun, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  evening: { label: '저녁', icon: Moon, color: 'text-purple-600', bgColor: 'bg-purple-100' },
+interface AttendanceResponse {
+  slots?: Partial<SlotsData>;
+  stats?: Partial<Stats>;
+}
+
+const EMPTY_SLOTS: SlotsData = { morning: [], afternoon: [], evening: [] };
+const EMPTY_STATS: Stats = { total: 0, checkedIn: 0, uniqueInstructors: 0 };
+
+const TIME_SLOT_INFO: Record<TimeSlot, { label: string; time: string; icon: ComponentType<{ size?: number }> }> = {
+  morning: { label: '오전반', time: '09:00-12:00', icon: Sunrise },
+  afternoon: { label: '오후반', time: '13:00-17:00', icon: Sun },
+  evening: { label: '저녁반', time: '18:00-21:00', icon: Moon },
 };
 
-const STATUS_INFO: Record<string, { label: string; color: string; bgColor: string }> = {
-  present: { label: '출근', color: 'text-green-700', bgColor: 'bg-green-100' },
-  scheduled: { label: '예정', color: 'text-slate-600', bgColor: 'bg-slate-100' },
-  absent: { label: '결근', color: 'text-red-700', bgColor: 'bg-red-100' },
-  late: { label: '지각', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
+const STATUS_INFO: Record<AttendanceStatus, { label: string; className: string }> = {
+  present: {
+    label: '출근',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300',
+  },
+  scheduled: {
+    label: '예정',
+    className: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300',
+  },
+  absent: {
+    label: '결근',
+    className: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300',
+  },
+  late: {
+    label: '지각',
+    className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300',
+  },
 };
+
+const SLOT_ORDER: TimeSlot[] = ['morning', 'afternoon', 'evening'];
 
 export default function AttendancePage() {
   const toast = useToast();
-  const [slotsData, setSlotsData] = useState<SlotsData>({ morning: [], afternoon: [], evening: [] });
-  const [stats, setStats] = useState<Stats>({ total: 0, checkedIn: 0, uniqueInstructors: 0 });
+  const toastRef = useRef(toast);
+  const [slotsData, setSlotsData] = useState<SlotsData>(EMPTY_SLOTS);
+  const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
 
-  const today = new Date().toLocaleDateString('ko-KR', {
+  const today = useMemo(() => new Date().toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    weekday: 'long'
-  });
+    weekday: 'long',
+  }), []);
 
-  const getLocalDateString = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  };
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const dateStr = getLocalDateString();
-      const res = await apiClient.get(`/attendance?date=${dateStr}`);
+      const res = await apiClient.get<AttendanceResponse>(`/attendance?date=${dateStr}`);
+      const nextSlots = normalizeSlots(res.data.slots);
 
-      setSlotsData(res.data.slots || { morning: [], afternoon: [], evening: [] });
-      setStats(res.data.stats || { total: 0, checkedIn: 0, uniqueInstructors: 0 });
-
-      // 강사가 있는 첫 슬롯 선택
-      const slots = res.data.slots;
-      if (slots.evening?.length > 0) setActiveSlot('evening');
-      else if (slots.afternoon?.length > 0) setActiveSlot('afternoon');
-      else if (slots.morning?.length > 0) setActiveSlot('morning');
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error(error);
+      setSlotsData(nextSlots);
+      setStats({
+        ...EMPTY_STATS,
+        ...res.data.stats,
+      });
+      setActiveSlot(getDefaultSlot(nextSlots));
+    } catch {
+      toastRef.current.error('출근 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  const getSlotCount = (slot: TimeSlot) => slotsData[slot].length;
-  const getSlotCheckedIn = (slot: TimeSlot) => slotsData[slot].filter(i => i.attendance_status === 'present').length;
+  }, [fetchData]);
 
   const currentInstructors = slotsData[activeSlot];
+  const attendanceRate = stats.uniqueInstructors > 0
+    ? Math.round((stats.checkedIn / stats.uniqueInstructors) * 100)
+    : 0;
+  const pendingCount = Math.max(stats.uniqueInstructors - stats.checkedIn, 0);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="mx-auto max-w-[1280px] space-y-6" data-testid="attendance-page">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">출근 체크</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">{today}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Staff Attendance</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">출근 체크</h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{today}</p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
+          className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-950"
         >
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          <span>새로고침</span>
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          새로고침
         </button>
-      </div>
+      </header>
 
-      {/* Stats */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 mb-6">
-        <div className="flex items-center gap-6">
-          <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
-            <UserCheck size={36} className="text-orange-500" />
+      <section className="grid gap-3 md:grid-cols-3" aria-label="출근 요약">
+        <SummaryCard icon={UserCheck} label="출근 강사" value={`${stats.checkedIn}/${stats.uniqueInstructors}`} detail={`${attendanceRate}% 완료`} tone="orange" />
+        <SummaryCard icon={Clock3} label="확인 필요" value={`${pendingCount}명`} detail="미출근 또는 예정" tone="slate" />
+        <SummaryCard icon={Users} label="오늘 배정" value={`${stats.total}건`} detail="시간대 중복 포함" tone="blue" />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+            <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">시간대 선택</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">강사가 배정된 반을 먼저 확인합니다.</p>
           </div>
-          <div>
-            <p className="text-4xl font-bold text-slate-800 dark:text-slate-100">
-              {stats.checkedIn}
-              <span className="text-slate-400 dark:text-slate-500 text-2xl">/{stats.uniqueInstructors}</span>
-            </p>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">강사 출근</p>
-          </div>
-          <div className="ml-auto text-right">
-            <p className="text-sm text-slate-500 dark:text-slate-400">출근률</p>
-            <p className="text-2xl font-bold text-orange-500">
-              {stats.uniqueInstructors > 0 ? Math.round((stats.checkedIn / stats.uniqueInstructors) * 100) : 0}%
-            </p>
+          <div className="space-y-2 p-3">
+            {SLOT_ORDER.map((slot) => (
+              <SlotButton
+                key={slot}
+                slot={slot}
+                active={activeSlot === slot}
+                count={slotsData[slot].length}
+                checkedIn={getSlotCheckedIn(slotsData[slot])}
+                onClick={() => setActiveSlot(slot)}
+              />
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* Time Slot Tabs */}
-      <div className="flex gap-2 mb-6">
-        {(Object.keys(TIME_SLOT_INFO) as TimeSlot[]).map((slot) => {
-          const info = TIME_SLOT_INFO[slot];
-          const Icon = info.icon;
-          const count = getSlotCount(slot);
-          const checkedIn = getSlotCheckedIn(slot);
-          const isActive = activeSlot === slot;
+        <div className="rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" data-testid="attendance-list">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+            <div>
+              <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">
+                {TIME_SLOT_INFO[activeSlot].label} 강사
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {TIME_SLOT_INFO[activeSlot].time} · {currentInstructors.length}명 배정
+              </p>
+            </div>
+            <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+              {getSlotCheckedIn(currentInstructors)}/{currentInstructors.length}
+            </span>
+          </div>
 
-          return (
-            <button
-              key={slot}
-              onClick={() => setActiveSlot(slot)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-lg transition ${
-                isActive
-                  ? `${info.bgColor} ${info.color} ring-2 ring-offset-2`
-                  : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-              }`}
-            >
-              <Icon size={20} />
-              <span className="font-medium">{info.label}</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs ${
-                isActive ? 'bg-white/50' : 'bg-slate-100 dark:bg-slate-700'
-              }`}>
-                {checkedIn}/{count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Instructor List */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-          <h2 className="font-semibold text-slate-800 dark:text-slate-100">
-            {TIME_SLOT_INFO[activeSlot].label} 강사 ({currentInstructors.length}명)
-          </h2>
+          {loading ? (
+            <div className="flex min-h-[300px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+              <RefreshCw size={18} className="mr-2 animate-spin text-orange-500" />
+              출근 현황을 불러오는 중입니다.
+            </div>
+          ) : currentInstructors.length === 0 ? (
+            <EmptyState slot={activeSlot} />
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {currentInstructors.map((instructor) => (
+                <InstructorRow key={`${instructor.id}-${instructor.time_slot}`} instructor={instructor} />
+              ))}
+            </div>
+          )}
         </div>
+      </section>
 
-        {loading ? (
-          <div className="p-12 text-center text-slate-400 dark:text-slate-500">
-            <RefreshCw size={32} className="animate-spin mx-auto mb-2" />
-            <p>로딩 중...</p>
-          </div>
-        ) : currentInstructors.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 dark:text-slate-500">
-            <p>{TIME_SLOT_INFO[activeSlot].label}에 스케줄된 강사가 없습니다.</p>
-            <p className="text-sm mt-2">P-ACA에서 강사 스케줄을 등록하세요.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-700">
-            {currentInstructors.map((instructor) => {
-              const status = STATUS_INFO[instructor.attendance_status] || STATUS_INFO.scheduled;
-              const isPresent = instructor.attendance_status === 'present';
+      <aside className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+        출근 상태 변경은 P-ACA에서 처리됩니다. 이 화면은 Peak 수업 운영자가 현재 반 배정과 강사 출근 상태를 빠르게 확인하는 용도입니다.
+      </aside>
+    </div>
+  );
+}
 
-              return (
-                <div
-                  key={`${instructor.id}-${instructor.time_slot}`}
-                  className={`flex items-center justify-between p-5 transition ${
-                    isPresent ? 'bg-green-50 dark:bg-green-900' : 'hover:bg-slate-50 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-medium ${
-                        isPresent ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'
-                      }`}
-                    >
-                      {instructor.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-100">{instructor.name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {TIME_SLOT_INFO[instructor.time_slot].label} 근무
-                      </p>
-                    </div>
-                  </div>
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  icon: ComponentType<{ size?: number }>;
+  label: string;
+  value: string;
+  detail: string;
+  tone: 'orange' | 'blue' | 'slate';
+}) {
+  const toneClass = {
+    orange: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-900',
+    blue: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900',
+    slate: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+  }[tone];
 
-                  <div className="flex items-center gap-3">
-                    {instructor.check_in_time && (
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                        <Clock size={16} />
-                        <span className="text-sm">{instructor.check_in_time.slice(0, 5)}</span>
-                      </div>
-                    )}
-                    <span className={`px-3 py-1 text-sm rounded-full ${status.bgColor} ${status.color}`}>
-                      {status.label}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+  return (
+    <article className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">{value}</p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{detail}</p>
+        </div>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border ${toneClass}`}>
+          <Icon size={19} />
+        </span>
       </div>
+    </article>
+  );
+}
 
-      {/* Info Banner */}
-      <div className="mt-6 bg-slate-100 dark:bg-slate-800 rounded-xl p-4 text-sm text-slate-600 dark:text-slate-300">
-        <p>출근 체크는 P-ACA에서 관리됩니다. 출근 상태 변경은 P-ACA에서 진행해주세요.</p>
+function SlotButton({
+  slot,
+  active,
+  count,
+  checkedIn,
+  onClick,
+}: {
+  slot: TimeSlot;
+  active: boolean;
+  count: number;
+  checkedIn: number;
+  onClick: () => void;
+}) {
+  const info = TIME_SLOT_INFO[slot];
+  const Icon = info.icon;
+
+  return (
+    <button
+      onClick={onClick}
+      className={`grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-md border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${
+        active
+          ? 'border-orange-400 bg-orange-50 text-slate-950 shadow-sm ring-1 ring-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-slate-50 dark:ring-orange-900/40'
+          : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 dark:text-slate-300 dark:hover:border-slate-800 dark:hover:bg-slate-800'
+      }`}
+    >
+      <span className="flex h-10 w-10 items-center justify-center rounded-md bg-white text-orange-600 shadow-sm dark:bg-slate-900 dark:text-orange-300">
+        <Icon size={18} />
+      </span>
+      <span className="min-w-0">
+        <span className="block font-medium">{info.label}</span>
+        <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{info.time}</span>
+      </span>
+      <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm font-semibold text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+        {checkedIn}/{count}
+      </span>
+    </button>
+  );
+}
+
+function InstructorRow({ instructor }: { instructor: Instructor }) {
+  const status = STATUS_INFO[instructor.attendance_status] || STATUS_INFO.scheduled;
+  const isPresent = instructor.attendance_status === 'present' || instructor.attendance_status === 'late';
+
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-sm font-semibold ${
+          isPresent
+            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
+            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+        }`}>
+          {isPresent ? <CheckCircle2 size={19} /> : instructor.name.charAt(0)}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate font-medium text-slate-950 dark:text-slate-50">{instructor.name}</span>
+          <span className="mt-1 block text-sm text-slate-500 dark:text-slate-400">
+            {TIME_SLOT_INFO[instructor.time_slot].label} 근무
+          </span>
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        {instructor.check_in_time ? (
+          <span className="hidden items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 sm:inline-flex">
+            <Clock3 size={15} />
+            {instructor.check_in_time.slice(0, 5)}
+          </span>
+        ) : null}
+        <span className={`rounded-md border px-2.5 py-1 text-sm font-medium ${status.className}`}>{status.label}</span>
       </div>
     </div>
   );
+}
+
+function EmptyState({ slot }: { slot: TimeSlot }) {
+  return (
+    <div className="flex min-h-[300px] flex-col items-center justify-center px-6 py-10 text-center">
+      <AlertCircle size={30} className="text-slate-300 dark:text-slate-600" />
+      <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">
+        {TIME_SLOT_INFO[slot].label}에 배정된 강사가 없습니다.
+      </p>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">P-ACA에서 강사 스케줄을 확인해주세요.</p>
+    </div>
+  );
+}
+
+function normalizeSlots(slots?: Partial<SlotsData>): SlotsData {
+  return {
+    morning: slots?.morning || [],
+    afternoon: slots?.afternoon || [],
+    evening: slots?.evening || [],
+  };
+}
+
+function getDefaultSlot(slots: SlotsData): TimeSlot {
+  if (slots.evening.length > 0) return 'evening';
+  if (slots.afternoon.length > 0) return 'afternoon';
+  if (slots.morning.length > 0) return 'morning';
+  return 'evening';
+}
+
+function getSlotCheckedIn(instructors: Instructor[]) {
+  return instructors.filter((instructor) => (
+    instructor.attendance_status === 'present' || instructor.attendance_status === 'late'
+  )).length;
+}
+
+function getLocalDateString() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }

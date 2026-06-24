@@ -1,90 +1,59 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Calculator, ListChecks, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
-import { Plus, Edit2, Trash2, Save, X, RefreshCw, ChevronDown, ChevronUp, Calculator, Check, ToggleLeft, ToggleRight } from 'lucide-react';
 import apiClient from '@/lib/api/client';
-
-interface RecordType {
-  id: number;
-  name: string;
-  unit: string;
-  direction: 'higher' | 'lower';
-  is_active: boolean;
-  display_order: number;
-  min_value: number | null;
-  max_value: number | null;
-}
-
-interface ScoreTable {
-  id: number;
-  record_type_id: number;
-  record_type_name: string;
-  unit: string;
-  direction: string;
-  name: string;
-  max_score: number;
-  min_score: number;
-  score_step: number;
-  value_step: number;
-  decimal_places: number;
-  male_perfect: number;
-  female_perfect: number;
-}
-
-interface ScoreRange {
-  id: number;
-  score_table_id: number;
-  score: number;
-  male_min: number;
-  male_max: number;
-  female_min: number;
-  female_max: number;
-}
+import {
+  DEFAULT_SCORE_FORM,
+  DEFAULT_TYPE_FORM,
+  getSettingsErrorMessage,
+  RecordType,
+  ScoreForm,
+  ScoreRange,
+  ScoreTable,
+  SettingsTab,
+  toNullableNumber,
+  TypeForm,
+} from './settings-model';
+import { ScoreTablesPanel } from './settings-scores-ui';
+import { RecordTypesPanel } from './settings-types-ui';
 
 export default function SettingsPage() {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'types' | 'scores'>('types');
-  const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
-  const [scoreTables, setScoreTables] = useState<ScoreTable[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // 종목 관리 상태
-  const [showTypeForm, setShowTypeForm] = useState(false);
-  const [editingType, setEditingType] = useState<RecordType | null>(null);
-  const [typeForm, setTypeForm] = useState<{ name: string; unit: string; direction: 'higher' | 'lower'; min_value: string; max_value: string }>({ name: '', unit: '', direction: 'higher', min_value: '', max_value: '' });
-
-  // 배점표 관리 상태
-  const [showScoreForm, setShowScoreForm] = useState(false);
-  const [selectedTypeForScore, setSelectedTypeForScore] = useState<number | null>(null);
-  const [scoreForm, setScoreForm] = useState({
-    max_score: 100,
-    min_score: 50,
-    score_step: 2,
-    value_step: 5,
-    decimal_places: 0,
-    male_perfect: 300,
-    female_perfect: 250
-  });
-  const [expandedScoreTable, setExpandedScoreTable] = useState<number | null>(null);
-  const [scoreRanges, setScoreRanges] = useState<ScoreRange[]>([]);
-  const [loadingRanges, setLoadingRanges] = useState(false);
-  const [editingRanges, setEditingRanges] = useState<{ [key: number]: ScoreRange }>({});
-  const [savingRange, setSavingRange] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('types');
   const [currentTable, setCurrentTable] = useState<ScoreTable | null>(null);
+  const [editingRanges, setEditingRanges] = useState<Record<number, ScoreRange>>({});
+  const [editingType, setEditingType] = useState<RecordType | null>(null);
+  const [expandedScoreTable, setExpandedScoreTable] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingRanges, setLoadingRanges] = useState(false);
+  const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
+  const [savingRange, setSavingRange] = useState<number | null>(null);
+  const [scoreForm, setScoreForm] = useState<ScoreForm>(DEFAULT_SCORE_FORM);
+  const [scoreRanges, setScoreRanges] = useState<ScoreRange[]>([]);
+  const [scoreTables, setScoreTables] = useState<ScoreTable[]>([]);
+  const [selectedTypeForScore, setSelectedTypeForScore] = useState<number | null>(null);
+  const [showScoreForm, setShowScoreForm] = useState(false);
+  const [showTypeForm, setShowTypeForm] = useState(false);
+  const [typeForm, setTypeForm] = useState<TypeForm>(DEFAULT_TYPE_FORM);
+
+  const typesWithoutScore = useMemo(
+    () => recordTypes.filter((type) => type.is_active && !scoreTables.some((table) => table.record_type_id === type.id)),
+    [recordTypes, scoreTables],
+  );
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const [typesRes, tablesRes] = await Promise.all([
         apiClient.get('/record-types'),
-        apiClient.get('/score-tables')
+        apiClient.get('/score-tables'),
       ]);
       setRecordTypes(typesRes.data.recordTypes || []);
       setScoreTables(tablesRes.data.scoreTables || []);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error(error);
+      toast.error(getSettingsErrorMessage(error, '설정 정보를 불러오지 못했습니다.'));
     } finally {
       setLoading(false);
     }
@@ -94,61 +63,39 @@ export default function SettingsPage() {
     fetchData();
   }, []);
 
-  // 종목 저장
+  const resetTypeForm = () => {
+    setEditingType(null);
+    setTypeForm(DEFAULT_TYPE_FORM);
+    setShowTypeForm(false);
+  };
+
   const saveType = async () => {
-    if (!typeForm.name.trim()) {
-      toast.error('종목명을 입력해주세요.');
-      return;
-    }
-    if (!typeForm.unit.trim()) {
-      toast.error('단위를 입력해주세요.');
-      return;
-    }
+    if (!typeForm.name.trim()) return toast.error('종목명을 입력해주세요.');
+    if (!typeForm.unit.trim()) return toast.error('단위를 입력해주세요.');
+
+    const payload = {
+      name: typeForm.name.trim(),
+      unit: typeForm.unit.trim(),
+      direction: typeForm.direction,
+      min_value: toNullableNumber(typeForm.min_value),
+      max_value: toNullableNumber(typeForm.max_value),
+    };
+
     try {
-      const payload = {
-        name: typeForm.name,
-        unit: typeForm.unit,
-        direction: typeForm.direction,
-        min_value: typeForm.min_value ? parseFloat(typeForm.min_value) : null,
-        max_value: typeForm.max_value ? parseFloat(typeForm.max_value) : null,
-      };
       if (editingType) {
         await apiClient.put(`/record-types/${editingType.id}`, {
           ...payload,
+          display_order: editingType.display_order,
           is_active: editingType.is_active,
-          display_order: editingType.display_order
         });
       } else {
         await apiClient.post('/record-types', payload);
       }
-      setShowTypeForm(false);
-      setEditingType(null);
-      setTypeForm({ name: '', unit: '', direction: 'higher', min_value: '', max_value: '' });
-      fetchData();
+      toast.success(editingType ? '종목을 수정했습니다.' : '종목을 추가했습니다.');
+      resetTypeForm();
+      await fetchData();
     } catch (error) {
-      console.error('Failed to save type:', error);
-      toast.error('저장에 실패했습니다.');
-    }
-  };
-
-  const toggleTypeActive = async (type: RecordType) => {
-    const newStatus = !type.is_active;
-    const action = newStatus ? '활성화' : '비활성화';
-    if (!confirm(`"${type.name}" 종목을 ${action}하시겠습니까?`)) return;
-    try {
-      await apiClient.put(`/record-types/${type.id}`, {
-        name: type.name,
-        unit: type.unit,
-        direction: type.direction,
-        is_active: newStatus,
-        display_order: type.display_order,
-        min_value: type.min_value,
-        max_value: type.max_value
-      });
-      fetchData();
-    } catch (error) {
-      console.error('Failed to toggle type:', error);
-      toast.error(error);
+      toast.error(getSettingsErrorMessage(error, '종목을 저장하지 못했습니다.'));
     }
   };
 
@@ -164,32 +111,46 @@ export default function SettingsPage() {
     setShowTypeForm(true);
   };
 
-  // 배점표 생성
-  const createScoreTable = async () => {
-    if (!selectedTypeForScore) {
-      toast.error('종목을 선택하세요.');
-      return;
-    }
-    if (!scoreForm.score_step || scoreForm.score_step < 1) {
-      toast.error('급간 점수는 1 이상이어야 합니다.');
-      return;
-    }
+  const toggleTypeActive = async (type: RecordType) => {
+    const nextStatus = !type.is_active;
+    if (!window.confirm(`${type.name} 종목을 ${nextStatus ? '활성화' : '비활성화'}할까요?`)) return;
+
     try {
-      await apiClient.post('/score-tables', {
-        record_type_id: selectedTypeForScore,
-        ...scoreForm
+      await apiClient.put(`/record-types/${type.id}`, {
+        name: type.name,
+        unit: type.unit,
+        direction: type.direction,
+        is_active: nextStatus,
+        display_order: type.display_order,
+        min_value: type.min_value,
+        max_value: type.max_value,
       });
-      setShowScoreForm(false);
-      setSelectedTypeForScore(null);
-      fetchData();
-      toast.success('배점표가 생성되었습니다!');
+      toast.success(nextStatus ? '종목을 활성화했습니다.' : '종목을 비활성화했습니다.');
+      await fetchData();
     } catch (error) {
-      console.error('Failed to create score table:', error);
-      toast.error('배점표 생성에 실패했습니다.');
+      toast.error(getSettingsErrorMessage(error, '종목 상태를 바꾸지 못했습니다.'));
     }
   };
 
-  // 배점표 상세 보기
+  const createScoreTable = async () => {
+    if (!selectedTypeForScore) return toast.error('종목을 선택해주세요.');
+    if (!scoreForm.score_step || scoreForm.score_step < 1) return toast.error('급간 점수는 1 이상이어야 합니다.');
+
+    try {
+      await apiClient.post('/score-tables', {
+        record_type_id: selectedTypeForScore,
+        ...scoreForm,
+      });
+      toast.success('배점표를 생성했습니다.');
+      setShowScoreForm(false);
+      setSelectedTypeForScore(null);
+      setScoreForm(DEFAULT_SCORE_FORM);
+      await fetchData();
+    } catch (error) {
+      toast.error(getSettingsErrorMessage(error, '배점표를 생성하지 못했습니다.'));
+    }
+  };
+
   const toggleScoreTable = async (tableId: number) => {
     if (expandedScoreTable === tableId) {
       setExpandedScoreTable(null);
@@ -207,40 +168,46 @@ export default function SettingsPage() {
       setCurrentTable(res.data.scoreTable || null);
       setEditingRanges({});
     } catch (error) {
-      console.error('Failed to fetch ranges:', error);
-      toast.error(error);
+      toast.error(getSettingsErrorMessage(error, '배점표 상세를 불러오지 못했습니다.'));
     } finally {
       setLoadingRanges(false);
     }
   };
 
-  const deleteScoreTable = async (id: number) => {
-    if (!confirm('이 배점표를 삭제하시겠습니까?')) return;
+  const deleteScoreTable = async (tableId: number) => {
+    if (!window.confirm('이 배점표를 삭제할까요?')) return;
+
     try {
-      await apiClient.delete(`/score-tables/${id}`);
-      fetchData();
+      await apiClient.delete(`/score-tables/${tableId}`);
+      toast.success('배점표를 삭제했습니다.');
+      if (expandedScoreTable === tableId) {
+        setExpandedScoreTable(null);
+        setScoreRanges([]);
+        setCurrentTable(null);
+      }
+      await fetchData();
     } catch (error) {
-      console.error('Failed to delete score table:', error);
-      toast.error(error);
+      toast.error(getSettingsErrorMessage(error, '배점표를 삭제하지 못했습니다.'));
     }
   };
 
-  // 개별 구간 수정
   const startEditRange = (range: ScoreRange) => {
-    setEditingRanges({ ...editingRanges, [range.id]: { ...range } });
+    setEditingRanges((prev) => ({ ...prev, [range.id]: { ...range } }));
   };
 
   const cancelEditRange = (rangeId: number) => {
-    const newEditing = { ...editingRanges };
-    delete newEditing[rangeId];
-    setEditingRanges(newEditing);
+    setEditingRanges((prev) => {
+      const next = { ...prev };
+      delete next[rangeId];
+      return next;
+    });
   };
 
   const updateEditingRange = (rangeId: number, field: keyof ScoreRange, value: number) => {
-    setEditingRanges({
-      ...editingRanges,
-      [rangeId]: { ...editingRanges[rangeId], [field]: value }
-    });
+    setEditingRanges((prev) => ({
+      ...prev,
+      [rangeId]: { ...prev[rangeId], [field]: value },
+    }));
   };
 
   const saveRange = async (rangeId: number) => {
@@ -253,607 +220,114 @@ export default function SettingsPage() {
         male_min: range.male_min,
         male_max: range.male_max,
         female_min: range.female_min,
-        female_max: range.female_max
+        female_max: range.female_max,
       });
-
-      setScoreRanges(scoreRanges.map(r => r.id === rangeId ? range : r));
+      setScoreRanges((prev) => prev.map((item) => (item.id === rangeId ? range : item)));
       cancelEditRange(rangeId);
+      toast.success('구간을 저장했습니다.');
     } catch (error) {
-      console.error('Failed to save range:', error);
-      toast.error('저장에 실패했습니다.');
+      toast.error(getSettingsErrorMessage(error, '구간을 저장하지 못했습니다.'));
     } finally {
       setSavingRange(null);
     }
   };
 
-  // 배점표 없는 종목
-  const typesWithoutScore = recordTypes.filter(
-    t => t.is_active && !scoreTables.some(s => s.record_type_id === t.id)
-  );
-
-  // 숫자 포맷팅
-  const formatValue = (value: number | string | null | undefined, decimalPlaces: number = 0) => {
-    if (value == null || value === '') return '-';
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(numValue)) return '-';
-    if (numValue >= 9999) return '이상';
-    if (numValue <= 0) return '이하';
-    return numValue.toFixed(decimalPlaces);
-  };
-
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <main className="max-w-[1440px] space-y-6 px-6 py-6 lg:px-8">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">실기측정설정</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">종목 및 배점표 관리</p>
+          <p className="text-sm font-bold text-orange-700">MEASUREMENT SETTINGS</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">실기 측정 설정</h1>
+          <p className="mt-1 text-sm text-slate-500">측정 종목과 배점표를 한곳에서 관리합니다.</p>
         </div>
         <button
+          type="button"
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
         >
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          <span>새로고침</span>
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          새로고침
         </button>
-      </div>
+      </header>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => setActiveTab('types')}
-          className={`px-6 py-3 rounded-lg font-medium transition ${
-            activeTab === 'types'
-              ? 'bg-orange-500 text-white'
-              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-          }`}
-        >
-          측정 종목
-        </button>
-        <button
-          onClick={() => setActiveTab('scores')}
-          className={`px-6 py-3 rounded-lg font-medium transition ${
-            activeTab === 'scores'
-              ? 'bg-orange-500 text-white'
-              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-          }`}
-        >
-          배점표
-        </button>
+      <div className="grid gap-2 rounded-lg border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:inline-grid sm:grid-cols-2">
+        <TabButton active={activeTab === 'types'} icon={<ListChecks className="h-4 w-4" />} label="측정 종목" onClick={() => setActiveTab('types')} />
+        <TabButton active={activeTab === 'scores'} icon={<Calculator className="h-4 w-4" />} label="배점표" onClick={() => setActiveTab('scores')} />
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
-          <RefreshCw size={32} className="animate-spin text-slate-400" />
+        <div className="flex h-64 items-center justify-center rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+          <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
         </div>
       ) : activeTab === 'types' ? (
-        /* 종목 관리 탭 */
-        <div className="space-y-4">
-          {/* Add Button */}
-          <button
-            onClick={() => {
-              setEditingType(null);
-              setTypeForm({ name: '', unit: '', direction: 'higher', min_value: '', max_value: '' });
-              setShowTypeForm(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-          >
-            <Plus size={18} />
-            <span>종목 추가</span>
-          </button>
-
-          {/* Type Form */}
-          {showTypeForm && (
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-800 dark:text-slate-100">
-                  {editingType ? '종목 수정' : '새 종목 추가'}
-                </h3>
-                <button onClick={() => setShowTypeForm(false)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">종목명</label>
-                  <input
-                    type="text"
-                    value={typeForm.name}
-                    onChange={e => setTypeForm({ ...typeForm, name: e.target.value })}
-                    placeholder="제자리멀리뛰기"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">단위</label>
-                  <input
-                    type="text"
-                    value={typeForm.unit}
-                    onChange={e => setTypeForm({ ...typeForm, unit: e.target.value })}
-                    placeholder="cm, m, 초"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">방향</label>
-                  <select
-                    value={typeForm.direction}
-                    onChange={e => setTypeForm({ ...typeForm, direction: e.target.value as 'higher' | 'lower' })}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                  >
-                    <option value="higher">높을수록 좋음 ↑</option>
-                    <option value="lower">낮을수록 좋음 ↓</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">허용 최소값</label>
-                  <input
-                    type="number"
-                    value={typeForm.min_value}
-                    onChange={e => setTypeForm({ ...typeForm, min_value: e.target.value })}
-                    placeholder="비워두면 제한 없음"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">허용 최대값</label>
-                  <input
-                    type="number"
-                    value={typeForm.max_value}
-                    onChange={e => setTypeForm({ ...typeForm, max_value: e.target.value })}
-                    placeholder="비워두면 제한 없음"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <button
-                  onClick={() => setShowTypeForm(false)}
-                  className="px-4 py-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={saveType}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                >
-                  <Save size={16} />
-                  저장
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Types List */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-slate-50 dark:bg-slate-900">
-                <tr>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600 dark:text-slate-300">종목명</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">단위</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">방향</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">허용 범위</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600 dark:text-slate-300">상태</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-600 dark:text-slate-300">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                {recordTypes.map(type => (
-                  <tr key={type.id} className={type.is_active ? '' : 'opacity-50'}>
-                    <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-100">{type.name}</td>
-                    <td className="py-3 px-4 text-center text-slate-600 dark:text-slate-300">{type.unit}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        type.direction === 'higher'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {type.direction === 'higher' ? '높을수록↑' : '낮을수록↓'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center text-xs text-slate-500 dark:text-slate-400">
-                      {type.min_value != null || type.max_value != null
-                        ? `${type.min_value ?? '~'} ~ ${type.max_value ?? '~'}`
-                        : '-'}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        type.is_active
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {type.is_active ? '활성' : '비활성'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => startEditType(type)}
-                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-orange-500"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => toggleTypeActive(type)}
-                        className={`p-2 ${type.is_active ? 'text-green-500 hover:text-red-500' : 'text-slate-400 dark:text-slate-500 hover:text-green-500'}`}
-                        title={type.is_active ? '비활성화' : '활성화'}
-                      >
-                        {type.is_active ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <RecordTypesPanel
+          editingType={editingType}
+          onAdd={() => {
+            setEditingType(null);
+            setTypeForm(DEFAULT_TYPE_FORM);
+            setShowTypeForm(true);
+          }}
+          onCancel={resetTypeForm}
+          onEdit={startEditType}
+          onFormChange={setTypeForm}
+          onSave={saveType}
+          onToggleActive={toggleTypeActive}
+          recordTypes={recordTypes}
+          showForm={showTypeForm}
+          typeForm={typeForm}
+        />
       ) : (
-        /* 배점표 관리 탭 */
-        <div className="space-y-4">
-          {/* Add Button */}
-          {typesWithoutScore.length > 0 && (
-            <button
-              onClick={() => setShowScoreForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-            >
-              <Calculator size={18} />
-              <span>배점표 생성</span>
-            </button>
-          )}
-
-          {/* Score Form */}
-          {showScoreForm && (
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-800 dark:text-slate-100">배점표 생성</h3>
-                <button onClick={() => setShowScoreForm(false)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* 종목 선택 */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">종목 선택</label>
-                <select
-                  value={selectedTypeForScore || ''}
-                  onChange={e => setSelectedTypeForScore(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                >
-                  <option value="">선택하세요</option>
-                  {typesWithoutScore.map(t => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.unit}, {t.direction === 'higher' ? '높을수록↑' : '낮을수록↓'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">만점 점수</label>
-                  <input
-                    type="number"
-                    value={scoreForm.max_score}
-                    onChange={e => setScoreForm({ ...scoreForm, max_score: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">최소 점수</label>
-                  <input
-                    type="number"
-                    value={scoreForm.min_score}
-                    onChange={e => setScoreForm({ ...scoreForm, min_score: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">급간 점수</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={scoreForm.score_step}
-                    onChange={e => setScoreForm({ ...scoreForm, score_step: Number(e.target.value) })}
-                    placeholder="2점씩"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">1감점당 단위</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={scoreForm.value_step}
-                    onChange={e => setScoreForm({ ...scoreForm, value_step: Number(e.target.value) })}
-                    placeholder="5cm, 0.1초"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">소수점 자리수</label>
-                  <select
-                    value={scoreForm.decimal_places}
-                    onChange={e => setScoreForm({ ...scoreForm, decimal_places: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value={0}>정수 (0자리)</option>
-                    <option value={1}>소수점 1자리 (0.1)</option>
-                    <option value={2}>소수점 2자리 (0.01)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">남자 만점 기록</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={scoreForm.male_perfect}
-                    onChange={e => setScoreForm({ ...scoreForm, male_perfect: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">여자 만점 기록</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={scoreForm.female_perfect}
-                    onChange={e => setScoreForm({ ...scoreForm, female_perfect: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setShowScoreForm(false)}
-                  className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={createScoreTable}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                >
-                  <Calculator size={16} />
-                  배점표 생성
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Score Tables List */}
-          {scoreTables.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-              <Calculator size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500">생성된 배점표가 없습니다.</p>
-              <p className="text-slate-400 text-sm mt-1">배점표 생성 버튼을 눌러 만들어보세요.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {scoreTables.map(table => (
-                <div key={table.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
-                  {/* Header */}
-                  <div
-                    className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50"
-                    onClick={() => toggleScoreTable(table.id)}
-                  >
-                    <div>
-                      <h3 className="font-semibold text-slate-800 text-lg">{table.record_type_name}</h3>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">
-                          만점 {table.max_score}점
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">
-                          최소 {table.min_score}점
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">
-                          {table.score_step}점 간격
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded">
-                          남 {table.male_perfect}{table.unit}
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-pink-100 text-pink-600 rounded">
-                          여 {table.female_perfect}{table.unit}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteScoreTable(table.id); }}
-                        className="p-2 text-slate-400 hover:text-red-500"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                      {expandedScoreTable === table.id ? (
-                        <ChevronUp size={20} className="text-slate-400" />
-                      ) : (
-                        <ChevronDown size={20} className="text-slate-400" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Expanded Content */}
-                  {expandedScoreTable === table.id && (
-                    <div className="border-t border-slate-100">
-                      {loadingRanges ? (
-                        <div className="flex justify-center py-8">
-                          <RefreshCw size={24} className="animate-spin text-slate-400" />
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="bg-gradient-to-r from-slate-100 to-slate-50">
-                                <th className="py-3 px-4 text-center font-bold text-slate-700 border-b-2 border-slate-200 w-20">
-                                  배점
-                                </th>
-                                <th colSpan={2} className="py-3 px-4 text-center font-bold text-blue-600 border-b-2 border-blue-200 bg-blue-50/50">
-                                  남자 기록 ({table.unit})
-                                </th>
-                                <th colSpan={2} className="py-3 px-4 text-center font-bold text-pink-600 border-b-2 border-pink-200 bg-pink-50/50">
-                                  여자 기록 ({table.unit})
-                                </th>
-                                <th className="py-3 px-4 text-center font-bold text-slate-700 border-b-2 border-slate-200 w-24">
-                                  수정
-                                </th>
-                              </tr>
-                              <tr className="bg-slate-50 text-xs">
-                                <th className="py-2 px-4 text-slate-500"></th>
-                                <th className="py-2 px-4 text-blue-500">최소</th>
-                                <th className="py-2 px-4 text-blue-500">최대</th>
-                                <th className="py-2 px-4 text-pink-500">최소</th>
-                                <th className="py-2 px-4 text-pink-500">최대</th>
-                                <th className="py-2 px-4"></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {scoreRanges.map((range, idx) => {
-                                const isEditing = !!editingRanges[range.id];
-                                const editData = editingRanges[range.id];
-                                const decimalPlaces = currentTable?.decimal_places || 0;
-                                const isFirst = idx === 0;
-                                const isLast = idx === scoreRanges.length - 1;
-
-                                return (
-                                  <tr
-                                    key={range.id}
-                                    className={`border-b border-slate-100 ${
-                                      isFirst ? 'bg-orange-50' : isLast ? 'bg-slate-50' : 'hover:bg-slate-50'
-                                    } ${isEditing ? 'bg-yellow-50' : ''}`}
-                                  >
-                                    <td className="py-3 px-4 text-center">
-                                      <span className={`inline-flex items-center justify-center w-12 h-8 rounded-lg font-bold ${
-                                        isFirst
-                                          ? 'bg-orange-500 text-white'
-                                          : isLast
-                                            ? 'bg-slate-300 text-slate-700'
-                                            : 'bg-slate-200 text-slate-700'
-                                      }`}>
-                                        {range.score}
-                                      </span>
-                                    </td>
-
-                                    {/* 남자 최소 */}
-                                    <td className="py-3 px-4 text-center text-blue-700">
-                                      {isEditing ? (
-                                        <input
-                                          type="number"
-                                          step={Math.pow(10, -decimalPlaces)}
-                                          value={editData.male_min}
-                                          onChange={e => updateEditingRange(range.id, 'male_min', Number(e.target.value))}
-                                          className="w-20 px-2 py-1 border border-blue-300 rounded text-center text-sm"
-                                        />
-                                      ) : (
-                                        <span className={range.male_min <= 0 ? 'text-slate-400' : ''}>
-                                          {formatValue(range.male_min, decimalPlaces)}
-                                        </span>
-                                      )}
-                                    </td>
-
-                                    {/* 남자 최대 */}
-                                    <td className="py-3 px-4 text-center text-blue-700">
-                                      {isEditing ? (
-                                        <input
-                                          type="number"
-                                          step={Math.pow(10, -decimalPlaces)}
-                                          value={editData.male_max >= 9999 ? '' : editData.male_max}
-                                          onChange={e => updateEditingRange(range.id, 'male_max', e.target.value ? Number(e.target.value) : 9999.99)}
-                                          placeholder="이상"
-                                          className="w-20 px-2 py-1 border border-blue-300 rounded text-center text-sm"
-                                        />
-                                      ) : (
-                                        <span className={range.male_max >= 9999 ? 'text-slate-400' : ''}>
-                                          {formatValue(range.male_max, decimalPlaces)}
-                                        </span>
-                                      )}
-                                    </td>
-
-                                    {/* 여자 최소 */}
-                                    <td className="py-3 px-4 text-center text-pink-700">
-                                      {isEditing ? (
-                                        <input
-                                          type="number"
-                                          step={Math.pow(10, -decimalPlaces)}
-                                          value={editData.female_min}
-                                          onChange={e => updateEditingRange(range.id, 'female_min', Number(e.target.value))}
-                                          className="w-20 px-2 py-1 border border-pink-300 rounded text-center text-sm"
-                                        />
-                                      ) : (
-                                        <span className={range.female_min <= 0 ? 'text-slate-400' : ''}>
-                                          {formatValue(range.female_min, decimalPlaces)}
-                                        </span>
-                                      )}
-                                    </td>
-
-                                    {/* 여자 최대 */}
-                                    <td className="py-3 px-4 text-center text-pink-700">
-                                      {isEditing ? (
-                                        <input
-                                          type="number"
-                                          step={Math.pow(10, -decimalPlaces)}
-                                          value={editData.female_max >= 9999 ? '' : editData.female_max}
-                                          onChange={e => updateEditingRange(range.id, 'female_max', e.target.value ? Number(e.target.value) : 9999.99)}
-                                          placeholder="이상"
-                                          className="w-20 px-2 py-1 border border-pink-300 rounded text-center text-sm"
-                                        />
-                                      ) : (
-                                        <span className={range.female_max >= 9999 ? 'text-slate-400' : ''}>
-                                          {formatValue(range.female_max, decimalPlaces)}
-                                        </span>
-                                      )}
-                                    </td>
-
-                                    {/* 수정 버튼 */}
-                                    <td className="py-3 px-4 text-center">
-                                      {isEditing ? (
-                                        <div className="flex items-center justify-center gap-1">
-                                          <button
-                                            onClick={() => saveRange(range.id)}
-                                            disabled={savingRange === range.id}
-                                            className="p-1.5 text-green-600 hover:bg-green-100 rounded disabled:opacity-50"
-                                          >
-                                            {savingRange === range.id ? (
-                                              <RefreshCw size={16} className="animate-spin" />
-                                            ) : (
-                                              <Check size={16} />
-                                            )}
-                                          </button>
-                                          <button
-                                            onClick={() => cancelEditRange(range.id)}
-                                            className="p-1.5 text-slate-400 hover:bg-slate-100 rounded"
-                                          >
-                                            <X size={16} />
-                                          </button>
-                                        </div>
-                                      ) : (
-                                        <button
-                                          onClick={() => startEditRange(range)}
-                                          className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded"
-                                        >
-                                          <Edit2 size={16} />
-                                        </button>
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ScoreTablesPanel
+          currentTable={currentTable}
+          editingRanges={editingRanges}
+          expandedScoreTable={expandedScoreTable}
+          loadingRanges={loadingRanges}
+          onCancelForm={() => setShowScoreForm(false)}
+          onCancelRange={cancelEditRange}
+          onCreate={createScoreTable}
+          onDelete={deleteScoreTable}
+          onEditRange={startEditRange}
+          onFormChange={setScoreForm}
+          onRangeChange={updateEditingRange}
+          onSaveRange={saveRange}
+          onShowForm={() => setShowScoreForm(true)}
+          onToggleTable={toggleScoreTable}
+          savingRange={savingRange}
+          scoreForm={scoreForm}
+          scoreRanges={scoreRanges}
+          scoreTables={scoreTables}
+          selectedTypeForScore={selectedTypeForScore}
+          setSelectedTypeForScore={setSelectedTypeForScore}
+          showForm={showScoreForm}
+          typesWithoutScore={typesWithoutScore}
+        />
       )}
-    </div>
+    </main>
+  );
+}
+
+function TabButton({
+  active,
+  icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition ${
+        active ? 'bg-slate-950 text-white dark:bg-white dark:text-slate-950' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900'
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }

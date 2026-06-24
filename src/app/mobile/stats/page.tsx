@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, TrendingUp, Users, Medal, ClipboardCheck, CalendarDays, CalendarRange } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { useToast } from '@/hooks/useToast';
 
 type Period = 'week' | 'month';
 
@@ -51,17 +52,23 @@ function formatShortDate(dateStr: string) {
 }
 
 export default function StatsPage() {
+  const toast = useToast();
+  const toastRef = useRef(toast);
   const [period, setPeriod] = useState<Period>('week');
   const [data, setData] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiClient.get(`/mobile/stats?period=${period}`);
       setData(res.data);
-    } catch (e) {
-      console.error('Failed to fetch stats:', e);
+    } catch {
+      toastRef.current.error('통계를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }

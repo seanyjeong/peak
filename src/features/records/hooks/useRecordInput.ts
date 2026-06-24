@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import apiClient from '@/lib/api/client';
 import { useToast } from '@/hooks/useToast';
 import {
@@ -37,11 +37,16 @@ export interface UseRecordInputReturn {
 export function useRecordInput(options: UseRecordInputOptions): UseRecordInputReturn {
   const { measuredAt, slots, recordTypes, calculateScore } = options;
   const toast = useToast();
+  const toastRef = useRef(toast);
 
   const [inputs, setInputs] = useState<Record<number, Record<number, RecordInput>>>({});
   const [expandedStudents, setExpandedStudents] = useState<Set<number>>(new Set());
   const [savedStudents, setSavedStudents] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   // 기존 기록 로드
   const loadExistingRecords = useCallback(async (studentIds: number[], date: string) => {
@@ -56,8 +61,7 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
       });
       setInputs(newInputs);
       setSavedStudents(new Set(Object.keys(newInputs).map(Number)));
-    } catch (error) {
-      console.error('Failed to load existing records:', error);
+    } catch {
     }
   }, []);
 
@@ -131,9 +135,8 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
           }
           return prev;
         });
-      } catch (error) {
-        console.error('Delete record failed:', error);
-        toast.error(error);
+      } catch {
+        toastRef.current.error('기록을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.');
       } finally {
         setSaving(false);
       }
@@ -143,7 +146,7 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
     // 범위 체크
     const numValue = Number(inputData.value);
     if (!Number.isFinite(numValue)) {
-      toast.error('기록은 숫자로 입력해주세요.');
+      toastRef.current.error('기록은 숫자로 입력해주세요.');
       return;
     }
     const recordType = recordTypes.find(rt => rt.id === recordTypeId);
@@ -154,7 +157,7 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
         (max_value != null && numValue > max_value);
       if (outOfRange) {
         const rangeText = `${min_value ?? ''} ~ ${max_value ?? ''}`;
-        toast.error(`${recordType.name} 기록은 ${rangeText}${recordType.unit} 사이로 입력해주세요.`);
+        toastRef.current.error(`${recordType.name} 기록은 ${rangeText}${recordType.unit} 사이로 입력해주세요.`);
         return;
       }
     }
@@ -167,13 +170,12 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
         records: [{ record_type_id: recordTypeId, value: numValue, notes: null }]
       });
       setSavedStudents(prev => new Set([...prev, studentId]));
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-      toast.error(error);
+    } catch {
+      toastRef.current.error('기록을 저장하지 못했습니다. 입력값을 확인한 뒤 다시 시도해주세요.');
     } finally {
       setSaving(false);
     }
-  }, [inputs, saving, measuredAt, recordTypes, toast]);
+  }, [inputs, saving, measuredAt, recordTypes]);
 
   const toggleStudent = useCallback((studentId: number) => {
     setExpandedStudents(prev => {

@@ -6,6 +6,12 @@ const DEFAULT_CORS_ORIGINS = [
     'https://dev.sean8320.dedyn.io',
     'http://localhost:3000',
     'http://localhost:3001',
+    'http://localhost:3109',
+    'http://localhost:3110',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3109',
+    'http://127.0.0.1:3110',
 ];
 
 function isTestEnv() {

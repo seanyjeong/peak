@@ -1,78 +1,22 @@
 'use client';
 
+import type { ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  Activity,
   Calendar,
+  CheckCircle2,
   ChevronRight,
-  Sunrise,
-  Sun,
+  Clock3,
+  ListChecks,
+  Medal,
   Moon,
   RefreshCw,
-  TrendingUp,
+  Sun,
+  Sunrise,
   Users,
-  Activity
 } from 'lucide-react';
-import { useDashboard, getTodayFormatted } from '@/features/dashboard';
-import { motion } from 'framer-motion';
-
-// Circular Progress Component (Donut Chart Style)
-function CircularProgress({
-  value,
-  max,
-  color,
-  label,
-  size = 80
-}: {
-  value: number;
-  max: number;
-  color: string;
-  label: string;
-  size?: number;
-}) {
-  const percentage = (value / max) * 100;
-  const strokeWidth = 8;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
-  return (
-    <motion.div 
-      className="flex flex-col items-center"
-      whileHover={{ scale: 1.05 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-    >
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg className="transform -rotate-90" width={size} height={size}>
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="#e2e8f0"
-            strokeWidth={strokeWidth}
-            className="dark:stroke-slate-700"
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke={color}
-            strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            className="transition-all duration-500"
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-lg font-bold text-slate-700 dark:text-slate-300">{value}</span>
-        </div>
-      </div>
-      <span className="text-xs text-slate-500 dark:text-slate-400 mt-2">{label}</span>
-    </motion.div>
-  );
-}
+import { useDashboard, getTodayFormatted, type CurrentInstructor } from '@/features/dashboard';
 
 const SLOT_ICONS = {
   morning: Sunrise,
@@ -90,303 +34,254 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
-        <RefreshCw size={32} className="animate-spin text-slate-400 dark:text-slate-500" />
+      <div className="flex min-h-[520px] items-center justify-center" data-testid="dashboard-loading">
+        <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          <RefreshCw size={18} className="animate-spin text-orange-500" />
+          오늘 훈련 데이터를 불러오는 중입니다.
+        </div>
       </div>
     );
   }
 
   return (
-    <motion.div 
-      className="max-w-7xl mx-auto"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight bg-gradient-to-r from-brand-orange to-brand-blue bg-clip-text text-transparent">
-            대시보드
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm uppercase tracking-wide">{today}</p>
-        </motion.div>
-        <motion.button
-          onClick={() => router.push('/assignments')}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-orange to-orange-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all font-medium"
-          whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Calendar size={18} />
-          <span>반 배치 관리</span>
-        </motion.button>
-      </div>
+    <div className="mx-auto max-w-[1480px] space-y-6" data-testid="dashboard-page">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Today</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">대시보드</h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{today}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ActionButton icon={Calendar} label="반 배치 관리" onClick={() => router.push('/assignments')} primary />
+          <ActionButton icon={Medal} label="기록 측정" onClick={() => router.push('/records')} />
+        </div>
+      </header>
 
-      {/* Stats Cards - Bento Grid Style */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, staggerChildren: 0.1 }}
-      >
-        {/* Card 1: 출근 강사 */}
-        <motion.div 
-          className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-2xl p-6 border border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-lg transition-all"
-          whileHover={{ y: -4, scale: 1.02 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-orange/10 rounded-full -mr-16 -mt-16"></div>
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
-                <Users size={24} className="text-brand-orange" />
-              </div>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">출근 강사</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <CircularProgress
-                value={stats.trainersPresent}
-                max={Math.max(stats.totalTrainers, 1)}
-                color="#FE5A1D"
-                label=""
-                size={70}
-              />
-              <div>
-                <p className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                  {stats.trainersPresent}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">/ {stats.totalTrainers}명</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+      <section className="grid gap-3 md:grid-cols-3" aria-label="오늘 요약">
+        <MetricPanel icon={Users} label="출근 강사" value={`${stats.trainersPresent}명`} detail={`배정 ${stats.totalTrainers}명`} tone="orange" />
+        <MetricPanel icon={Activity} label="수업 학생" value={`${stats.studentsToday}명`} detail="오늘 전체 시간대" tone="blue" />
+        <MetricPanel
+          icon={ListChecks}
+          label="출결 준비"
+          value={currentAttendance ? `${currentAttendance.stats.checkedIn}/${currentAttendance.stats.scheduled}` : '0/0'}
+          detail={currentAttendance ? `${currentAttendance.currentSlotLabel} 기준` : '현재 시간대 없음'}
+          tone="slate"
+        />
+      </section>
 
-        {/* Card 2: 수업 학생 */}
-        <motion.div 
-          className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-lg transition-all"
-          whileHover={{ y: -4, scale: 1.02 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/10 rounded-full -mr-16 -mt-16"></div>
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
-                <Activity size={24} className="text-brand-blue" />
-              </div>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">수업 학생</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <CircularProgress
-                value={stats.studentsToday}
-                max={Math.max(stats.studentsToday, 1)}
-                color="#4666FF"
-                label=""
-                size={70}
-              />
-              <div>
-                <p className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                  {stats.studentsToday}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">명 예정</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Card 3: 전체 학생 */}
-        <motion.div 
-          className="relative overflow-hidden bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 rounded-2xl p-6 border border-teal-200 dark:border-teal-800 shadow-sm hover:shadow-lg transition-all"
-          whileHover={{ y: -4, scale: 1.02 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full -mr-16 -mt-16"></div>
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
-                <TrendingUp size={24} className="text-teal-600" />
-              </div>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">전체 학생</span>
-            </div>
-            <div>
-              <p className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">
-                {stats.studentsToday}
-              </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">오늘 수업</p>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Today's Schedule by Time Slot */}
-        <motion.div 
-          className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-all"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.7 }}
-        >
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">오늘 스케줄</h2>
-            <button
-              onClick={() => router.push('/assignments')}
-              className="text-slate-600 dark:text-slate-400 text-sm font-medium flex items-center gap-1 hover:text-slate-900 dark:hover:text-slate-200 transition"
-            >
-              전체 보기 <ChevronRight size={16} />
-            </button>
-          </div>
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" data-testid="dashboard-schedule">
+          <PanelHeader
+            title="오늘 스케줄"
+            description="시간대별 배정과 학생 수를 한 번에 확인합니다."
+            actionLabel="전체 보기"
+            onAction={() => router.push('/assignments')}
+          />
           {scheduleData.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 dark:text-slate-500">
-              <p>오늘 스케줄이 없습니다</p>
-              <button
-                onClick={() => router.push('/assignments')}
-                className="mt-2 text-sm text-orange-500 hover:text-orange-600"
-              >
-                반배치 하러가기
-              </button>
-            </div>
+            <EmptyPanel
+              title="오늘 배정된 수업이 없습니다."
+              description="반 배치에서 시간대별 학생과 강사를 먼저 배정하세요."
+              actionLabel="반 배치 열기"
+              onAction={() => router.push('/assignments')}
+            />
           ) : (
-            <div className="space-y-4">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {scheduleData.map((schedule) => {
                 const Icon = schedule.icon;
                 return (
-                  <div
+                  <button
                     key={schedule.slot}
                     onClick={() => router.push('/assignments')}
-                    className="flex items-center gap-5 p-5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition cursor-pointer"
+                    className="grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                      <Icon size={22} className="text-slate-600 dark:text-slate-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900 dark:text-slate-100 mb-0.5">{schedule.label}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{schedule.trainer} · {schedule.students}명</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{schedule.time}</p>
-                    </div>
-                  </div>
+                    <span className="flex h-11 w-11 items-center justify-center rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      <Icon size={20} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-medium text-slate-950 dark:text-slate-50">{schedule.label}</span>
+                      <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">{schedule.trainer}</span>
+                    </span>
+                    <span className="text-right">
+                      <span className="block text-sm font-semibold text-slate-950 dark:text-slate-50">{schedule.students}명</span>
+                      <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{schedule.time}</span>
+                    </span>
+                  </button>
                 );
               })}
             </div>
           )}
-        </motion.div>
+        </div>
 
-        {/* Trainer Status - 현재 시간대 기준 */}
-        <motion.div 
-          className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-all"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.8 }}
-        >
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
-            <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">강사 현황</h2>
-              {currentAttendance && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {currentAttendance.currentSlotLabel} 기준
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => router.push('/attendance')}
-              className="text-slate-600 dark:text-slate-400 text-sm font-medium flex items-center gap-1 hover:text-slate-900 dark:hover:text-slate-200 transition"
-            >
-              출근 관리 <ChevronRight size={16} />
-            </button>
-          </div>
+        <div className="rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" data-testid="dashboard-attendance">
+          <PanelHeader
+            title="강사 현황"
+            description={currentAttendance ? `${currentAttendance.currentSlotLabel} 기준` : '현재 시간대 기준'}
+            actionLabel="출근 관리"
+            onAction={() => router.push('/attendance')}
+          />
           {!currentAttendance || currentAttendance.instructors.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 dark:text-slate-500">
-              <p>현재 시간대에 배정된 강사가 없습니다</p>
-            </div>
+            <EmptyPanel title="현재 시간대에 배정된 강사가 없습니다." description="근무 배정 또는 출근 체크를 확인하세요." />
           ) : (
-            <div className="space-y-4">
-              {/* 통계 배지 */}
-              <div className="flex gap-2 mb-6">
-                <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium">
-                  출근 {currentAttendance.stats.checkedIn}명
-                </span>
-                {currentAttendance.stats.notCheckedIn > 0 && (
-                  <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium">
-                    미출근 {currentAttendance.stats.notCheckedIn}명
-                  </span>
-                )}
+            <div className="space-y-3 p-5">
+              <div className="grid grid-cols-3 gap-2">
+                <MiniStat label="배정" value={currentAttendance.stats.scheduled} />
+                <MiniStat label="출근" value={currentAttendance.stats.checkedIn} />
+                <MiniStat label="미출근" value={currentAttendance.stats.notCheckedIn} />
               </div>
-              {currentAttendance.instructors.map((instructor) => (
-                <div
-                  key={instructor.id}
-                  className={`flex items-center justify-between p-5 rounded-lg border ${
-                    instructor.checkedIn
-                      ? 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-700'
-                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
-                      instructor.checkedIn
-                        ? 'bg-slate-900 dark:bg-slate-600 text-white'
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                    }`}>
-                      {instructor.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900 dark:text-slate-100 mb-0.5">{instructor.name}</p>
-                      <p className={`text-xs ${instructor.checkedIn ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                        {instructor.checkedIn ? '출근 완료' : '미출근'}
-                      </p>
-                    </div>
-                  </div>
-                  {instructor.checkedIn && instructor.checkInTime && (
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {instructor.checkInTime.slice(0, 5)}
-                      </p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">출근 시간</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+              <div className="space-y-2">
+                {currentAttendance.instructors.map((instructor) => (
+                  <InstructorRow key={instructor.id} instructor={instructor} />
+                ))}
+              </div>
             </div>
           )}
-        </motion.div>
-      </div>
-
-      {/* Quick Summary Banner */}
-      <motion.div 
-        className="mt-8 bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-8 text-white shadow-xl"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9 }}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-semibold mb-2">오늘 요약</h3>
-            <p className="text-slate-400 dark:text-slate-300 text-sm">
-              강사 {stats.trainersPresent}명 출근 · 학생 {stats.studentsToday}명 수업 예정
-            </p>
-          </div>
-          <motion.button
-            onClick={() => router.push('/assignments')}
-            className="px-6 py-3 bg-white text-slate-900 rounded-xl hover:bg-slate-100 transition-all text-sm font-semibold shadow-lg"
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            반 배치 보기
-          </motion.button>
         </div>
-      </motion.div>
-    </motion.div>
+      </section>
+    </div>
+  );
+}
+
+function ActionButton({
+  icon: Icon,
+  label,
+  onClick,
+  primary = false,
+}: {
+  icon: ComponentType<{ size?: number }>;
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium transition ${
+        primary
+          ? 'border-orange-600 bg-orange-600 text-white hover:bg-orange-700'
+          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+      }`}
+    >
+      <Icon size={16} />
+      {label}
+    </button>
+  );
+}
+
+function MetricPanel({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  icon: ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: string;
+  detail: string;
+  tone: 'orange' | 'blue' | 'slate';
+}) {
+  const toneClass = {
+    orange: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-900',
+    blue: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900',
+    slate: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+  }[tone];
+
+  return (
+    <article className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">{value}</p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{detail}</p>
+        </div>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border ${toneClass}`}>
+          <Icon size={19} />
+        </span>
+      </div>
+    </article>
+  );
+}
+
+function PanelHeader({
+  title,
+  description,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  description: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+      <div>
+        <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">{title}</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
+      </div>
+      {actionLabel && onAction ? (
+        <button onClick={onAction} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white">
+          {actionLabel}
+          <ChevronRight size={16} />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function EmptyPanel({
+  title,
+  description,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  description: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="flex min-h-[220px] flex-col items-center justify-center px-6 py-10 text-center">
+      <Clock3 size={28} className="text-slate-300 dark:text-slate-600" />
+      <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">{title}</p>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
+      {actionLabel && onAction ? (
+        <button onClick={onAction} className="mt-4 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800">
+          {actionLabel}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-950">
+      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-slate-950 dark:text-slate-50">{value}</p>
+    </div>
+  );
+}
+
+function InstructorRow({ instructor }: { instructor: CurrentInstructor }) {
+  return (
+    <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-3 dark:border-slate-800">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold ${
+          instructor.checkedIn
+            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
+            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+        }`}>
+          {instructor.checkedIn ? <CheckCircle2 size={18} /> : instructor.name.charAt(0)}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium text-slate-950 dark:text-slate-50">{instructor.name}</span>
+          <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{instructor.checkedIn ? '출근 완료' : '미출근'}</span>
+        </span>
+      </div>
+      {instructor.checkedIn && instructor.checkInTime ? (
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{instructor.checkInTime.slice(0, 5)}</span>
+      ) : null}
+    </div>
   );
 }
