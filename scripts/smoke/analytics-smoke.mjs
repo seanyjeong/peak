@@ -24,6 +24,13 @@ async function main() {
     const path = url.pathname.replace(/^\/peak/, '') || '/';
     state.hits.push(`${request.method()} ${path}`);
 
+    if (request.method() === 'GET' && path === '/permissions/me') {
+      return jsonRoute(route, {
+        success: true,
+        permissions: { analyticsReport: true, measurementSettingsManage: true, canManagePermissions: true },
+      });
+    }
+
     if (request.method() === 'GET' && path === '/analytics/report') {
       return jsonRoute(route, makeReport());
     }

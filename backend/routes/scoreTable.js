@@ -7,6 +7,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
+const { requireFeaturePermission } = require('../utils/feature-permissions');
+
+const requireMeasurementSettings = requireFeaturePermission('measurementSettingsManage');
 
 // GET /peak/score-tables - 배점표 목록
 router.get('/', verifyToken, async (req, res) => {
@@ -92,7 +95,7 @@ router.get('/by-type/:recordTypeId', verifyToken, async (req, res) => {
 });
 
 // POST /peak/score-tables - 배점표 생성 (자동 구간 생성)
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyToken, requireMeasurementSettings, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const {
@@ -262,7 +265,7 @@ router.post('/', verifyToken, async (req, res) => {
 });
 
 // PUT /peak/score-tables/ranges/:id - 개별 구간 수정
-router.put('/ranges/:id', verifyToken, async (req, res) => {
+router.put('/ranges/:id', verifyToken, requireMeasurementSettings, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const { male_min, male_max, female_min, female_max } = req.body;
@@ -292,7 +295,7 @@ router.put('/ranges/:id', verifyToken, async (req, res) => {
 });
 
 // DELETE /peak/score-tables/:id - 배점표 삭제
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', verifyToken, requireMeasurementSettings, async (req, res) => {
     try {
         const academyId = req.user.academyId;
 

@@ -5,7 +5,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { authAPI } from '@/lib/api/auth';
+import { authAPI, type User } from '@/lib/api/auth';
+import {
+  type FeaturePermissions,
+  getFallbackFeaturePermissions,
+  getMyFeaturePermissions,
+} from '@/lib/api/permissions';
 import {
   LayoutDashboard,
   Users,
@@ -25,7 +30,8 @@ import {
   Sun,
   Moon,
   Layers,
-  BarChart3
+  BarChart3,
+  type LucideIcon
 } from 'lucide-react';
 import { ThemeProvider, useTheme } from '@/components/theme-provider';
 import { SlideUpSheet } from '@/components/animations';
@@ -42,7 +48,16 @@ const OrientationContext = createContext<'portrait' | 'landscape'>('portrait');
 export const useOrientation = () => useContext(OrientationContext);
 
 // Navigation items
-const navigation = [
+type NavigationPermission = 'analyticsReport' | 'measurementSettingsManage';
+
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  permission?: NavigationPermission;
+}
+
+const navigation: NavigationItem[] = [
   { name: '대시보드', href: '/tablet/dashboard', icon: LayoutDashboard },
   { name: '출근 체크', href: '/tablet/attendance', icon: UserCheck },
   { name: '학생 출석', href: '/tablet/student-attendance', icon: ListChecks },
@@ -53,9 +68,9 @@ const navigation = [
   { name: '기록 측정', href: '/tablet/records', icon: Medal },
   { name: '월말테스트', href: '/tablet/monthly-test', icon: Trophy },
   { name: '학생 관리', href: '/tablet/students', icon: Calendar },
-  { name: '배점표', href: '/tablet/score-table', icon: TableProperties, adminOnly: true },
-  { name: '분석 리포트', href: '/tablet/analytics', icon: BarChart3, adminOnly: true },
-  { name: '실기측정설정', href: '/tablet/settings', icon: Settings, adminOnly: true },
+  { name: '배점표', href: '/tablet/score-table', icon: TableProperties, permission: 'measurementSettingsManage' },
+  { name: '분석 리포트', href: '/tablet/analytics', icon: BarChart3, permission: 'analyticsReport' },
+  { name: '실기측정설정', href: '/tablet/settings', icon: Settings, permission: 'measurementSettingsManage' },
 ];
 
 // Bottom tab items (세로 모드용 - 5개)
@@ -81,7 +96,8 @@ const getRoleDisplayName = (role?: string, position?: string | null): string => 
 
 function TabletLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<{ name: string; role?: string; position?: string | null } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<FeaturePermissions | null>(null);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAlertPopup, setShowAlertPopup] = useState(false);
@@ -93,6 +109,8 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
       window.location.href = '/login';
     } else {
       setUser(currentUser);
+      setPermissions(getFallbackFeaturePermissions(currentUser));
+      getMyFeaturePermissions(currentUser).then(setPermissions);
       // 로그인 후 알림 체크 (세션당 한 번만)
       const alertShown = sessionStorage.getItem('alertShown');
       if (!alertShown) {
@@ -119,7 +137,11 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
     authAPI.logout();
   };
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'owner';
+  const fallbackPermissions = getFallbackFeaturePermissions(user);
+  const canShowNavigationItem = (item: NavigationItem) => {
+    if (!item.permission) return true;
+    return permissions?.[item.permission] ?? fallbackPermissions[item.permission];
+  };
 
   // 가로 모드 레이아웃
   if (orientation === 'landscape') {
@@ -146,7 +168,7 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
             <nav className="flex-1 py-4 overflow-y-auto">
               <div className="space-y-1 px-2">
                 {navigation
-                  .filter(item => !item.adminOnly || isAdmin)
+                  .filter(canShowNavigationItem)
                   .map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                     return (
@@ -306,8 +328,8 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
         {/* 더보기 메뉴 - SlideUpSheet */}
         <SlideUpSheet isOpen={showMoreMenu} onClose={() => setShowMoreMenu(false)} title="메뉴">
           <div className="grid grid-cols-4 gap-3">
-            {navigation
-              .filter(item => !item.adminOnly || isAdmin)
+              {navigation
+              .filter(canShowNavigationItem)
               .map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 return (

@@ -1,9 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Calculator, ListChecks, RefreshCw } from 'lucide-react';
+import { Calculator, ListChecks, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import apiClient from '@/lib/api/client';
+import { authAPI } from '@/lib/api/auth';
+import {
+  type AcademyFeaturePermissions,
+  type FeaturePermissions,
+  getMyFeaturePermissions,
+  permissionsAPI,
+} from '@/lib/api/permissions';
 import {
   DEFAULT_SCORE_FORM,
   DEFAULT_TYPE_FORM,
@@ -16,12 +23,21 @@ import {
   toNullableNumber,
   TypeForm,
 } from './settings-model';
+import { SettingsAccessDenied } from './settings-access-denied';
+import { PermissionsPanel } from './settings-permissions-ui';
 import { ScoreTablesPanel } from './settings-scores-ui';
+import { TabButton } from './settings-tab-button';
 import { RecordTypesPanel } from './settings-types-ui';
+
+const DEFAULT_ACADEMY_PERMISSIONS: AcademyFeaturePermissions = {
+  analyticsReport: false,
+  measurementSettingsManage: false,
+};
 
 export default function SettingsPage() {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<SettingsTab>('types');
+  const [academyPermissions, setAcademyPermissions] = useState<AcademyFeaturePermissions>(DEFAULT_ACADEMY_PERMISSIONS);
   const [currentTable, setCurrentTable] = useState<ScoreTable | null>(null);
   const [editingRanges, setEditingRanges] = useState<Record<number, ScoreRange>>({});
   const [editingType, setEditingType] = useState<RecordType | null>(null);
@@ -34,6 +50,8 @@ export default function SettingsPage() {
   const [scoreRanges, setScoreRanges] = useState<ScoreRange[]>([]);
   const [scoreTables, setScoreTables] = useState<ScoreTable[]>([]);
   const [selectedTypeForScore, setSelectedTypeForScore] = useState<number | null>(null);
+  const [permissions, setPermissions] = useState<FeaturePermissions | null>(null);
+  const [savingPermissions, setSavingPermissions] = useState(false);
   const [showScoreForm, setShowScoreForm] = useState(false);
   const [showTypeForm, setShowTypeForm] = useState(false);
   const [typeForm, setTypeForm] = useState<TypeForm>(DEFAULT_TYPE_FORM);
@@ -60,7 +78,45 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    let mounted = true;
+
+    async function initializeSettings() {
+      const user = authAPI.getCurrentUser();
+      if (!user) {
+        setPermissions({
+          analyticsReport: false,
+          measurementSettingsManage: false,
+          canManagePermissions: false,
+        });
+        setLoading(false);
+        return;
+      }
+
+      const effectivePermissions = await getMyFeaturePermissions(user);
+      if (!mounted) return;
+      setPermissions(effectivePermissions);
+
+      if (!effectivePermissions.measurementSettingsManage) {
+        setLoading(false);
+        return;
+      }
+
+      await fetchData();
+
+      if (effectivePermissions.canManagePermissions) {
+        try {
+          const academyPermissionData = await permissionsAPI.getAcademy();
+          if (mounted) setAcademyPermissions(academyPermissionData);
+        } catch (error) {
+          toast.error(getSettingsErrorMessage(error, '권한 설정을 불러오지 못했습니다.'));
+        }
+      }
+    }
+
+    initializeSettings();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const resetTypeForm = () => {
@@ -232,6 +288,29 @@ export default function SettingsPage() {
     }
   };
 
+  const togglePermission = (key: keyof AcademyFeaturePermissions) => {
+    setAcademyPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const savePermissions = async () => {
+    try {
+      setSavingPermissions(true);
+      const saved = await permissionsAPI.updateAcademy(academyPermissions);
+      setAcademyPermissions(saved);
+      toast.success('권한 설정을 저장했습니다.');
+    } catch (error) {
+      toast.error(getSettingsErrorMessage(error, '권한 설정을 저장하지 못했습니다.'));
+    } finally {
+      setSavingPermissions(false);
+    }
+  };
+
+  if (!loading && permissions && !permissions.measurementSettingsManage) {
+    return <SettingsAccessDenied />;
+  }
+
+  const canManagePermissions = permissions?.canManagePermissions ?? false;
+
   return (
     <main className="max-w-[1440px] space-y-6 px-6 py-6 lg:px-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -251,15 +330,25 @@ export default function SettingsPage() {
         </button>
       </header>
 
-      <div className="grid gap-2 rounded-lg border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:inline-grid sm:grid-cols-2">
+      <div className={`grid gap-2 rounded-lg border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:inline-grid ${canManagePermissions ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
         <TabButton active={activeTab === 'types'} icon={<ListChecks className="h-4 w-4" />} label="측정 종목" onClick={() => setActiveTab('types')} />
         <TabButton active={activeTab === 'scores'} icon={<Calculator className="h-4 w-4" />} label="배점표" onClick={() => setActiveTab('scores')} />
+        {canManagePermissions && (
+          <TabButton active={activeTab === 'permissions'} icon={<ShieldCheck className="h-4 w-4" />} label="권한" onClick={() => setActiveTab('permissions')} />
+        )}
       </div>
 
       {loading ? (
         <div className="flex h-64 items-center justify-center rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
           <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
         </div>
+      ) : activeTab === 'permissions' && canManagePermissions ? (
+        <PermissionsPanel
+          permissions={academyPermissions}
+          saving={savingPermissions}
+          onSave={savePermissions}
+          onToggle={togglePermission}
+        />
       ) : activeTab === 'types' ? (
         <RecordTypesPanel
           editingType={editingType}
@@ -304,30 +393,5 @@ export default function SettingsPage() {
         />
       )}
     </main>
-  );
-}
-
-function TabButton({
-  active,
-  icon,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition ${
-        active ? 'bg-slate-950 text-white dark:bg-white dark:text-slate-950' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }

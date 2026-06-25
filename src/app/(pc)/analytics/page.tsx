@@ -6,6 +6,7 @@ import { BarChart3, Download, Trophy, Users } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import apiClient from '@/lib/api/client';
 import { authAPI } from '@/lib/api/auth';
+import { getMyFeaturePermissions } from '@/lib/api/permissions';
 import type { AnalyticsData } from './analytics-model';
 import {
   AnalyticsErrorState,
@@ -34,26 +35,37 @@ export default function AnalyticsReportPage() {
   const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
 
   useEffect(() => {
-    const user = authAPI.getCurrentUser();
-    if (!user || !['admin', 'owner'].includes(user.role)) {
-      router.push('/dashboard');
-      return;
-    }
+    async function loadReport() {
+      const user = authAPI.getCurrentUser();
+      if (!user) {
+        router.push('/login');
+        return;
+      }
 
-    apiClient.get<AnalyticsData>('/analytics/report')
-      .then((res) => {
+      const permissions = await getMyFeaturePermissions(user);
+      if (!permissions.analyticsReport) {
+        setError('분석 리포트 권한이 없습니다. 원장에게 권한을 요청해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await apiClient.get<AnalyticsData>('/analytics/report');
         setData(res.data);
         setSelectedEvent(res.data.eventAverages[0]?.recordTypeId ?? null);
-      })
-      .catch((err) => {
-        const apiError = err.response?.data;
+      } catch (err: unknown) {
+        const apiError = (err as { response?: { data?: { error?: string; currentCount?: number } } }).response?.data;
         if (apiError?.error === 'INSUFFICIENT_DATA') {
           setError(`기록이 더 쌓이면 리포트를 만들 수 있습니다. 현재 ${apiError.currentCount ?? 0}개 / 필요 200개`);
           return;
         }
         setError('분석 리포트를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadReport();
   }, [router]);
 
   const selectedRanking = useMemo(

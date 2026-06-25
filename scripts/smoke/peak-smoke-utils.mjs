@@ -129,6 +129,13 @@ export async function mockPeakApi(context, state = {}) {
       return jsonRoute(route, { user: { id: 1, name: '테스트 원장', role: 'owner', academyId: 2 } });
     }
 
+    if (request.method() === 'GET' && path === '/permissions/me') {
+      return jsonRoute(route, {
+        success: true,
+        permissions: { analyticsReport: true, measurementSettingsManage: true, canManagePermissions: true },
+      });
+    }
+
     return jsonRoute(route, { message: 'mocked' });
   });
 }

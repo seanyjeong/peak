@@ -8,7 +8,12 @@ import dynamic from 'next/dynamic';
 import packageJson from '../../../package.json';
 const APP_VERSION = "v" + packageJson.version;
 const APP_UPDATED = packageJson.lastUpdate;
-import { authAPI } from '@/lib/api/auth';
+import { authAPI, type User } from '@/lib/api/auth';
+import {
+  type FeaturePermissions,
+  getFallbackFeaturePermissions,
+  getMyFeaturePermissions,
+} from '@/lib/api/permissions';
 import {
   LayoutDashboard,
   Users,
@@ -25,7 +30,8 @@ import {
   Trophy,
   BarChart3,
   Sun,
-  Moon
+  Moon,
+  type LucideIcon
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ThemeProvider, useTheme } from '@/components/theme-provider';
@@ -33,7 +39,16 @@ import { ThemeProvider, useTheme } from '@/components/theme-provider';
 // 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
 const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
 
-const navigation = [
+type NavigationPermission = 'analyticsReport' | 'measurementSettingsManage';
+
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  permission?: NavigationPermission;
+}
+
+const navigation: NavigationItem[] = [
   { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
   { name: '출근 체크', href: '/attendance', icon: UserCheck },
   { name: '학생 출석', href: '/student-attendance', icon: ListChecks },
@@ -44,8 +59,8 @@ const navigation = [
   { name: '기록 측정', href: '/records', icon: Medal },
   { name: '월말테스트', href: '/monthly-test', icon: Trophy },
   { name: '학생 관리', href: '/students', icon: Calendar },
-  { name: '분석 리포트', href: '/analytics', icon: BarChart3, adminOnly: true },
-  { name: '실기 측정 설정', href: '/settings', icon: Settings, adminOnly: true },
+  { name: '분석 리포트', href: '/analytics', icon: BarChart3, permission: 'analyticsReport' },
+  { name: '실기 측정 설정', href: '/settings', icon: Settings, permission: 'measurementSettingsManage' },
 ];
 
 // 역할 표시명 매핑
@@ -66,7 +81,8 @@ const getRoleDisplayName = (role?: string, position?: string | null): string => 
 
 function PCLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<{ name: string; role?: string; position?: string | null; academyId?: number } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<FeaturePermissions | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showAlertPopup, setShowAlertPopup] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -101,6 +117,8 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
       window.location.href = '/login';
     } else {
       setUser(currentUser);
+      setPermissions(getFallbackFeaturePermissions(currentUser));
+      getMyFeaturePermissions(currentUser).then(setPermissions);
       // 로그인 후 알림 체크 (세션당 한 번만)
       const alertShown = sessionStorage.getItem('alertShown');
       if (!alertShown) {
@@ -112,6 +130,12 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     authAPI.logout();
+  };
+
+  const canShowNavigationItem = (item: NavigationItem) => {
+    if (!item.permission) return true;
+    const fallback = getFallbackFeaturePermissions(user);
+    return permissions?.[item.permission] ?? fallback[item.permission];
   };
 
   return (
@@ -167,7 +191,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 overflow-y-auto py-4">
           <div className={`space-y-1 ${sidebarOpen ? 'px-3' : 'px-1'}`}>
             {navigation
-              .filter(item => !item.adminOnly || user?.role === 'admin' || user?.role === 'owner')
+              .filter(canShowNavigationItem)
               .map((item) => {
               const isActive = pathname === item.href;
               return (

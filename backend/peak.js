@@ -165,6 +165,7 @@ app.use('/peak/record-types', verifyToken, require('./routes/recordTypes'));
 app.use('/peak/score-tables', verifyToken, require('./routes/scoreTable'));
 app.use('/peak/stats', verifyToken, require('./routes/stats'));
 app.use('/peak/settings', verifyToken, require('./routes/peakSettings'));
+app.use('/peak/permissions', verifyToken, require('./routes/permissions'));
 app.use('/peak/mobile', verifyToken, require('./routes/mobile'));
 app.use("/peak/presets", verifyToken, require("./routes/presets"));
 app.use('/peak/analytics', verifyToken, require('./routes/analytics'));

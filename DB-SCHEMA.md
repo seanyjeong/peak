@@ -50,6 +50,7 @@ MySQL `peak` (n100 primary, vultr sync 복제). **36 테이블**. user=`paca` (e
 
 ## 기타
 | `peak_settings` | 학원별 설정 |
+| `academy_feature_permissions` | 학원별 강사 기능 권한 |
 | `trainers` | 강사 |
 | `push_subscriptions` | 웹푸시 |
 | `notifications` | 알림 |

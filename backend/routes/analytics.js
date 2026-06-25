@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { decryptStudentFields } = require('../utils/paca-student');
+const { requireFeaturePermission } = require('../utils/feature-permissions');
 
 /**
  * 선형회귀 기울기 계산
@@ -45,14 +46,9 @@ function classifyTrend(slope, direction) {
  * GET /peak/analytics/report
  * 학원 전체 분석 리포트
  */
-router.get('/report', async (req, res) => {
+router.get('/report', requireFeaturePermission('analyticsReport'), async (req, res) => {
     try {
         const academyId = req.user.academyId;
-
-        // 권한 체크: admin/owner만
-        if (!['admin', 'owner'].includes(req.user.role)) {
-            return res.status(403).json({ error: 'FORBIDDEN', message: '관리자만 접근 가능합니다.' });
-        }
 
         // 1. 요약 정보
         const [summaryRows] = await db.query(`

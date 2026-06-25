@@ -6,6 +6,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
+const { requireFeaturePermission } = require('../utils/feature-permissions');
+
+const requireMeasurementSettings = requireFeaturePermission('measurementSettingsManage');
 
 // 자동 줄임말 생성
 // 4글자 이하는 그대로, 그 이상은 null (수동 설정 필요)
@@ -39,7 +42,7 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 // POST /peak/record-types - 종목 추가
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyToken, requireMeasurementSettings, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const { name, unit, direction, display_order, short_name, min_value, max_value } = req.body;
@@ -69,7 +72,7 @@ router.post('/', verifyToken, async (req, res) => {
 });
 
 // PUT /peak/record-types/:id - 종목 수정
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', verifyToken, requireMeasurementSettings, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const { name, short_name, unit, direction, is_active, display_order, min_value, max_value } = req.body;
@@ -97,7 +100,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 });
 
 // DELETE /peak/record-types/:id - 종목 삭제 (비활성화)
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', verifyToken, requireMeasurementSettings, async (req, res) => {
     try {
         const academyId = req.user.academyId;
 

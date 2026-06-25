@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const { requireFeaturePermission } = require('../utils/feature-permissions');
+
+const requireMeasurementSettings = requireFeaturePermission('measurementSettingsManage');
 
 // 설정 조회
 router.get('/', async (req, res) => {
@@ -36,7 +39,7 @@ router.get('/', async (req, res) => {
 });
 
 // 설정 저장 (upsert)
-router.post('/', async (req, res) => {
+router.post('/', requireMeasurementSettings, async (req, res) => {
   try {
     const academyId = req.user.academyId;
     const { slug, academy_name } = req.body;

@@ -1,5 +1,5 @@
 export type Direction = 'higher' | 'lower';
-export type SettingsTab = 'types' | 'scores';
+export type SettingsTab = 'types' | 'scores' | 'permissions';
 
 export interface RecordType {
   id: number;

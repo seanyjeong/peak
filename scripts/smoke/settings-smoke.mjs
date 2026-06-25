@@ -1,6 +1,7 @@
 import {
   assertNoConsoleProblems,
   assertNoHorizontalOverflow,
+  createDiagnostics,
   createAuthedPage,
   jsonRoute,
   launchSmokeBrowser,
@@ -24,6 +25,18 @@ async function main() {
     const path = url.pathname.replace(/^\/peak/, '') || '/';
     if (request.method() !== 'GET') state.bodies.push({ method: request.method(), path, body: request.postDataJSON() });
 
+    if (request.method() === 'GET' && path === '/permissions/me') return jsonRoute(route, {
+      success: true,
+      permissions: { analyticsReport: true, measurementSettingsManage: true, canManagePermissions: true },
+    });
+    if (request.method() === 'GET' && path === '/permissions') return jsonRoute(route, {
+      success: true,
+      permissions: { analyticsReport: false, measurementSettingsManage: false },
+    });
+    if (request.method() === 'PUT' && path === '/permissions') return jsonRoute(route, {
+      success: true,
+      permissions: request.postDataJSON(),
+    });
     if (request.method() === 'GET' && path === '/record-types') return jsonRoute(route, makeRecordTypes());
     if (request.method() === 'GET' && path === '/score-tables') return jsonRoute(route, makeScoreTables());
     if (request.method() === 'GET' && path === '/score-tables/10') return jsonRoute(route, makeScoreTableDetail());
@@ -50,6 +63,11 @@ async function main() {
   await page.locator('input[type="number"]').first().fill('246');
   await page.getByRole('button', { name: '100점 구간 저장' }).click();
 
+  await page.getByRole('button', { name: '권한' }).click();
+  await page.getByRole('button', { name: '분석 리포트 강사 권한 켜기' }).click();
+  await page.getByRole('button', { name: '실기 측정 설정 강사 권한 켜기' }).click();
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+
   const createType = state.bodies.find((entry) => entry.path === '/record-types');
   if (!createType || createType.body.name !== '메디신볼던지기' || createType.body.unit !== 'm') {
     throw new Error('record type create contract was not preserved');
@@ -65,10 +83,58 @@ async function main() {
     throw new Error('score range update contract was not preserved');
   }
 
+  const permissionSave = state.bodies.find((entry) => entry.path === '/permissions');
+  if (!permissionSave || permissionSave.body.analyticsReport !== true || permissionSave.body.measurementSettingsManage !== true) {
+    throw new Error('permission settings contract was not preserved');
+  }
+
   await assertNoHorizontalOverflow(page, 'settings desktop');
   await stabilizeForScreenshot(page);
   await page.screenshot({ path: '/Users/etlab/peak-settings-desktop.png', fullPage: true });
   assertNoConsoleProblems(diagnostics, 'settings');
+
+  const deniedContext = await browser.newContext({
+    baseURL: process.env.PEAK_SMOKE_BASE_URL || 'http://localhost:3110',
+    viewport: { width: 1280, height: 820 },
+  });
+  await deniedContext.addInitScript(() => {
+    localStorage.setItem('peak_token', 'smoke-token');
+    localStorage.setItem('peak_user', JSON.stringify({
+      id: 2,
+      email: 'staff@example.com',
+      name: '테스트 강사',
+      role: 'staff',
+      academyId: 2,
+      position: '강사',
+    }));
+    sessionStorage.setItem('alertShown', 'true');
+    localStorage.setItem('peak-ui-theme', 'light');
+  });
+  await deniedContext.route('**/*', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (!url.href.startsWith('https://chejump.com/peak') && !url.href.startsWith('https://supermax.kr/peak')) {
+      return route.continue();
+    }
+    const path = url.pathname.replace(/^\/peak/, '') || '/';
+    if (request.method() === 'GET' && path === '/permissions/me') {
+      return jsonRoute(route, {
+        success: true,
+        permissions: { analyticsReport: false, measurementSettingsManage: false, canManagePermissions: false },
+      });
+    }
+    return jsonRoute(route, { message: 'mocked' });
+  });
+  const deniedPage = await deniedContext.newPage();
+  const deniedDiagnostics = createDiagnostics(deniedPage);
+  await deniedPage.goto('/settings', { waitUntil: 'domcontentloaded' });
+  await deniedPage.getByRole('heading', { name: '설정을 열 수 없습니다' }).waitFor();
+  const deniedText = await deniedPage.locator('body').innerText();
+  if (/403|Forbidden|CORS|stack|token/i.test(deniedText)) {
+    throw new Error('settings denied UX exposed technical copy');
+  }
+  assertNoConsoleProblems(deniedDiagnostics, 'settings denied');
+  await deniedContext.close();
   await browser.close();
 }
 

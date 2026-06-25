@@ -15,6 +15,9 @@ describe('academy scoped route SQL', () => {
   const testApplicants = compact(source('backend/routes/testApplicants.js'));
   const publicBoard = compact(source('backend/routes/publicBoard.js'));
   const peakSettings = source('backend/routes/peakSettings.js');
+  const analytics = source('backend/routes/analytics.js');
+  const recordTypes = source('backend/routes/recordTypes.js');
+  const scoreTable = source('backend/routes/scoreTable.js');
   const push = compact(source('backend/routes/push.js'));
 
   it('creates monthly test sessions with the current academy id', () => {
@@ -44,6 +47,13 @@ describe('academy scoped route SQL', () => {
   it('does not fall back to academy 2 in protected settings routes', () => {
     expect(peakSettings).toContain('req.user.academyId');
     expect(peakSettings).not.toContain('academy_id || 2');
+  });
+
+  it('protects configurable admin surfaces with feature permissions', () => {
+    expect(analytics).toContain("requireFeaturePermission('analyticsReport')");
+    expect(recordTypes).toContain("requireFeaturePermission('measurementSettingsManage')");
+    expect(scoreTable).toContain("requireFeaturePermission('measurementSettingsManage')");
+    expect(peakSettings).toContain("requireFeaturePermission('measurementSettingsManage')");
   });
 
   it('stores push subscriptions with user academy id', () => {
