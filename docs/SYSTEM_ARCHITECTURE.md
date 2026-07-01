@@ -230,6 +230,7 @@
 |--------|----------|------|
 | GET | `/:slug` | 전광판 데이터 |
 | GET | `/:slug/scores` | 점수 데이터 |
+| POST | `/:slug/pin` | 전광판 PIN 확인 및 토큰 발급 |
 
 ### 통계 (`/stats`)
 | Method | Endpoint | 설명 |
@@ -273,6 +274,8 @@
 |--------|----------|------|
 | GET | `/` | 설정 조회 |
 | POST | `/` | 설정 저장 |
+| GET | `/check-slug/:slug` | 전광판 주소 중복 확인 |
+| PATCH | `/board-pin` | 전광판 PIN 저장/해제 |
 
 ---
 
@@ -564,7 +567,7 @@ sudo systemctl restart peak
 
 ### 프론트엔드 (.env.local)
 ```
-NEXT_PUBLIC_API_URL=https://peak-api.sean8320.dedyn.io
+NEXT_PUBLIC_API_URL=https://supermax.kr/peak
 ```
 
 ### 백엔드 (환경변수)

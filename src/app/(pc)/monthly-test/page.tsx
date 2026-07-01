@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Copy, ExternalLink, Link2, Monitor, Plus, RefreshCw, Settings2, Trash2, Trophy, Users } from 'lucide-react';
+import { Copy, ExternalLink, Link2, Monitor, Plus, RefreshCw, Settings2, Trash2, Trophy, Users } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { useToast } from '@/hooks/useToast';
 import { Modal } from '@/components/ui/Modal';
 import { getMonthlyErrorMessage } from './[testId]/monthly-detail-model';
+import { BoardSettingsModal, type SlugCheckState } from './board-settings-modal';
 
 interface MonthlyTest {
   id: number;
@@ -55,6 +56,10 @@ export default function MonthlyTestListPage() {
   const [slugInput, setSlugInput] = useState('');
   const [currentSlug, setCurrentSlug] = useState('');
   const [savingSlug, setSavingSlug] = useState(false);
+  const [hasBoardPin, setHasBoardPin] = useState(false);
+  const [boardPinInput, setBoardPinInput] = useState('');
+  const [clearBoardPin, setClearBoardPin] = useState(false);
+  const [slugCheck, setSlugCheck] = useState<SlugCheckState>({ status: 'idle', message: '' });
 
   const fetchData = async () => {
     try {
@@ -69,6 +74,7 @@ export default function MonthlyTestListPage() {
       const slug = settingsRes.data.settings?.slug || '';
       setCurrentSlug(slug);
       setSlugInput(slug);
+      setHasBoardPin(Boolean(settingsRes.data.settings?.has_board_pin));
     } catch {
       toast.error('월말테스트 정보를 불러오지 못했습니다.');
     } finally {
@@ -117,7 +123,38 @@ export default function MonthlyTestListPage() {
     }
   };
 
-  const saveSlug = async () => {
+  const setSanitizedSlugInput = (value: string) => {
+    setSlugInput(value.toLowerCase().replace(/[^a-z0-9-]/g, ''));
+    setSlugCheck({ status: 'idle', message: '' });
+  };
+
+  const checkBoardSlug = async () => {
+    const slug = slugInput.trim();
+    if (!slug) {
+      setSlugCheck({ status: 'invalid', message: '전광판 주소를 입력해주세요.' });
+      return;
+    }
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      setSlugCheck({ status: 'invalid', message: '전광판 주소는 영문 소문자, 숫자, 하이픈만 사용할 수 있습니다.' });
+      return;
+    }
+
+    try {
+      setSlugCheck({ status: 'checking', message: '전광판 주소를 확인하고 있습니다.' });
+      const res = await apiClient.get(`/settings/check-slug/${slug}`);
+      setSlugCheck({
+        status: res.data.available ? 'available' : 'taken',
+        message: res.data.message,
+      });
+    } catch (error) {
+      setSlugCheck({
+        status: 'error',
+        message: getMonthlyErrorMessage(error, '전광판 주소를 확인하지 못했습니다.'),
+      });
+    }
+  };
+
+  const saveBoardSettings = async () => {
     const slug = slugInput.trim();
     if (!slug) {
       toast.error('전광판 주소를 입력해주세요.');
@@ -127,15 +164,35 @@ export default function MonthlyTestListPage() {
       toast.error('전광판 주소는 영문 소문자, 숫자, 하이픈만 사용할 수 있습니다.');
       return;
     }
+    if (slugCheck.status === 'taken') {
+      toast.error('이미 다른 학원에서 사용 중인 전광판 주소입니다.');
+      return;
+    }
+    if (!clearBoardPin && boardPinInput && !/^\d{4,12}$/.test(boardPinInput)) {
+      toast.error('PIN은 숫자 4~12자리로 입력해주세요.');
+      return;
+    }
 
     try {
       setSavingSlug(true);
-      await apiClient.put('/monthly-tests/academy/slug', { slug });
+      if (slug !== currentSlug) {
+        await apiClient.put('/monthly-tests/academy/slug', { slug });
+      }
+      if (clearBoardPin) {
+        await apiClient.patch('/settings/board-pin', { clear_board_pin: true });
+        setHasBoardPin(false);
+      } else if (boardPinInput) {
+        await apiClient.patch('/settings/board-pin', { board_pin: boardPinInput });
+        setHasBoardPin(true);
+      }
       setCurrentSlug(slug);
       setShowSlugModal(false);
-      toast.success('전광판 주소를 저장했습니다.');
+      setBoardPinInput('');
+      setClearBoardPin(false);
+      setSlugCheck({ status: 'idle', message: '' });
+      toast.success('전광판 설정을 저장했습니다.');
     } catch (error) {
-      toast.error(getMonthlyErrorMessage(error, '전광판 주소를 저장하지 못했습니다.'));
+      toast.error(getMonthlyErrorMessage(error, '전광판 설정을 저장하지 못했습니다.'));
     } finally {
       setSavingSlug(false);
     }
@@ -233,14 +290,21 @@ export default function MonthlyTestListPage() {
         selectedTypes={selectedTypes}
       />
 
-      <SlugModal
+      <BoardSettingsModal
+        clearBoardPin={clearBoardPin}
         currentSlug={currentSlug}
+        hasBoardPin={hasBoardPin}
+        onCheckSlug={checkBoardSlug}
+        onClearBoardPinChange={setClearBoardPin}
         onClose={() => setShowSlugModal(false)}
-        onSave={saveSlug}
+        onPinChange={setBoardPinInput}
+        onSave={saveBoardSettings}
         open={showSlugModal}
+        pinInput={boardPinInput}
         saving={savingSlug}
+        slugCheck={slugCheck}
         slugInput={slugInput}
-        setSlugInput={(value) => setSlugInput(value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+        setSlugInput={setSanitizedSlugInput}
       />
     </div>
   );
@@ -318,51 +382,6 @@ function CreateTestModal({
           <button type="button" onClick={onClose} className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-700">취소</button>
           <button type="button" onClick={onCreate} disabled={creating || selectedTypes.length === 0} className="h-10 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white disabled:opacity-50">
             {creating ? '생성 중' : '생성'}
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-function SlugModal({
-  currentSlug,
-  onClose,
-  onSave,
-  open,
-  saving,
-  slugInput,
-  setSlugInput,
-}: {
-  currentSlug: string;
-  onClose: () => void;
-  onSave: () => void;
-  open: boolean;
-  saving: boolean;
-  slugInput: string;
-  setSlugInput: (value: string) => void;
-}) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-
-  return (
-    <Modal isOpen={open} onClose={onClose} title="전광판 설정">
-      <div className="space-y-4">
-        <label className="block text-sm font-bold text-slate-700">전광판 주소
-          <div className="mt-2 flex items-center rounded-lg border border-slate-200 bg-white px-3">
-            <span className="text-sm font-semibold text-slate-400">/board/</span>
-            <input value={slugInput} onChange={(event) => setSlugInput(event.target.value)} placeholder="ilsanmax" className="h-10 min-w-0 flex-1 bg-transparent px-1 font-mono outline-none" />
-          </div>
-        </label>
-        {currentSlug && (
-          <div className="rounded-lg bg-slate-50 p-3 text-sm font-semibold text-slate-600">
-            <p>{origin}/board/{currentSlug}</p>
-            <p className="mt-1">{origin}/board/{currentSlug}/scores</p>
-          </div>
-        )}
-        <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-700">취소</button>
-          <button type="button" onClick={onSave} disabled={saving} className="h-10 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white disabled:opacity-50">
-            {saving ? '저장 중' : '저장'}
           </button>
         </div>
       </div>

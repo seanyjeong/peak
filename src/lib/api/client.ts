@@ -11,9 +11,10 @@ import {
   AUTH_ERRORS,
   DEFAULT_ERROR_MESSAGE,
 } from '@/lib/constants/errors';
+import { PEAK_API_BASE_URL, PEAK_FALLBACK_API_BASE_URL } from './base-url';
 
-const PRIMARY_URL = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
-const FALLBACK_URL = process.env.NEXT_PUBLIC_FALLBACK_API_URL || 'https://supermax.kr/peak';
+const PRIMARY_URL = PEAK_API_BASE_URL;
+const FALLBACK_URL = PEAK_FALLBACK_API_BASE_URL;
 
 function isNetworkError(error: unknown): boolean {
   if (!axios.isAxiosError(error)) {
@@ -106,6 +107,10 @@ function getClient(): AxiosInstance {
   return usingFallback ? fallback : primary;
 }
 
+function hasFallback(): boolean {
+  return FALLBACK_URL !== PRIMARY_URL;
+}
+
 function switchToFallback(): void {
   usingFallback = true;
   lastPrimaryCheck = Date.now();
@@ -118,7 +123,7 @@ const apiClient = {
     try {
       return await getClient().get<T>(url, config);
     } catch (error: unknown) {
-      if (!usingFallback && isNetworkError(error)) {
+      if (hasFallback() && !usingFallback && isNetworkError(error)) {
         switchToFallback();
         return await fallback.get<T>(url, config);
       }
@@ -129,7 +134,7 @@ const apiClient = {
     try {
       return await getClient().post<T>(url, data, config);
     } catch (error: unknown) {
-      if (!usingFallback && isNetworkError(error)) {
+      if (hasFallback() && !usingFallback && isNetworkError(error)) {
         switchToFallback();
         return await fallback.post<T>(url, data, config);
       }
@@ -140,7 +145,7 @@ const apiClient = {
     try {
       return await getClient().put<T>(url, data, config);
     } catch (error: unknown) {
-      if (!usingFallback && isNetworkError(error)) {
+      if (hasFallback() && !usingFallback && isNetworkError(error)) {
         switchToFallback();
         return await fallback.put<T>(url, data, config);
       }
@@ -151,7 +156,7 @@ const apiClient = {
     try {
       return await getClient().delete<T>(url, config);
     } catch (error: unknown) {
-      if (!usingFallback && isNetworkError(error)) {
+      if (hasFallback() && !usingFallback && isNetworkError(error)) {
         switchToFallback();
         return await fallback.delete<T>(url, config);
       }
@@ -162,7 +167,7 @@ const apiClient = {
     try {
       return await getClient().patch<T>(url, data, config);
     } catch (error: unknown) {
-      if (!usingFallback && isNetworkError(error)) {
+      if (hasFallback() && !usingFallback && isNetworkError(error)) {
         switchToFallback();
         return await fallback.patch<T>(url, data, config);
       }

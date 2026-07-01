@@ -5,23 +5,11 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { PEAK_SOCKET_URL } from '@/lib/api/base-url';
 
 type PeakSmokeWindow = Window & { __PEAK_SMOKE__?: boolean };
 
-// 프로덕션/개발 환경에 따른 Socket URL 설정
-const getSocketUrl = () => {
-  if (typeof window === 'undefined') return 'http://localhost:8330';
-
-  // 개발: localhost만 로컬 서버 사용
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:8330';
-  }
-
-  // 그 외 모든 환경(Vercel 등): 프로덕션 백엔드 사용
-  return 'https://chejump.com';
-};
-
-const SOCKET_URL = getSocketUrl();
+const SOCKET_URL = PEAK_SOCKET_URL;
 
 interface UseSocketOptions {
   onAssignmentsUpdated?: (data: {

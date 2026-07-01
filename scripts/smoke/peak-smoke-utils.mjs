@@ -54,9 +54,7 @@ export async function mockPeakApi(context, state = {}) {
   await context.route('**/*', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    const isPeakApi = url.href.startsWith('https://chejump.com/peak')
-      || url.href.startsWith('https://supermax.kr/peak')
-      || url.href.startsWith('http://localhost:8330/peak');
+    const isPeakApi = url.href.startsWith('https://supermax.kr/peak');
 
     if (!isPeakApi) return route.continue();
 

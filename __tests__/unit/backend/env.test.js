@@ -20,9 +20,9 @@ describe('backend environment configuration', () => {
     process.env.NODE_ENV = 'production';
     const { isOriginAllowed } = loadEnvConfig();
 
-    expect(isOriginAllowed('https://chejump.com')).toBe(true);
     expect(isOriginAllowed('https://supermax.kr')).toBe(true);
     expect(isOriginAllowed('https://rec.etlab.kr')).toBe(true);
+    expect(isOriginAllowed('https://peak-seanys-projects-4437e034.vercel.app')).toBe(true);
     expect(isOriginAllowed('https://peak-rose.vercel.app')).toBe(true);
     expect(isOriginAllowed('https://dev.sean8320.dedyn.io')).toBe(true);
   });
@@ -46,12 +46,19 @@ describe('backend environment configuration', () => {
     expect(isOriginAllowed('https://unknown.example.com')).toBe(false);
   });
 
+  it('blocks the deprecated chejump bridge by default', () => {
+    process.env.NODE_ENV = 'production';
+    const { isOriginAllowed } = loadEnvConfig();
+
+    expect(isOriginAllowed('https://chejump.com')).toBe(false);
+  });
+
   it('adds configured origins without removing the defaults', () => {
     process.env.NODE_ENV = 'production';
     process.env.PEAK_CORS_ORIGINS = 'https://preview.example.com';
     const { getCorsOrigins, isOriginAllowed } = loadEnvConfig();
 
-    expect(getCorsOrigins()).toContain('https://chejump.com');
+    expect(getCorsOrigins()).toContain('https://supermax.kr');
     expect(isOriginAllowed('https://preview.example.com')).toBe(true);
   });
 

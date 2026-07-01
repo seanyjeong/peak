@@ -17,9 +17,6 @@ const nextConfig = {
   images: {
     remotePatterns: [{ protocol: 'http', hostname: 'localhost' }],
   },
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak',
-  },
   turbopack: {
     root: path.resolve(__dirname),
   },
@@ -33,7 +30,7 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-          { key: 'Content-Security-Policy', value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://chejump.com wss://chejump.com https://supermax.kr wss://supermax.kr http://localhost:8330 ws://localhost:8330 http://127.0.0.1:8330 ws://127.0.0.1:8330; frame-ancestors 'none'" },
+          { key: 'Content-Security-Policy', value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://supermax.kr wss://supermax.kr; frame-ancestors 'none'" },
         ],
       },
     ];

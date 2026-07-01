@@ -1,7 +1,7 @@
 # P-EAK API 명세서
 
 **버전**: v4.3.9
-**Base URL**: `https://chejump.com/peak` (Production) / `http://localhost:8330/peak` (Development)
+**Base URL**: `https://supermax.kr/peak` (Production) / `http://localhost:8330/peak` (Development)
 **최종 업데이트**: 2025-01-02
 
 ---
@@ -741,6 +741,18 @@ JSON 팩을 가져옵니다.
 
 **Headers**: `Authorization: Bearer <token>` (필수)
 
+### GET /settings/check-slug/:slug
+
+전광판 주소 중복 여부를 확인합니다.
+
+**Headers**: `Authorization: Bearer <token>` (필수)
+
+### PATCH /settings/board-pin
+
+전광판 PIN을 저장하거나 해제합니다. PIN은 평문으로 저장하지 않고 해시만 저장합니다.
+
+**Headers**: `Authorization: Bearer <token>` (필수)
+
 ---
 
 ## 테스트 세션
@@ -929,7 +941,7 @@ VAPID 공개키를 조회합니다. (인증 불필요)
 
 ### GET /public-board/:slug
 
-학원 전광판 데이터를 조회합니다. (인증 불필요)
+학원 전광판 데이터를 조회합니다. PIN이 설정된 학원은 전광판 토큰이 필요합니다.
 
 **Parameters**
 | 파라미터 | 타입 | 필수 | 설명 |
@@ -957,6 +969,30 @@ VAPID 공개키를 조회합니다. (인증 불필요)
     ]
   },
   "events": [...]
+}
+```
+
+### POST /public-board/:slug/pin
+
+전광판 PIN을 확인하고 전광판 토큰을 발급합니다. PIN이 없는 학원은 기존처럼 공개 조회됩니다.
+
+**Response**
+```json
+{
+  "success": true,
+  "requiresPin": false,
+  "boardToken": "eyJ...",
+  "expiresIn": 43200
+}
+```
+
+**PIN 필요 응답**
+```json
+{
+  "success": false,
+  "requiresPin": true,
+  "academy": { "name": "일산맥스체대입시", "slug": "ilsanmax" },
+  "message": "전광판 PIN을 입력해주세요."
 }
 ```
 

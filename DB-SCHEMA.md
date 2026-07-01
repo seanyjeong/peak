@@ -49,12 +49,14 @@ MySQL `peak` (n100 primary, vultr sync 복제). **36 테이블**. user=`paca` (e
 | `score_ranges` | 점수 구간 |
 
 ## 기타
-| `peak_settings` | 학원별 설정 |
+| `peak_settings` | 학원별 설정, 전광판 slug, 전광판 PIN 해시 |
 | `academy_feature_permissions` | 학원별 강사 기능 권한 |
 | `trainers` | 강사 |
 | `push_subscriptions` | 웹푸시 |
 | `notifications` | 알림 |
 | `deletion_logs` | 삭제 감사 |
+
+`peak_settings.board_pin_hash`는 전광판 PIN 해시만 저장한다. 운영 DB에는 `database/peak-board-pin.sql`을 적용해 컬럼을 추가한다.
 
 ## Cross-DB (paca)
 peak 백엔드가 **paca DB 읽기** (users 인증/학원 정보):

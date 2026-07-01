@@ -1,6 +1,13 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { FormEvent, useCallback, useState, useEffect, use } from 'react';
+import {
+  fetchBoardJson,
+  isPinRequiredResponse,
+  storeBoardToken,
+  submitBoardPin,
+} from '../board-access';
+import { BoardPinGate } from '../board-pin-gate';
 
 interface ScoreRange {
   score: number;
@@ -31,38 +38,51 @@ interface ScoreData {
   scoreTables: ScoreTable[];
 }
 
+type ScoreResponse = ScoreData & { success?: boolean; message?: string };
+
 export default function ScoresPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const [data, setData] = useState<ScoreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
+  const [pinRequired, setPinRequired] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinSubmitting, setPinSubmitting] = useState(false);
+  const [pinAcademyName, setPinAcademyName] = useState('');
+
+  const fetchData = useCallback(async (token?: string) => {
+    try {
+      const json = await fetchBoardJson<ScoreResponse>(`/public/${slug}/scores`, slug, token);
+
+      if (isPinRequiredResponse(json)) {
+        setPinRequired(true);
+        setPinAcademyName(json.academy?.name || '');
+        setError(null);
+        return;
+      }
+
+      if (json.success === false) {
+        setError(json.message || '데이터를 불러올 수 없습니다.');
+        return;
+      }
+
+      setData(json);
+      setPinRequired(false);
+      if (json.scoreTables.length > 0) {
+        setSelectedTable(json.scoreTables[0].id);
+      }
+    } catch {
+      setError('서버에 연결할 수 없습니다.');
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
-        const res = await fetch(`${apiUrl}/public/${slug}/scores`);
-        const json = await res.json();
-
-        if (!json.success) {
-          setError(json.message || '데이터를 불러올 수 없습니다.');
-          return;
-        }
-
-        setData(json);
-        if (json.scoreTables.length > 0) {
-          setSelectedTable(json.scoreTables[0].id);
-        }
-      } catch {
-        setError('서버에 연결할 수 없습니다.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [slug]);
+    void fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     if (data?.academy?.name) {
@@ -72,6 +92,32 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
 
   const formatValue = (value: number, decimalPlaces: number) => {
     return value.toFixed(decimalPlaces);
+  };
+
+  const handlePinSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pinInput.length < 4) {
+      setPinError('PIN은 숫자 4자리 이상으로 입력해주세요.');
+      return;
+    }
+
+    try {
+      setPinSubmitting(true);
+      const result = await submitBoardPin(slug, pinInput);
+      if (!result.boardToken) {
+        setPinError('PIN 확인에 실패했습니다. 다시 입력해주세요.');
+        return;
+      }
+      storeBoardToken(slug, result.boardToken);
+      setPinError(null);
+      setPinRequired(false);
+      setPinInput('');
+      await fetchData(result.boardToken);
+    } catch (err) {
+      setPinError(err instanceof Error ? err.message : 'PIN을 확인하지 못했습니다.');
+    } finally {
+      setPinSubmitting(false);
+    }
   };
 
   const currentTable = data?.scoreTables.find(t => t.id === selectedTable);
@@ -88,6 +134,19 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
           <p className="text-lg text-white/40 tracking-widest">LOADING</p>
         </div>
       </div>
+    );
+  }
+
+  if (pinRequired) {
+    return (
+      <BoardPinGate
+        academyName={pinAcademyName}
+        error={pinError}
+        onPinChange={setPinInput}
+        onSubmit={handlePinSubmit}
+        pin={pinInput}
+        submitting={pinSubmitting}
+      />
     );
   }
 
@@ -193,7 +252,7 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
                   </tr>
                 </thead>
                 <tbody>
-                  {currentTable.ranges.map((range, idx) => {
+                  {currentTable.ranges.map((range) => {
                     const isTop = range.score === currentTable.maxScore;
                     const isHigher = currentTable.recordType.direction === 'higher';
 

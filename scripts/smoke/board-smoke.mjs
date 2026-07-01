@@ -20,9 +20,7 @@ async function main() {
 
   await context.route('**/*', async (route) => {
     const url = new URL(route.request().url());
-    const isPeakApi = url.href.startsWith('https://chejump.com/peak')
-      || url.href.startsWith('https://supermax.kr/peak')
-      || url.href.startsWith('http://localhost:8330/peak');
+    const isPeakApi = url.href.startsWith('https://supermax.kr/peak');
     if (!isPeakApi) return route.continue();
     if (url.pathname.replace(/^\/peak/, '') === '/public/ilsanmax') return jsonRoute(route, makeBoard());
     return jsonRoute(route, { success: true });

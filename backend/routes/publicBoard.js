@@ -2,8 +2,18 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const pacaPool = require('../config/paca-database');
+const {
+  BOARD_ACCESS_TOKEN_TTL_SECONDS,
+  createBoardAccessToken,
+  requireBoardAccess,
+  validateBoardPin,
+  verifyBoardPin,
+} = require('../utils/board-access');
 const { decrypt } = require('../utils/encryption');
-const { decryptStudentFields } = require('../utils/paca-student');
+const {
+  findBoardSettingsBySlug,
+  toBoardAcademy,
+} = require('../utils/peak-settings');
 
 // 점수 계산 함수 (value=0 파울은 minScore 기본점수 적용)
 const calculateScore = (value, scoreRanges, gender, minScore = 0) => {
@@ -31,25 +41,67 @@ const calculateScore = (value, scoreRanges, gender, minScore = 0) => {
   return 0;
 };
 
+// 전광판 PIN 확인
+router.post('/:slug/pin', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const settings = await findBoardSettingsBySlug(pool, slug);
+
+    if (!settings) {
+      return res.status(404).json({ success: false, message: '학원을 찾을 수 없습니다.' });
+    }
+
+    const academy = toBoardAcademy(settings);
+    if (!academy.boardPinHash) {
+      return res.json({
+        success: true,
+        requiresPin: false,
+        message: 'PIN 없이 전광판을 볼 수 있습니다.',
+      });
+    }
+
+    const validation = validateBoardPin(req.body?.pin);
+    if (!validation.valid) {
+      return res.status(400).json({ success: false, message: validation.message });
+    }
+
+    const verified = await verifyBoardPin(validation.pin, academy.boardPinHash);
+    if (!verified) {
+      return res.status(401).json({
+        success: false,
+        message: 'PIN이 올바르지 않습니다.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      requiresPin: false,
+      boardToken: createBoardAccessToken(academy),
+      expiresIn: BOARD_ACCESS_TOKEN_TTL_SECONDS,
+    });
+  } catch (error) {
+    console.error('전광판 PIN 확인 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'PIN을 확인하지 못했습니다. 잠시 후 다시 시도해주세요.',
+    });
+  }
+});
+
 // 전광판 데이터 조회 (인증 불필요)
 router.get('/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
 
     // 1. P-EAK 설정에서 학원 정보 조회 (P-ACA와 분리된 slug)
-    const [settings] = await pool.query(`
-      SELECT academy_id, slug, academy_name FROM peak_settings WHERE slug = ?
-    `, [slug]);
+    const settings = await findBoardSettingsBySlug(pool, slug);
 
-    if (settings.length === 0) {
+    if (!settings) {
       return res.status(404).json({ success: false, message: '학원을 찾을 수 없습니다.' });
     }
 
-    const academy = {
-      id: settings[0].academy_id,
-      name: settings[0].academy_name,
-      slug: settings[0].slug
-    };
+    const academy = toBoardAcademy(settings);
+    if (!requireBoardAccess(req, res, academy)) return;
 
     // 2. 현재 active인 월말테스트 조회
     const academyId = academy.id;
@@ -325,7 +377,10 @@ router.get('/:slug', async (req, res) => {
 
   } catch (error) {
     console.error('전광판 데이터 조회 오류:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: '전광판 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+    });
   }
 });
 
@@ -335,19 +390,14 @@ router.get('/:slug/scores', async (req, res) => {
     const { slug } = req.params;
 
     // 1. P-EAK 설정에서 학원 정보 조회
-    const [settings] = await pool.query(`
-      SELECT academy_id, slug, academy_name FROM peak_settings WHERE slug = ?
-    `, [slug]);
+    const settings = await findBoardSettingsBySlug(pool, slug);
 
-    if (settings.length === 0) {
+    if (!settings) {
       return res.status(404).json({ success: false, message: '학원을 찾을 수 없습니다.' });
     }
 
-    const academy = {
-      id: settings[0].academy_id,
-      name: settings[0].academy_name,
-      slug: settings[0].slug
-    };
+    const academy = toBoardAcademy(settings);
+    if (!requireBoardAccess(req, res, academy)) return;
 
     // 2. 배점표 조회 (활성화된 종목만)
     const [scoreTables] = await pool.query(`
@@ -408,7 +458,10 @@ router.get('/:slug/scores', async (req, res) => {
 
   } catch (error) {
     console.error('배점표 조회 오류:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: '배점표를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+    });
   }
 });
 
@@ -428,7 +481,10 @@ router.get('/:slug/absent', async (req, res) => {
     res.json({ success: true, absent_paca_student_ids: absent.map(r => r.paca_student_id) });
   } catch (err) {
     console.error('did/absent error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: '결석 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+    });
   }
 });
 

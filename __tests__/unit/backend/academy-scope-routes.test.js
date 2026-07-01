@@ -76,6 +76,11 @@ describe('academy scoped route SQL', () => {
     expect(testApplicants).toContain('DELETE FROM test_records WHERE academy_id = ? AND test_applicant_id = ?');
     expect(testApplicants).toContain('SELECT * FROM test_records WHERE academy_id = ? AND test_applicant_id = ?');
   });
+
+  it('requires board PIN access for scoreboard screens without blocking DID absent sync', () => {
+    expect(publicBoard.match(/requireBoardAccess\(req, res, academy\)/g)).toHaveLength(2);
+    expect(publicBoard).toContain("router.get('/:slug/absent'");
+  });
 });
 
 describe('backend runtime safety guards', () => {

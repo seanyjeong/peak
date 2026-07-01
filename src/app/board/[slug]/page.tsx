@@ -1,8 +1,17 @@
 'use client';
 
-import { useState, useEffect, use, useCallback } from 'react';
+import { FormEvent, useState, useEffect, use, useCallback } from 'react';
+import {
+  fetchBoardJson,
+  isPinRequiredResponse,
+  storeBoardToken,
+  submitBoardPin,
+} from './board-access';
 import type { BoardData, EventRecord, ViewMode } from './board-model';
+import { BoardPinGate } from './board-pin-gate';
 import { Card3D, EventRow3D, GenderColumn, RankRow3D, SportyBackground } from './board-ui';
+
+type BoardResponse = BoardData & { success?: boolean; message?: string };
 
 export default function BoardPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -12,14 +21,24 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
   const [viewMode, setViewMode] = useState<ViewMode>('ranking');
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [pinRequired, setPinRequired] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinSubmitting, setPinSubmitting] = useState(false);
+  const [pinAcademyName, setPinAcademyName] = useState('');
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (token?: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
-      const res = await fetch(`${apiUrl}/public/${slug}`);
-      const json = await res.json();
+      const json = await fetchBoardJson<BoardResponse>(`/public/${slug}`, slug, token);
 
-      if (!json.success) {
+      if (isPinRequiredResponse(json)) {
+        setPinRequired(true);
+        setPinAcademyName(json.academy?.name || '');
+        setError(null);
+        return;
+      }
+
+      if (json.success === false) {
         setError(json.message || '데이터를 불러올 수 없습니다.');
         return;
       }
@@ -27,6 +46,7 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
       setData(json);
       setLastUpdated(new Date());
       setError(null);
+      setPinRequired(false);
     } catch {
       setError('서버에 연결할 수 없습니다.');
     } finally {
@@ -36,9 +56,11 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 15000);
+    const interval = setInterval(() => {
+      if (!pinRequired) void fetchData();
+    }, 15000);
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [fetchData, pinRequired]);
 
   useEffect(() => {
     if (data?.academy?.name && data?.test?.name) {
@@ -77,6 +99,32 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
     }
   };
 
+  const handlePinSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pinInput.length < 4) {
+      setPinError('PIN은 숫자 4자리 이상으로 입력해주세요.');
+      return;
+    }
+
+    try {
+      setPinSubmitting(true);
+      const result = await submitBoardPin(slug, pinInput);
+      if (!result.boardToken) {
+        setPinError('PIN 확인에 실패했습니다. 다시 입력해주세요.');
+        return;
+      }
+      storeBoardToken(slug, result.boardToken);
+      setPinError(null);
+      setPinRequired(false);
+      setPinInput('');
+      await fetchData(result.boardToken);
+    } catch (err) {
+      setPinError(err instanceof Error ? err.message : 'PIN을 확인하지 못했습니다.');
+    } finally {
+      setPinSubmitting(false);
+    }
+  };
+
   const getEventRecordsByGender = (records: EventRecord[], gender: 'M' | 'F') => {
     return records.filter(r => r.gender === gender).slice(0, 10).map((r, i) => ({ ...r, rank: i + 1 }));
   };
@@ -96,6 +144,19 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
           <p className="text-xl text-white/40 tracking-widest">LOADING</p>
         </div>
       </div>
+    );
+  }
+
+  if (pinRequired) {
+    return (
+      <BoardPinGate
+        academyName={pinAcademyName}
+        error={pinError}
+        onPinChange={setPinInput}
+        onSubmit={handlePinSubmit}
+        pin={pinInput}
+        submitting={pinSubmitting}
+      />
     );
   }
 
