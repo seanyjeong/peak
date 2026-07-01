@@ -1,15 +1,18 @@
 # peak ARCHITECTURE
 
-## 토폴로지 (pacapro 와 동일)
+## 토폴로지 (vultr primary)
 ```
-Browser ─HTTPS──→ chejump.com (CF DNS) ──→ n100 (primary) 또는 vultr (failover)
-                                           │
-                                           ├─ Caddy /peak/* → :8330
-                                           └─ Caddy /socket.io/* → :8330
+Browser ─HTTPS──→ supermax.kr ──→ vultr Caddy ──→ localhost:8330
+                     │
+                     ├─ /peak/* → Peak API
+                     └─ /socket.io/* → Socket.IO
+
+Legacy bridge: chejump.com → etserver/vultr Caddy → supermax.kr.
+Do not use chejump.com as a new frontend/API default.
 ```
 
 ## 스택
-- **Runtime**: Node.js v22.21.0 (n100), v18.19.1 (vultr)
+- **Runtime**: Node.js on vultr primary; n100 remains legacy/rollback only
 - **Framework**: Express 5 + Socket.io 4.8
 - **Auth**: JWT 9.0 (pacapro 와 secret 공유)
 - **DB**: mysql2 2 풀 (`peak` 쓰기 + `paca` readonly)
@@ -61,5 +64,6 @@ Browser ─HTTPS──→ chejump.com (CF DNS) ──→ n100 (primary) 또는 v
 - **paca (secondary pool, readonly)**: users + academies + students 조회용
 
 ## 의존 외부
-- Cloudflare DNS (페일오버 전환 주체)
+- `supermax.kr` public backend route on vultr
+- `chejump.com` compatibility bridge until traffic/callbacks are cleared
 - Pacapro (JWT + paca DB)

@@ -17,7 +17,6 @@ if (!process.env.PACA_DB_PASSWORD) {
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const N8N_API_KEY = process.env.N8N_API_KEY;
 
 // P-ACA DB 연결 (users 테이블 조회용)
 const pacaPool = mysql.createPool({
@@ -36,20 +35,6 @@ const pacaPool = mysql.createPool({
  */
 const verifyToken = async (req, res, next) => {
     try {
-        // N8N API Key 체크
-        const apiKey = req.headers['x-api-key'];
-        if (apiKey && apiKey === N8N_API_KEY) {
-            req.user = {
-                id: 0,
-                email: 'n8n@system',
-                name: 'N8N Service',
-                role: 'admin',
-                academyId: null,
-                isServiceAccount: true
-            };
-            return next();
-        }
-
         // Bearer 토큰 체크
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {

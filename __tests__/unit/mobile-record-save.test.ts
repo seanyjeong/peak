@@ -24,7 +24,7 @@ describe('saveMobileRecord', () => {
     mockFetchOk();
 
     const result = await saveMobileRecord({
-      apiBase: 'https://chejump.com/peak',
+      apiBase: 'https://supermax.kr/peak',
       token: 'token',
       studentId: 9640,
       recordTypeId: 3,
@@ -35,7 +35,7 @@ describe('saveMobileRecord', () => {
 
     expect(result).toEqual({ deleted: false, value: 12.5 });
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://chejump.com/peak/records/batch',
+      'https://supermax.kr/peak/records/batch',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
@@ -51,7 +51,7 @@ describe('saveMobileRecord', () => {
     mockFetchOk({ success: true });
 
     await expect(saveMobileRecord({
-      apiBase: 'https://chejump.com/peak',
+      apiBase: 'https://supermax.kr/peak',
       token: 'token',
       studentId: 9640,
       recordTypeId: 3,
@@ -61,7 +61,7 @@ describe('saveMobileRecord', () => {
     })).resolves.toEqual({ deleted: true, value: null });
 
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://chejump.com/peak/records',
+      'https://supermax.kr/peak/records',
       expect.objectContaining({
         method: 'DELETE',
         body: JSON.stringify({
@@ -77,7 +77,7 @@ describe('saveMobileRecord', () => {
     global.fetch = jest.fn() as jest.Mock;
 
     await expect(saveMobileRecord({
-      apiBase: 'https://chejump.com/peak',
+      apiBase: 'https://supermax.kr/peak',
       token: 'token',
       studentId: 9640,
       recordTypeId: 3,
@@ -93,7 +93,7 @@ describe('saveMobileRecord', () => {
     global.fetch = jest.fn() as jest.Mock;
 
     await expect(saveMobileRecord({
-      apiBase: 'https://chejump.com/peak',
+      apiBase: 'https://supermax.kr/peak',
       token: 'token',
       studentId: 9640,
       recordTypeId: 3,
@@ -114,7 +114,7 @@ describe('saveMobileRecord', () => {
     }) as jest.Mock;
 
     await expect(saveMobileRecord({
-      apiBase: 'https://chejump.com/peak',
+      apiBase: 'https://supermax.kr/peak',
       token: 'token',
       studentId: 9640,
       recordTypeId: 3,

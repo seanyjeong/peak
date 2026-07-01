@@ -29,7 +29,7 @@ Peak에는 토스 플러그인 작업이 없다. 이번 릴리즈도 토스와 �
 
 ## 배포 전 확인
 
-- 운영 배포 전 `chejump.com/peak-health`를 먼저 확인한다.
+- 운영 배포 전 `supermax.kr/peak-health`를 먼저 확인한다.
 - 배포 직후 로그인, 학생 목록, 기록 저장, 월말테스트 엑셀 다운로드를 확인한다.
 - 피크와 파카가 JWT 비밀키를 공유하므로 환경변수는 변경하지 않는다.
 
@@ -40,5 +40,5 @@ Peak에는 토스 플러그인 작업이 없다. 이번 릴리즈도 토스와 �
 ```bash
 git revert <release-commit>
 sudo systemctl restart peak
-curl -s https://chejump.com/peak-health
+curl -s https://supermax.kr/peak-health
 ```

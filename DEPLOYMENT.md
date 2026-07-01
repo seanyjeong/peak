@@ -1,31 +1,29 @@
 # peak DEPLOYMENT
 
-## 📦 이중화 환경
+## 📦 운영 환경
 | 역할 | Host | 위치 | 포트 | 상태 |
 |---|---|---|---|---|
-| **Primary** | n100 | `/home/sean/ilsanmaxtraining/backend` | 8330 | systemd `peak.service` (active) |
-| **Failover** | vultr | `/root/peak/backend` | 8330 | systemd `peak-failover.service` (enabled·**inactive**) |
+| **Primary** | vultr | `/root/peak/backend` | 8330 | systemd `peak-failover.service` (active) |
+| Legacy/rollback | n100 | `/home/sean/ilsanmaxtraining/backend` | 8330 | systemd `peak.service` (LAN only) |
 | Frontend | **Vercel** (자동) | github.com/seanyjeong/peak | - | Vercel ↔ GitHub UI 통합 |
 
 ## 🌐 도메인 / 라우팅
-**`https://chejump.com/peak/*`** + **`/socket.io/*`** — Cloudflare DNS 자동 전환 (pacapro 와 동시)
+**Canonical:** `https://supermax.kr/peak/*` + `https://supermax.kr/socket.io/*`
 
-### etserver Caddy (`chejump.com`, 정상)
-```
-chejump.com {
-    handle /peak-health { rewrite * /health; reverse_proxy 192.168.35.249:8330 }
-    handle /peak/*      { reverse_proxy 192.168.35.249:8330 }
-    handle /socket.io/* { reverse_proxy 192.168.35.249:8330 }
-    # ... + paca/* (위 파일 참조)
-}
-```
+`chejump.com`은 legacy compatibility bridge이다. 새 프론트, smoke, env 기본값은 `supermax.kr`만 사용한다.
 
-### vultr Caddy (`chejump.com`, 페일오버)
+### vultr Caddy (`supermax.kr`, primary)
 ```
-chejump.com {
+supermax.kr {
+    handle /peak-health { rewrite * /health; reverse_proxy localhost:8330 }
     handle /peak/*      { reverse_proxy localhost:8330 }
     handle /socket.io/* { reverse_proxy localhost:8330 }
 }
+```
+
+### legacy bridge (`chejump.com`)
+```
+chejump.com → etserver/vultr Caddy → https://supermax.kr
 ```
 
 ### dev 도메인 (etserver Caddy → n100)
@@ -38,7 +36,7 @@ dev.sean8320.dedyn.io {
 }
 ```
 
-## 🔧 systemd (n100 primary) — `peak.service`
+## 🔧 systemd (n100 legacy) — `peak.service`
 ```ini
 [Unit]
 Description=P-EAK Backend API
@@ -57,7 +55,7 @@ Environment=NODE_ENV=production
 WantedBy=multi-user.target
 ```
 
-## 🔧 systemd (vultr failover) — `peak-failover.service`
+## 🔧 systemd (vultr primary) — `peak-failover.service`
 ```ini
 [Unit]
 Description=P-EAK Failover Backend (Port 8330)
@@ -89,11 +87,10 @@ WantedBy=multi-user.target
 | `PACA_DB_USER` | `paca` | cross-DB users 조회용 |
 | `JWT_SECRET` | (env) | **pacapro 와 공유** |
 | `DATA_ENCRYPTION_KEY` | (env) | **pacapro 와 공유** |
-| `N8N_API_KEY` | (env) | n8n 웹훅 |
 
 ## 🔁 GitHub repo & push
 - **repo**: `https://github.com/seanyjeong/peak.git` (HTTPS)
-- **push 위치**: n100 `/home/sean/ilsanmaxtraining` 또는 맥미니 (collab)
+- **push 위치**: 맥미니 release worktree 기준. 현재 GitHub 권한은 별도 확인 필요.
 - ⚠️ etserver 에는 peak clone 없음
 
 ## 🏷 버전 관리
@@ -112,34 +109,36 @@ WantedBy=multi-user.target
 
 ## 🚀 배포 흐름
 
-### A. Backend (n100 systemd)
+### A. Backend (vultr systemd)
 ```bash
-ssh n100
-cd /home/sean/ilsanmaxtraining
-git pull origin main
+ssh vultr
+cd /root/peak
 cd backend
 npm install            # 의존성 변경 시
-sudo systemctl restart peak
-sudo journalctl -u peak -f
+sudo systemctl restart peak-failover
+sudo journalctl -u peak-failover -f
 ```
 
 ### B. Frontend (Vercel 자동 — vercel.json 없지만 Next.js 자동 감지)
 - github.com/seanyjeong/peak **main 브랜치 push** → Vercel 자동 빌드
 - Next.js 16.1 + React 19.2 + Tailwind v4 + PWA (`@ducanh2912/next-pwa`)
-- `NEXT_PUBLIC_API_URL` default = `https://chejump.com/peak`
+- `NEXT_PUBLIC_API_URL` default = `https://supermax.kr/peak`
+- `NEXT_PUBLIC_SOCKET_URL` default = `https://supermax.kr`
 - 빌드 명령: `next build`
 - 도메인: (Vercel project 이름 확인 필요 — 사장님 Vercel dashboard)
 
-### C. Vultr Failover Backend
-- pacapro 와 동일 메커니즘 (auto-failover.sh 가 동시 전환)
-- DB 동기화: n100 cron 30분마다
+### C. n100 Legacy Backend
+- n100은 rollback/LAN 확인용으로만 남긴다.
+- n100 → vultr DB sync cron은 vultr DB write-primary 전환 전에 반드시 중지하거나 primary-to-replica 방식으로 재설계한다.
 
 ## ❤️ 헬스체크
 ```bash
-curl -s https://chejump.com/peak-health           # → 200
-ssh n100 'curl -s http://localhost:8330/health'
+curl -s https://supermax.kr/peak-health           # → 200
 ssh vultr 'systemctl status peak-failover'
 ```
+
+Legacy n100 health checks are rollback-only. Do not use n100 health as
+production readiness for the new release path.
 
 ## 📡 Socket.io 실시간
 - 이벤트: `record:new`, `attendance:check`, `test:update`
@@ -149,20 +148,20 @@ ssh vultr 'systemctl status peak-failover'
 
 ## 🛠 로그 / 디버그
 ```bash
-ssh n100 'sudo journalctl -u peak -f'
-ssh n100 'sudo journalctl -u peak --since "1 hour ago" -n 100 --no-pager'
 ssh vultr 'systemctl status peak-failover'
+ssh vultr 'journalctl -u peak-failover --since "1 hour ago" -n 100 --no-pager'
 ```
 
 ## 🗃 DB
-- **n100 (primary)**: MySQL `peak` DB (36 tables) + `paca` DB readonly (users)
-- **vultr (sync 복제)**: 30분마다
+- **vultr (primary target)**: MySQL `peak` DB + `paca` DB readonly (users)
+- **n100 (legacy)**: 기존 DB가 남아 있으나 새 쓰기 primary로 보지 않는다.
+- **주의**: n100 cron의 30분 sync가 남아 있으면 vultr DB를 덮어쓸 수 있다.
 - **백업**: n100 cron `0 3 * * *` (paca 와 함께)
 
 ## ⏪ 롤백
 ```bash
-ssh n100 'cd /home/sean/ilsanmaxtraining && git log --oneline -5'
-ssh n100 'cd /home/sean/ilsanmaxtraining && git checkout <SHA> && cd backend && sudo systemctl restart peak'
+ssh vultr 'cd /root/peak && git log --oneline -5'
+ssh vultr 'cd /root/peak && git checkout <SHA> && cd backend && sudo systemctl restart peak-failover'
 ```
 
 ## 🚨 운영 주의

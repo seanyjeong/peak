@@ -16,6 +16,7 @@ import {
   Trophy
 } from 'lucide-react';
 import { authAPI } from '@/lib/api/auth';
+import { PEAK_API_BASE_URL } from '@/lib/api/base-url';
 import { useToast } from '@/hooks/useToast';
 import { saveMobileRecord } from './record-save';
 
@@ -69,7 +70,7 @@ interface StudentRecord {
   score?: number | null;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
+const API_BASE = PEAK_API_BASE_URL;
 
 const timeSlotConfig = [
   { key: 'morning', label: '오전', icon: Sunrise },

@@ -55,9 +55,11 @@ npm install
 
 ### 3. 환경 변수 설정
 
-**프론트엔드** (`.env.local`):
+**프론트엔드**:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8330/peak
+# 프로덕션/프리뷰 기본 API는 코드의 src/lib/api/base-url.ts에서
+# https://supermax.kr/peak 로 고정한다.
+# 로컬 백엔드 테스트가 필요하면 로컬 전용 모킹/프록시를 별도로 사용한다.
 ```
 
 **백엔드** (`backend/.env`):

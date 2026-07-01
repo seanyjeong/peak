@@ -1,4 +1,5 @@
 import { Moon, Sun, Sunrise } from 'lucide-react';
+import { PEAK_API_BASE_URL } from '@/lib/api/base-url';
 
 export interface ExerciseTag {
   id: number;
@@ -26,7 +27,7 @@ export interface DailyPlan {
   description: string;
 }
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://chejump.com/peak';
+export const API_BASE = PEAK_API_BASE_URL;
 
 export const timeSlotConfig = [
   { key: 'morning', label: '오전', icon: Sunrise },

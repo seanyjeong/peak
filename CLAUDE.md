@@ -1,8 +1,8 @@
 ---
 product: peak
 display_name: Peak (IlsanMaxTraining)
-server: n100
-base_url: https://chejump.com/peak
+server: vultr
+base_url: https://supermax.kr/peak
 tags:
   - domain:체대입시
   - domain:실기기록
@@ -12,8 +12,8 @@ tags:
   - stack:nextjs
   - stack:socketio
   - db:mysql
-  - deploy:n100-systemd
-  - deploy:vultr-failover
+  - deploy:vultr-primary
+  - deploy:n100-legacy
   - auth:jwt
 provides:
   - realtime-record-api
@@ -35,17 +35,17 @@ depends_on:
 @DEPLOYMENT.md
 @RELATIONSHIPS.md
 
-체대입시 학생 실기 기록 시스템. Socket.io 실시간. Express 5 + MySQL + Next.js 16. **n100 primary + vultr failover 이중화** (pacapro 와 동일 토폴로지).
+체대입시 학생 실기 기록 시스템. Socket.io 실시간. Express 5 + MySQL + Next.js 16. **vultr primary 전환 중**이며 n100은 legacy/rollback 경로로만 취급한다.
 
 ## 🏗 구조
-- **Primary**: n100 `peak.service` · `/home/sean/ilsanmaxtraining/backend/peak.js` · **port 8330**
-- **Failover**: vultr `peak-failover.service` · `/root/peak/backend/peak.js` · **port 8330** (enabled·inactive)
-- **DB**: n100 MySQL `peak` + pacapro 의 `paca` DB readonly 접근 (users 테이블)
-- **도메인**: chejump.com (CF DNS A=218.148.190.61 → etserver Caddy → n100:8330 / 페일오버 시 → vultr 158.247.250.58)
+- **Primary**: vultr `peak-failover.service` · `/root/peak/backend/peak.js` · **port 8330**
+- **Legacy**: n100 `peak.service` · `/home/sean/ilsanmaxtraining/backend/peak.js` · **port 8330** (LAN/rollback only)
+- **DB**: vultr MySQL `peak` + `paca` DB readonly 접근 (users 테이블)
+- **도메인**: `supermax.kr/peak` canonical. `chejump.com`은 etserver/vultr Caddy 호환 브리지일 뿐 새 릴리즈 기본값으로 쓰지 않는다.
 - **Frontend**: Next.js 16 + React 19 + Tailwind v4
 
 ## 🔁 페일오버
-pacapro 와 함께 auto-failover.sh 가 동시 전환. 매 1분 cron, 헬스체크 실패 시 DNS → vultr + 서비스 기동.
+새 릴리즈 기준 canonical backend는 `https://supermax.kr/peak`이다. 기존 `chejump.com` 브리지는 외부 잔여 트래픽이 0인지 확인한 뒤 마지막에 제거한다.
 
 ## 🔌 라우트 23개 모듈 (`peak.js`)
 ```
@@ -76,7 +76,8 @@ pacapro 와 함께 auto-failover.sh 가 동시 전환. 매 1분 cron, 헬스체�
 ```
 
 ## 🌐 도메인
-- prod: `chejump.com/peak/*` (+ `/socket.io/*`) — **etserver Caddy → n100:8330** (페일오버 시 vultr Caddy → localhost:8330)
+- prod: `supermax.kr/peak/*` (+ `/socket.io/*`) — **vultr Caddy → localhost:8330**
+- legacy bridge: `chejump.com/peak/*` — etserver/vultr Caddy가 `supermax.kr`로 프록시한다. 새 코드/문서 기본값으로 사용 금지.
 - dev: `dev.sean8320.dedyn.io/peak/*` — etserver Caddy → n100
 - 맥미니 internal: `http://192.168.35.249:8330`
 
@@ -99,10 +100,12 @@ pacapro 와 함께 auto-failover.sh 가 동시 전환. 매 1분 cron, 헬스체�
 
 ## 🛠 자주 쓰는 명령
 ```bash
-ssh n100 'sudo systemctl restart peak && sudo journalctl -u peak -f'
-ssh n100 'sudo mysql peak -e "SHOW TABLES"'
-curl -s https://chejump.com/peak-health
+curl -s https://supermax.kr/peak-health
+ssh vultr 'systemctl status peak-failover'
 ```
+
+Legacy n100 checks are rollback-only and must not be used to restart or verify
+the new release path unless the rollback runbook explicitly says so.
 
 
 ## 📦 버전 관리 룰 (2026-05-06 명시)
