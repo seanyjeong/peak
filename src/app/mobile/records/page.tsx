@@ -19,6 +19,7 @@ import { authAPI } from '@/lib/api/auth';
 import { PEAK_API_BASE_URL } from '@/lib/api/base-url';
 import { useToast } from '@/hooks/useToast';
 import { saveMobileRecord } from './record-save';
+import { collectVisibleClassStudents } from '../_lib/class-scope';
 
 interface Student {
   id: number;
@@ -32,16 +33,9 @@ interface Student {
   trial_remaining?: number;
 }
 
-interface ClassInstructor {
-  id: number;
-  name: string;
-  isOwner?: boolean;
-  isMain?: boolean;
-}
-
 interface ClassData {
   class_num: number;
-  instructors: ClassInstructor[];
+  instructors: Array<{ id: number }>;
   students: Array<{
     id: number;
     student_id: number;
@@ -116,28 +110,18 @@ export default function MobileRecordsPage() {
 
       // 현재 유저 정보
       const currentUser = authAPI.getCurrentUser();
-      const userInstructorId = currentUser?.instructorId;
-      const userNegativeId = currentUser?.role === 'owner' ? -(currentUser?.id || 0) : null;
 
       if (slotData) {
-        (slotData.classes as ClassData[] || []).forEach((cls) => {
-          const isMyClass = cls.instructors?.some((inst: ClassInstructor) =>
-            inst.id === userInstructorId || inst.id === userNegativeId
-          );
-
-          if (isMyClass) {
-            cls.students?.forEach(s => {
-              slotStudents.push({
-                id: s.student_id,
-                assignment_id: s.id,
-                name: s.student_name,
-                gender: s.gender === 'M' || s.gender === 'male' ? 'male' : 'female',
-                is_trial: s.is_trial,
-                trial_total: s.trial_total,
-                trial_remaining: s.trial_remaining,
-              });
-            });
-          }
+        collectVisibleClassStudents(slotData.classes as ClassData[] || [], currentUser).forEach(s => {
+          slotStudents.push({
+            id: s.student_id,
+            assignment_id: s.id,
+            name: s.student_name,
+            gender: s.gender === 'M' || s.gender === 'male' ? 'male' : 'female',
+            is_trial: s.is_trial,
+            trial_total: s.trial_total,
+            trial_remaining: s.trial_remaining,
+          });
         });
       }
 
@@ -322,7 +306,7 @@ export default function MobileRecordsPage() {
         </div>
       ) : students.length === 0 ? (
         <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center shadow-sm border border-slate-200 dark:border-slate-700">
-          <p className="text-slate-500 dark:text-slate-400 text-sm">내 반에 배치된 학생이 없습니다</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">이 시간대에 배치된 학생이 없습니다</p>
         </div>
       ) : inputMode === 'student' ? (
         /* 학생별 모드 */

@@ -46,6 +46,7 @@ export interface PlannedExercise {
 
 export interface DailyPlan {
   id: number;
+  instructor_id: number;
   exercises: PlannedExercise[];
   completed_exercises: number[];
   exercise_times: Record<number, string>;
