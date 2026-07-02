@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -64,8 +65,17 @@ def main() -> int:
         if not output_path.exists() or output_path.stat().st_size < 1024:
             sys.stderr.write("PDF smoke failed: output file is missing or too small\n")
             return 1
+        page_count = count_pdf_pages(output_path)
+        if page_count != 1:
+            sys.stderr.write(f"PDF smoke failed: expected 1 page, got {page_count}\n")
+            return 1
     print("PDF generator smoke passed")
     return 0
+
+
+def count_pdf_pages(path: Path) -> int:
+    raw = path.read_bytes()
+    return len(re.findall(rb"/Type\s*/Page(?!s)", raw))
 
 
 if __name__ == "__main__":

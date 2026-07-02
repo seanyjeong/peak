@@ -53,7 +53,7 @@ def generate_html(data: dict) -> str:
         color = GAUGE_COLORS[i % len(GAUGE_COLORS)]
         gauge_html += f"""
         <div class="gauge-item">
-            <canvas id="gauge{i}" width="100" height="100"></canvas>
+            <canvas id="gauge{i}" width="88" height="88"></canvas>
             <div class="gauge-label">{t['name']}</div>
             <div class="gauge-score">{t['score']}점</div>
         </div>"""
@@ -131,22 +131,24 @@ def generate_html(data: dict) -> str:
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
 
+@page {{ size: A4 landscape; margin: 6mm; }}
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+html {{ background: #ffffff; }}
 body {{
     font-family: 'Noto Sans KR', -apple-system, sans-serif;
     background: #ffffff;
     color: #1f2937;
-    padding: 20px 28px;
-    width: 1120px;
+    padding: 14px 22px;
+    width: 1060px;
 }}
 
 .header {{
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
-    border-bottom: 3px solid #1e3a5f;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1e3a5f;
 }}
 .header-left h1 {{
     font-size: 20px;
@@ -154,8 +156,9 @@ body {{
     font-weight: 700;
 }}
 .header-left .subtitle {{
-    font-size: 12px;
-    color: #6b7280;
+    font-size: 13px;
+    color: #1e3a5f;
+    font-weight: 600;
     margin-top: 2px;
 }}
 .header-right {{
@@ -174,15 +177,15 @@ body {{
 
 .cards {{
     display: flex;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 8px;
+    margin-bottom: 8px;
 }}
 .card {{
     flex: 1;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     text-align: center;
 }}
 .card-title {{
@@ -192,7 +195,7 @@ body {{
     margin-bottom: 2px;
 }}
 .card-value {{
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
 }}
 .card-sub {{
@@ -202,7 +205,7 @@ body {{
 }}
 .grade-badge {{
     display: inline-block;
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
     color: {grade_color};
 }}
@@ -211,26 +214,29 @@ body {{
 .trend-stable {{ color: #6b7280; }}
 
 .section-title {{
-    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #e8f0f8;
+    padding: 2px 8px;
+    font-size: 11px;
     font-weight: 600;
     color: #1e3a5f;
-    margin-bottom: 6px;
-    padding-left: 8px;
-    border-left: 3px solid #3b82f6;
+    margin-bottom: 4px;
 }}
 
 .gauges {{
     display: flex;
     justify-content: center;
-    gap: 16px;
-    margin-bottom: 10px;
-    padding: 8px 0;
+    gap: 12px;
+    margin-bottom: 7px;
+    padding: 6px 0;
     background: #f8fafc;
     border-radius: 8px;
 }}
 .gauge-item {{
     text-align: center;
-    width: 100px;
+    width: 88px;
 }}
 .gauge-label {{
     font-size: 10px;
@@ -245,39 +251,39 @@ body {{
 
 .charts-row {{
     display: flex;
-    gap: 12px;
-    margin-bottom: 10px;
+    gap: 10px;
+    margin-bottom: 7px;
 }}
 .chart-box {{
     background: #f8fafc;
     border-radius: 8px;
-    padding: 10px;
+    padding: 8px;
     overflow: hidden;
 }}
 .chart-box-bar {{
-    width: 600px;
-    height: 200px;
+    width: 588px;
+    height: 176px;
 }}
 .chart-box-radar {{
-    width: 440px;
-    height: 200px;
+    width: 412px;
+    height: 176px;
 }}
 
 .records-table {{
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: 10px;
 }}
 .records-table th {{
     background: #1e3a5f;
     color: white;
-    padding: 5px 8px;
+    padding: 4px 7px;
     text-align: center;
     font-weight: 500;
     font-size: 10px;
 }}
 .records-table td {{
-    padding: 4px 8px;
+    padding: 3px 7px;
     text-align: center;
     border-bottom: 1px solid #e5e7eb;
 }}
@@ -290,8 +296,8 @@ body {{
 }}
 
 .footer {{
-    margin-top: 8px;
-    padding-top: 6px;
+    margin-top: 5px;
+    padding-top: 4px;
     border-top: 1px solid #e5e7eb;
     display: flex;
     justify-content: space-between;
@@ -305,7 +311,7 @@ body {{
 <div class="header">
     <div class="header-left">
         <h1>{academy_name}</h1>
-        <div class="subtitle">실기 성적표</div>
+        <div class="subtitle">학생 성장 리포트</div>
     </div>
     <div class="header-right">
         <div class="date">{today}</div>
@@ -342,11 +348,11 @@ body {{
 <div class="charts-row">
     <div class="chart-box chart-box-bar">
         <div class="section-title">학원 비교</div>
-        <canvas id="barChart" width="570" height="160"></canvas>
+        <canvas id="barChart" width="558" height="138"></canvas>
     </div>
     <div class="chart-box chart-box-radar">
         <div class="section-title">능력치</div>
-        <canvas id="radarChart" width="420" height="160"></canvas>
+        <canvas id="radarChart" width="392" height="138"></canvas>
     </div>
 </div>
 
@@ -467,7 +473,9 @@ def generate_pdf(html: str, output_path: str):
             format="A4",
             landscape=True,
             print_background=True,
-            margin={"top": "8mm", "right": "8mm", "bottom": "8mm", "left": "8mm"}
+            prefer_css_page_size=True,
+            scale=0.94,
+            margin={"top": "6mm", "right": "6mm", "bottom": "6mm", "left": "6mm"}
         )
         browser.close()
 
