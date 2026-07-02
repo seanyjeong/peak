@@ -114,7 +114,10 @@ WantedBy=multi-user.target
 ssh vultr
 cd /root/peak
 cd backend
+python3 -m pip install -r requirements.txt
+python3 -m playwright install chromium
 npm install            # 의존성 변경 시
+python3 scripts/pdf_generator_smoke.py
 sudo systemctl restart peak-failover
 sudo journalctl -u peak-failover -f
 ```
