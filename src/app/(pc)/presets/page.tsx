@@ -56,6 +56,12 @@ export default function PresetsPage() {
   }, []);
 
   const fetchStudents = useCallback(async () => {
+    try {
+      await apiClient.post('/students/sync', {});
+    } catch {
+      // 동기화가 실패해도 프리셋 화면은 기존 Peak 학생 목록으로 계속 열어준다.
+    }
+
     const res = await apiClient.get<{ students?: Student[] }>('/students?status=active');
     setAllStudents(res.data.students || []);
   }, []);

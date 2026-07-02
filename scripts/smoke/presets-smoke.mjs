@@ -21,10 +21,14 @@ async function runPresets(browser, viewport, screenshotPath) {
   await page.getByRole('button', { name: '취소' }).click();
 
   const presetCalls = state.hits?.filter((hit) => hit === 'GET /presets').length || 0;
+  const syncCalls = state.hits?.filter((hit) => hit === 'POST /students/sync').length || 0;
   const studentCalls = state.hits?.filter((hit) => hit === 'GET /students?status=active').length || 0;
   const instructorCalls = state.hits?.filter((hit) => hit === 'GET /presets/instructors').length || 0;
-  if (presetCalls !== 1 || studentCalls !== 1 || instructorCalls !== 1) {
+  if (presetCalls !== 1 || syncCalls !== 1 || studentCalls !== 1 || instructorCalls !== 1) {
     throw new Error(`presets API contract mismatch: ${JSON.stringify(state.hits)}`);
+  }
+  if (state.hits.indexOf('POST /students/sync') > state.hits.indexOf('GET /students?status=active')) {
+    throw new Error(`students sync must run before loading active students: ${JSON.stringify(state.hits)}`);
   }
 
   await assertNoHorizontalOverflow(page, 'presets');

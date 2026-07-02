@@ -278,6 +278,34 @@ describe('프리셋 페이지 - 강사 선택 시 이름 자동 변경', () => {
     jest.clearAllMocks();
   });
 
+  it('학생 후보 목록을 불러오기 전에 P-ACA 학생 동기화를 먼저 요청한다', async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (url.includes('/presets/instructors')) {
+        return Promise.resolve({ data: { instructors: [] } });
+      }
+      if (url.includes('/presets')) {
+        return Promise.resolve({ data: { presets: [] } });
+      }
+      if (url.includes('/students')) {
+        return Promise.resolve({ data: { students: [] } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+    mockPost.mockResolvedValue({ data: { success: true } });
+
+    const PresetsPage = (await import('@/app/(pc)/presets/page')).default;
+    render(<PresetsPage />);
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith('/students/sync', {});
+    });
+
+    const syncOrder = mockPost.mock.invocationCallOrder[0];
+    const studentGetOrder = mockGet.mock.calls.findIndex(([url]) => String(url).includes('/students?status=active'));
+    expect(studentGetOrder).toBeGreaterThanOrEqual(0);
+    expect(syncOrder).toBeLessThan(mockGet.mock.invocationCallOrder[studentGetOrder]);
+  });
+
   it('강사 선택 시 그룹 이름 업데이트 API가 "강사이름반"으로 호출됨', async () => {
     const presetsData = {
       presets: [
