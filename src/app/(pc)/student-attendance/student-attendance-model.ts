@@ -93,15 +93,54 @@ export function countStatus(students: Student[], status: AttendanceStatus) {
   return students.filter((student) => student.attendance_status === status).length;
 }
 
-export function adjustStats(stats: Stats, previousStatus: StudentStatus, nextStatus: AttendanceStatus): Stats {
+export function adjustStats(stats: Stats, previousStatus: StudentStatus, nextStatus: StudentStatus): Stats {
   const nextStats = { ...stats };
   const previousKey: StatsKey = previousStatus || 'unchecked';
+  const nextKey: StatsKey = nextStatus || 'unchecked';
   nextStats[previousKey] = Math.max(nextStats[previousKey] - 1, 0);
-  nextStats[nextStatus] += 1;
+  nextStats[nextKey] += 1;
   return nextStats;
 }
 
-export function updateManyStudentStatuses(slotsData: SlotsData, students: Student[], status: AttendanceStatus): SlotsData {
+export interface StudentStatusUpdateResult {
+  slotsData: SlotsData;
+  previousStatus: StudentStatus;
+  changed: boolean;
+  matched: boolean;
+}
+
+export function updateStudentStatus(
+  slotsData: SlotsData,
+  pacaAttendanceId: number,
+  status: StudentStatus,
+): StudentStatusUpdateResult {
+  let previousStatus: StudentStatus = null;
+  let matched = false;
+  let changed = false;
+
+  const nextSlots: SlotsData = { ...slotsData };
+  SLOT_ORDER.forEach((slot) => {
+    nextSlots[slot] = slotsData[slot].map((student) => {
+      if (student.paca_attendance_id !== pacaAttendanceId) return student;
+
+      matched = true;
+      previousStatus = student.attendance_status;
+      if (student.attendance_status === status) return student;
+
+      changed = true;
+      return { ...student, attendance_status: status };
+    });
+  });
+
+  return {
+    slotsData: changed ? nextSlots : slotsData,
+    previousStatus,
+    changed,
+    matched,
+  };
+}
+
+export function updateManyStudentStatuses(slotsData: SlotsData, students: Student[], status: StudentStatus): SlotsData {
   const ids = new Set(students.map((student) => student.paca_attendance_id));
   const nextSlots = { ...slotsData };
   SLOT_ORDER.forEach((slot) => {

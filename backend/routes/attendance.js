@@ -11,6 +11,16 @@ const { decryptStudentFields } = require('../utils/paca-student');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
+const {
+    emitStudentAttendanceBatchUpdated,
+    emitStudentAttendanceUpdated,
+    toAttendanceBroadcastUpdate
+} = require('../services/studentAttendanceRealtime');
+const {
+    groupPacaBridgeEvents,
+    postPacaBridgeEvents,
+    requireBridgeKey
+} = require('../services/attendanceRealtimeBridge');
 
 // ==========================================
 // 강사 출근 (기존)
@@ -317,7 +327,8 @@ router.post('/student', verifyToken, async (req, res) => {
         // Verify attendance record belongs to user's academy
         const academyId = req.user.academyId;
         const [attendance] = await pacaPool.query(
-            `SELECT a.id FROM attendance a
+            `SELECT a.id, a.student_id, a.class_schedule_id, cs.class_date
+             FROM attendance a
              JOIN class_schedules cs ON a.class_schedule_id = cs.id
              WHERE a.id = ? AND cs.academy_id = ?`,
             [paca_attendance_id, academyId]
@@ -335,15 +346,15 @@ router.post('/student', verifyToken, async (req, res) => {
             [attendance_status, paca_attendance_id]
         );
 
-        // Socket.io로 브로드캐스트
-        const io = req.app.get('io');
-        if (io) {
-            const academyId = req.user.academyId;
-            io.to(`academy-${academyId}`).emit('student-attendance-updated', {
-                paca_attendance_id,
-                attendance_status
-            });
-        }
+        emitStudentAttendanceUpdated(req.app.get('io'), academyId, {
+            paca_attendance_id,
+            attendance_status
+        });
+        postPacaBridgeEvents(groupPacaBridgeEvents({
+            academyId,
+            rows: attendance,
+            updatesById: new Map([[Number(paca_attendance_id), attendance_status]])
+        }));
 
         res.json({
             success: true,
@@ -373,6 +384,7 @@ router.post('/student/batch', verifyToken, async (req, res) => {
         const academyId = req.user.academyId;
         const validStatuses = ['present', 'absent', 'late', 'excused'];
         let successCount = 0;
+        const broadcastUpdates = [];
 
         // Collect all attendance IDs for bulk ownership verification
         const attIds = updates
@@ -385,12 +397,14 @@ router.post('/student/batch', verifyToken, async (req, res) => {
 
         // Verify all attendance records belong to user's academy
         const [ownedRecords] = await pacaPool.query(
-            `SELECT a.id FROM attendance a
+            `SELECT a.id, a.student_id, a.class_schedule_id, cs.class_date
+             FROM attendance a
              JOIN class_schedules cs ON a.class_schedule_id = cs.id
              WHERE a.id IN (?) AND cs.academy_id = ?`,
             [attIds, academyId]
         );
         const ownedIds = new Set(ownedRecords.map(r => r.id));
+        const updatesById = new Map();
 
         for (const update of updates) {
             if (!update.paca_attendance_id || !validStatuses.includes(update.attendance_status)) {
@@ -403,17 +417,19 @@ router.post('/student/batch', verifyToken, async (req, res) => {
                 'UPDATE attendance SET attendance_status = ? WHERE id = ?',
                 [update.attendance_status, update.paca_attendance_id]
             );
-            if (result.affectedRows > 0) successCount++;
+            if (result.affectedRows > 0) {
+                successCount++;
+                broadcastUpdates.push(toAttendanceBroadcastUpdate(update));
+                updatesById.set(Number(update.paca_attendance_id), update.attendance_status);
+            }
         }
 
-        // Socket.io 브로드캐스트
-        const io = req.app.get('io');
-        if (io) {
-            const academyId = req.user.academyId;
-            io.to(`academy-${academyId}`).emit('student-attendance-batch-updated', {
-                count: successCount
-            });
-        }
+        emitStudentAttendanceBatchUpdated(req.app.get('io'), academyId, broadcastUpdates);
+        postPacaBridgeEvents(groupPacaBridgeEvents({
+            academyId,
+            rows: ownedRecords,
+            updatesById
+        }));
 
         res.json({
             success: true,
@@ -423,6 +439,50 @@ router.post('/student/batch', verifyToken, async (req, res) => {
         });
     } catch (error) {
         console.error('Batch update student attendance error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+router.post('/internal/paca-event', requireBridgeKey, async (req, res) => {
+    try {
+        const academyId = Number(req.body.academy_id);
+        const scheduleId = Number(req.body.schedule_id);
+        const records = Array.isArray(req.body.records) ? req.body.records : [];
+        const studentIds = records.map((record) => Number(record.student_id)).filter(Boolean);
+
+        if (!academyId || !scheduleId || studentIds.length === 0) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'academy_id, schedule_id, records가 필요합니다.'
+            });
+        }
+
+        const [rows] = await pacaPool.query(
+            `SELECT a.id, a.student_id
+             FROM attendance a
+             JOIN class_schedules cs ON a.class_schedule_id = cs.id
+             WHERE a.class_schedule_id = ?
+               AND cs.academy_id = ?
+               AND a.student_id IN (?)`,
+            [scheduleId, academyId, studentIds]
+        );
+        const statusByStudent = new Map(records.map((record) => [
+            Number(record.student_id),
+            record.attendance_status || null
+        ]));
+        const updates = rows.map((row) => ({
+            paca_attendance_id: Number(row.id),
+            attendance_status: statusByStudent.get(Number(row.student_id))
+        }));
+
+        emitStudentAttendanceBatchUpdated(req.app.get('io'), academyId, updates, req.body.source || 'paca');
+
+        res.json({
+            success: true,
+            count: updates.length
+        });
+    } catch (error) {
+        console.error('PACA attendance bridge error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });

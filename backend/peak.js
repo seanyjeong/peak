@@ -157,7 +157,7 @@ app.use('/peak/plans', verifyToken, require('./routes/plans'));
 app.use('/peak/assignments', verifyToken, require('./routes/assignments'));
 app.use('/peak/training', verifyToken, require('./routes/training'));
 app.use('/peak/records', verifyToken, require('./routes/records'));
-app.use('/peak/attendance', verifyToken, require('./routes/attendance'));
+app.use('/peak/attendance', require('./routes/attendance'));
 app.use('/peak/exercises', verifyToken, require('./routes/exercises'));
 app.use('/peak/exercise-tags', verifyToken, require('./routes/exercise-tags'));
 app.use('/peak/exercise-packs', verifyToken, require('./routes/exercise-packs'));

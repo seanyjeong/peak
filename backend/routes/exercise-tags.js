@@ -11,13 +11,12 @@ const { verifyToken } = require('../middleware/auth');
 router.get('/', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-        const SYSTEM_ACADEMY_ID = 2; // 시스템 기본 태그가 있는 학원
 
         const [tags] = await db.query(
             `SELECT * FROM exercise_tags
-             WHERE (academy_id = ? OR academy_id = ?) AND is_active = TRUE
+             WHERE (academy_id = ? OR academy_id IS NULL) AND is_active = TRUE
              ORDER BY display_order, id`,
-            [academyId, SYSTEM_ACADEMY_ID]
+            [academyId]
         );
         res.json({ success: true, tags });
     } catch (error) {

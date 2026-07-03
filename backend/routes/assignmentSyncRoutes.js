@@ -71,17 +71,17 @@ function registerAssignmentSyncRoutes(router) {
 
 async function syncAssignments({ academyId, targetDate, pacaStudents, existingAssignments, existingMap }) {
     const pacaStudentIds = pacaStudents.map(ps => ps.paca_student_id);
-    const peakStudentMap = await getPeakStudentMap(pacaStudentIds);
+    const peakStudentMap = await getPeakStudentMap(pacaStudentIds, academyId);
     const syncPlan = buildSyncPlan(pacaStudents, existingMap, peakStudentMap);
 
     if (syncPlan.studentsToInsert.length > 0) {
         await insertStudents(syncPlan.studentsToInsert, academyId, peakStudentMap);
     }
-    await updateStudents(syncPlan.studentsToUpdate);
-    await updateAssignments(syncPlan.assignmentsToUpdate);
+    await updateStudents(syncPlan.studentsToUpdate, academyId);
+    await updateAssignments(syncPlan.assignmentsToUpdate, academyId);
     await insertAssignments(syncPlan.assignmentsToInsert, academyId, targetDate, peakStudentMap);
 
-    const removedCount = await removeMissingAssignments(existingAssignments, syncPlan.syncedStudentKeys);
+    const removedCount = await removeMissingAssignments(existingAssignments, syncPlan.syncedStudentKeys, academyId);
 
     return {
         addedCount: syncPlan.addedCount,
@@ -90,13 +90,13 @@ async function syncAssignments({ academyId, targetDate, pacaStudents, existingAs
     };
 }
 
-async function getPeakStudentMap(pacaStudentIds) {
+async function getPeakStudentMap(pacaStudentIds, academyId) {
     const peakStudentMap = new Map();
     if (pacaStudentIds.length === 0) return peakStudentMap;
 
     const [existingPeakStudents] = await db.query(
-        'SELECT id, paca_student_id FROM students WHERE paca_student_id IN (?)',
-        [pacaStudentIds]
+        'SELECT id, paca_student_id FROM students WHERE academy_id = ? AND paca_student_id IN (?)',
+        [academyId, pacaStudentIds]
     );
     existingPeakStudents.forEach(s => {
         peakStudentMap.set(s.paca_student_id, s.id);
@@ -208,23 +208,23 @@ async function insertStudents(studentsToInsert, academyId, peakStudentMap) {
     });
 }
 
-async function updateStudents(studentsToUpdate) {
+async function updateStudents(studentsToUpdate, academyId) {
     for (const updateData of studentsToUpdate) {
         await db.query(`
             UPDATE students SET name = ?, gender = ?, school = ?, grade = ?,
                    is_trial = ?, trial_total = ?, trial_remaining = ?
-            WHERE id = ?
-        `, updateData);
+            WHERE id = ? AND academy_id = ?
+        `, [...updateData, academyId]);
     }
 }
 
-async function updateAssignments(assignmentsToUpdate) {
+async function updateAssignments(assignmentsToUpdate, academyId) {
     for (const updateData of assignmentsToUpdate) {
         await db.query(`
             UPDATE daily_assignments
             SET paca_attendance_id = ?, is_trial = ?, trial_total = ?, trial_remaining = ?
-            WHERE id = ?
-        `, updateData);
+            WHERE id = ? AND academy_id = ?
+        `, [...updateData, academyId]);
     }
 }
 
@@ -251,12 +251,12 @@ async function insertAssignments(assignmentsToInsert, academyId, targetDate, pea
     `, [assignmentValues]);
 }
 
-async function removeMissingAssignments(existingAssignments, syncedStudentKeys) {
+async function removeMissingAssignments(existingAssignments, syncedStudentKeys, academyId) {
     let removedCount = 0;
     for (const existing of existingAssignments) {
         const studentKey = `${existing.student_id}-${existing.time_slot}`;
         if (!syncedStudentKeys.has(studentKey)) {
-            await db.query('DELETE FROM daily_assignments WHERE id = ?', [existing.id]);
+            await db.query('DELETE FROM daily_assignments WHERE id = ? AND academy_id = ?', [existing.id, academyId]);
             removedCount++;
         }
     }

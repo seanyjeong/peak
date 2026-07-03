@@ -19,6 +19,9 @@ describe('academy scoped route SQL', () => {
   const recordTypes = source('backend/routes/recordTypes.js');
   const scoreTable = source('backend/routes/scoreTable.js');
   const push = compact(source('backend/routes/push.js'));
+  const exercises = source('backend/routes/exercises.js');
+  const exerciseTags = source('backend/routes/exercise-tags.js');
+  const assignmentSync = compact(source('backend/routes/assignmentSyncRoutes.js'));
 
   it('creates monthly test sessions with the current academy id', () => {
     expect(monthlyTests).toContain(
@@ -47,6 +50,22 @@ describe('academy scoped route SQL', () => {
   it('does not fall back to academy 2 in protected settings routes', () => {
     expect(peakSettings).toContain('req.user.academyId');
     expect(peakSettings).not.toContain('academy_id || 2');
+  });
+
+  it('does not use a real academy as the shared exercise or tag library', () => {
+    expect(exercises).not.toContain('SYSTEM_ACADEMY_ID');
+    expect(exerciseTags).not.toContain('SYSTEM_ACADEMY_ID');
+    expect(exercises).toContain('academy_id IS NULL');
+    expect(exerciseTags).toContain('academy_id IS NULL');
+  });
+
+  it('keeps assignment sync student and assignment mutations inside the current academy', () => {
+    expect(assignmentSync).toContain('getPeakStudentMap(pacaStudentIds, academyId)');
+    expect(assignmentSync).toContain('SELECT id, paca_student_id FROM students WHERE academy_id = ? AND paca_student_id IN (?)');
+    expect(assignmentSync).toContain('updateStudents(syncPlan.studentsToUpdate, academyId)');
+    expect(assignmentSync).toContain('WHERE id = ? AND academy_id = ?');
+    expect(assignmentSync).toContain('removeMissingAssignments(existingAssignments, syncPlan.syncedStudentKeys, academyId)');
+    expect(assignmentSync).toContain('DELETE FROM daily_assignments WHERE id = ? AND academy_id = ?');
   });
 
   it('protects configurable admin surfaces with feature permissions', () => {
@@ -92,6 +111,11 @@ describe('backend runtime safety guards', () => {
 
   it('does not allow every browser origin in backend CORS settings', () => {
     expect(peakServer).not.toContain("origin: '*'");
+  });
+
+  it('keeps the attendance internal bridge outside the global token guard', () => {
+    expect(peakServer).toContain("app.use('/peak/attendance', require('./routes/attendance'))");
+    expect(peakServer).not.toContain("app.use('/peak/attendance', verifyToken");
   });
 
   it('does not keep hardcoded database password or encryption fallbacks', () => {

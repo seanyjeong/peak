@@ -11,16 +11,15 @@ const { verifyToken } = require('../middleware/auth');
 router.get('/', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-        const SYSTEM_ACADEMY_ID = 2; // 시스템 기본 운동이 있는 학원
         const { tag } = req.query;
 
-        let query = 'SELECT * FROM exercises WHERE (academy_id = ? OR academy_id = ?) ORDER BY name';
-        let params = [academyId, SYSTEM_ACADEMY_ID];
+        let query = 'SELECT * FROM exercises WHERE (academy_id = ? OR academy_id IS NULL) ORDER BY name';
+        let params = [academyId];
 
         if (tag) {
             // JSON 배열에서 태그 검색
-            query = `SELECT * FROM exercises WHERE (academy_id = ? OR academy_id = ?) AND JSON_CONTAINS(tags, ?) ORDER BY name`;
-            params = [academyId, SYSTEM_ACADEMY_ID, JSON.stringify(tag)];
+            query = `SELECT * FROM exercises WHERE (academy_id = ? OR academy_id IS NULL) AND JSON_CONTAINS(tags, ?) ORDER BY name`;
+            params = [academyId, JSON.stringify(tag)];
         }
 
         const [exercises] = await db.query(query, params);
@@ -43,7 +42,7 @@ router.get('/:id', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const [exercises] = await db.query(
-            'SELECT * FROM exercises WHERE id = ? AND academy_id = ?',
+            'SELECT * FROM exercises WHERE id = ? AND (academy_id = ? OR academy_id IS NULL)',
             [req.params.id, academyId]
         );
 

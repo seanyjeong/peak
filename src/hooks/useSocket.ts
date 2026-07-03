@@ -3,13 +3,14 @@
  * 반배치 등 실시간 동기화가 필요한 페이지에서 사용
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { PEAK_SOCKET_URL } from '@/lib/api/base-url';
 
 type PeakSmokeWindow = Window & { __PEAK_SMOKE__?: boolean };
 
 const SOCKET_URL = PEAK_SOCKET_URL;
+type StudentAttendanceStatus = 'present' | 'absent' | 'late' | 'excused' | null;
 
 interface UseSocketOptions {
   onAssignmentsUpdated?: (data: {
@@ -18,12 +19,32 @@ interface UseSocketOptions {
     action: string;
     class_num?: number;
   }) => void;
+  onStudentAttendanceUpdated?: (data: {
+    paca_attendance_id: number;
+    attendance_status: StudentAttendanceStatus;
+    source?: string;
+  }) => void;
+  onStudentAttendanceBatchUpdated?: (data: {
+    count: number;
+    updates?: Array<{
+      paca_attendance_id: number;
+      attendance_status: StudentAttendanceStatus;
+    }>;
+    source?: string;
+  }) => void;
 }
 
 export function useSocket(options: UseSocketOptions = {}) {
+  const [socketState, setSocketState] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+  const optionsRef = useRef(options);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   const connect = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -58,6 +79,8 @@ export function useSocket(options: UseSocketOptions = {}) {
     socket.on('connect', () => {
       console.log('[Socket] Connected:', socket.id);
       reconnectAttempts.current = 0;
+      setSocketState(socket);
+      setIsConnected(true);
 
       // 학원 room 참가
       socket.emit('join-academy', token);
@@ -69,13 +92,22 @@ export function useSocket(options: UseSocketOptions = {}) {
 
     socket.on('assignments-updated', (data) => {
       console.log('[Socket] Assignments updated:', data);
-      options.onAssignmentsUpdated?.(data);
+      optionsRef.current.onAssignmentsUpdated?.(data);
+    });
+
+    socket.on('student-attendance-updated', (data) => {
+      optionsRef.current.onStudentAttendanceUpdated?.(data);
+    });
+
+    socket.on('student-attendance-batch-updated', (data) => {
+      optionsRef.current.onStudentAttendanceBatchUpdated?.(data);
     });
 
     socket.on('error', () => {});
 
     socket.on('disconnect', (reason) => {
       console.log('[Socket] Disconnected:', reason);
+      setIsConnected(false);
     });
 
     socket.on('connect_error', () => {
@@ -88,13 +120,15 @@ export function useSocket(options: UseSocketOptions = {}) {
     });
 
     socketRef.current = socket;
-  }, [options.onAssignmentsUpdated]);
+  }, []);
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {
       console.log('[Socket] Disconnecting');
       socketRef.current.disconnect();
       socketRef.current = null;
+      setSocketState(null);
+      setIsConnected(false);
     }
   }, []);
 
@@ -107,8 +141,8 @@ export function useSocket(options: UseSocketOptions = {}) {
   }, [connect, disconnect]);
 
   return {
-    socket: socketRef.current,
-    isConnected: socketRef.current?.connected ?? false,
+    socket: socketState,
+    isConnected,
     connect,
     disconnect,
   };

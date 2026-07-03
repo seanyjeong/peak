@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock3, RefreshCw, UserRoundCheck, X } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { useSocket } from '@/hooks/useSocket';
 import { useToast } from '@/hooks/useToast';
 import {
   EMPTY_SLOTS,
@@ -14,10 +15,12 @@ import {
   getDefaultSlot,
   getLocalDateString,
   normalizeSlots,
+  updateStudentStatus,
   updateManyStudentStatuses,
   type AttendanceStatus,
   type SlotsData,
   type Student,
+  type StudentStatus,
   type Stats,
   type StudentAttendanceResponse,
   type TimeSlot,
@@ -27,6 +30,7 @@ import { EmptyState, SlotButton, StudentRow, SummaryCard } from './student-atten
 export default function StudentAttendancePage() {
   const toast = useToast();
   const toastRef = useRef(toast);
+  const slotsDataRef = useRef<SlotsData>(EMPTY_SLOTS);
   const [slotsData, setSlotsData] = useState<SlotsData>(EMPTY_SLOTS);
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
@@ -52,6 +56,7 @@ export default function StudentAttendancePage() {
       const nextSlots = normalizeSlots(res.data.slots);
 
       setSlotsData(nextSlots);
+      slotsDataRef.current = nextSlots;
       setStats({ ...EMPTY_STATS, ...res.data.stats });
       setActiveSlot(getDefaultSlot(nextSlots));
     } catch {
@@ -64,6 +69,39 @@ export default function StudentAttendancePage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    slotsDataRef.current = slotsData;
+  }, [slotsData]);
+
+  const applyStudentStatus = useCallback((pacaAttendanceId: number, status: StudentStatus) => {
+    const result = updateStudentStatus(slotsDataRef.current, pacaAttendanceId, status);
+    if (!result.changed) return;
+
+    slotsDataRef.current = result.slotsData;
+    setSlotsData(result.slotsData);
+    setStats((prev) => adjustStats(prev, result.previousStatus, status));
+  }, []);
+
+  const handleStudentAttendanceUpdated = useCallback((data: {
+    paca_attendance_id: number;
+    attendance_status: StudentStatus;
+  }) => {
+    applyStudentStatus(data.paca_attendance_id, data.attendance_status);
+  }, [applyStudentStatus]);
+
+  const handleStudentAttendanceBatchUpdated = useCallback((data: {
+    updates?: Array<{ paca_attendance_id: number; attendance_status: StudentStatus }>;
+  }) => {
+    data.updates?.forEach((update) => {
+      applyStudentStatus(update.paca_attendance_id, update.attendance_status);
+    });
+  }, [applyStudentStatus]);
+
+  useSocket({
+    onStudentAttendanceUpdated: handleStudentAttendanceUpdated,
+    onStudentAttendanceBatchUpdated: handleStudentAttendanceBatchUpdated,
+  });
 
   const currentStudents = slotsData[activeSlot];
   const currentUnchecked = currentStudents.filter((student) => student.paca_attendance_id && !student.attendance_status);
@@ -80,7 +118,6 @@ export default function StudentAttendancePage() {
       });
 
       applyStudentStatus(student.paca_attendance_id, status);
-      setStats((prev) => adjustStats(prev, student.attendance_status, status));
     } catch {
       toastRef.current.error('출석 상태를 저장하지 못했습니다. 다시 시도해주세요.');
     } finally {
@@ -100,7 +137,11 @@ export default function StudentAttendancePage() {
         })),
       });
 
-      setSlotsData((prev) => updateManyStudentStatuses(prev, currentUnchecked, 'present'));
+      setSlotsData((prev) => {
+        const nextSlots = updateManyStudentStatuses(prev, currentUnchecked, 'present');
+        slotsDataRef.current = nextSlots;
+        return nextSlots;
+      });
       setStats((prev) => currentUnchecked.reduce((nextStats, student) => (
         adjustStats(nextStats, student.attendance_status, 'present')
       ), prev));
@@ -110,20 +151,6 @@ export default function StudentAttendancePage() {
     } finally {
       setUpdating(null);
     }
-  };
-
-  const applyStudentStatus = (pacaAttendanceId: number, status: AttendanceStatus) => {
-    setSlotsData((prev) => {
-      const nextSlots = { ...prev };
-      SLOT_ORDER.forEach((slot) => {
-        nextSlots[slot] = nextSlots[slot].map((student) => (
-          student.paca_attendance_id === pacaAttendanceId
-            ? { ...student, attendance_status: status }
-            : student
-        ));
-      });
-      return nextSlots;
-    });
   };
 
   return (
