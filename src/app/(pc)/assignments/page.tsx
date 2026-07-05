@@ -74,7 +74,13 @@ export default function AssignmentsPage() {
     useSensor(KeyboardSensor)
   );
 
-  const loadAssignments = useCallback(async ({ sync = false }: { sync?: boolean } = {}) => {
+  const loadAssignments = useCallback(async ({
+    sync = false,
+    preserveActiveSlot = !sync,
+  }: {
+    sync?: boolean;
+    preserveActiveSlot?: boolean;
+  } = {}) => {
     try {
       setLoading(true);
       if (sync) {
@@ -86,7 +92,7 @@ export default function AssignmentsPage() {
       const res = await apiClient.get<{ slots?: SlotsData }>(`/assignments?date=${selectedDate}`);
       const slots = res.data.slots || createEmptySlots();
       setSlotsData(slots);
-      setActiveSlot(getDefaultSlot(slots));
+      setActiveSlot((currentSlot) => (preserveActiveSlot ? currentSlot : getDefaultSlot(slots)));
     } catch {
       toastRef.current.error('반 배치 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {

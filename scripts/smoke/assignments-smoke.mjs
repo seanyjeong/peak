@@ -18,6 +18,12 @@ async function runAssignments(browser, viewport, screenshotPath) {
   await page.getByText('강하늘').waitFor();
   await page.getByRole('button', { name: /오후반/ }).click();
   await page.getByTestId('assignments-board').getByText('이코치반').waitFor();
+  await page.getByRole('button', { name: '새로고침' }).click();
+  await page.waitForFunction(() => !document.body.innerText.includes('반 배치 데이터를 불러오는 중입니다.'));
+  await page.getByTestId('assignments-board').getByText('이코치반').waitFor();
+  if (await page.getByTestId('assignments-board').getByText('최코치반').isVisible()) {
+    throw new Error('assignments refresh moved afternoon selection to evening');
+  }
   await page.getByRole('button', { name: /프리셋/ }).click();
   await page.getByRole('button', { name: /기본 배치/ }).click();
   await page.getByRole('heading', { name: '프리셋 적용' }).waitFor();
@@ -29,7 +35,7 @@ async function runAssignments(browser, viewport, screenshotPath) {
   const syncCalls = state.hits?.filter((hit) => hit === 'POST /assignments/sync').length || 0;
   const assignmentCalls = state.hits?.filter((hit) => hit.startsWith('GET /assignments?date=')).length || 0;
   const presetCalls = state.hits?.filter((hit) => hit === 'GET /presets').length || 0;
-  if (syncCalls !== 1 || assignmentCalls !== 1 || presetCalls !== 1) {
+  if (syncCalls !== 1 || assignmentCalls !== 2 || presetCalls !== 1) {
     throw new Error(`assignments API contract mismatch: ${JSON.stringify(state.hits)}`);
   }
 
