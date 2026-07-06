@@ -19,7 +19,13 @@ import { authAPI } from '@/lib/api/auth';
 import { PEAK_API_BASE_URL } from '@/lib/api/base-url';
 import { useToast } from '@/hooks/useToast';
 import { saveMobileRecord } from './record-save';
-import { collectVisibleClassStudents } from '../_lib/class-scope';
+import { MobileInstructorFilter } from '../_components/MobileInstructorFilter';
+import {
+  collectVisibleClassStudents,
+  getMobileInstructorOptionsFromClasses,
+  isOwnerOrAdmin,
+  type MobileInstructorOption,
+} from '../_lib/class-scope';
 
 interface Student {
   id: number;
@@ -85,34 +91,42 @@ export default function MobileRecordsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<'student' | 'type'>('student');
   const [selectedType, setSelectedType] = useState<number | null>(null);
+  const [currentUser, setCurrentUser] = useState(() => authAPI.getCurrentUser());
+  const [instructorOptions, setInstructorOptions] = useState<MobileInstructorOption[]>([]);
+  const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null);
 
   useEffect(() => {
     toastRef.current = toast;
   }, [toast]);
 
-  // 데이터 로드
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const token = authAPI.getToken();
       const headers = { Authorization: `Bearer ${token}` };
 
-      // 반 배치 데이터 로드
       const assignRes = await fetch(
         `${API_BASE}/assignments?date=${selectedDate}`,
         { headers }
       );
       const assignData = await assignRes.json();
 
-      // 시간대별 학생 필터링 (v2.0.0 새 구조)
       const slotData = assignData.slots?.[selectedTimeSlot];
       const slotStudents: Student[] = [];
 
-      // 현재 유저 정보
       const currentUser = authAPI.getCurrentUser();
+      setCurrentUser(currentUser);
 
       if (slotData) {
-        collectVisibleClassStudents(slotData.classes as ClassData[] || [], currentUser).forEach(s => {
+        const slotClasses = (slotData.classes as ClassData[] | undefined) || [];
+        const nextInstructorOptions = getMobileInstructorOptionsFromClasses(slotClasses);
+        const nextInstructorId = selectedInstructorId !== null && nextInstructorOptions.some(option => option.id === selectedInstructorId)
+          ? selectedInstructorId
+          : null;
+        setInstructorOptions(nextInstructorOptions);
+        if (nextInstructorId !== selectedInstructorId) setSelectedInstructorId(nextInstructorId);
+
+        collectVisibleClassStudents(slotClasses, currentUser, nextInstructorId).forEach(s => {
           slotStudents.push({
             id: s.student_id,
             assignment_id: s.id,
@@ -123,11 +137,13 @@ export default function MobileRecordsPage() {
             trial_remaining: s.trial_remaining,
           });
         });
+      } else {
+        setInstructorOptions([]);
+        if (selectedInstructorId !== null) setSelectedInstructorId(null);
       }
 
       setStudents(slotStudents);
 
-      // 종목 로드
       const typeRes = await fetch(`${API_BASE}/record-types`, { headers });
       const typeData = await typeRes.json();
       const activeTypes = (typeData.recordTypes || []).filter((t: { is_active: boolean }) => t.is_active);
@@ -138,7 +154,6 @@ export default function MobileRecordsPage() {
         return activeTypes.length > 0 ? activeTypes[0].id : null;
       });
 
-      // 기록 로드
       if (slotStudents.length > 0) {
         const studentIds = slotStudents.map((s: Student) => s.id).join(',');
         const recRes = await fetch(
@@ -161,13 +176,12 @@ export default function MobileRecordsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, selectedTimeSlot]);
+  }, [selectedDate, selectedTimeSlot, selectedInstructorId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // 기록 저장
   const saveRecord = async (studentId: number, recordTypeId: number, value: string) => {
     const key = `${studentId}-${recordTypeId}`;
     setSaving(key);
@@ -208,7 +222,6 @@ export default function MobileRecordsPage() {
     }
   };
 
-  // 학생 펼치기/접기
   const toggleStudent = (studentId: number) => {
     setExpandedStudents(prev => {
       const next = new Set(prev);
@@ -221,7 +234,6 @@ export default function MobileRecordsPage() {
     });
   };
 
-  // 전체 펼치기/접기
   const toggleAll = () => {
     if (expandedStudents.size === students.length) {
       setExpandedStudents(new Set());
@@ -273,6 +285,13 @@ export default function MobileRecordsPage() {
           </button>
         ))}
       </div>
+
+      <MobileInstructorFilter
+        options={instructorOptions}
+        selectedInstructorId={selectedInstructorId}
+        visible={isOwnerOrAdmin(currentUser)}
+        onChange={setSelectedInstructorId}
+      />
 
       {/* 입력 모드 선택 */}
       <div className="flex gap-2 bg-white dark:bg-slate-800 rounded-xl p-1 shadow-sm border border-slate-200 dark:border-slate-700">

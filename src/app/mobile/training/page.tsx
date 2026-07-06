@@ -23,7 +23,14 @@ import {
   type DailyPlan,
   type Student,
 } from './training-model';
-import { collectVisibleClassStudents, filterVisiblePlans } from '../_lib/class-scope';
+import { MobileInstructorFilter } from '../_components/MobileInstructorFilter';
+import {
+  collectVisibleClassStudents,
+  filterVisiblePlans,
+  getMobileInstructorOptionsFromClasses,
+  isOwnerOrAdmin,
+  type MobileInstructorOption,
+} from '../_lib/class-scope';
 
 export default function MobileTrainingPage() {
   const toast = useToast();
@@ -35,6 +42,9 @@ export default function MobileTrainingPage() {
   const [plans, setPlans] = useState<DailyPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState(() => authAPI.getCurrentUser());
+  const [instructorOptions, setInstructorOptions] = useState<MobileInstructorOption[]>([]);
+  const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null);
 
   // 환경 체크
   const [envCheck, setEnvCheck] = useState({ checked: false, temperature: '', humidity: '' });
@@ -73,7 +83,16 @@ export default function MobileTrainingPage() {
 
       // 현재 유저 정보
       const currentUser = authAPI.getCurrentUser();
-      const myStudents = collectVisibleClassStudents(slotInfo.classes as ClassData[] || [], currentUser);
+      setCurrentUser(currentUser);
+      const slotClasses = (slotInfo.classes as ClassData[] | undefined) || [];
+      const nextInstructorOptions = getMobileInstructorOptionsFromClasses(slotClasses);
+      const nextInstructorId = selectedInstructorId !== null && nextInstructorOptions.some(option => option.id === selectedInstructorId)
+        ? selectedInstructorId
+        : null;
+      setInstructorOptions(nextInstructorOptions);
+      if (nextInstructorId !== selectedInstructorId) setSelectedInstructorId(nextInstructorId);
+
+      const myStudents = collectVisibleClassStudents(slotClasses, currentUser, nextInstructorId);
 
       const slotData = myStudents.map((s) => {
         const existingLog = existingLogs.find((l: { student_id: number }) => l.student_id === s.student_id);
@@ -101,13 +120,13 @@ export default function MobileTrainingPage() {
       if (!planRes.ok) throw new Error('plans');
       const planData = await planRes.json();
 
-      setPlans(filterVisiblePlans(planData.plans || [], currentUser));
+      setPlans(filterVisiblePlans(planData.plans || [], currentUser, nextInstructorId));
     } catch {
       toastRef.current.error('수업 기록 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, selectedTimeSlot]);
+  }, [selectedDate, selectedTimeSlot, selectedInstructorId]);
 
   useEffect(() => {
     loadData();
@@ -253,6 +272,13 @@ export default function MobileTrainingPage() {
           </button>
         ))}
       </div>
+
+      <MobileInstructorFilter
+        options={instructorOptions}
+        selectedInstructorId={selectedInstructorId}
+        visible={isOwnerOrAdmin(currentUser)}
+        onChange={setSelectedInstructorId}
+      />
 
       {/* 내부 탭 */}
       <div className="flex gap-2 bg-white dark:bg-slate-800 rounded-xl p-1 shadow-sm border border-slate-200 dark:border-slate-700">

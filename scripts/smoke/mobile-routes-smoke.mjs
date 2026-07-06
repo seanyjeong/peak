@@ -42,6 +42,11 @@ async function main() {
   for (const [path, text] of routes) {
     await page.goto(path, { waitUntil: 'domcontentloaded' });
     await page.getByText(text).first().waitFor();
+    if (path === '/mobile/training' || path === '/mobile/records') {
+      await page.getByLabel('강사별 보기').selectOption('5');
+      await page.getByText('오하늘').first().waitFor();
+      await page.getByText('김서연').first().waitFor({ state: 'detached' });
+    }
     await assertNoHorizontalOverflow(page, path);
   }
 
@@ -65,11 +70,27 @@ function makeStats() {
 }
 
 function makeAssignments() {
-  return { slots: { morning: { waitingStudents: [], waitingInstructors: [], classes: [{ class_num: 1, instructors: [{ id: -1, name: '테스트 원장', isOwner: true }], students: [{ id: 1, student_id: 201, student_name: '김서연', gender: 'F' }] }] } } };
+  return {
+    slots: {
+      morning: {
+        waitingStudents: [],
+        waitingInstructors: [],
+        classes: [
+          { class_num: 1, instructors: [{ id: 4, name: '김코치', isOwner: false }], students: [{ id: 1, student_id: 201, student_name: '김서연', gender: 'F' }] },
+          { class_num: 2, instructors: [{ id: 5, name: '이코치', isOwner: false }], students: [{ id: 2, student_id: 202, student_name: '오하늘', gender: 'M' }] },
+        ],
+      },
+    },
+  };
 }
 
 function makePlans() {
-  return { plans: [{ id: 20, date: '2026-06-24', time_slot: 'morning', instructor_id: -1, instructor_name: '테스트 원장', tags: ['lower'], exercises: [{ exercise_id: 1, name: '스쿼트', note: '기본' }], completed_exercises: [], exercise_times: {} }] };
+  return {
+    plans: [
+      { id: 20, date: '2026-06-24', time_slot: 'morning', instructor_id: 4, instructor_name: '김코치', tags: ['lower'], exercises: [{ exercise_id: 1, name: '스쿼트', note: '기본' }], completed_exercises: [], exercise_times: {} },
+      { id: 21, date: '2026-06-24', time_slot: 'morning', instructor_id: 5, instructor_name: '이코치', tags: ['lower'], exercises: [{ exercise_id: 2, name: '런지', note: '기본' }], completed_exercises: [], exercise_times: {} },
+    ],
+  };
 }
 
 function makeTags() {
