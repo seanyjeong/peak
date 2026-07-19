@@ -1,6 +1,6 @@
 {
   "name": "peak-temp",
-  "version": "5.9.3",
+  "version": "5.9.4",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -102,7 +102,7 @@
     "ts-jest": "^29.4.6",
     "typescript": "^5"
   },
-  "lastUpdate": "2026-07-07",
+  "lastUpdate": "2026-07-19",
   "overrides": {
     "serialize-javascript": "7.0.5",
     "uuid": "11.1.1",
