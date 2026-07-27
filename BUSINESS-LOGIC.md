@@ -8,19 +8,27 @@
 - `COUNT(DISTINCT att.id)` ≠ 체크완료 수 (row 존재는 예약만 돼도 생김)
 - 과거 오판 기록: `cap-20260411-190412-9502`
 
-## 측정 기록 (student_records)
+## 측정 기록 (student_records) — 일상 측정 전용
 - `record_type_id` 로 종목 식별
 - `measured_at` (DATE) — 측정일
 - `value` (DECIMAL) — 값
 - `direction` higher/lower 로 정렬/평가
+- **월말 입력과 저장 분리** (같은 날이어도 서로 덮어쓰지 않음)
 
 ## 월말 테스트 파이프라인
 1. 원장이 `monthly_test` 생성 + 종목 (`monthly_test_types`)
 2. `test_sessions` 회차 생성
 3. `test_participants` 학생 배정
-4. 실기 당일 `test_records` 기록
+4. 실기 당일 **`test_records` 기록** (재원생·테스트신규 모두)
+   - `test_records.student_id` 또는 `test_applicant_id` + `test_session_id`
+   - 일반 측정 `student_records` 와 저장 분리
 5. `score_tables` + `score_ranges` 로 점수 계산 → `calculated_score`
 6. 순위 산정
+
+## 학생 프로필 그래프/히스토리
+- 조회 시 `student_records`(일상) + `test_records`(월말, student_id) **합산 표시**
+- 같은 날 둘 다 있으면 둘 다 노출 (월말 라벨)
+- 최고/최신 통계에도 월말 기록 포함
 
 ## 반 배치 시스템
 - 원장이 `daily_plans` 로 하루 수업 계획

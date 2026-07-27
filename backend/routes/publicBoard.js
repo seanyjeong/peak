@@ -223,39 +223,28 @@ router.get('/:slug', async (req, res) => {
       });
     }
 
-    // 7. 기록 조회 (student_records + test_records) - 테스트 세션 날짜 기준
+    // 7. 월말 기록 조회 (test_records 전용 — 당일 일반 측정 student_records 미포함)
     const studentIds = participants.filter(p => p.student_id).map(p => p.student_id);
-    const testDates = sessions.map(s => s.test_date);
     let studentRecords = {};
-
-    if (studentIds.length > 0 && recordTypeIds.length > 0 && testDates.length > 0) {
-      const [records] = await pool.query(`
-        SELECT student_id, record_type_id, value
-        FROM student_records
-        WHERE academy_id = ? AND student_id IN (?) AND record_type_id IN (?) AND measured_at IN (?)
-        ORDER BY measured_at DESC
-      `, [academyId, studentIds, recordTypeIds, testDates]);
-
-      records.forEach(r => {
-        if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
-        if (!studentRecords[r.student_id][r.record_type_id]) {
-          studentRecords[r.student_id][r.record_type_id] = r.value;
-        }
-      });
-    }
-
-    // 테스트신규 기록
     let applicantRecords = {};
-    if (testApplicantIds.length > 0 && recordTypeIds.length > 0) {
+
+    if (sessionIds.length > 0 && recordTypeIds.length > 0) {
       const [records] = await pool.query(`
-        SELECT test_applicant_id, record_type_id, value
+        SELECT student_id, test_applicant_id, record_type_id, value
         FROM test_records
-        WHERE academy_id = ? AND test_session_id IN (?) AND test_applicant_id IN (?) AND record_type_id IN (?)
-      `, [academyId, sessionIds, testApplicantIds, recordTypeIds]);
+        WHERE academy_id = ? AND test_session_id IN (?) AND record_type_id IN (?)
+      `, [academyId, sessionIds, recordTypeIds]);
 
       records.forEach(r => {
-        if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
-        applicantRecords[r.test_applicant_id][r.record_type_id] = r.value;
+        if (r.student_id) {
+          if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
+          if (!studentRecords[r.student_id][r.record_type_id]) {
+            studentRecords[r.student_id][r.record_type_id] = r.value;
+          }
+        } else if (r.test_applicant_id) {
+          if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
+          applicantRecords[r.test_applicant_id][r.record_type_id] = r.value;
+        }
       });
     }
 

@@ -38,6 +38,7 @@ export interface RecordHistory {
     record_type_name: string;
     unit: string;
     value: number;
+    source?: 'training' | 'monthly_test';
   }[];
 }
 

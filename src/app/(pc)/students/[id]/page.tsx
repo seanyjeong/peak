@@ -98,13 +98,21 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
 
   const trendChartData = useMemo(() => {
     if (!selectedChartType) return [];
-    return recordHistory
-      .filter((history) => history.records.some((record) => record.record_type_id === selectedChartType))
-      .map((history) => {
-        const record = history.records.find((item) => item.record_type_id === selectedChartType);
-        return { date: formatDate(history.measured_at), value: record?.value || 0 };
-      })
-      .reverse();
+    const points: { date: string; value: number; sortKey: string }[] = [];
+    recordHistory.forEach((history) => {
+      history.records
+        .filter((record) => record.record_type_id === selectedChartType)
+        .forEach((record, idx) => {
+          const isMonthly = (record as { source?: string }).source === 'monthly_test';
+          const base = formatDate(history.measured_at);
+          points.push({
+            date: isMonthly ? `${base} 월말` : base,
+            value: Number(record.value) || 0,
+            sortKey: `${history.measured_at}#${isMonthly ? 'm' : 't'}#${idx}`,
+          });
+        });
+    });
+    return points.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   }, [recordHistory, selectedChartType]);
 
   const trendDomain = useMemo(() => {
@@ -402,10 +410,20 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
                 <tr key={history.measured_at}>
                   <td className="px-5 py-3 font-semibold text-slate-700 dark:text-slate-200">{formatDate(history.measured_at)}</td>
                   {selectedTypeObjects.map((type) => {
-                    const record = history.records.find((item) => item.record_type_id === type.id);
+                    const matches = history.records.filter((item) => item.record_type_id === type.id);
                     return (
                       <td key={type.id} className="px-3 py-3 text-center font-mono font-semibold text-slate-800 dark:text-slate-200">
-                        {record ? formatRecordValue(record.value, type.unit) : '-'}
+                        {matches.length === 0
+                          ? '-'
+                          : matches.map((record, idx) => {
+                              const isMonthly = (record as { source?: string }).source === 'monthly_test';
+                              return (
+                                <span key={`${type.id}-${idx}`} className="block">
+                                  {formatRecordValue(record.value, type.unit)}
+                                  {isMonthly ? <span className="ml-1 text-[10px] font-bold text-violet-600">월말</span> : null}
+                                </span>
+                              );
+                            })}
                       </td>
                     );
                   })}

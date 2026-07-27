@@ -512,38 +512,44 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
       });
     }
 
-    // 재원생 기록 조회 (해당 테스트 날짜들 기준, 종목별 최고 기록)
+    // 재원생/테스트신규 월말 기록 (test_records 전용; completed만 student_records 폴백)
     const studentIds = allParticipants.filter(p => p.student_id).map(p => p.student_id);
     let studentRecords = {};
+    let applicantRecords = {};
 
-    if (studentIds.length > 0 && testDates.length > 0) {
+    if (sessionIds.length > 0 && (studentIds.length > 0 || testApplicantIds.length > 0)) {
       const [records] = await pool.query(`
-        SELECT student_id, record_type_id, MAX(value) as value
-        FROM student_records
-        WHERE academy_id = ? AND student_id IN (?) AND measured_at IN (?)
-        GROUP BY student_id, record_type_id
-      `, [academyId, studentIds, testDates]);
+        SELECT student_id, test_applicant_id, record_type_id, value
+        FROM test_records
+        WHERE academy_id = ? AND test_session_id IN (?)
+      `, [academyId, sessionIds]);
 
       records.forEach(r => {
-        if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
-        studentRecords[r.student_id][r.record_type_id] = parseFloat(r.value);
+        const value = parseFloat(r.value);
+        if (r.student_id) {
+          if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
+          studentRecords[r.student_id][r.record_type_id] = value;
+        } else if (r.test_applicant_id) {
+          if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
+          applicantRecords[r.test_applicant_id][r.record_type_id] = value;
+        }
       });
     }
 
-    // 테스트신규 기록 조회 (test_records)
-    let applicantRecords = {};
-    if (testApplicantIds.length > 0) {
-      const [records] = await pool.query(`
-        SELECT test_applicant_id, record_type_id, MAX(value) as value
-        FROM test_records
-        WHERE academy_id = ? AND test_session_id IN (?) AND test_applicant_id IN (?)
-        GROUP BY test_applicant_id, record_type_id
-      `, [academyId, sessionIds, testApplicantIds]);
-
-      records.forEach(r => {
-        if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
-        applicantRecords[r.test_applicant_id][r.record_type_id] = parseFloat(r.value);
-      });
+    if (test.status === 'completed' && studentIds.length > 0 && Object.keys(studentRecords).length === 0) {
+      const legacyDates = [...new Set(sessions.map(sess => sess.test_date))];
+      if (legacyDates.length > 0) {
+        const [legacy] = await pool.query(`
+          SELECT student_id, record_type_id, MAX(value) as value
+          FROM student_records
+          WHERE academy_id = ? AND student_id IN (?) AND measured_at IN (?)
+          GROUP BY student_id, record_type_id
+        `, [academyId, studentIds, legacyDates]);
+        legacy.forEach(r => {
+          if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
+          studentRecords[r.student_id][r.record_type_id] = parseFloat(r.value);
+        });
+      }
     }
 
     // 배점표 조회
@@ -795,33 +801,38 @@ router.get('/:id/export', verifyToken, async (req, res) => {
       });
     }
 
-    // 재원생 기록
+    // 재원생/테스트신규 월말 기록 (test_records 전용; completed만 student_records 폴백)
     const studentIds = participants.filter(p => p.student_id).map(p => p.student_id);
     let studentRecords = {};
-    if (studentIds.length > 0) {
-      const [records] = await pool.query(`
-        SELECT student_id, record_type_id, value
-        FROM student_records
-        WHERE academy_id = ? AND student_id IN (?) AND measured_at IN (?)
-      `, [academyId, studentIds, testDates]);
-      records.forEach(r => {
-        if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
-        studentRecords[r.student_id][r.record_type_id] = r.value;
+    let applicantRecords = {};
+    if (sessionIds.length > 0 && (studentIds.length > 0 || testApplicantIds.length > 0)) {
+      const [allTestRecords] = await pool.query(`
+        SELECT student_id, test_applicant_id, record_type_id, value
+        FROM test_records
+        WHERE academy_id = ? AND test_session_id IN (?)
+      `, [academyId, sessionIds]);
+      allTestRecords.forEach(r => {
+        if (r.student_id) {
+          if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
+          studentRecords[r.student_id][r.record_type_id] = r.value;
+        } else if (r.test_applicant_id) {
+          if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
+          applicantRecords[r.test_applicant_id][r.record_type_id] = r.value;
+        }
       });
     }
-
-    // 테스트신규 기록
-    let applicantRecords = {};
-    if (testApplicantIds.length > 0) {
-      const [records] = await pool.query(`
-        SELECT test_applicant_id, record_type_id, value
-        FROM test_records
-        WHERE academy_id = ? AND test_session_id IN (?) AND test_applicant_id IN (?)
-      `, [academyId, sessionIds, testApplicantIds]);
-      records.forEach(r => {
-        if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
-        applicantRecords[r.test_applicant_id][r.record_type_id] = r.value;
-      });
+    if (test.status === 'completed' && studentIds.length > 0 && Object.keys(studentRecords).length === 0) {
+      if (testDates.length > 0) {
+        const [legacy] = await pool.query(`
+          SELECT student_id, record_type_id, value
+          FROM student_records
+          WHERE academy_id = ? AND student_id IN (?) AND measured_at IN (?)
+        `, [academyId, studentIds, testDates]);
+        legacy.forEach(r => {
+          if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
+          studentRecords[r.student_id][r.record_type_id] = r.value;
+        });
+      }
     }
 
     // 엑셀 워크북 생성

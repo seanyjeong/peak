@@ -22,6 +22,61 @@ const KOREAN_FONT_PATH = path.join(__dirname, '../fonts/NanumBarunGothic.ttf');
 
 // P-ACA DB: using shared paca-database config
 
+function toDateKey(measuredAt) {
+    if (measuredAt instanceof Date) return measuredAt.toISOString().split('T')[0];
+    if (typeof measuredAt === 'string') return measuredAt.split('T')[0];
+    return String(measuredAt);
+}
+
+/**
+ * 일상 측정(student_records) + 월말 테스트(test_records) 합산.
+ * 저장은 분리, 학생 프로필/그래프/통계에서는 함께 표시.
+ */
+async function fetchStudentCombinedRecords(academyId, studentId) {
+    const [rows] = await db.query(`
+        SELECT
+            r.id,
+            r.record_type_id,
+            r.value,
+            r.measured_at,
+            r.notes,
+            rt.name AS record_type_name,
+            rt.unit,
+            rt.direction,
+            rt.display_order,
+            'training' AS source
+        FROM student_records r
+        JOIN record_types rt ON r.record_type_id = rt.id
+        WHERE r.student_id = ? AND r.academy_id = ?
+
+        UNION ALL
+
+        SELECT
+            tr.id,
+            tr.record_type_id,
+            tr.value,
+            tr.measured_at,
+            tr.notes,
+            rt.name AS record_type_name,
+            rt.unit,
+            rt.direction,
+            rt.display_order,
+            'monthly_test' AS source
+        FROM test_records tr
+        JOIN record_types rt ON tr.record_type_id = rt.id
+        WHERE tr.student_id = ? AND tr.academy_id = ?
+    `, [studentId, academyId, studentId, academyId]);
+
+    return rows.sort((a, b) => {
+        const dateDiff = new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        // 같은 날이면 월말 테스트를 최신(우선)으로
+        if (a.source !== b.source) return a.source === 'monthly_test' ? -1 : 1;
+        return (a.display_order || 0) - (b.display_order || 0);
+    });
+}
+
+
 /**
  * POST /peak/students/sync
  * P-ACA에서 학생 데이터 동기화 (Bulk Upsert 방식)
@@ -361,25 +416,12 @@ router.get('/:id/records', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'Student not found' });
         }
 
-        const [records] = await db.query(`
-            SELECT r.*, rt.name as record_type_name, rt.unit, rt.direction
-            FROM student_records r
-            JOIN record_types rt ON r.record_type_id = rt.id
-            WHERE r.student_id = ? AND r.academy_id = ?
-            ORDER BY r.measured_at DESC, rt.display_order
-        `, [studentId, academyId]);
+        const records = await fetchStudentCombinedRecords(academyId, studentId);
 
-        // 날짜별로 그룹화
+        // 날짜별로 그룹화 (같은 날 일상측정+월말 둘 다 유지)
         const grouped = {};
         records.forEach(r => {
-            let dateKey;
-            if (r.measured_at instanceof Date) {
-                dateKey = r.measured_at.toISOString().split('T')[0];
-            } else if (typeof r.measured_at === 'string') {
-                dateKey = r.measured_at.split('T')[0];
-            } else {
-                dateKey = String(r.measured_at);
-            }
+            const dateKey = toDateKey(r.measured_at);
             if (!grouped[dateKey]) {
                 grouped[dateKey] = { measured_at: dateKey, records: [] };
             }
@@ -389,7 +431,8 @@ router.get('/:id/records', verifyToken, async (req, res) => {
                 unit: r.unit,
                 direction: r.direction,
                 value: r.value,
-                notes: r.notes
+                notes: r.notes,
+                source: r.source || 'training'
             });
         });
 
@@ -432,14 +475,8 @@ router.get('/:id/stats', verifyToken, async (req, res) => {
             [academyId]
         );
 
-        // 3. 학생의 모든 기록 조회
-        const [allRecords] = await db.query(`
-            SELECT r.*, rt.direction
-            FROM student_records r
-            JOIN record_types rt ON r.record_type_id = rt.id
-            WHERE r.student_id = ? AND r.academy_id = ?
-            ORDER BY r.measured_at DESC
-        `, [studentId, academyId]);
+        // 3. 학생의 모든 기록 조회 (일상 측정 + 월말 테스트)
+        const allRecords = await fetchStudentCombinedRecords(academyId, studentId);
 
         // 4. 종목별 배점표 조회
         const [scoreTables] = await db.query(`
@@ -619,14 +656,8 @@ router.get('/:id/export-pdf', verifyToken, async (req, res) => {
             [academyId]
         );
 
-        // 4. 학생 기록
-        const [allRecords] = await db.query(`
-            SELECT r.*, rt.name as record_type_name, rt.unit, rt.direction
-            FROM student_records r
-            JOIN record_types rt ON r.record_type_id = rt.id
-            WHERE r.student_id = ? AND r.academy_id = ?
-            ORDER BY r.measured_at DESC
-        `, [studentId, academyId]);
+        // 4. 학생 기록 (일상 측정 + 월말 테스트)
+        const allRecords = await fetchStudentCombinedRecords(academyId, studentId);
 
         // 5. 배점표
         const [scoreTables] = await db.query(`
@@ -766,13 +797,14 @@ router.get('/:id/export-pdf', verifyToken, async (req, res) => {
         // 8. Records grouped by date
         const recordsByDate = {};
         allRecords.slice(0, 50).forEach(r => {
-            const dateKey = new Date(r.measured_at).toISOString().split('T')[0];
+            const dateKey = toDateKey(r.measured_at);
             if (!recordsByDate[dateKey]) recordsByDate[dateKey] = [];
             recordsByDate[dateKey].push({
                 record_type_id: r.record_type_id,
                 value: parseFloat(r.value),
                 record_type_name: r.record_type_name,
-                unit: r.unit
+                unit: r.unit,
+                source: r.source || 'training'
             });
         });
         const recordHistory = Object.keys(recordsByDate).sort().reverse()

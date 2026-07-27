@@ -5,7 +5,11 @@ const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
-const { StudentRecordScopeError, saveStudentRecord } = require('../utils/student-records');
+const {
+  StudentRecordScopeError,
+  assertStudentInAcademy,
+  validateRecordValue,
+} = require('../utils/student-records');
 
 // Middleware: verify session belongs to user's academy
 async function verifySessionOwnership(req, res, next) {
@@ -893,35 +897,26 @@ router.get('/:sessionId/records', verifyToken, verifySessionOwnership, async (re
       });
     }
 
-    // 재원생 기록 (student_records)
+    // 재원생/테스트신규 월말 기록은 모두 test_records (일반 측정 student_records와 분리)
     const studentIds = participants.filter(p => p.student_id).map(p => p.student_id);
     let studentRecords = {};
-
-    if (studentIds.length > 0) {
-      const [records] = await pool.query(`
-        SELECT student_id, record_type_id, value
-        FROM student_records
-        WHERE academy_id = ? AND student_id IN (?) AND measured_at = ?
-      `, [academyId, studentIds, session.test_date]);
-
-      records.forEach(r => {
-        if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
-        studentRecords[r.student_id][r.record_type_id] = r.value;
-      });
-    }
-
-    // 테스트신규 기록 (test_records)
     let applicantRecords = {};
-    if (testApplicantIds.length > 0) {
+
+    if (studentIds.length > 0 || testApplicantIds.length > 0) {
       const [records] = await pool.query(`
-        SELECT test_applicant_id, record_type_id, value
+        SELECT student_id, test_applicant_id, record_type_id, value
         FROM test_records
-        WHERE academy_id = ? AND test_session_id = ? AND test_applicant_id IN (?)
-      `, [academyId, sessionId, testApplicantIds]);
+        WHERE academy_id = ? AND test_session_id = ?
+      `, [academyId, sessionId]);
 
       records.forEach(r => {
-        if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
-        applicantRecords[r.test_applicant_id][r.record_type_id] = r.value;
+        if (r.student_id) {
+          if (!studentRecords[r.student_id]) studentRecords[r.student_id] = {};
+          studentRecords[r.student_id][r.record_type_id] = r.value;
+        } else if (r.test_applicant_id) {
+          if (!applicantRecords[r.test_applicant_id]) applicantRecords[r.test_applicant_id] = {};
+          applicantRecords[r.test_applicant_id][r.record_type_id] = r.value;
+        }
       });
     }
 
@@ -1082,26 +1077,51 @@ router.post('/:sessionId/records/batch', verifyToken, verifySessionOwnership, as
 
     const testDate = sessions[0].test_date;
 
-    // 종목별 direction 조회
-    const [types] = await conn.query(`
-      SELECT id, direction FROM record_types
-    `);
-    const directionMap = {};
-    types.forEach(t => directionMap[t.id] = t.direction);
-
     const results = [];
 
     for (const r of records) {
+      // value null/빈문자 또는 delete:true → 해당 종목 월말 기록 삭제 (0은 파울로 저장 유지)
+      const shouldDelete =
+        r.delete === true ||
+        r.value === null ||
+        r.value === undefined ||
+        (typeof r.value === 'string' && r.value.trim() === '');
+
+      if (shouldDelete) {
+        if (r.student_id) {
+          await assertStudentInAcademy(conn, academyId, r.student_id);
+          const [del] = await conn.query(`
+            DELETE FROM test_records
+            WHERE academy_id = ? AND test_session_id = ? AND student_id = ? AND record_type_id = ?
+          `, [academyId, sessionId, r.student_id, r.record_type_id]);
+          results.push({ action: 'deleted', student_id: r.student_id, deleted: del.affectedRows });
+        } else if (r.test_applicant_id) {
+          const [applicantCheck] = await pacaPool.query(
+            'SELECT id FROM test_applicants WHERE id = ? AND academy_id = ?',
+            [r.test_applicant_id, academyId]
+          );
+          if (applicantCheck.length === 0) {
+            await conn.rollback();
+            return res.status(404).json({ success: false, message: '학생을 찾을 수 없습니다.' });
+          }
+          const [del] = await conn.query(`
+            DELETE FROM test_records
+            WHERE academy_id = ? AND test_session_id = ? AND test_applicant_id = ? AND record_type_id = ?
+          `, [academyId, sessionId, r.test_applicant_id, r.record_type_id]);
+          results.push({ action: 'deleted', test_applicant_id: r.test_applicant_id, deleted: del.affectedRows });
+        }
+        continue;
+      }
+
       if (r.student_id) {
-        // 재원생: student_records에 UPSERT (항상 덮어쓰기 - 수정 가능하도록)
-        await saveStudentRecord(conn, {
-          academyId,
-          studentId: r.student_id,
-          recordTypeId: r.record_type_id,
-          measuredAt: testDate,
-          value: r.value,
-          notes: null
-        });
+        // 재원생: 월말 전용 test_records에 UPSERT (일반 측정 student_records와 분리)
+        await assertStudentInAcademy(conn, academyId, r.student_id);
+        const validation = await validateRecordValue(conn, academyId, r.record_type_id, r.value);
+        await conn.query(`
+          INSERT INTO test_records (academy_id, test_session_id, student_id, record_type_id, value, measured_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE value = VALUES(value)
+        `, [academyId, sessionId, r.student_id, r.record_type_id, validation.value, testDate]);
         results.push({ action: 'saved', student_id: r.student_id });
       } else if (r.test_applicant_id) {
         const [applicantCheck] = await pacaPool.query(
@@ -1113,12 +1133,12 @@ router.post('/:sessionId/records/batch', verifyToken, verifySessionOwnership, as
           return res.status(404).json({ success: false, message: '학생을 찾을 수 없습니다.' });
         }
 
-        // 테스트신규: test_records에 UPSERT
+        const validation = await validateRecordValue(conn, academyId, r.record_type_id, r.value);
         await conn.query(`
           INSERT INTO test_records (academy_id, test_session_id, test_applicant_id, record_type_id, value, measured_at)
           VALUES (?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE value = VALUES(value)
-        `, [academyId, sessionId, r.test_applicant_id, r.record_type_id, r.value, testDate]);
+        `, [academyId, sessionId, r.test_applicant_id, r.record_type_id, validation.value, testDate]);
         results.push({ action: 'saved', test_applicant_id: r.test_applicant_id });
       }
     }
@@ -1160,45 +1180,18 @@ router.delete('/:sessionId/records', verifyToken, verifySessionOwnership, async 
       return res.status(404).json({ success: false, message: '세션을 찾을 수 없습니다.' });
     }
 
-    const testDate = sessions[0].test_date;
-
-    // 세션 참가자 조회
-    const [participants] = await conn.query(`
-      SELECT student_id, test_applicant_id FROM test_participants WHERE test_session_id = ?
-    `, [sessionId]);
-
-    const studentIds = participants.filter(p => p.student_id).map(p => p.student_id);
-    const applicantIds = participants.filter(p => p.test_applicant_id).map(p => p.test_applicant_id);
-
-    let deletedStudentRecords = 0;
-    let deletedApplicantRecords = 0;
-
-    // 재원생 기록 삭제 (해당 날짜의 기록만)
-    if (studentIds.length > 0) {
-      const [result] = await conn.query(`
-        DELETE FROM student_records
-        WHERE academy_id = ? AND student_id IN (?) AND measured_at = ?
-      `, [academyId, studentIds, testDate]);
-      deletedStudentRecords = result.affectedRows;
-    }
-
-    // 테스트신규 기록 삭제
-    if (applicantIds.length > 0) {
-      const [result] = await conn.query(`
-        DELETE FROM test_records
-        WHERE academy_id = ? AND test_session_id = ? AND test_applicant_id IN (?)
-      `, [academyId, sessionId, applicantIds]);
-      deletedApplicantRecords = result.affectedRows;
-    }
+    // 월말 세션 기록만 삭제 (일반 측정 student_records는 건드리지 않음)
+    const [result] = await conn.query(`
+      DELETE FROM test_records
+      WHERE academy_id = ? AND test_session_id = ?
+    `, [academyId, sessionId]);
 
     await conn.commit();
     res.json({
       success: true,
       message: '세션 기록이 삭제되었습니다.',
       deleted: {
-        studentRecords: deletedStudentRecords,
-        applicantRecords: deletedApplicantRecords,
-        total: deletedStudentRecords + deletedApplicantRecords
+        total: result.affectedRows
       }
     });
   } catch (error) {

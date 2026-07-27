@@ -156,10 +156,11 @@ export default function SessionRecordsPage({
   };
 
   const saveRecord = useCallback(async (participant: Participant, typeId: number, value: string) => {
-    if (!value || isNaN(parseFloat(value))) return;
+    if (value !== '' && isNaN(parseFloat(value))) return;
 
     const key = getParticipantKey(participant);
     const saveKey = `${key}-${typeId}`;
+    const isDelete = value.trim() === '';
 
     try {
       setSavingMap(prev => ({ ...prev, [saveKey]: true }));
@@ -168,12 +169,19 @@ export default function SessionRecordsPage({
           student_id: participant.student_id,
           test_applicant_id: participant.test_applicant_id,
           record_type_id: typeId,
-          value: parseFloat(value)
+          // 빈칸 = 삭제 (0은 파울로 저장 유지)
+          ...(isDelete ? { delete: true, value: null } : { value: parseFloat(value) })
         }]
       });
       setSavedMap(prev => ({ ...prev, [saveKey]: true }));
+      if (isDelete) {
+        setInputs(prev => ({
+          ...prev,
+          [key]: { ...prev[key], [typeId]: '' }
+        }));
+      }
     } catch (error) {
-      toast.error(getSessionErrorMessage(error, '기록을 저장하지 못했습니다.'));
+      toast.error(getSessionErrorMessage(error, isDelete ? '기록을 삭제하지 못했습니다.' : '기록을 저장하지 못했습니다.'));
     } finally {
       setSavingMap(prev => ({ ...prev, [saveKey]: false }));
     }
@@ -199,8 +207,8 @@ export default function SessionRecordsPage({
       clearTimeout(saveTimers.current[saveKey]);
     }
 
-    // 500ms 후 자동 저장
-    if (value && !isNaN(parseFloat(value))) {
+    // 500ms 후 자동 저장 / 빈칸이면 삭제
+    if (value.trim() === '' || !isNaN(parseFloat(value))) {
       saveTimers.current[saveKey] = setTimeout(() => {
         saveRecord(participant, typeId, value);
       }, 500);
@@ -209,7 +217,7 @@ export default function SessionRecordsPage({
 
   const handleDeleteAllRecords = async () => {
     // 1단계: 경고
-    if (!confirm('정말 이 세션의 모든 기록을 삭제하시겠습니까?\n\n재원생 기록도 해당 날짜 기록이 모두 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.')) return;
+    if (!confirm('정말 이 세션의 월말 기록을 모두 삭제하시겠습니까?\n\n일상 측정 기록은 삭제되지 않습니다.\n\n이 작업은 되돌릴 수 없습니다.')) return;
 
     // 2단계: "삭제" 입력 확인
     const input = prompt('삭제를 진행하려면 "삭제"를 입력하세요:');

@@ -153,13 +153,22 @@ export default function StudentsPage() {
 
   const getLatestRecordByType = (typeId: number) => {
     if (studentRecords.length === 0) return { value: null, trend: null };
-    const typeRecords: { date: string; value: number }[] = [];
+    const typeRecords: { date: string; value: number; source?: string }[] = [];
     studentRecords.forEach(sr => {
-      const record = sr.records.find(r => r.record_type_id === typeId);
-      if (record) typeRecords.push({ date: sr.measured_at, value: record.value });
+      sr.records
+        .filter((r: { record_type_id: number }) => r.record_type_id === typeId)
+        .forEach((record: { value: number; source?: string }) => {
+          typeRecords.push({ date: sr.measured_at, value: record.value, source: record.source });
+        });
     });
     if (typeRecords.length === 0) return { value: null, trend: null };
-    typeRecords.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // 같은 날이면 월말 우선, 그다음 날짜순
+    typeRecords.sort((a, b) => {
+      const d = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (d !== 0) return d;
+      if (a.source !== b.source) return a.source === 'monthly_test' ? 1 : -1;
+      return 0;
+    });
     const latest = typeRecords[typeRecords.length - 1].value;
     let trend = null;
     if (typeRecords.length >= 2) {
@@ -182,14 +191,19 @@ export default function StudentsPage() {
   const getChartData = (typeId: number) => {
     const data: { date: string; value: number; label: string }[] = [];
     studentRecords.forEach(sr => {
-      const record = sr.records.find(r => r.record_type_id === typeId);
-      if (record) data.push({
-        date: sr.measured_at,
-        value: typeof record.value === 'string' ? parseFloat(record.value) : record.value,
-        label: new Date(sr.measured_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
-      });
+      const baseLabel = new Date(sr.measured_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+      sr.records
+        .filter((r: { record_type_id: number }) => r.record_type_id === typeId)
+        .forEach((record: { value: number | string; source?: string }, idx: number) => {
+          const isMonthly = record.source === 'monthly_test';
+          data.push({
+            date: `${sr.measured_at}#${record.source || 'training'}#${idx}`,
+            value: typeof record.value === 'string' ? parseFloat(record.value) : record.value,
+            label: isMonthly ? `${baseLabel} 월말` : baseLabel,
+          });
+        });
     });
-    return data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return data.sort((a, b) => a.date.localeCompare(b.date));
   };
 
   return (

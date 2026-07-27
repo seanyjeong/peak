@@ -31,6 +31,8 @@ export interface RecordItem {
   direction: 'higher' | 'lower';
   value: number;
   notes: string | null;
+  /** training = 일상 측정, monthly_test = 월말 테스트 */
+  source?: 'training' | 'monthly_test';
 }
 
 export interface StudentRecord {
