@@ -11,7 +11,7 @@ const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
-const { getAssignablePacaStatusSql } = require('../services/assignmentEligibilityService');
+const { getAssignmentReadEligibilitySql } = require('../services/assignmentEligibilityService');
 const registerAssignmentInstructorRoutes = require('./assignmentInstructorRoutes');
 const registerAssignmentSyncRoutes = require('./assignmentSyncRoutes');
 
@@ -21,7 +21,7 @@ router.get('/', verifyToken, async (req, res) => {
         const { date } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
         const academyId = req.user.academyId;  // 토큰에서 학원 ID 가져오기
-        const assignableStatusSql = getAssignablePacaStatusSql('ps');
+        const assignableStatusSql = getAssignmentReadEligibilitySql('ps', 'a');
 
         // P-ACA에서 시간대 설정 가져오기
         const [settingsRows] = await pacaPool.query(`

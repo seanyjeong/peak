@@ -2,7 +2,11 @@ const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { verifyToken } = require('../middleware/auth');
 const { decrypt } = require('../utils/encryption');
-const { getAssignablePacaStatusSql } = require('../services/assignmentEligibilityService');
+const {
+    getAssignmentSyncSourceStatusSql,
+    isAssignmentSyncEligible,
+    isTrialAssignmentSnapshot,
+} = require('../services/assignmentEligibilityService');
 
 function registerAssignmentSyncRoutes(router) {
     router.post('/sync', verifyToken, async (req, res) => {
@@ -10,7 +14,7 @@ function registerAssignmentSyncRoutes(router) {
             const { date } = req.body;
             const targetDate = date || new Date().toISOString().split('T')[0];
             const academyId = req.user.academyId;
-            const assignableStatusSql = getAssignablePacaStatusSql('s');
+            const assignableStatusSql = getAssignmentSyncSourceStatusSql('s');
 
             const [existingAssignments] = await db.query(`
                 SELECT id, student_id, time_slot, class_id, paca_attendance_id, is_trial, trial_total, trial_remaining
@@ -41,6 +45,7 @@ function registerAssignmentSyncRoutes(router) {
                 JOIN class_schedules cs ON a.class_schedule_id = cs.id
                 JOIN students s
                     ON a.student_id = s.id
+                    AND s.academy_id = cs.academy_id
                     AND s.deleted_at IS NULL
                     AND ${assignableStatusSql.clause}
                 WHERE cs.academy_id = ? AND cs.class_date = ?
@@ -116,8 +121,16 @@ function buildSyncPlan(pacaStudents, existingMap, peakStudentMap) {
     };
 
     for (const ps of pacaStudents) {
-        const trialTotal = getTrialTotal(ps);
         let peakStudentId = peakStudentMap.get(ps.paca_student_id);
+        const actualStudentId = typeof peakStudentId === 'string' && peakStudentId.startsWith('temp_')
+            ? null
+            : peakStudentId;
+        const existing = actualStudentId
+            ? existingMap.get(`${actualStudentId}-${ps.time_slot}`)
+            : null;
+        if (!isAssignmentSyncEligible(ps.student_status, existing)) continue;
+
+        const trialTotal = getTrialTotal(ps);
 
         if (!peakStudentId) {
             plan.studentsToInsert.push([
@@ -145,14 +158,10 @@ function buildSyncPlan(pacaStudents, existingMap, peakStudentMap) {
             ]);
         }
 
-        const actualStudentId = typeof peakStudentId === 'string' && peakStudentId.startsWith('temp_')
-            ? null
-            : peakStudentId;
         plan.syncedStudentKeys.add(`${peakStudentId}-${ps.time_slot}`);
 
-        const existing = actualStudentId ? existingMap.get(`${actualStudentId}-${ps.time_slot}`) : null;
         if (existing) {
-            const keepTrialInfo = existing.is_trial === 1;
+            const keepTrialInfo = isTrialAssignmentSnapshot(existing);
             plan.assignmentsToUpdate.push([
                 ps.attendance_id,
                 keepTrialInfo ? 1 : (ps.is_trial ? 1 : 0),

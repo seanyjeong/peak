@@ -60,6 +60,7 @@ describe('academy scoped route SQL', () => {
   });
 
   it('keeps assignment sync student and assignment mutations inside the current academy', () => {
+    expect(assignmentSync).toContain('AND s.academy_id = cs.academy_id');
     expect(assignmentSync).toContain('getPeakStudentMap(pacaStudentIds, academyId)');
     expect(assignmentSync).toContain('SELECT id, paca_student_id FROM students WHERE academy_id = ? AND paca_student_id IN (?)');
     expect(assignmentSync).toContain('updateStudents(syncPlan.studentsToUpdate, academyId)');
