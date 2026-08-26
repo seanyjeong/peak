@@ -2,6 +2,7 @@ import {
   assertNoConsoleProblems,
   assertNoHorizontalOverflow,
   createAuthedPage,
+  jsonRoute,
   launchSmokeBrowser,
   mockPeakApi,
   stabilizeForScreenshot,
@@ -47,11 +48,34 @@ async function runAssignments(browser, viewport, screenshotPath) {
   return state;
 }
 
+async function runAssignmentsFailure(browser) {
+  const state = {};
+  const { context, diagnostics, page } = await createAuthedPage(browser);
+  await mockPeakApi(context, state);
+  await context.route('https://supermax.kr/peak/assignments/sync', (route) => (
+    jsonRoute(route, { error: 'Internal Server Error' }, 500)
+  ));
+
+  await page.goto('/assignments', { waitUntil: 'networkidle' });
+  await page.getByText('반 배치 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.').waitFor();
+
+  const visibleText = await page.locator('body').innerText();
+  for (const forbidden of ['Internal Server Error', '500', 'CORS', 'stack trace']) {
+    if (visibleText.includes(forbidden)) {
+      throw new Error(`assignments error UX leaked technical detail: ${forbidden}`);
+    }
+  }
+
+  assertNoConsoleProblems(diagnostics, 'assignments failure UX');
+  await context.close();
+}
+
 async function main() {
   const browser = await launchSmokeBrowser();
   try {
     const desktop = await runAssignments(browser, { width: 1440, height: 960 }, '/Users/etlab/peak-assignments-desktop.png');
     const tablet = await runAssignments(browser, { width: 1024, height: 900 }, '/Users/etlab/peak-assignments-tablet.png');
+    await runAssignmentsFailure(browser);
     console.log(JSON.stringify({ desktopHits: desktop.hits, tabletHits: tablet.hits }, null, 2));
   } finally {
     await browser.close();

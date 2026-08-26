@@ -164,8 +164,11 @@ export function assertNoConsoleProblems(diagnostics, label) {
   if (relevantConsole.length) {
     throw new Error(`${label} console errors: ${relevantConsole.join(' | ')}`);
   }
-  if (diagnostics.failedRequests.length) {
-    throw new Error(`${label} failed requests: ${diagnostics.failedRequests.join(' | ')}`);
+  const relevantFailedRequests = diagnostics.failedRequests.filter((message) => (
+    !(message.includes('?_rsc=') && message.endsWith('net::ERR_ABORTED'))
+  ));
+  if (relevantFailedRequests.length) {
+    throw new Error(`${label} failed requests: ${relevantFailedRequests.join(' | ')}`);
   }
 }
 

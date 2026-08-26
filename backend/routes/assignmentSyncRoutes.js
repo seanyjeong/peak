@@ -4,6 +4,7 @@ const { verifyToken } = require('../middleware/auth');
 const { decrypt } = require('../utils/encryption');
 const {
     getAssignmentSyncSourceStatusSql,
+    getTrialAssignmentSnapshot,
     isAssignmentSyncEligible,
     isTrialAssignmentSnapshot,
 } = require('../services/assignmentEligibilityService');
@@ -77,7 +78,7 @@ function registerAssignmentSyncRoutes(router) {
 async function syncAssignments({ academyId, targetDate, pacaStudents, existingAssignments, existingMap }) {
     const pacaStudentIds = pacaStudents.map(ps => ps.paca_student_id);
     const peakStudentMap = await getPeakStudentMap(pacaStudentIds, academyId);
-    const syncPlan = buildSyncPlan(pacaStudents, existingMap, peakStudentMap);
+    const syncPlan = buildSyncPlan(pacaStudents, existingMap, peakStudentMap, targetDate);
 
     if (syncPlan.studentsToInsert.length > 0) {
         await insertStudents(syncPlan.studentsToInsert, academyId, peakStudentMap);
@@ -109,7 +110,7 @@ async function getPeakStudentMap(pacaStudentIds, academyId) {
     return peakStudentMap;
 }
 
-function buildSyncPlan(pacaStudents, existingMap, peakStudentMap) {
+function buildSyncPlan(pacaStudents, existingMap, peakStudentMap, targetDate) {
     const plan = {
         studentsToInsert: [],
         studentsToUpdate: [],
@@ -122,15 +123,16 @@ function buildSyncPlan(pacaStudents, existingMap, peakStudentMap) {
 
     for (const ps of pacaStudents) {
         let peakStudentId = peakStudentMap.get(ps.paca_student_id);
+        const trialSnapshot = getTrialAssignmentSnapshot(ps, targetDate);
         const actualStudentId = typeof peakStudentId === 'string' && peakStudentId.startsWith('temp_')
             ? null
             : peakStudentId;
         const existing = actualStudentId
             ? existingMap.get(`${actualStudentId}-${ps.time_slot}`)
             : null;
-        if (!isAssignmentSyncEligible(ps.student_status, existing)) continue;
+        if (!isAssignmentSyncEligible(ps.student_status, existing, trialSnapshot)) continue;
 
-        const trialTotal = getTrialTotal(ps);
+        const currentTrialTotal = ps.is_trial ? trialSnapshot.trialTotal : 0;
 
         if (!peakStudentId) {
             plan.studentsToInsert.push([
@@ -140,7 +142,7 @@ function buildSyncPlan(pacaStudents, existingMap, peakStudentMap) {
                 ps.school,
                 ps.grade,
                 ps.is_trial ? 1 : 0,
-                trialTotal,
+                currentTrialTotal,
                 ps.trial_remaining || 0,
             ]);
             peakStudentId = `temp_${ps.paca_student_id}`;
@@ -152,7 +154,7 @@ function buildSyncPlan(pacaStudents, existingMap, peakStudentMap) {
                 ps.school,
                 ps.grade,
                 ps.is_trial ? 1 : 0,
-                trialTotal,
+                currentTrialTotal,
                 ps.trial_remaining || 0,
                 peakStudentId,
             ]);
@@ -164,9 +166,9 @@ function buildSyncPlan(pacaStudents, existingMap, peakStudentMap) {
             const keepTrialInfo = isTrialAssignmentSnapshot(existing);
             plan.assignmentsToUpdate.push([
                 ps.attendance_id,
-                keepTrialInfo ? 1 : (ps.is_trial ? 1 : 0),
-                keepTrialInfo ? existing.trial_total : trialTotal,
-                keepTrialInfo ? existing.trial_remaining : (ps.trial_remaining || 0),
+                keepTrialInfo ? 1 : (trialSnapshot.isTrial ? 1 : 0),
+                keepTrialInfo ? existing.trial_total : trialSnapshot.trialTotal,
+                ps.trial_remaining || 0,
                 existing.id,
             ]);
             plan.updatedCount++;
@@ -175,8 +177,8 @@ function buildSyncPlan(pacaStudents, existingMap, peakStudentMap) {
                 pacaStudentId: ps.paca_student_id,
                 timeSlot: ps.time_slot,
                 attendanceId: ps.attendance_id,
-                isTrial: ps.is_trial ? 1 : 0,
-                trialTotal,
+                isTrial: trialSnapshot.isTrial ? 1 : 0,
+                trialTotal: trialSnapshot.trialTotal,
                 trialRemaining: ps.trial_remaining || 0,
             });
             plan.addedCount++;
@@ -190,18 +192,6 @@ function convertGender(gender) {
     if (gender === 'male' || gender === 'M') return 'M';
     if (gender === 'female' || gender === 'F') return 'F';
     return 'M';
-}
-
-function getTrialTotal(student) {
-    if (!student.is_trial) return 0;
-    try {
-        const trialDates = typeof student.trial_dates === 'string'
-            ? JSON.parse(student.trial_dates || '[]')
-            : (student.trial_dates || []);
-        return trialDates.length || 2;
-    } catch {
-        return 2;
-    }
 }
 
 async function insertStudents(studentsToInsert, academyId, peakStudentMap) {

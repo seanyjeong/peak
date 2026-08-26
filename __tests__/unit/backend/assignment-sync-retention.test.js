@@ -121,4 +121,52 @@ describe('POST /peak/assignments/sync trial retention', () => {
             [8650, 2]
         );
     });
+
+    it('recreates a completed trial row that an earlier sync already removed', async () => {
+        peakDb.query
+            .mockResolvedValueOnce([[]])
+            .mockResolvedValueOnce([[
+                { id: 140199, paca_student_id: 10773 },
+            ]])
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([{ affectedRows: 1 }]);
+        pacaDb.query.mockResolvedValueOnce([[
+            {
+                attendance_id: 53800,
+                paca_student_id: 10773,
+                student_name: 'encrypted-name',
+                gender: 'male',
+                school: 'school',
+                grade: 'grade',
+                is_trial: 0,
+                trial_remaining: 0,
+                trial_dates: '[{"date":"2026-08-05","time_slot":"evening","attended":true},{"date":"2026-08-07","time_slot":"evening","attended":true}]',
+                student_status: 'pending',
+                time_slot: 'evening',
+                attendance_status: 'present',
+                is_makeup: 0,
+            },
+        ]]);
+
+        const response = await postJson(makeApp(), '/peak/assignments/sync', {
+            date: '2026-08-07',
+        });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject({ success: true, added: 1, removed: 0 });
+        const insertCall = peakDb.query.mock.calls.find(([sql]) => sql.includes('INSERT INTO daily_assignments'));
+        expect(insertCall[1][0][0]).toEqual([
+            2,
+            '2026-08-07',
+            'evening',
+            140199,
+            53800,
+            null,
+            'enrolled',
+            0,
+            1,
+            2,
+            0,
+        ]);
+    });
 });
