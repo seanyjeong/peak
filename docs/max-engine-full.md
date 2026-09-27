@@ -21,3 +21,11 @@ npx tsc --noEmit
 ```
 
 세 저장소의 배포·롤백·포트·환경 키·스모크 절차는 max-engine `ops/deploy/mcp/VERIFY.md`, 라우트 전수와 범위는 `docs/analysis/paca-peak-full/`를 따른다. MCP 운영 로그인·Caddy·systemd 검증은 배포 담당자가 수행한다.
+
+## 2026-09-27 업무 조회 효율화 증분
+
+`GET /workflows/{recent_records|event_ranking|student_progress}?params=<JSON>`를 고정 PACA `/peak/workflows/` 경로로 전달한다. 자원 조회에는 `ids`·`expand` JSON 문자열도 전달한다. 그 외 쿼리와 임의 업무 경로는 거부한다. 업무 SQL·현재 PACA 학생 소속/표시 정보 검증은 PACA 원본 서버가 수행한다. 순위는 기존 PEAK처럼 재원생의 기간 내 최신 기록, 종목 higher/lower 기준이며 동점은 학생 id순으로 순번을 고정한다.
+
+이번 증분의 런타임 변경은 `backend/routes/maxEngine.js`, `backend/services/maxEngineGateway.js` 두 파일뿐이다. `peak.js`, privacy middleware, 인증키·포트·DB·환경 설정은 바뀌지 않는다. 운영 쓰기·배포는 실행하지 않았다.
+
+검증: Jest 29 suites / 197 passed, Node 12 passed, TypeScript noEmit 통과. 새 검사는 업무 고정 경로·배열 전달·교육원 override 차단을 다룬다. max-engine 실제 OAuth MCP·MySQL 벤치마크도 이 gateway를 통과한다. 상세 계약·결과는 max-engine `docs/analysis/mcp-efficient/IMPLEMENTATION.md`, 증분 배포 목록은 `ops/deploy/mcp/VERIFY.md`를 따른다.

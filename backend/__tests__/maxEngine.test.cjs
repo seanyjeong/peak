@@ -44,3 +44,15 @@ test('malformed login JSON is sanitized before legacy logging',async()=>{
   assert.equal(privacy.isIntegration({path:'/peak/students'}),false);
  } finally {s.close();}
 });
+test('workflow parameters and batch/expand pass through fixed PEAK paths',async()=>{
+ const params=JSON.stringify({event:'100m',start_date:'2026-09-01',end_date:'2026-09-27'});
+ assert.equal((await fetch(base+'/workflows/event_ranking?'+new URLSearchParams({params}))).status,200);
+ assert.equal(calls.at(-1).path,'/paca/integrations/max-engine/full/peak/workflows/event_ranking');
+ assert.equal(calls.at(-1).query.params,params);
+ assert.equal((await fetch(base+'/resources/student_records?'+new URLSearchParams({ids:'[1,2]',expand:'["student","event"]'}))).status,200);
+ assert.equal(calls.at(-1).query.ids,'[1,2]');
+ const n=calls.length;
+ assert.equal((await fetch(base+'/workflows/today_brief')).status,404);
+ assert.equal((await fetch(base+'/workflows/recent_records?academy_id=2')).status,422);
+ assert.equal(calls.length,n);
+});
