@@ -18,7 +18,7 @@ const requestLogger = (req, res, next) => {
 
     // 정적 리소스 제외 (옵션)
     const skipPaths = ['/health', '/favicon.ico'];
-    if (!skipPaths.includes(req.path)) {
+    if (!skipPaths.includes(req.path) && !require('./maxEnginePrivacy').isIntegration(req)) {
       logger.api(
         req.method,
         req.path,
