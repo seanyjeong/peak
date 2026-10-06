@@ -56,3 +56,11 @@ test('workflow parameters and batch/expand pass through fixed PEAK paths',async(
  assert.equal((await fetch(base+'/workflows/recent_records?academy_id=2')).status,422);
  assert.equal(calls.length,n);
 });
+test('lesson preparation forwards date/slot and bearer to the fixed source without allowing academy override',async()=>{
+ const params=JSON.stringify({date:'2026-10-07',time_slot:'afternoon'});
+ const r=await fetch(base+'/workflows/teaching_context?'+new URLSearchParams({params}),{headers:{Authorization:'Bearer synthetic-delegation'}});
+ assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'no-store');
+ assert.equal(calls.at(-1).path,'/paca/integrations/max-engine/full/peak/workflows/teaching_context');
+ assert.equal(calls.at(-1).query.params,params);assert.equal(calls.at(-1).auth,'Bearer synthetic-delegation');
+ const n=calls.length;assert.equal((await fetch(base+'/workflows/teaching_context?academy_id=2')).status,422);assert.equal(calls.length,n);
+});

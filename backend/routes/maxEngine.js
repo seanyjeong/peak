@@ -17,7 +17,7 @@ router.post('/token', forward('/token'));
 router.get('/identity', forward('/identity'));
 router.get('/catalog', forward('/peak/catalog'));
 router.get('/workflows/:workflow', (req, res, next) => {
-  if (!['recent_records', 'event_ranking', 'student_progress'].includes(req.params.workflow)) return res.status(404).json({ error: { code: 'NOT_FOUND', message: '조회 업무를 확인해 주세요.', details: {} } });
+  if (!['recent_records', 'event_ranking', 'student_progress', 'teaching_context'].includes(req.params.workflow)) return res.status(404).json({ error: { code: 'NOT_FOUND', message: '조회 업무를 확인해 주세요.', details: {} } });
   next();
 }, forward(req => '/peak/workflows/' + req.params.workflow));
 router.get('/resources/:resource', (req, res, next) => {
