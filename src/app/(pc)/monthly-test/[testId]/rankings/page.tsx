@@ -45,6 +45,9 @@ const GENDER_LABELS: Record<string, string> = {
   F: '여'
 };
 
+// 선행반 = 중1~고2 (P-ACA 문자 발송 학년 필터와 같은 기준)
+const ADVANCE_GRADES = ['중1', '중2', '중3', '고1', '고2'];
+
 export default function RankingsPage({
   params
 }: {
@@ -59,6 +62,7 @@ export default function RankingsPage({
   const [loading, setLoading] = useState(true);
   const [selectedTypeId, setSelectedTypeId] = useState<number | 'total'>('total');
   const [genderFilter, setGenderFilter] = useState<'all' | 'M' | 'F'>('all');
+  const [classFilter, setClassFilter] = useState<'all' | 'advance'>('all');
 
   useEffect(() => {
     fetchData();
@@ -85,6 +89,11 @@ export default function RankingsPage({
     // 성별 필터
     if (genderFilter !== 'all') {
       filtered = filtered.filter(p => p.gender === genderFilter);
+    }
+
+    // 반 필터 (선행반은 그 안에서 다시 1위부터)
+    if (classFilter === 'advance') {
+      filtered = filtered.filter(p => ADVANCE_GRADES.includes(p.grade ?? ''));
     }
 
     // 정렬
@@ -126,7 +135,7 @@ export default function RankingsPage({
 
       return { ...p, rank };
     });
-  }, [participants, genderFilter, selectedTypeId, recordTypes]);
+  }, [participants, genderFilter, classFilter, selectedTypeId, recordTypes]);
 
   // 기록 포맷팅
   const formatValue = (value: number | undefined, unit: string): string => {
@@ -173,7 +182,7 @@ export default function RankingsPage({
           <div className="flex-1">
             <h1 className="text-xl font-bold">{test?.test_name || '월말테스트'}</h1>
             <p className="text-sm text-gray-500 dark:text-slate-400">
-              전체 순위 · {rankedParticipants.length}명
+              {classFilter === 'advance' ? '선행반' : '전체'} 순위 · {rankedParticipants.length}명
             </p>
           </div>
         </div>
@@ -190,6 +199,20 @@ export default function RankingsPage({
                 onClick={() => setGenderFilter(g)}
               >
                 {g === 'all' ? '전체' : GENDER_LABELS[g]}
+              </Button>
+            ))}
+          </div>
+
+          {/* 반 필터 */}
+          <div className="flex gap-2">
+            {(['all', 'advance'] as const).map(c => (
+              <Button
+                key={c}
+                variant={classFilter === c ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setClassFilter(c)}
+              >
+                {c === 'all' ? '전체 학년' : '선행반 (중1~고2)'}
               </Button>
             ))}
           </div>

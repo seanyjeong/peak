@@ -31,6 +31,16 @@ async function main() {
   await page.getByRole('button', { name: '여' }).click();
   await page.getByText('김서연').waitFor();
 
+  // 선행반(중1~고2)만 남기고 그 안에서 다시 순위를 매긴다
+  await page.getByRole('button', { name: '종합' }).click();
+  await page.getByRole('button', { name: '전체', exact: true }).click();
+  await page.getByRole('button', { name: '선행반 (중1~고2)' }).click();
+  await page.getByText('선행반 순위 · 2명').waitFor();
+  await page.getByText('박준호').waitFor();
+  if (await page.getByText('유민재').count()) throw new Error('grade 고3 student must be excluded from 선행반 rankings');
+  await page.getByRole('button', { name: '전체 학년' }).click();
+  await page.getByText('전체 순위 · 3명').waitFor();
+
   if (!state.hits.includes('GET /monthly-tests/31/all-records')) {
     throw new Error('monthly test rankings API was not requested');
   }
@@ -53,6 +63,7 @@ function makeRankings() {
     participants: [
       { student_id: 201, name: '김서연', gender: 'F', school: '백마고', grade: '고2', participant_type: 'enrolled', records: { 1: 236, 2: 9.8 }, scores: { 1: 98, 2: 96 }, total_score: 194, scored_count: 2 },
       { student_id: 202, name: '유민재', gender: 'M', school: '정발고', grade: '고3', participant_type: 'enrolled', records: { 1: 251, 2: 9.3 }, scores: { 1: 100, 2: 98 }, total_score: 198, scored_count: 2 },
+      { student_id: 203, name: '박준호', gender: 'M', school: '대화고', grade: '고1', participant_type: 'enrolled', records: { 1: 220, 2: 10.4 }, scores: { 1: 80, 2: 70 }, total_score: 150, scored_count: 2 },
     ],
   };
 }
