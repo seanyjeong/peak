@@ -11,6 +11,20 @@ const { decryptStudentFields } = require('../utils/paca-student');
 const { requireFeaturePermission } = require('../utils/feature-permissions');
 
 /**
+ * 일상 측정(student_records) + 재원생 월말 테스트(test_records) 합산.
+ * 같은 학생·종목·날짜에 월말 테스트가 있으면 그날은 월말 테스트 기록만 쓴다 (월말 테스트 날은 일반 측정을 하지 않음).
+ */
+const COMBINED_RECORDS = `(
+    SELECT sr.student_id, sr.record_type_id, sr.value, sr.measured_at, sr.academy_id FROM student_records sr
+    WHERE NOT EXISTS (
+        SELECT 1 FROM test_records tr
+        WHERE tr.student_id = sr.student_id AND tr.record_type_id = sr.record_type_id AND tr.measured_at = sr.measured_at
+    )
+    UNION ALL
+    SELECT student_id, record_type_id, value, measured_at, academy_id FROM test_records WHERE student_id IS NOT NULL
+)`;
+
+/**
  * 선형회귀 기울기 계산
  */
 function calculateSlope(values) {
@@ -55,7 +69,7 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
             SELECT
                 COUNT(*) as totalRecords,
                 COUNT(DISTINCT sr.student_id) as totalStudents
-            FROM student_records sr
+            FROM ${COMBINED_RECORDS} sr
             JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
             JOIN paca.students ps ON s.paca_student_id = ps.id
             WHERE sr.academy_id = ? AND ps.status = 'active'
@@ -96,10 +110,10 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
                 s.gender,
                 ROUND(AVG(sr.value), 1) as avg_value,
                 COUNT(DISTINCT sr.student_id) as student_count
-            FROM student_records sr
+            FROM ${COMBINED_RECORDS} sr
             INNER JOIN (
                 SELECT student_id, record_type_id, MAX(measured_at) as max_date
-                FROM student_records
+                FROM ${COMBINED_RECORDS} r
                 WHERE academy_id = ?
                 GROUP BY student_id, record_type_id
             ) latest ON sr.student_id = latest.student_id
@@ -146,10 +160,10 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
             const orderDir = rt.direction === 'lower' ? 'ASC' : 'DESC';
             const [maleRank] = await db.query(`
                 SELECT sr.student_id, ps.name as student_name, ps.gender, sr.value, sr.measured_at
-                FROM student_records sr
+                FROM ${COMBINED_RECORDS} sr
                 INNER JOIN (
                     SELECT student_id, MAX(measured_at) as max_date
-                    FROM student_records WHERE record_type_id = ? AND academy_id = ?
+                    FROM ${COMBINED_RECORDS} r WHERE record_type_id = ? AND academy_id = ?
                     GROUP BY student_id
                 ) latest ON sr.student_id = latest.student_id AND sr.measured_at = latest.max_date
                 JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
@@ -161,10 +175,10 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
 
             const [femaleRank] = await db.query(`
                 SELECT sr.student_id, ps.name as student_name, ps.gender, sr.value, sr.measured_at
-                FROM student_records sr
+                FROM ${COMBINED_RECORDS} sr
                 INNER JOIN (
                     SELECT student_id, MAX(measured_at) as max_date
-                    FROM student_records WHERE record_type_id = ? AND academy_id = ?
+                    FROM ${COMBINED_RECORDS} r WHERE record_type_id = ? AND academy_id = ?
                     GROUP BY student_id
                 ) latest ON sr.student_id = latest.student_id AND sr.measured_at = latest.max_date
                 JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
@@ -198,7 +212,7 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
             SELECT
                 sr.student_id, sr.record_type_id, sr.value, sr.measured_at,
                 ps.name as student_name, ps.gender as paca_gender, s.gender
-            FROM student_records sr
+            FROM ${COMBINED_RECORDS} sr
             JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
             JOIN paca.students ps ON s.paca_student_id = ps.id
             WHERE sr.academy_id = ? AND ps.status = 'active' AND s.academy_id = ?
