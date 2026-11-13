@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock3, RefreshCw, UserRoundCheck, X } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { BranchTabs, type Branch } from '@/components/BranchTabs';
 import { useSocket } from '@/hooks/useSocket';
 import { useToast } from '@/hooks/useToast';
 import {
@@ -36,6 +37,9 @@ export default function StudentAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
   const [updating, setUpdating] = useState<number | 'batch' | null>(null);
+  // P-ACA 지점별로 본다. null = 전체
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState<number | null>(null);
 
   const today = useMemo(() => new Date().toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -52,8 +56,10 @@ export default function StudentAttendancePage() {
     try {
       setLoading(true);
       const dateStr = getLocalDateString();
-      const res = await apiClient.get<StudentAttendanceResponse>(`/attendance/students?date=${dateStr}`);
+      const branchQuery = branchId ? `&branch_id=${branchId}` : '';
+      const res = await apiClient.get<StudentAttendanceResponse>(`/attendance/students?date=${dateStr}${branchQuery}`);
       const nextSlots = normalizeSlots(res.data.slots);
+      setBranches(res.data.branches || []);
 
       setSlotsData(nextSlots);
       slotsDataRef.current = nextSlots;
@@ -64,7 +70,7 @@ export default function StudentAttendancePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     fetchData();
@@ -170,6 +176,8 @@ export default function StudentAttendancePage() {
           새로고침
         </button>
       </header>
+
+      <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="학생 출석 요약">
         <SummaryCard icon={UserRoundCheck} label="출석 완료" value={`${stats.present}/${stats.total}`} detail={`${completionRate}% 확인`} tone="green" />

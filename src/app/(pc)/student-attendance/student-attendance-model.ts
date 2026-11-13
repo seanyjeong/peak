@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { Branch } from '@/components/BranchTabs';
 import { AlertCircle, Check, Clock3, Moon, Sun, Sunrise, X } from 'lucide-react';
 
 export type TimeSlot = 'morning' | 'afternoon' | 'evening';
@@ -38,6 +39,7 @@ export interface Stats {
 export interface StudentAttendanceResponse {
   slots?: Partial<SlotsData>;
   stats?: Partial<Stats>;
+  branches?: Branch[]; // P-ACA 지점 (지점이 없는 학원은 빈 목록)
 }
 
 export const EMPTY_SLOTS: SlotsData = { morning: [], afternoon: [], evening: [] };

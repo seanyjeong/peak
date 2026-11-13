@@ -18,6 +18,7 @@ function makeApp() {
     app.use(express.json());
     app.use('/peak/assignments', require('../../../backend/routes/assignments'));
     app.use('/peak/presets', (req, _res, next) => { req.user = { academyId: 2 }; next(); }, require('../../../backend/routes/presets'));
+    app.use('/peak/attendance', require('../../../backend/routes/attendance'));
     return app;
 }
 
@@ -218,5 +219,19 @@ describe('지점별 반 배치', () => {
 
         expect(res.body.result).toMatchObject({ classes_created: 0, students_assigned: 0, instructors_absent: 1 });
         expect(peakDb.query.mock.calls.some(([sql]) => sql.includes('INSERT INTO class_instructors'))).toBe(false);
+    });
+
+    it('학생 출석: 지점을 주면 그 지점 학생만 읽고, 없는 지점은 거절한다', async () => {
+        pacaDb.query.mockResolvedValueOnce([branches]);
+        peakDb.query.mockResolvedValueOnce([[]]);
+        const res = await call('GET', '/peak/attendance/students?date=2026-11-14&branch_id=2', {});
+        expect(res.status).toBe(200);
+        expect(res.body.branches).toEqual(branches);
+        expect(peakDb.query.mock.calls[0][0]).toContain('AND ps.branch_id = ?');
+        expect(peakDb.query.mock.calls[0][1]).toEqual([2, 2, '2026-11-14', 2]);
+
+        pacaDb.query.mockReset();
+        pacaDb.query.mockResolvedValueOnce([branches]);
+        expect((await call('GET', '/peak/attendance/students?date=2026-11-14&branch_id=99', {})).status).toBe(400);
     });
 });

@@ -11,6 +11,7 @@ const { decryptStudentFields } = require('../utils/paca-student');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
+const { getPacaBranches, resolveBranchId } = require('../services/assignmentBranchService');
 const {
     emitStudentAttendanceBatchUpdated,
     emitStudentAttendanceUpdated,
@@ -207,6 +208,13 @@ router.get('/students', verifyToken, async (req, res) => {
         const targetDate = date || new Date().toISOString().split('T')[0];
         const academyId = req.user.academyId;
 
+        // P-ACA 지점: 지점을 주면 그 지점 학생만 본다. 지점이 없는 학원은 지금 그대로.
+        const branches = await getPacaBranches(academyId);
+        const branchId = resolveBranchId(req.query.branch_id, branches);
+        if (branchId === undefined) {
+            return res.status(400).json({ error: '지점을 확인해주세요.' });
+        }
+
         // Peak daily_assignments에서 학생 조회 + Paca attendance 상태
         const [assignments] = await db.query(`
             SELECT
@@ -226,15 +234,17 @@ router.get('/students', verifyToken, async (req, res) => {
             JOIN students s ON da.student_id = s.id
             JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
             WHERE da.academy_id = ? AND da.date = ?
+            ${branchId ? 'AND ps.branch_id = ?' : ''}
             ORDER BY da.time_slot, ps.name
-        `, [academyId, academyId, targetDate]);
+        `, [academyId, academyId, targetDate, ...(branchId ? [branchId] : [])]);
 
         if (assignments.length === 0) {
             return res.json({
                 success: true,
                 date: targetDate,
                 slots: { morning: [], afternoon: [], evening: [] },
-                stats: { total: 0, present: 0, absent: 0, late: 0, excused: 0 }
+                stats: { total: 0, present: 0, absent: 0, late: 0, excused: 0 },
+                branches
             });
         }
 
@@ -296,7 +306,8 @@ router.get('/students', verifyToken, async (req, res) => {
             success: true,
             date: targetDate,
             slots: bySlot,
-            stats
+            stats,
+            branches
         });
     } catch (error) {
         console.error('Get student attendance error:', error);
