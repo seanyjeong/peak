@@ -133,11 +133,16 @@ router.put('/conditions/:date', verifyToken, async (req, res) => {
 router.put('/:id', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-        const { condition_score, notes, temperature, humidity } = req.body;
+        // 보낸 칸만 바꾼다. 모바일은 컨디션과 메모를 따로 저장하므로, 안 보낸 칸을 NULL 로 덮으면 앞서 저장한 값이 지워진다.
+        const fields = ['condition_score', 'notes', 'temperature', 'humidity']
+            .filter(field => Object.prototype.hasOwnProperty.call(req.body, field));
+        if (fields.length === 0) {
+            return res.status(400).json({ error: 'Bad Request', message: '바꿀 내용이 없습니다.' });
+        }
 
         await db.query(
-            'UPDATE training_logs SET condition_score = ?, notes = ?, temperature = ?, humidity = ? WHERE id = ? AND academy_id = ?',
-            [condition_score, notes, temperature ?? null, humidity ?? null, req.params.id, academyId]
+            `UPDATE training_logs SET ${fields.map(field => `${field} = ?`).join(', ')} WHERE id = ? AND academy_id = ?`,
+            [...fields.map(field => req.body[field] ?? null), req.params.id, academyId]
         );
 
         res.json({ success: true });

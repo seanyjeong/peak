@@ -5,6 +5,8 @@ export interface Student {
   id: number;
   assignment_id: number;
   training_log_id?: number;
+  /** 기록이 없을 때 새로 만들 담당 강사 (PC 수업 기록과 같은 순서로 정함) */
+  trainer_id: number | null;
   name: string;
   gender: 'male' | 'female';
   condition_score?: number;

@@ -96,10 +96,14 @@ export default function MobileTrainingPage() {
 
       const slotData = myStudents.map((s) => {
         const existingLog = existingLogs.find((l: { student_id: number }) => l.student_id === s.student_id);
+        const classTrainerId = slotClasses
+          .find((classData) => classData.students.some((student) => student.student_id === s.student_id))
+          ?.instructors[0]?.id;
         return {
           id: s.student_id,
           assignment_id: s.id,
           training_log_id: existingLog?.id,
+          trainer_id: nextInstructorId ?? classTrainerId ?? currentUser?.instructorId ?? null,
           name: s.student_name,
           gender: (s.gender === 'M' || s.gender === 'male' ? 'male' : 'female') as 'male' | 'female',
           condition_score: existingLog?.condition_score,
@@ -132,63 +136,59 @@ export default function MobileTrainingPage() {
     loadData();
   }, [loadData]);
 
-  // 컨디션 저장
-  const saveCondition = async (trainingLogId: number, conditionScore: number) => {
-    const key = `condition-${trainingLogId}`;
-    setSaving(key);
+  // 컨디션·메모 저장: 기록이 있으면 보낸 칸만 바꾸고, 없으면 PC 수업 기록처럼 새로 만든다.
+  const saveLog = async (student: Student, changes: { condition_score: number } | { notes: string }) => {
+    const isCondition = 'condition_score' in changes;
+    setSaving(`${isCondition ? 'condition' : 'notes'}-${student.id}`);
 
     try {
       const token = authAPI.getToken();
-      const response = await fetch(`${API_BASE}/training/${trainingLogId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ condition_score: conditionScore }),
-      });
-      if (!response.ok) throw new Error('condition');
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      };
+      let trainingLogId = student.training_log_id;
+
+      if (trainingLogId) {
+        const response = await fetch(`${API_BASE}/training/${trainingLogId}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(changes),
+        });
+        if (!response.ok) throw new Error('training');
+      } else {
+        if (!student.trainer_id) {
+          toastRef.current.error('기록을 저장할 담당 강사를 확인하지 못했습니다.');
+          return;
+        }
+        const response = await fetch(`${API_BASE}/training`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            date: selectedDate,
+            student_id: student.id,
+            trainer_id: student.trainer_id,
+            plan_id: plans.find((plan) => plan.instructor_id === student.trainer_id)?.id ?? null,
+            condition_score: null,
+            notes: '',
+            ...changes,
+          }),
+        });
+        if (!response.ok) throw new Error('training');
+        trainingLogId = (await response.json()).logId;
+      }
 
       setStudents(prev =>
         prev.map(s =>
-          s.training_log_id === trainingLogId
-            ? { ...s, condition_score: conditionScore }
+          s.id === student.id
+            ? { ...s, ...changes, training_log_id: trainingLogId }
             : s
         )
       );
     } catch {
-      toastRef.current.error('학생 컨디션을 저장하지 못했습니다. 다시 시도해주세요.');
-    } finally {
-      setTimeout(() => setSaving(null), 500);
-    }
-  };
-
-  // 메모 저장
-  const saveNotes = async (trainingLogId: number, notes: string) => {
-    const key = `notes-${trainingLogId}`;
-    setSaving(key);
-
-    try {
-      const token = authAPI.getToken();
-      const response = await fetch(`${API_BASE}/training/${trainingLogId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ notes }),
-      });
-      if (!response.ok) throw new Error('notes');
-
-      setStudents(prev =>
-        prev.map(s =>
-          s.training_log_id === trainingLogId
-            ? { ...s, notes }
-            : s
-        )
-      );
-    } catch {
-      toastRef.current.error('학생 메모를 저장하지 못했습니다. 다시 시도해주세요.');
+      toastRef.current.error(isCondition
+        ? '학생 컨디션을 저장하지 못했습니다. 다시 시도해주세요.'
+        : '학생 메모를 저장하지 못했습니다. 다시 시도해주세요.');
     } finally {
       setTimeout(() => setSaving(null), 500);
     }
@@ -319,8 +319,8 @@ export default function MobileTrainingPage() {
             </div>
           ) : (
             students.map((student) => {
-              const isSavingCondition = saving === `condition-${student.training_log_id}`;
-              const isSavingNotes = saving === `notes-${student.training_log_id}`;
+              const isSavingCondition = saving === `condition-${student.id}`;
+              const isSavingNotes = saving === `notes-${student.id}`;
 
               return (
                 <div key={student.id} className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
@@ -347,11 +347,7 @@ export default function MobileTrainingPage() {
                     {conditionEmojis.map(({ score, emoji, label }) => (
                       <button
                         key={score}
-                        onClick={() => {
-                          if (student.training_log_id) {
-                            saveCondition(student.training_log_id, score);
-                          }
-                        }}
+                        onClick={() => saveLog(student, { condition_score: score })}
                         className={`flex-1 flex flex-col items-center py-2 rounded-xl transition ${
                           student.condition_score === score
                             ? 'bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-500'
@@ -374,8 +370,8 @@ export default function MobileTrainingPage() {
                       placeholder="메모..."
                       defaultValue={student.notes || ''}
                       onBlur={(e) => {
-                        if (student.training_log_id) {
-                          saveNotes(student.training_log_id, e.target.value);
+                        if (e.target.value !== (student.notes || '')) {
+                          saveLog(student, { notes: e.target.value });
                         }
                       }}
                       className="w-full h-10 pl-10 pr-8 text-sm bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
