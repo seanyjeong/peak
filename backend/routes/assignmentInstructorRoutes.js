@@ -1,6 +1,6 @@
 const db = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
-const { getPacaBranches, resolveBranchId } = require('../services/assignmentBranchService');
+const { getPacaBranches, resolveBranchId, liveBranchId } = require('../services/assignmentBranchService');
 
 function registerAssignmentInstructorRoutes(router) {
     router.post('/instructor', verifyToken, async (req, res) => {
@@ -42,8 +42,9 @@ function registerAssignmentInstructorRoutes(router) {
                 ORDER BY order_num
             `, [academyId, targetDate, time_slot, to_class_num]);
 
-            // 조의 지점: 이미 있는 조는 그 조의 지점을 따르고, 새 조는 화면에서 고른 지점
+            // 조의 지점: 이미 있는 조는 그 조의 지점을 따르고(지운 지점이면 지점 없음), 새 조는 화면에서 고른 지점
             let branchId = existingInsts.length > 0 ? existingInsts[0].branch_id : null;
+            if (branchId) branchId = liveBranchId(branchId, await getPacaBranches(academyId));
             if (existingInsts.length === 0 && req.body.branch_id) {
                 branchId = resolveBranchId(req.body.branch_id, await getPacaBranches(academyId));
                 if (branchId === undefined) {

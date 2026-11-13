@@ -8,7 +8,7 @@ const {
     isAssignmentSyncEligible,
     isTrialAssignmentSnapshot,
 } = require('../services/assignmentEligibilityService');
-const { getPacaBranches } = require('../services/assignmentBranchService');
+const { getPacaBranches, liveBranchId } = require('../services/assignmentBranchService');
 
 function registerAssignmentSyncRoutes(router) {
     router.post('/sync', verifyToken, async (req, res) => {
@@ -18,7 +18,8 @@ function registerAssignmentSyncRoutes(router) {
             const academyId = req.user.academyId;
             const assignableStatusSql = getAssignmentSyncSourceStatusSql('s');
             // 지점을 쓰는 학원만 학생의 P-ACA 지점·반·반 담당 강사를 같이 읽는다
-            const hasBranches = (await getPacaBranches(academyId)).length > 0;
+            const branches = await getPacaBranches(academyId);
+            const hasBranches = branches.length > 0;
 
             const [existingAssignments] = await db.query(`
                 SELECT id, student_id, time_slot, class_id, paca_attendance_id, is_trial, trial_total, trial_remaining
@@ -61,7 +62,7 @@ function registerAssignmentSyncRoutes(router) {
             const syncResult = await syncAssignments({
                 academyId,
                 targetDate,
-                hasBranches,
+                branches,
                 pacaStudents,
                 existingAssignments,
                 existingMap,
@@ -81,7 +82,7 @@ function registerAssignmentSyncRoutes(router) {
     });
 }
 
-async function syncAssignments({ academyId, targetDate, hasBranches, pacaStudents, existingAssignments, existingMap }) {
+async function syncAssignments({ academyId, targetDate, branches, pacaStudents, existingAssignments, existingMap }) {
     const pacaStudentIds = pacaStudents.map(ps => ps.paca_student_id);
     const peakStudentMap = await getPeakStudentMap(pacaStudentIds, academyId);
     const syncPlan = buildSyncPlan(pacaStudents, existingMap, peakStudentMap, targetDate);
@@ -91,7 +92,7 @@ async function syncAssignments({ academyId, targetDate, hasBranches, pacaStudent
     }
     await updateStudents(syncPlan.studentsToUpdate, academyId);
     await updateAssignments(syncPlan.assignmentsToUpdate, academyId);
-    if (hasBranches) await releaseMovedStudents(syncPlan.placedStudents, academyId, targetDate);
+    if (branches.length > 0) await releaseMovedStudents(syncPlan.placedStudents, academyId, targetDate, branches);
     const classNums = await prepareBranchClasses(syncPlan.assignmentsToInsert, academyId, targetDate);
     await insertAssignments(syncPlan.assignmentsToInsert, academyId, targetDate, peakStudentMap, classNums);
 
@@ -245,15 +246,17 @@ async function updateAssignments(assignmentsToUpdate, academyId) {
 }
 
 // P-ACA 에서 지점을 옮긴 학생이 옛 지점 조에 남아 있으면 대기로 돌린다.
-// 지점에 묶이지 않은 조(전체에서 만든 조)에 있는 학생은 그대로 둔다.
-async function releaseMovedStudents(placedStudents, academyId, targetDate) {
+// 지점에 묶이지 않은 조(전체에서 만든 조, 지운 지점의 조)에 있는 학생은 그대로 둔다.
+async function releaseMovedStudents(placedStudents, academyId, targetDate, branches) {
     if (placedStudents.length === 0) return;
 
     const [classRows] = await db.query(`
         SELECT DISTINCT time_slot, class_num, branch_id FROM class_instructors
         WHERE academy_id = ? AND date = ? AND branch_id IS NOT NULL
     `, [academyId, targetDate]);
-    const classBranch = new Map(classRows.map(row => [`${row.time_slot}-${row.class_num}`, row.branch_id]));
+    const classBranch = new Map(classRows
+        .filter(row => liveBranchId(row.branch_id, branches) !== null)
+        .map(row => [`${row.time_slot}-${row.class_num}`, row.branch_id]));
 
     for (const placed of placedStudents) {
         const branchId = classBranch.get(`${placed.timeSlot}-${placed.classNum}`);

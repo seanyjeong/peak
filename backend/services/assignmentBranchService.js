@@ -26,14 +26,21 @@ function resolveBranchId(value, branches) {
     return branches.some(branch => branch.id === id) ? id : undefined;
 }
 
-// 조가 속한 지점. 지점 없는 조(또는 없는 조)는 null.
+// 조·프리셋이 가리키는 지점이 지금 P-ACA 에 (사용 중으로) 없으면 지점 없음으로 본다.
+// P-ACA 에서 지운 지점의 조·프리셋이 어느 화면에서도 안 보이거나 막히지 않고 "전체"에서 다뤄지게 한다.
+function liveBranchId(branchId, branches) {
+    return resolveBranchId(branchId, branches) ?? null;
+}
+
+// 조가 속한 지점. 지점 없는 조(또는 없는 조, 지운 지점의 조)는 null.
 async function getClassBranchId(academyId, date, timeSlot, classNum) {
     const [rows] = await db.query(`
         SELECT branch_id FROM class_instructors
         WHERE academy_id = ? AND date = ? AND time_slot = ? AND class_num = ? AND branch_id IS NOT NULL
         LIMIT 1
     `, [academyId, date, timeSlot, classNum]);
-    return rows.length > 0 ? rows[0].branch_id : null;
+    if (rows.length === 0) return null;
+    return liveBranchId(rows[0].branch_id, await getPacaBranches(academyId));
 }
 
 // 배치된 학생의 P-ACA 지점.
@@ -48,4 +55,4 @@ async function getAssignmentBranchId(assignmentId, academyId) {
     return rows.length > 0 ? rows[0].branch_id : null;
 }
 
-module.exports = { getPacaBranches, resolveBranchId, getClassBranchId, getAssignmentBranchId };
+module.exports = { getPacaBranches, resolveBranchId, liveBranchId, getClassBranchId, getAssignmentBranchId };

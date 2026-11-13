@@ -12,7 +12,7 @@ const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
-const { getPacaBranches, resolveBranchId } = require('../services/assignmentBranchService');
+const { getPacaBranches, resolveBranchId, liveBranchId } = require('../services/assignmentBranchService');
 
 // GET /peak/presets - 프리셋 목록 (그룹 + 멤버 포함)
 router.get('/', async (req, res) => {
@@ -69,8 +69,10 @@ router.get('/', async (req, res) => {
             preset.groups = groups;
         }
 
-        // 지점을 쓰는 학원은 화면이 지점별로 프리셋을 나눠 보여준다
-        res.json({ success: true, presets, branches: await getPacaBranches(academyId) });
+        // 지점을 쓰는 학원은 화면이 지점별로 프리셋을 나눠 보여준다. 지운 지점의 프리셋은 "전체"에 나온다.
+        const branches = await getPacaBranches(academyId);
+        presets.forEach(preset => { preset.branch_id = liveBranchId(preset.branch_id, branches); });
+        res.json({ success: true, presets, branches });
     } catch (error) {
         console.error('Get presets error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -214,7 +216,9 @@ router.post('/:id/fill-from-classes', async (req, res) => {
             [req.params.id, academyId]
         );
         if (preset.length === 0) return res.status(404).json({ error: 'Preset not found' });
-        if (!preset[0].branch_id) return res.status(400).json({ error: '지점 프리셋에서만 쓸 수 있습니다.' });
+        if (!liveBranchId(preset[0].branch_id, await getPacaBranches(academyId))) {
+            return res.status(400).json({ error: '지점 프리셋에서만 쓸 수 있습니다.' });
+        }
 
         const [existing] = await db.query('SELECT id FROM preset_groups WHERE preset_id = ? LIMIT 1', [req.params.id]);
         if (existing.length > 0) return res.status(409).json({ error: '그룹이 없는 프리셋에서만 쓸 수 있습니다.' });
@@ -418,7 +422,8 @@ router.post('/:id/apply', async (req, res) => {
         });
 
         // 지점 프리셋은 그 지점의 조와 그 지점 학생만 다시 짠다. 다른 지점의 조는 그대로 둔다.
-        const branchId = preset[0].branch_id || null;
+        // 지운 지점의 프리셋은 전체 프리셋으로 적용한다.
+        const branchId = preset[0].branch_id ? liveBranchId(preset[0].branch_id, await getPacaBranches(academyId)) : null;
         let classNum = 1;
         if (branchId) {
             const [branchStudents] = await db.query(`

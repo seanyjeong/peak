@@ -143,6 +143,7 @@ describe('지점별 반 배치', () => {
     });
 
     it('이동: 다른 지점의 조로는 옮길 수 없고, 같은 지점 조로는 옮긴다', async () => {
+        pacaDb.query.mockResolvedValue([branches]);
         peakDb.query
             .mockResolvedValueOnce([[{ date: '2026-11-13', time_slot: 'evening' }]])
             .mockResolvedValueOnce([[{ branch_id: 2 }]])   // 조의 지점
@@ -184,7 +185,8 @@ describe('지점별 반 배치', () => {
             .mockResolvedValue([{ affectedRows: 1 }]);
         pacaDb.query
             .mockResolvedValueOnce([[{ id: 7 }]])
-            .mockResolvedValueOnce([[]]);
+            .mockResolvedValueOnce([[]])
+            .mockResolvedValueOnce([branches]);
 
         const res = await call('POST', '/peak/presets/5/apply', { date: '2026-11-13', time_slot: 'evening' });
 
@@ -213,12 +215,64 @@ describe('지점별 반 배치', () => {
             .mockResolvedValue([{ affectedRows: 1 }]);
         pacaDb.query
             .mockResolvedValueOnce([[{ id: 7 }]])
-            .mockResolvedValueOnce([[]]);
+            .mockResolvedValueOnce([[]])
+            .mockResolvedValueOnce([branches]);
 
         const res = await call('POST', '/peak/presets/5/apply', { date: '2026-11-13', time_slot: 'evening' });
 
         expect(res.body.result).toMatchObject({ classes_created: 0, students_assigned: 0, instructors_absent: 1 });
         expect(peakDb.query.mock.calls.some(([sql]) => sql.includes('INSERT INTO class_instructors'))).toBe(false);
+    });
+
+    it('지운 지점: 그 지점을 가리키는 조는 지점 없는 조처럼 누구나 들어간다', async () => {
+        pacaDb.query.mockResolvedValue([branches]);
+        peakDb.query
+            .mockResolvedValueOnce([[{ date: '2026-11-13', time_slot: 'evening' }]])
+            .mockResolvedValueOnce([[{ branch_id: 12 }]])   // P-ACA 에서 지운 지점
+            .mockResolvedValueOnce([{ affectedRows: 1 }]);
+        expect((await call('PUT', '/peak/assignments/10', { class_id: 4 })).status).toBe(200);
+    });
+
+    it('지운 지점: 동기화는 그 지점 조에 있는 학생을 옮긴 학생으로 보지 않는다', async () => {
+        pacaDb.query
+            .mockResolvedValueOnce([branches])
+            .mockResolvedValueOnce([[pacaStudent]]);
+        peakDb.query
+            .mockResolvedValueOnce([[{ id: 10, student_id: 500, time_slot: 'evening', class_id: 1, paca_attendance_id: 900, is_trial: 0 }]])
+            .mockResolvedValueOnce([[{ id: 500, paca_student_id: 50 }]])
+            .mockResolvedValueOnce([{ affectedRows: 1 }])                                  // 학생 정보 갱신
+            .mockResolvedValueOnce([{ affectedRows: 1 }])                                  // 배치 갱신
+            .mockResolvedValueOnce([[{ time_slot: 'evening', class_num: 1, branch_id: 12 }]]) // 지운 지점의 조
+            .mockResolvedValue([{ affectedRows: 1 }]);
+
+        expect((await call('POST', '/peak/assignments/sync', { date: '2026-11-13' })).status).toBe(200);
+        expect(peakDb.query.mock.calls.some(([sql]) => sql.includes('SELECT DISTINCT time_slot, class_num, branch_id'))).toBe(true);
+        expect(peakDb.query.mock.calls.some(([sql]) => sql.startsWith('UPDATE daily_assignments SET class_id = NULL'))).toBe(false);
+    });
+
+    it('지운 지점: 그 지점 프리셋은 목록에서 지점 없음(전체)으로 나오고, 적용은 전체 프리셋처럼 한다', async () => {
+        pacaDb.query.mockResolvedValue([branches]);
+        peakDb.query
+            .mockResolvedValueOnce([[{ id: 5, branch_id: 12 }, { id: 6, branch_id: 2 }]])
+            .mockResolvedValue([[]]);
+        const list = await call('GET', '/peak/presets', {});
+        expect(list.body.presets.map(preset => preset.branch_id)).toEqual([null, 2]);
+
+        peakDb.query.mockReset();
+        pacaDb.query.mockReset();
+        peakDb.query
+            .mockResolvedValueOnce([[{ id: 5, academy_id: 2, branch_id: 12 }]])
+            .mockResolvedValueOnce([[]])
+            .mockResolvedValueOnce([[]])
+            .mockResolvedValue([{ affectedRows: 1 }]);
+        pacaDb.query
+            .mockResolvedValueOnce([[]])
+            .mockResolvedValueOnce([[]])
+            .mockResolvedValueOnce([branches]);
+        expect((await call('POST', '/peak/presets/5/apply', { date: '2026-11-13', time_slot: 'evening' })).status).toBe(200);
+        const deletes = peakDb.query.mock.calls.filter(([sql]) => sql.startsWith('DELETE FROM class_instructors'));
+        expect(deletes).toHaveLength(1);
+        expect(deletes[0][0]).not.toContain('branch_id');
     });
 
     it('학생 출석: 지점을 주면 그 지점 학생만 읽고, 없는 지점은 거절한다', async () => {
