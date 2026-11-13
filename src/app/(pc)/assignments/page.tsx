@@ -254,6 +254,9 @@ export default function AssignmentsPage() {
       const result = res.data?.result;
       const summary = result
         ? `반 ${result.classes_created}개, 학생 ${result.students_assigned}명 배정`
+          + (result.instructors_absent > 0
+            ? ` · 근무가 없거나 다른 반에 있는 강사 ${result.instructors_absent}명의 그룹은 대기로 둠`
+            : '')
         : '프리셋을 적용했습니다.';
       toastRef.current.success(summary);
     } catch {

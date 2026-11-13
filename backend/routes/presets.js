@@ -445,6 +445,13 @@ router.post('/:id/apply', async (req, res) => {
                 [academyId, date, time_slot]
             );
             classNum = maxRows[0].max_num + 1;
+
+            // 다른 지점(또는 전체) 조에 이미 들어간 강사는 이 지점 그룹에 다시 넣지 않는다 (끌어 옮기기와 같은 규칙)
+            const [busyRows] = await db.query(
+                'SELECT DISTINCT instructor_id FROM class_instructors WHERE academy_id = ? AND date = ? AND time_slot = ?',
+                [academyId, date, time_slot]
+            );
+            busyRows.forEach(row => availableInstructorIds.delete(row.instructor_id));
         } else {
         // 4. Reset current assignments for this time slot
         await db.query(

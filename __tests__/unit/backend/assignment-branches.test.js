@@ -179,6 +179,7 @@ describe('지점별 반 배치', () => {
             .mockResolvedValueOnce([{ affectedRows: 1 }])                                      // 그 지점 조 삭제
             .mockResolvedValueOnce([{ affectedRows: 1 }])                                      // 그 지점 학생 대기로
             .mockResolvedValueOnce([[{ max_num: 2 }]])                                         // 남은 조 번호
+            .mockResolvedValueOnce([[{ instructor_id: 9 }]])                                   // 다른 조에 있는 강사
             .mockResolvedValue([{ affectedRows: 1 }]);
         pacaDb.query
             .mockResolvedValueOnce([[{ id: 7 }]])
@@ -195,5 +196,27 @@ describe('지점별 반 배치', () => {
         expect(classInsert[1]).toEqual([2, '2026-11-13', 'evening', 3, 7, 1]);
         const moved = peakDb.query.mock.calls.filter(([sql]) => sql === 'UPDATE daily_assignments SET class_id = ? WHERE id = ?');
         expect(moved.map(([, params]) => params)).toEqual([[3, 10]]);
+    });
+
+    it('프리셋: 다른 지점 조에 이미 들어간 강사의 그룹은 만들지 않고 학생을 대기로 둔다', async () => {
+        peakDb.query
+            .mockResolvedValueOnce([[{ id: 5, academy_id: 2, branch_id: 1 }]])
+            .mockResolvedValueOnce([[{ id: 50, instructor_id: 7 }]])
+            .mockResolvedValueOnce([[{ student_id: 500 }]])
+            .mockResolvedValueOnce([[{ id: 10, student_id: 500 }]])
+            .mockResolvedValueOnce([[{ id: 10, student_id: 500 }]])
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([[{ max_num: 2 }]])
+            .mockResolvedValueOnce([[{ instructor_id: 7 }]])                                   // 7 은 다른 지점 조에 있음
+            .mockResolvedValue([{ affectedRows: 1 }]);
+        pacaDb.query
+            .mockResolvedValueOnce([[{ id: 7 }]])
+            .mockResolvedValueOnce([[]]);
+
+        const res = await call('POST', '/peak/presets/5/apply', { date: '2026-11-13', time_slot: 'evening' });
+
+        expect(res.body.result).toMatchObject({ classes_created: 0, students_assigned: 0, instructors_absent: 1 });
+        expect(peakDb.query.mock.calls.some(([sql]) => sql.includes('INSERT INTO class_instructors'))).toBe(false);
     });
 });
