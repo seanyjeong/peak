@@ -10,6 +10,7 @@ const {
   verifyBoardPin,
 } = require('../utils/board-access');
 const { decrypt } = require('../utils/encryption');
+const { getPacaBranches, resolveBranchId } = require('../services/assignmentBranchService');
 const {
   findBoardSettingsBySlug,
   toBoardAcademy,
@@ -106,6 +107,13 @@ router.get('/:slug', async (req, res) => {
     // 2. 현재 active인 월말테스트 조회
     const academyId = academy.id;
 
+    // 지점별 전광판: ?branch=<지점 번호> 를 주면 그 지점 학생끼리의 순위 (지점이 없는 학원은 그대로)
+    const branches = await getPacaBranches(academyId);
+    const branchId = resolveBranchId(req.query.branch, branches);
+    if (branchId === undefined) {
+      return res.status(400).json({ success: false, message: '지점을 확인해주세요.' });
+    }
+
     const [tests] = await pool.query(`
       SELECT id, test_month, test_name, status
       FROM monthly_tests
@@ -193,7 +201,8 @@ router.get('/:slug', async (req, res) => {
       LEFT JOIN students s ON tp.student_id = s.id
       LEFT JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = s.academy_id
       WHERE tp.test_session_id IN (?)
-    `, [sessionIds]);
+      ${branchId ? 'AND ps.branch_id = ?' : ''}
+    `, [sessionIds, ...(branchId ? [branchId] : [])]);
 
     // Decrypt paca student names + convert gender
     participants.forEach(p => {
@@ -360,6 +369,7 @@ router.get('/:slug', async (req, res) => {
       success: true,
       academy: { name: academy.name, slug: academy.slug },
       test: { name: test.test_name, month: test.test_month },
+      branches,
       ranking: { male: maleRanking, female: femaleRanking },
       events
     });

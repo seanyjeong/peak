@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/core';
 import { Layers, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { BranchTabs } from '@/components/BranchTabs';
 import { useToast } from '@/hooks/useToast';
 import {
   getPresetTypeLabel,
@@ -29,7 +30,10 @@ import { GroupColumn, StudentPill, UnassignedArea } from './presets-dnd';
 export default function PresetsPage() {
   const toast = useToast();
   const toastRef = useRef(toast);
-  const [presets, setPresets] = useState<Preset[]>([]);
+  const [allPresets, setAllPresets] = useState<Preset[]>([]);
+  // P-ACA 지점. null = 지점 없는 프리셋(지점이 없는 학원은 늘 null)
+  const [branches, setBranches] = useState<Array<{ id: number; name: string }>>([]);
+  const [branchId, setBranchId] = useState<number | null>(null);
   const [activePresetId, setActivePresetId] = useState<number | null>(null);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [instructors, setInstructors] = useState<InstructorOption[]>([]);
@@ -49,10 +53,9 @@ export default function PresetsPage() {
   );
 
   const fetchPresets = useCallback(async () => {
-    const res = await apiClient.get<{ presets?: Preset[] }>('/presets');
-    const nextPresets = res.data.presets || [];
-    setPresets(nextPresets);
-    setActivePresetId((current) => current || nextPresets[0]?.id || null);
+    const res = await apiClient.get<{ presets?: Preset[]; branches?: Array<{ id: number; name: string }> }>('/presets');
+    setAllPresets(res.data.presets || []);
+    setBranches(res.data.branches || []);
   }, []);
 
   const fetchStudents = useCallback(async () => {
@@ -90,11 +93,17 @@ export default function PresetsPage() {
     loadData();
   }, [loadData]);
 
-  const activePreset = presets.find((preset) => preset.id === activePresetId) || null;
+  // 고른 지점의 프리셋만 보여준다 (전체 = 지점 없는 프리셋)
+  const presets = useMemo(
+    () => allPresets.filter((preset) => (preset.branch_id ?? null) === branchId),
+    [allPresets, branchId]
+  );
+  const activePreset = presets.find((preset) => preset.id === activePresetId) || presets[0] || null;
   const assignedStudentIds = useMemo(() => new Set(
     activePreset?.groups.flatMap((group) => group.members.map((member) => member.student_id)) || []
   ), [activePreset]);
   const unassignedStudents = allStudents
+    .filter((student) => !branchId || student.branch_id === branchId)
     .filter((student) => !assignedStudentIds.has(student.id ?? student.student_id))
     .map(toPresetStudent);
   const assignedCount = activePreset?.groups.reduce((sum, group) => sum + group.members.length, 0) || 0;
@@ -102,7 +111,11 @@ export default function PresetsPage() {
   const handleCreatePreset = async () => {
     if (!newPresetName.trim()) return;
     try {
-      const res = await apiClient.post<{ id: number }>('/presets', { name: newPresetName.trim(), type: newPresetType });
+      const res = await apiClient.post<{ id: number }>('/presets', {
+        name: newPresetName.trim(),
+        type: newPresetType,
+        branch_id: branchId,
+      });
       setActivePresetId(res.data.id);
       setShowNewPreset(false);
       setNewPresetName('');
@@ -125,14 +138,25 @@ export default function PresetsPage() {
   };
 
   const handleAddGroup = async () => {
-    if (!activePresetId) return;
+    if (!activePreset) return;
     try {
-      await apiClient.post(`/presets/${activePresetId}/groups`, {
+      await apiClient.post(`/presets/${activePreset.id}/groups`, {
         name: activePreset?.type === 'homeroom' ? '새 담임반' : '새 그룹',
       });
       await fetchPresets();
     } catch {
       toastRef.current.error('그룹을 추가하지 못했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  const handleFillFromClasses = async () => {
+    if (!activePreset) return;
+    try {
+      await apiClient.post(`/presets/${activePreset.id}/fill-from-classes`, {});
+      await fetchPresets();
+      toastRef.current.success('P-ACA 반대로 그룹을 만들었습니다.');
+    } catch {
+      toastRef.current.error('P-ACA 반을 가져오지 못했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -229,6 +253,8 @@ export default function PresetsPage() {
         />
       ) : null}
 
+      <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
+
       {presets.length === 0 ? (
         <EmptyPresetState onCreate={() => setShowNewPreset(true)} />
       ) : (
@@ -239,7 +265,7 @@ export default function PresetsPage() {
                 <button
                   onClick={() => setActivePresetId(preset.id)}
                   className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium transition ${
-                    activePresetId === preset.id
+                    activePreset?.id === preset.id
                       ? 'border-orange-500 bg-orange-50 text-orange-700'
                       : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
                   }`}
@@ -250,7 +276,7 @@ export default function PresetsPage() {
                     {getPresetTypeLabel(preset.type)}
                   </span>
                 </button>
-                {activePresetId === preset.id ? (
+                {activePreset?.id === preset.id ? (
                   <button
                     onClick={() => handleDeletePreset(preset.id)}
                     className="ml-1 rounded-md p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
@@ -264,6 +290,16 @@ export default function PresetsPage() {
           </div>
 
           {activePreset ? (
+            <>
+            {activePreset.branch_id && activePreset.groups.length === 0 ? (
+              <button
+                onClick={handleFillFromClasses}
+                className="inline-flex h-10 items-center gap-2 rounded-md border border-orange-300 bg-orange-50 px-4 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
+              >
+                <Layers size={14} />
+                P-ACA 반대로 채우기
+              </button>
+            ) : null}
             <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
               <UnassignedArea students={unassignedStudents} />
               <div className="flex gap-4 overflow-x-auto pb-4" data-testid="preset-groups">
@@ -287,6 +323,7 @@ export default function PresetsPage() {
               </div>
               <DragOverlay>{activeItem ? <StudentPill student={activeItem.student} /> : null}</DragOverlay>
             </DndContext>
+            </>
           ) : null}
         </>
       )}

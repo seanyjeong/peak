@@ -6,6 +6,7 @@ import { BarChart3, Download, Trophy, Users } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import apiClient from '@/lib/api/client';
 import { authAPI } from '@/lib/api/auth';
+import { BranchTabs } from '@/components/BranchTabs';
 import { getMyFeaturePermissions } from '@/lib/api/permissions';
 import type { AnalyticsData } from './analytics-model';
 import {
@@ -33,6 +34,8 @@ export default function AnalyticsReportPage() {
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>(ACCORDION_DEFAULTS);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
+  // 지점별 리포트. null = 학원 전체
+  const [branchId, setBranchId] = useState<number | null>(null);
 
   useEffect(() => {
     async function loadReport() {
@@ -77,6 +80,21 @@ export default function AnalyticsReportPage() {
     () => data?.eventTrends.find((trend) => trend.recordTypeId === selectedEvent),
     [data?.eventTrends, selectedEvent],
   );
+
+  // 지점을 바꾸면 그 지점 학생의 기록으로 다시 만든다. 기록이 모자라면 지금 화면을 그대로 둔다.
+  const handleBranchChange = async (nextBranchId: number | null) => {
+    try {
+      const res = await apiClient.get<AnalyticsData>(`/analytics/report${nextBranchId ? `?branch_id=${nextBranchId}` : ''}`);
+      setData(res.data);
+      setBranchId(nextBranchId);
+      setSelectedEvent(res.data.eventAverages[0]?.recordTypeId ?? null);
+    } catch (err: unknown) {
+      const apiError = (err as { response?: { data?: { error?: string; currentCount?: number } } }).response?.data;
+      toast.error(apiError?.error === 'INSUFFICIENT_DATA'
+        ? `이 지점은 기록이 더 쌓여야 리포트를 만들 수 있습니다. 현재 ${apiError.currentCount ?? 0}개 / 필요 200개`
+        : '분석 리포트를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  };
 
   const handleEventSelect = (eventId: number) => {
     setSelectedEvent(eventId);
@@ -145,6 +163,8 @@ export default function AnalyticsReportPage() {
           {pdfLoading ? '생성 중' : 'PDF 저장'}
         </button>
       </header>
+
+      <BranchTabs branches={data.branches || []} value={branchId} onChange={handleBranchChange} />
 
       <section className="grid gap-4 md:grid-cols-4">
         <KPICard icon={<BarChart3 className="h-4 w-4" />} label="총 기록" value={summary.totalRecords.toLocaleString()} unit="건" tone="blue" />

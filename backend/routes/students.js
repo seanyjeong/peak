@@ -14,6 +14,7 @@ const fs = require('fs');
 const os = require('os');
 const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
+const { getPacaBranches } = require('../services/assignmentBranchService');
 const pacaPool = require('../config/paca-database');
 const { verifyToken } = require('../middleware/auth');
 
@@ -345,13 +346,17 @@ router.get('/', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const { status } = req.query;
+        // 지점을 쓰는 학원만 학생의 P-ACA 지점·반을 같이 읽는다
+        const branches = await getPacaBranches(academyId);
         let query = `
             SELECT s.id, s.paca_student_id,
                    ps.name, ps.gender, ps.phone, ps.school, ps.grade,
                    ps.status, ps.class_days, ps.enrollment_date as join_date,
+                   ${branches.length > 0 ? 'ps.branch_id, pb.name as branch_name, pc.class_name,' : ''}
                    ps.is_trial, ps.trial_remaining, ps.trial_dates
             FROM students s
             JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+            ${branches.length > 0 ? 'LEFT JOIN paca.branches pb ON pb.id = ps.branch_id LEFT JOIN paca.classes pc ON pc.id = ps.class_id' : ''}
             WHERE s.academy_id = ?
         `;
         const params = [academyId, academyId];
@@ -370,7 +375,7 @@ router.get('/', verifyToken, async (req, res) => {
 
         const [rows] = await db.query(query, params);
         const students = decryptStudentFields(rows);
-        res.json({ success: true, students });
+        res.json({ success: true, students, branches });
     } catch (error) {
         console.error('Get students error:', error);
         res.status(500).json({ error: 'Internal Server Error' });

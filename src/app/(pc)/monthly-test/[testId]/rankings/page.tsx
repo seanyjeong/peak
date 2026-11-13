@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, use } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
+import { BranchTabs, type Branch } from '@/components/BranchTabs';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
@@ -26,6 +27,7 @@ interface Participant {
   gender: 'M' | 'F';
   school?: string;
   grade?: string;
+  branch_id?: number | null; // P-ACA 지점(지점을 쓰는 학원만)
   participant_type: string;
   records: Record<number, number>;
   scores: Record<number, number | null>;
@@ -58,6 +60,9 @@ export default function RankingsPage({
   const router = useRouter();
   const [test, setTest] = useState<Test | null>(null);
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
+  // 지점별 순위. null = 전체
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState<number | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTypeId, setSelectedTypeId] = useState<number | 'total'>('total');
@@ -75,6 +80,7 @@ export default function RankingsPage({
       setTest(res.data.test);
       setRecordTypes(res.data.record_types || []);
       setParticipants(res.data.participants || []);
+      setBranches(res.data.branches || []);
     } catch (error) {
       toast.error(getMonthlyErrorMessage(error, '순위 정보를 불러오지 못했습니다.'));
     } finally {
@@ -85,6 +91,11 @@ export default function RankingsPage({
   // 정렬 및 순위 계산
   const rankedParticipants = useMemo(() => {
     let filtered = participants;
+
+    // 지점 필터 (그 지점 학생끼리 다시 1위부터)
+    if (branchId) {
+      filtered = filtered.filter(p => p.branch_id === branchId);
+    }
 
     // 성별 필터
     if (genderFilter !== 'all') {
@@ -135,7 +146,7 @@ export default function RankingsPage({
 
       return { ...p, rank };
     });
-  }, [participants, genderFilter, classFilter, selectedTypeId, recordTypes]);
+  }, [participants, branchId, genderFilter, classFilter, selectedTypeId, recordTypes]);
 
   // 기록 포맷팅
   const formatValue = (value: number | undefined, unit: string): string => {
@@ -186,6 +197,12 @@ export default function RankingsPage({
             </p>
           </div>
         </div>
+
+        {branches.length > 0 ? (
+          <div className="px-6 pb-3">
+            <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
+          </div>
+        ) : null}
 
         {/* 필터 */}
         <div className="px-6 pb-3 flex gap-4 items-center">

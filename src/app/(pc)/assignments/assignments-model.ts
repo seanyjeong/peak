@@ -49,6 +49,7 @@ export interface AssignmentBranch {
 }
 
 export interface AssignmentPreset {
+  branch_id?: number | null;
   id: number;
   name: string;
   type: string;

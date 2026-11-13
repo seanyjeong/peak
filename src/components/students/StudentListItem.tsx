@@ -41,6 +41,7 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
             {student.gender === 'M' ? '남' : student.gender === 'F' ? '여' : ''}
             {student.school && ` · ${student.school}`}
             {student.grade && ` ${student.grade}`}
+            {student.branch_name && ` · ${student.branch_name}${student.class_name ? ` ${student.class_name}` : ''}`}
           </p>
         </div>
       </div>

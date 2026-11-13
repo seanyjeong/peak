@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/useToast';
 import Link from 'next/link';
 import { Users, RefreshCw, Search, User, X, Activity, Plus, ExternalLink, TableProperties } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { BranchTabs } from '@/components/BranchTabs';
 import {
   StudentListItem,
   RecordAddForm,
@@ -32,7 +33,9 @@ export default function StudentsPage() {
     setStatusFilter,
     statusCounts,
     fetchStudents,
-
+    branches,
+    branchId,
+    setBranchId,
   } = useStudentList();
 
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
@@ -227,6 +230,8 @@ export default function StudentsPage() {
           </button>
         </div>
       </div>
+
+      <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
 
       {/* Filters */}
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">

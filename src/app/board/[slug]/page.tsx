@@ -19,6 +19,11 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('ranking');
+  // 지점별 전광판: 주소의 ?branch=<번호> 로도 고정할 수 있다. null = 학원 전체
+  const [branchId, setBranchId] = useState<number | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return Number(new URLSearchParams(window.location.search).get('branch')) || null;
+  });
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [pinRequired, setPinRequired] = useState(false);
@@ -29,7 +34,7 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   const fetchData = useCallback(async (token?: string) => {
     try {
-      const json = await fetchBoardJson<BoardResponse>(`/public/${slug}`, slug, token);
+      const json = await fetchBoardJson<BoardResponse>(`/public/${slug}${branchId ? `?branch=${branchId}` : ''}`, slug, token);
 
       if (isPinRequiredResponse(json)) {
         setPinRequired(true);
@@ -52,7 +57,12 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [branchId, slug]);
+
+  const handleBranchChange = (nextBranchId: number | null) => {
+    setBranchId(nextBranchId);
+    window.history.replaceState(null, '', nextBranchId ? `?branch=${nextBranchId}` : window.location.pathname);
+  };
 
   useEffect(() => {
     fetchData();
@@ -196,6 +206,18 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
               </button>
             </div>
           </div>
+          {data.branches && data.branches.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 mt-2" role="group" aria-label="지점">
+              {[{ id: null, name: '전체' }, ...data.branches].map((branch) => (
+                <ModeButton
+                  key={branch.id ?? 'all'}
+                  active={branchId === branch.id}
+                  onClick={() => handleBranchChange(branch.id)}
+                  label={branch.name}
+                />
+              ))}
+            </div>
+          ) : null}
           <div className="flex items-center gap-2 mt-2">
             {hasRankings && <ModeButton active={viewMode === 'ranking'} onClick={() => setViewMode('ranking')} label="종합순위" />}
             {eventsWithRecords.length > 0 && (

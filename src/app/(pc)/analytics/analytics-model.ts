@@ -53,6 +53,7 @@ export interface EventTrend {
 }
 
 export interface AnalyticsData {
+  branches?: Array<{ id: number; name: string }>; // P-ACA 지점(지점을 쓰는 학원만)
   summary: {
     totalRecords: number;
     totalStudents: number;

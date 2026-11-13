@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { authAPI } from '@/lib/api/auth';
 import apiClient from '@/lib/api/client';
 import { useToast } from '@/hooks/useToast';
+import type { Branch } from '@/components/BranchTabs';
 
 export interface Student {
   id: number;
@@ -18,6 +19,10 @@ export interface Student {
   trial_total: number;
   trial_remaining: number;
   join_date: string | null;
+  // P-ACA 지점·반 (지점을 쓰는 학원만 온다)
+  branch_id?: number | null;
+  branch_name?: string | null;
+  class_name?: string | null;
   status: 'active' | 'inactive' | 'injury' | 'paused' | 'pending' | 'trial';
 }
 
@@ -63,6 +68,9 @@ interface UseStudentListReturn {
   setSearchTerm: (term: string) => void;
   setStatusFilter: (status: string) => void;
   filteredStudents: Student[];
+  branches: Branch[];
+  branchId: number | null;
+  setBranchId: (branchId: number | null) => void;
   statusCounts: {
     all: number;
     active: number;
@@ -79,7 +87,14 @@ interface UseStudentListReturn {
 export function useStudentList(): UseStudentListReturn {
   const toast = useToast();
   const toastRef = useRef(toast);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  // P-ACA 지점으로 거르기. null = 전체(지점이 없는 학원은 늘 null)
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState<number | null>(null);
+  const students = useMemo(
+    () => (branchId ? allStudents.filter(student => student.branch_id === branchId) : allStudents),
+    [allStudents, branchId]
+  );
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -123,7 +138,8 @@ export function useStudentList(): UseStudentListReturn {
     try {
       setLoading(true);
       const studentsRes = await apiClient.get('/students');
-      setStudents(studentsRes.data.students || []);
+      setAllStudents(studentsRes.data.students || []);
+      setBranches(studentsRes.data.branches || []);
     } catch {
       toastRef.current.error('학생 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
@@ -164,6 +180,9 @@ export function useStudentList(): UseStudentListReturn {
     setSearchTerm,
     setStatusFilter,
     filteredStudents,
+    branches,
+    branchId,
+    setBranchId,
     statusCounts,
     fetchStudents,
     syncStudents,

@@ -5,6 +5,7 @@ const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
+const { getPacaBranches } = require('../services/assignmentBranchService');
 const ExcelJS = require('exceljs');
 
 // 월말테스트 목록 조회
@@ -467,6 +468,8 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
 
     const sessionIds = sessions.map(s => s.id);
     const testDates = [...new Set(sessions.map(s => s.test_date))];
+    // 지점을 쓰는 학원은 순위를 지점별로도 볼 수 있게 참가자의 P-ACA 지점을 같이 준다
+    const branches = await getPacaBranches(academyId);
 
     // 모든 세션의 참가자 조회 (중복 제거: student_id 또는 test_applicant_id 기준)
     const [allParticipants] = await pool.query(`
@@ -477,6 +480,7 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
         ps.name as student_name,
         ps.gender,
         ps.school,
+        ${branches.length > 0 ? 'ps.branch_id,' : ''}
         ps.grade
       FROM test_participants tp
       LEFT JOIN students s ON tp.student_id = s.id
@@ -620,6 +624,7 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
           gender: p.gender,
           school: p.school,
           grade: p.grade,
+          branch_id: p.branch_id ?? null,
           participant_type: p.participant_type
         };
         records = studentRecords[p.student_id] || {};
@@ -671,6 +676,7 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
         status: test.status
       },
       record_types: types,
+      branches,
       participants: participantsWithScores,
       score_ranges: scoreRangesMap
     });

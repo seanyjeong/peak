@@ -11,6 +11,7 @@ import {
   getRoleDisplayName,
 } from '@/components/records';
 import { useRecordInput, useRecords } from '@/features/records';
+import { BranchTabs } from '@/components/BranchTabs';
 
 export default function RecordsPage() {
   const {
@@ -29,6 +30,9 @@ export default function RecordsPage() {
     setSelectedSlot,
     setSelectedTrainerId,
     slots,
+    branches,
+    branchId,
+    setBranchId,
   } = useRecords({ ownClassOnly: false });
 
   const {
@@ -81,6 +85,8 @@ export default function RecordsPage() {
           </button>
         </div>
       </header>
+
+      <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
 
       {loading && <div className="rounded-lg border border-slate-200 bg-white p-12 text-center text-sm font-semibold text-slate-500">불러오는 중입니다.</div>}
       {!loading && availableSlots.length === 0 && (

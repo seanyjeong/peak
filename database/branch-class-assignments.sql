@@ -5,3 +5,7 @@
 ALTER TABLE class_instructors
     ADD COLUMN branch_id INT NULL COMMENT 'P-ACA branches.id. NULL = 지점 없음',
     ADD COLUMN paca_class_id INT NULL COMMENT '동기화가 이 P-ACA 반(classes.id)으로 만든 조';
+
+-- 반 프리셋도 지점별로 만든다. NULL = 지점 없음(지금 있는 프리셋은 전부 NULL, 동작 그대로).
+ALTER TABLE class_presets
+    ADD COLUMN branch_id INT NULL COMMENT 'P-ACA branches.id. NULL = 지점 없음';

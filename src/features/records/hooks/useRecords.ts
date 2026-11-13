@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '@/lib/api/client';
+import type { Branch } from '@/components/BranchTabs';
 import { authAPI } from '@/lib/api/auth';
 import type {
   RecordType,
@@ -51,6 +52,11 @@ export interface UseRecordsReturn {
   setMeasuredAt: (date: string) => void;
   fetchData: () => Promise<void>;
 
+  // P-ACA 지점 (지점이 없는 학원은 빈 목록)
+  branches: Branch[];
+  branchId: number | null;
+  setBranchId: (branchId: number | null) => void;
+
   // 점수 계산
   calculateScore: (value: number, gender: 'M' | 'F', recordTypeId: number) => number | null;
   getDecimalPlaces: (recordTypeId: number) => number;
@@ -66,6 +72,8 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
   const [loading, setLoading] = useState(true);
   const [measuredAt, setMeasuredAt] = useState(() => initialDate || new Date().toISOString().split('T')[0]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState<number | null>(null);
   const [scoreTablesCache, setScoreTablesCache] = useState<Record<number, ScoreTableData>>({});
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
@@ -83,7 +91,8 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
       setRecordTypes(activeTypes);
 
       // 반배치 조회
-      const assignRes = await apiClient.get(`/assignments?date=${measuredAt}`);
+      const assignRes = await apiClient.get(`/assignments?date=${measuredAt}${branchId ? `&branch_id=${branchId}` : ''}`);
+      setBranches(assignRes.data.branches || []);
       const slotsData = assignRes.data.slots || {};
       setSlots(slotsData);
 
@@ -139,7 +148,7 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
     } finally {
       setLoading(false);
     }
-  }, [measuredAt]);
+  }, [branchId, measuredAt]);
 
   useEffect(() => {
     fetchData();
@@ -238,6 +247,9 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
     setSelectedTrainerId,
     setMeasuredAt,
     fetchData,
+    branches,
+    branchId,
+    setBranchId,
 
     // 점수 계산
     calculateScore,

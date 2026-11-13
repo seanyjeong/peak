@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/core';
 import { Calendar, ChevronDown, Layers, RefreshCw, RotateCcw } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { BranchTabs } from '@/components/BranchTabs';
 import { useSocket } from '@/hooks/useSocket';
 import { useToast } from '@/hooks/useToast';
 import {
@@ -281,7 +282,7 @@ export default function AssignmentsPage() {
             />
           </label>
           <PresetMenu
-            presets={branchId ? [] : presets}
+            presets={presets.filter((preset) => (preset.branch_id ?? null) === branchId)}
             disabled={loading || applyingPreset}
             open={showPresetMenu}
             menuRef={presetMenuRef}
@@ -318,24 +319,7 @@ export default function AssignmentsPage() {
         <Metric label="강사" value={`${instructorCount}명`} detail={isConnected ? '실시간 연결' : '수동 새로고침'} />
       </section>
 
-      {branches.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="지점">
-          {[{ id: null, name: '전체' }, ...branches].map((branch) => (
-            <button
-              key={branch.id ?? 'all'}
-              aria-pressed={branchId === branch.id}
-              onClick={() => setBranchId(branch.id)}
-              className={`inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium transition ${
-                branchId === branch.id
-                  ? 'border-orange-400 bg-orange-50 text-orange-700 shadow-sm'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
-              }`}
-            >
-              {branch.name}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
 
       <div className="flex flex-wrap gap-2">
         {SLOT_ORDER.map((slot) => {

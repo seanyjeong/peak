@@ -12,6 +12,7 @@ const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
+const { getPacaBranches, resolveBranchId } = require('../services/assignmentBranchService');
 
 // GET /peak/presets - 프리셋 목록 (그룹 + 멤버 포함)
 router.get('/', async (req, res) => {
@@ -68,7 +69,8 @@ router.get('/', async (req, res) => {
             preset.groups = groups;
         }
 
-        res.json({ success: true, presets });
+        // 지점을 쓰는 학원은 화면이 지점별로 프리셋을 나눠 보여준다
+        res.json({ success: true, presets, branches: await getPacaBranches(academyId) });
     } catch (error) {
         console.error('Get presets error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -113,9 +115,14 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'name and type (homeroom/group) required' });
         }
 
+        const branchId = resolveBranchId(req.body.branch_id, await getPacaBranches(academyId));
+        if (branchId === undefined) {
+            return res.status(400).json({ error: '지점을 확인해주세요.' });
+        }
+
         const [result] = await db.query(
-            'INSERT INTO class_presets (academy_id, name, type) VALUES (?, ?, ?)',
-            [academyId, name, type]
+            'INSERT INTO class_presets (academy_id, name, type, branch_id) VALUES (?, ?, ?, ?)',
+            [academyId, name, type, branchId]
         );
 
         res.json({ success: true, id: result.insertId });
@@ -193,6 +200,49 @@ router.post('/:id/groups', async (req, res) => {
         res.json({ success: true, id: result.insertId });
     } catch (error) {
         console.error('Create group error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// POST /peak/presets/:id/fill-from-classes - 지점 프리셋을 P-ACA 반대로 채운다
+// 그 지점의 반마다 그룹 하나(이름 = 반 이름, 담당 강사 = 반 담당 강사, 학생 = 그 반 학생). 빈 프리셋에만.
+router.post('/:id/fill-from-classes', async (req, res) => {
+    try {
+        const academyId = req.user.academyId;
+        const [preset] = await db.query(
+            'SELECT id, branch_id FROM class_presets WHERE id = ? AND academy_id = ?',
+            [req.params.id, academyId]
+        );
+        if (preset.length === 0) return res.status(404).json({ error: 'Preset not found' });
+        if (!preset[0].branch_id) return res.status(400).json({ error: '지점 프리셋에서만 쓸 수 있습니다.' });
+
+        const [existing] = await db.query('SELECT id FROM preset_groups WHERE preset_id = ? LIMIT 1', [req.params.id]);
+        if (existing.length > 0) return res.status(409).json({ error: '그룹이 없는 프리셋에서만 쓸 수 있습니다.' });
+
+        const [classes] = await pacaPool.query(`
+            SELECT id, class_name, instructor_id FROM classes
+            WHERE academy_id = ? AND branch_id = ? AND status = 'active'
+            ORDER BY sort_order, id
+        `, [academyId, preset[0].branch_id]);
+
+        let orderNum = 0;
+        for (const pacaClass of classes) {
+            const [group] = await db.query(
+                'INSERT INTO preset_groups (preset_id, name, instructor_id, order_num) VALUES (?, ?, ?, ?)',
+                [req.params.id, pacaClass.class_name, pacaClass.instructor_id || null, orderNum++]
+            );
+            await db.query(`
+                INSERT IGNORE INTO preset_group_members (group_id, student_id)
+                SELECT ?, s.id
+                FROM students s
+                JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+                WHERE s.academy_id = ? AND ps.class_id = ? AND ps.status = 'active' AND ps.deleted_at IS NULL
+            `, [group.insertId, academyId, academyId, pacaClass.id]);
+        }
+
+        res.json({ success: true, groups_created: classes.length });
+    } catch (error) {
+        console.error('Fill preset from classes error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
@@ -367,6 +417,35 @@ router.post('/:id/apply', async (req, res) => {
             studentAssignmentMap[s.student_id] = s.id;
         });
 
+        // 지점 프리셋은 그 지점의 조와 그 지점 학생만 다시 짠다. 다른 지점의 조는 그대로 둔다.
+        const branchId = preset[0].branch_id || null;
+        let classNum = 1;
+        if (branchId) {
+            const [branchStudents] = await db.query(`
+                SELECT a.id, a.student_id
+                FROM daily_assignments a
+                JOIN students s ON a.student_id = s.id
+                JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+                WHERE a.academy_id = ? AND a.date = ? AND a.time_slot = ? AND ps.branch_id = ?
+            `, [academyId, academyId, date, time_slot, branchId]);
+            todayStudents.length = 0;
+            todayStudents.push(...branchStudents);
+            Object.keys(studentAssignmentMap).forEach(key => delete studentAssignmentMap[key]);
+            branchStudents.forEach(s => { studentAssignmentMap[s.student_id] = s.id; });
+
+            await db.query(
+                'DELETE FROM class_instructors WHERE academy_id = ? AND date = ? AND time_slot = ? AND branch_id = ?',
+                [academyId, date, time_slot, branchId]
+            );
+            if (branchStudents.length > 0) {
+                await db.query('UPDATE daily_assignments SET class_id = NULL WHERE id IN (?)', [branchStudents.map(s => s.id)]);
+            }
+            const [maxRows] = await db.query(
+                'SELECT COALESCE(MAX(class_num), 0) as max_num FROM class_instructors WHERE academy_id = ? AND date = ? AND time_slot = ?',
+                [academyId, date, time_slot]
+            );
+            classNum = maxRows[0].max_num + 1;
+        } else {
         // 4. Reset current assignments for this time slot
         await db.query(
             'DELETE FROM class_instructors WHERE academy_id = ? AND date = ? AND time_slot = ?',
@@ -376,9 +455,9 @@ router.post('/:id/apply', async (req, res) => {
             'UPDATE daily_assignments SET class_id = NULL WHERE academy_id = ? AND date = ? AND time_slot = ?',
             [academyId, date, time_slot]
         );
+        }
 
         // 5. Apply preset groups
-        let classNum = 1;
         let classesCreated = 0;
         let studentsAssigned = 0;
         let instructorsAbsent = 0;
@@ -392,8 +471,8 @@ router.post('/:id/apply', async (req, res) => {
             if (group.instructor_id) {
                 if (availableInstructorIds.has(group.instructor_id)) {
                     await db.query(
-                        'INSERT INTO class_instructors (academy_id, date, time_slot, class_num, instructor_id, is_main, order_num) VALUES (?, ?, ?, ?, ?, 1, 0)',
-                        [academyId, date, time_slot, classNum, group.instructor_id]
+                        'INSERT INTO class_instructors (academy_id, date, time_slot, class_num, instructor_id, is_main, order_num, branch_id) VALUES (?, ?, ?, ?, ?, 1, 0, ?)',
+                        [academyId, date, time_slot, classNum, group.instructor_id, branchId]
                     );
                 } else {
                     instructorsAbsent++;
@@ -401,6 +480,9 @@ router.post('/:id/apply', async (req, res) => {
                     if (matchingStudentIds.length === 0) continue;
                 }
             }
+
+            // 지점 프리셋: 강사가 없는 그룹의 학생은 대기에 둔다 (강사 없는 조 번호가 다른 지점 조와 겹치지 않게)
+            if (branchId && !(group.instructor_id && availableInstructorIds.has(group.instructor_id))) continue;
 
             // Assign students
             for (const studentId of matchingStudentIds) {

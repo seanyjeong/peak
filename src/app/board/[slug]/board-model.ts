@@ -26,6 +26,7 @@ export interface EventData {
 export interface BoardData {
   academy: { name: string; slug: string };
   test: { name: string; month: string } | null;
+  branches?: Array<{ id: number; name: string }>; // P-ACA 지점(지점을 쓰는 학원만)
   ranking: { male: RankingItem[]; female: RankingItem[] };
   events: EventData[];
 }

@@ -6,6 +6,7 @@ export interface Student {
   grade: string;
   school: string;
   status: string;
+  branch_id?: number | null; // P-ACA 지점(지점을 쓰는 학원만)
 }
 
 export interface Group {
@@ -22,6 +23,7 @@ export interface Preset {
   name: string;
   type: 'homeroom' | 'group';
   is_active: boolean;
+  branch_id?: number | null; // P-ACA 지점. 없으면 지점 없는 프리셋
   groups: Group[];
 }
 

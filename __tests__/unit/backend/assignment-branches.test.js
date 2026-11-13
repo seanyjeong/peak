@@ -17,6 +17,7 @@ function makeApp() {
     const app = express();
     app.use(express.json());
     app.use('/peak/assignments', require('../../../backend/routes/assignments'));
+    app.use('/peak/presets', (req, _res, next) => { req.user = { academyId: 2 }; next(); }, require('../../../backend/routes/presets'));
     return app;
 }
 
@@ -140,5 +141,33 @@ describe('지점별 반 배치', () => {
             .mockResolvedValueOnce([{ affectedRows: 1 }]);
         expect((await call('PUT', '/peak/assignments/10', { class_id: 4 })).status).toBe(200);
         expect(peakDb.query).toHaveBeenCalledTimes(3);
+    });
+
+    it('프리셋: 지점 프리셋은 그 지점의 조만 지우고, 남은 조 번호 다음부터 그 지점 조를 만든다', async () => {
+        peakDb.query
+            .mockResolvedValueOnce([[{ id: 5, academy_id: 2, branch_id: 1 }]])                 // 프리셋
+            .mockResolvedValueOnce([[{ id: 50, instructor_id: 7 }]])                           // 그룹
+            .mockResolvedValueOnce([[{ student_id: 500 }, { student_id: 600 }]])               // 그룹 학생 (600 은 다른 지점)
+            .mockResolvedValueOnce([[{ id: 10, student_id: 500 }, { id: 11, student_id: 600 }]]) // 그날 전체 학생
+            .mockResolvedValueOnce([[{ id: 10, student_id: 500 }]])                            // 그 지점 학생
+            .mockResolvedValueOnce([{ affectedRows: 1 }])                                      // 그 지점 조 삭제
+            .mockResolvedValueOnce([{ affectedRows: 1 }])                                      // 그 지점 학생 대기로
+            .mockResolvedValueOnce([[{ max_num: 2 }]])                                         // 남은 조 번호
+            .mockResolvedValue([{ affectedRows: 1 }]);
+        pacaDb.query
+            .mockResolvedValueOnce([[{ id: 7 }]])
+            .mockResolvedValueOnce([[]]);
+
+        const res = await call('POST', '/peak/presets/5/apply', { date: '2026-11-13', time_slot: 'evening' });
+
+        expect(res.body.result).toMatchObject({ classes_created: 1, students_assigned: 1 });
+        const sqls = peakDb.query.mock.calls.map(([sql]) => sql);
+        const deletes = sqls.filter(sql => sql.startsWith('DELETE FROM class_instructors'));
+        expect(deletes).toHaveLength(1);
+        expect(deletes[0]).toContain('branch_id = ?');
+        const classInsert = peakDb.query.mock.calls.find(([sql]) => sql.includes('INSERT INTO class_instructors'));
+        expect(classInsert[1]).toEqual([2, '2026-11-13', 'evening', 3, 7, 1]);
+        const moved = peakDb.query.mock.calls.filter(([sql]) => sql === 'UPDATE daily_assignments SET class_id = ? WHERE id = ?');
+        expect(moved.map(([, params]) => params)).toEqual([[3, 10]]);
     });
 });

@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { decryptStudentFields } = require('../utils/paca-student');
+const { getPacaBranches, resolveBranchId } = require('../services/assignmentBranchService');
 const { requireFeaturePermission } = require('../utils/feature-permissions');
 
 /**
@@ -64,6 +65,14 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
     try {
         const academyId = req.user.academyId;
 
+        // 지점을 주면 그 지점 학생의 기록만 (branchId 는 그 학원 지점으로 확인된 정수)
+        const branches = await getPacaBranches(academyId);
+        const branchId = resolveBranchId(req.query.branch_id, branches);
+        if (branchId === undefined) {
+            return res.status(400).json({ error: '지점을 확인해주세요.' });
+        }
+        const branchSql = branchId ? ` AND ps.branch_id = ${branchId}` : '';
+
         // 1. 요약 정보
         const [summaryRows] = await db.query(`
             SELECT
@@ -72,7 +81,7 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
             FROM ${COMBINED_RECORDS} sr
             JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
             JOIN paca.students ps ON s.paca_student_id = ps.id
-            WHERE sr.academy_id = ? AND ps.status = 'active'
+            WHERE sr.academy_id = ? AND ps.status = 'active'${branchSql}
         `, [academyId, academyId]);
 
         const totalRecords = summaryRows[0].totalRecords;
@@ -122,7 +131,7 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
             JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
             JOIN paca.students ps ON s.paca_student_id = ps.id
             JOIN record_types rt ON sr.record_type_id = rt.id AND rt.is_active = 1
-            WHERE sr.academy_id = ? AND ps.status = 'active' AND s.academy_id = ?
+            WHERE sr.academy_id = ? AND ps.status = 'active'${branchSql} AND s.academy_id = ?
             GROUP BY rt.id, s.gender
             ORDER BY rt.display_order, s.gender
         `, [academyId, academyId, academyId, academyId]);
@@ -168,7 +177,7 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
                 ) latest ON sr.student_id = latest.student_id AND sr.measured_at = latest.max_date
                 JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
                 JOIN paca.students ps ON s.paca_student_id = ps.id
-                WHERE sr.academy_id = ? AND sr.record_type_id = ? AND ps.status = 'active' AND s.gender = 'M'
+                WHERE sr.academy_id = ? AND sr.record_type_id = ? AND ps.status = 'active'${branchSql} AND s.gender = 'M'
                 ORDER BY sr.value ${orderDir}
                 LIMIT 10
             `, [rt.id, academyId, academyId, academyId, rt.id]);
@@ -183,7 +192,7 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
                 ) latest ON sr.student_id = latest.student_id AND sr.measured_at = latest.max_date
                 JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
                 JOIN paca.students ps ON s.paca_student_id = ps.id
-                WHERE sr.academy_id = ? AND sr.record_type_id = ? AND ps.status = 'active' AND s.gender = 'F'
+                WHERE sr.academy_id = ? AND sr.record_type_id = ? AND ps.status = 'active'${branchSql} AND s.gender = 'F'
                 ORDER BY sr.value ${orderDir}
                 LIMIT 10
             `, [rt.id, academyId, academyId, academyId, rt.id]);
@@ -215,7 +224,7 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
             FROM ${COMBINED_RECORDS} sr
             JOIN students s ON sr.student_id = s.id AND s.academy_id = ?
             JOIN paca.students ps ON s.paca_student_id = ps.id
-            WHERE sr.academy_id = ? AND ps.status = 'active' AND s.academy_id = ?
+            WHERE sr.academy_id = ? AND ps.status = 'active'${branchSql} AND s.academy_id = ?
             ORDER BY sr.student_id, sr.record_type_id, sr.measured_at ASC
         `, [academyId, academyId, academyId]);
 
@@ -355,6 +364,7 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
                 totalEvents: recordTypes.length,
                 overallTrend: { improving: overallImproving, maintaining: overallMaintaining, declining: overallDeclining }
             },
+            branches,
             eventAverages,
             rankings,
             eventTrends: Object.values(eventTrends),

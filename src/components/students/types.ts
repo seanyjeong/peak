@@ -11,6 +11,9 @@ export interface Student {
   trial_total: number;
   trial_remaining: number;
   join_date: string | null;
+  // P-ACA 지점·반 (지점을 쓰는 학원만 온다)
+  branch_name?: string | null;
+  class_name?: string | null;
   status: 'active' | 'inactive' | 'injury' | 'paused' | 'pending' | 'trial';
 }
 
