@@ -10,6 +10,7 @@ const db = require('../config/database');
 const { decryptStudentFields } = require('../utils/paca-student');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
+const { getPacaBranches, resolveBranchId } = require('../services/assignmentBranchService');
 
 // GET /peak/mobile/my-class - 내 수업 한방 조회
 // 강사 기준: 오늘 내가 배치된 반 + 학생 + 출석 + 수업계획
@@ -21,6 +22,13 @@ router.get('/my-class', async (req, res) => {
         const userId = req.user.id;
         const instructorId = req.user.instructorId;
         const isOwnerOrAdmin = req.user.role === 'owner' || req.user.role === 'admin';
+
+        // P-ACA 지점: 지점을 주면 그 지점 학생만 본다. 지점이 없는 학원은 지금 그대로.
+        const branches = await getPacaBranches(academyId);
+        const branchId = resolveBranchId(req.query.branch_id, branches);
+        if (branchId === undefined) {
+            return res.status(400).json({ error: '지점을 확인해주세요.' });
+        }
 
         // 원장/관리자: 모든 반, 강사: 내 반만
         let classFilter = '';
@@ -51,7 +59,8 @@ router.get('/my-class', async (req, res) => {
                 success: true,
                 date: targetDate,
                 slots: result,
-                hasClass: false
+                hasClass: false,
+                branches
             });
         }
 
@@ -73,8 +82,9 @@ router.get('/my-class', async (req, res) => {
             JOIN students s ON da.student_id = s.id
             JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
             WHERE da.academy_id = ? AND da.date = ?
+            ${branchId ? 'AND ps.branch_id = ?' : ''}
             ORDER BY da.time_slot, ps.name
-        `, [academyId, academyId, targetDate]);
+        `, [academyId, academyId, targetDate, ...(branchId ? [branchId] : [])]);
 
         // Decrypt student names + convert gender
         allAssignments.forEach(a => {
@@ -170,7 +180,8 @@ router.get('/my-class', async (req, res) => {
             date: targetDate,
             slots: result,
             hasClass: true,
-            isOwner: isOwnerOrAdmin
+            isOwner: isOwnerOrAdmin,
+            branches
         });
     } catch (error) {
         console.error('Mobile my-class error:', error);

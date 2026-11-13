@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Sunrise, Sun, Moon, RefreshCw, Check, X, Clock, Users, Dumbbell, Thermometer, Droplets } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { useToast } from '@/hooks/useToast';
+import { BranchTabs, type Branch } from '@/components/BranchTabs';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening';
 
@@ -55,6 +56,9 @@ export default function MyClassPage() {
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
   const [loading, setLoading] = useState(true);
   const [hasClass, setHasClass] = useState(true);
+  // P-ACA 지점별로 본다. null = 전체
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState<number | null>(null);
 
   const today = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
 
@@ -70,10 +74,12 @@ export default function MyClassPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get(`/mobile/my-class?date=${getLocalDate()}`);
+      const branchQuery = branchId ? `&branch_id=${branchId}` : '';
+      const res = await apiClient.get(`/mobile/my-class?date=${getLocalDate()}${branchQuery}`);
       const d = res.data;
       setSlots(d.slots);
       setHasClass(d.hasClass);
+      setBranches(d.branches || []);
 
       // 데이터 있는 첫 슬롯 선택
       if (d.slots.evening) setActiveSlot('evening');
@@ -84,7 +90,7 @@ export default function MyClassPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [branchId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -99,6 +105,12 @@ export default function MyClassPage() {
           <RefreshCw size={16} className={loading ? 'animate-spin text-slate-400' : 'text-slate-500'} />
         </button>
       </div>
+
+      {branches.length > 0 && (
+        <div className="mb-3">
+          <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
+        </div>
+      )}
 
       {/* Time Slot Tabs */}
       <div className="flex gap-1.5 mb-3">

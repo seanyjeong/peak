@@ -5,6 +5,7 @@ import { Calendar, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { authAPI, User as AuthUser } from '@/lib/api/auth';
 import { useToast } from '@/hooks/useToast';
+import { BranchTabs, type Branch } from '@/components/BranchTabs';
 import {
   ExistingLog,
   Exercise,
@@ -38,11 +39,19 @@ export default function TrainingPage() {
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseNote, setNewExerciseNote] = useState('');
+  // P-ACA 지점별로 본다. null = 전체
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState<number | null>(null);
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
   const availableSlots = useMemo(() => getAvailableSlots(slots), [slots]);
   const currentSlotData = selectedSlot ? slots[selectedSlot] : undefined;
-  const currentInstructors = selectedSlot ? planSlots[selectedSlot] || [] : [];
+  // 지점을 고르면 그 지점 조에 들어간 강사만 고를 수 있게 한다.
+  const currentInstructors = (selectedSlot ? planSlots[selectedSlot] || [] : []).filter((instructor) => (
+    !branchId || (currentSlotData?.classes || []).some((classData) => (
+      classData.instructors?.some((classInstructor) => classInstructor.id === instructor.id)
+    ))
+  ));
   const currentPlan = selectedSlot
     ? plans.find((plan) => plan.time_slot === selectedSlot && (selectedInstructorId ? plan.instructor_id === selectedInstructorId : true))
     : undefined;
@@ -57,7 +66,7 @@ export default function TrainingPage() {
       const user = authAPI.getCurrentUser();
       setCurrentUser(user);
       const [assignmentsRes, trainingRes, plansRes, exercisesRes] = await Promise.all([
-        apiClient.get(`/assignments?date=${selectedDate}`),
+        apiClient.get(`/assignments?date=${selectedDate}${branchId ? `&branch_id=${branchId}` : ''}`),
         apiClient.get(`/training?date=${selectedDate}`),
         apiClient.get(`/plans?date=${selectedDate}`),
         apiClient.get('/exercises'),
@@ -67,6 +76,7 @@ export default function TrainingPage() {
       const nextPlanSlots = plansRes.data.slots || {};
       setSlots(nextSlots);
       setPlanSlots(nextPlanSlots);
+      setBranches(assignmentsRes.data.branches || []);
       setExistingLogs(trainingRes.data.logs || []);
       setPlans(plansRes.data.plans || []);
       setExercises(exercisesRes.data.exercises || []);
@@ -109,9 +119,9 @@ export default function TrainingPage() {
 
   useEffect(() => {
     void fetchData();
-    // fetchData는 selectedDate 기준 API 호출이라 날짜 변경 때만 재호출합니다.
+    // fetchData는 selectedDate·지점 기준 API 호출이라 그 둘이 바뀔 때만 재호출합니다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate]);
+  }, [selectedDate, branchId]);
 
   useEffect(() => {
     setTemperature(currentPlan?.temperature?.toString() || '');
@@ -255,6 +265,15 @@ export default function TrainingPage() {
           </button>
         </div>
       </header>
+
+      <BranchTabs
+        branches={branches}
+        value={branchId}
+        onChange={(nextBranchId) => {
+          setBranchId(nextBranchId);
+          if (isAdmin) setSelectedInstructorId(null);
+        }}
+      />
 
       {loading && <div className="rounded-lg border border-slate-200 bg-white p-12 text-center text-sm font-semibold text-slate-500">불러오는 중입니다.</div>}
       {!loading && availableSlots.length === 0 && (
