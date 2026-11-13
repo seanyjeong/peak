@@ -382,7 +382,9 @@ export default function AssignmentsPage() {
       {showResetConfirm ? (
         <ResetConfirmModal
           activeSlot={activeSlot}
+          branchName={branches.find((branch) => branch.id === branchId)?.name ?? null}
           date={selectedDate}
+          hasBranches={branches.length > 0}
           resetting={resetting}
           onCancel={() => setShowResetConfirm(false)}
           onConfirm={handleReset}

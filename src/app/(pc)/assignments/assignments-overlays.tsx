@@ -4,13 +4,17 @@ import { TIME_SLOT_INFO, formatDateKorean, type TimeSlot } from './assignments-m
 
 export function ResetConfirmModal({
   activeSlot,
+  branchName,
   date,
+  hasBranches,
   resetting,
   onCancel,
   onConfirm,
 }: {
   activeSlot: TimeSlot;
+  branchName: string | null;
   date: string;
+  hasBranches: boolean;
   resetting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -20,8 +24,15 @@ export function ResetConfirmModal({
       <div className="mx-4 max-w-md rounded-md bg-white p-6 shadow-xl dark:bg-slate-900">
         <h3 className="text-lg font-semibold text-slate-950 dark:text-slate-50">반 배치 초기화</h3>
         <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-          {formatDateKorean(date)} <span className="font-semibold text-orange-600">{TIME_SLOT_INFO[activeSlot].label}</span> 시간대의 배치를 초기화합니다.
-          학생은 대기 영역으로 이동되고, 생성된 반은 삭제됩니다.
+          {formatDateKorean(date)} <span className="font-semibold text-orange-600">{TIME_SLOT_INFO[activeSlot].label}</span> 시간대의
+          {branchName ? (
+            <> <span className="font-semibold text-orange-600">{branchName}</span> 지점 배치만 초기화합니다. 다른 지점 반은 그대로입니다.</>
+          ) : hasBranches ? (
+            <> <span className="font-semibold text-orange-600">모든 지점</span> 배치를 초기화합니다.</>
+          ) : (
+            <> 배치를 초기화합니다.</>
+          )}
+          {' '}학생은 대기 영역으로 이동되고, 생성된 반은 삭제됩니다.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button
