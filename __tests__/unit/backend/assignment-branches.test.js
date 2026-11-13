@@ -115,6 +115,32 @@ describe('지점별 반 배치', () => {
         expect(peakDb.query.mock.calls.some(([sql]) => sql.includes('class_instructors'))).toBe(false);
     });
 
+    it('동기화: P-ACA 에서 지점을 옮긴 학생이 옛 지점 조에 있으면 대기로 돌리고, 지점 없는 조는 그대로 둔다', async () => {
+        const moved = { ...pacaStudent, branch_id: 2 };
+        const other = { ...pacaStudent, attendance_id: 901, paca_student_id: 51 };
+        pacaDb.query
+            .mockResolvedValueOnce([branches])
+            .mockResolvedValueOnce([[moved, other]]);
+        peakDb.query
+            .mockResolvedValueOnce([[
+                { id: 10, student_id: 500, time_slot: 'evening', class_id: 1, paca_attendance_id: 900, is_trial: 0 },
+                { id: 11, student_id: 501, time_slot: 'evening', class_id: 3, paca_attendance_id: 901, is_trial: 0 },
+            ]])
+            .mockResolvedValueOnce([[{ id: 500, paca_student_id: 50 }, { id: 501, paca_student_id: 51 }]])
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([{ affectedRows: 1 }])
+            .mockResolvedValueOnce([[{ time_slot: 'evening', class_num: 1, branch_id: 1 }]]) // 3번 조는 지점 없음
+            .mockResolvedValue([{ affectedRows: 1 }]);
+
+        const res = await call('POST', '/peak/assignments/sync', { date: '2026-11-13' });
+
+        expect(res.status).toBe(200);
+        const released = peakDb.query.mock.calls.filter(([sql]) => sql.startsWith('UPDATE daily_assignments SET class_id = NULL'));
+        expect(released.map(([, params]) => params)).toEqual([[10, 2]]);
+    });
+
     it('이동: 다른 지점의 조로는 옮길 수 없고, 같은 지점 조로는 옮긴다', async () => {
         peakDb.query
             .mockResolvedValueOnce([[{ date: '2026-11-13', time_slot: 'evening' }]])
