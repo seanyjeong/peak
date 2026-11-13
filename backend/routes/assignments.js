@@ -12,6 +12,12 @@ const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { verifyToken } = require('../middleware/auth');
 const { getAssignmentReadEligibilitySql } = require('../services/assignmentEligibilityService');
+const {
+    getPacaBranches,
+    resolveBranchId,
+    getClassBranchId,
+    getAssignmentBranchId,
+} = require('../services/assignmentBranchService');
 const registerAssignmentInstructorRoutes = require('./assignmentInstructorRoutes');
 const registerAssignmentSyncRoutes = require('./assignmentSyncRoutes');
 
@@ -22,6 +28,13 @@ router.get('/', verifyToken, async (req, res) => {
         const targetDate = date || new Date().toISOString().split('T')[0];
         const academyId = req.user.academyId;  // 토큰에서 학원 ID 가져오기
         const assignableStatusSql = getAssignmentReadEligibilitySql('ps', 'a');
+
+        // P-ACA 지점: 지점을 주면 그 지점 학생과 그 지점의 조만 본다. 지점이 없는 학원은 지금 그대로.
+        const branches = await getPacaBranches(academyId);
+        const branchId = resolveBranchId(req.query.branch_id, branches);
+        if (branchId === undefined) {
+            return res.status(400).json({ error: '지점을 확인해주세요.' });
+        }
 
         // P-ACA에서 시간대 설정 가져오기
         const [settingsRows] = await pacaPool.query(`
@@ -100,6 +113,7 @@ router.get('/', verifyToken, async (req, res) => {
                 ps.gender,
                 ps.school,
                 ps.grade,
+                ${branches.length > 0 ? 'pc.class_name as paca_class_name,' : ''}
                 s.paca_student_id
             FROM daily_assignments a
             JOIN students s ON a.student_id = s.id
@@ -107,9 +121,11 @@ router.get('/', verifyToken, async (req, res) => {
                 ON s.paca_student_id = ps.id
                 AND ps.academy_id = ?
                 AND ${assignableStatusSql.clause}
+            ${branches.length > 0 ? 'LEFT JOIN paca.classes pc ON pc.id = ps.class_id' : ''}
             WHERE a.academy_id = ? AND a.date = ?
+            ${branchId ? 'AND ps.branch_id = ?' : ''}
             ORDER BY a.time_slot, a.class_id, a.order_num
-        `, [academyId, ...assignableStatusSql.params, academyId, targetDate]);
+        `, [academyId, ...assignableStatusSql.params, academyId, targetDate, ...(branchId ? [branchId] : [])]);
 
         // Decrypt student names + convert gender
         assignments.forEach(a => {
@@ -161,8 +177,9 @@ router.get('/', verifyToken, async (req, res) => {
                 inst => !assignedInstructorsBySlot[slot].has(inst.id)
             );
 
-            // 반별 데이터 구성
-            const slotClassInstructors = classInstructors.filter(ci => ci.time_slot === slot);
+            // 반별 데이터 구성 (지점을 골랐으면 그 지점의 조만)
+            const slotClassInstructors = classInstructors.filter(ci => ci.time_slot === slot
+                && (!branchId || ci.branch_id === branchId));
             const classNums = [...new Set(slotClassInstructors.map(ci => ci.class_num))].sort((a, b) => a - b);
 
             classNums.forEach(classNum => {
@@ -192,6 +209,7 @@ router.get('/', verifyToken, async (req, res) => {
                             gender: a.gender,
                             school: a.school,
                             grade: a.grade,
+                            paca_class_name: a.paca_class_name || null,
                             is_trial: a.is_trial,
                             trial_total: a.trial_total,
                             trial_remaining: a.trial_remaining,
@@ -225,6 +243,7 @@ router.get('/', verifyToken, async (req, res) => {
                         gender: a.gender,
                         school: a.school,
                         grade: a.grade,
+                        paca_class_name: a.paca_class_name || null,
                         is_trial: a.is_trial,
                         trial_total: a.trial_total,
                         trial_remaining: a.trial_remaining,
@@ -247,6 +266,7 @@ router.get('/', verifyToken, async (req, res) => {
                         gender: a.gender,
                         school: a.school,
                         grade: a.grade,
+                        paca_class_name: a.paca_class_name || null,
                         is_trial: a.is_trial,
                         trial_total: a.trial_total,
                         trial_remaining: a.trial_remaining,
@@ -264,7 +284,8 @@ router.get('/', verifyToken, async (req, res) => {
             success: true,
             date: targetDate,
             slots: result,
-            timeSlots
+            timeSlots,
+            branches
         });
     } catch (error) {
         console.error('Get assignments error:', error);
@@ -287,6 +308,14 @@ router.put('/:id', verifyToken, async (req, res) => {
         );
         if (existing.length === 0) {
             return res.status(404).json({ error: '배치를 찾을 수 없습니다.' });
+        }
+
+        // 지점에 묶인 조에는 그 지점 학생만 들어간다
+        if (class_id !== null && class_id !== undefined) {
+            const classBranchId = await getClassBranchId(academyId, existing[0].date, time_slot || existing[0].time_slot, class_id);
+            if (classBranchId !== null && classBranchId !== await getAssignmentBranchId(req.params.id, academyId)) {
+                return res.status(400).json({ error: '다른 지점의 반으로는 옮길 수 없습니다.' });
+            }
         }
 
         let query = 'UPDATE daily_assignments SET class_id = ?';
@@ -341,8 +370,27 @@ router.post('/reset', verifyToken, async (req, res) => {
         const { date, time_slot } = req.body;
         const targetDate = date || new Date().toISOString().split('T')[0];
 
-        // 특정 시간대 또는 전체 초기화
-        if (time_slot) {
+        // 지점을 주면 그 지점의 조와 그 지점 학생만 초기화한다
+        const branchId = resolveBranchId(req.body.branch_id, await getPacaBranches(academyId));
+        if (branchId === undefined) {
+            return res.status(400).json({ error: '지점을 확인해주세요.' });
+        }
+
+        if (branchId) {
+            const slotSql = time_slot ? ' AND time_slot = ?' : '';
+            const slotParams = time_slot ? [time_slot] : [];
+            await db.query(`
+                DELETE FROM class_instructors
+                WHERE academy_id = ? AND date = ? AND branch_id = ?${slotSql}
+            `, [academyId, targetDate, branchId, ...slotParams]);
+            await db.query(`
+                UPDATE daily_assignments a
+                JOIN students s ON a.student_id = s.id
+                JOIN paca.students ps ON s.paca_student_id = ps.id AND ps.academy_id = ?
+                SET a.class_id = NULL
+                WHERE a.academy_id = ? AND a.date = ? AND ps.branch_id = ?${slotSql.replace('time_slot', 'a.time_slot')}
+            `, [academyId, academyId, targetDate, branchId, ...slotParams]);
+        } else if (time_slot) {
             // 특정 시간대만 초기화
             // 1. 강사 배치 삭제
             await db.query(`

@@ -154,6 +154,8 @@ CREATE TABLE IF NOT EXISTS class_instructors (
     is_main TINYINT(1) DEFAULT 0 COMMENT '주강사 여부',
     order_num INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    branch_id INT NULL COMMENT 'P-ACA branches.id. NULL = 지점 없음',
+    paca_class_id INT NULL COMMENT '동기화가 이 P-ACA 반(classes.id)으로 만든 조',
     INDEX idx_schedule (academy_id, date, time_slot, class_num)
 ) ENGINE=InnoDB;
 

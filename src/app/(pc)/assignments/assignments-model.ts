@@ -7,6 +7,7 @@ export interface Student {
   gender: 'M' | 'F';
   school: string | null;
   grade: string | null;
+  paca_class_name?: string | null; // P-ACA 반 이름(지점을 쓰는 학원만)
   is_trial: boolean;
   trial_total: number;
   trial_remaining: number;
@@ -39,6 +40,12 @@ export interface SlotsData {
   morning: SlotData;
   afternoon: SlotData;
   evening: SlotData;
+}
+
+// P-ACA 지점. 지점이 없는 학원은 빈 목록이고 화면이 지금 그대로다.
+export interface AssignmentBranch {
+  id: number;
+  name: string;
 }
 
 export interface AssignmentPreset {

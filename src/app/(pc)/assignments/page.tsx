@@ -26,6 +26,7 @@ import {
   getDefaultSlot,
   getLocalDateString,
   getSlotStudentCount,
+  type AssignmentBranch,
   type AssignmentPreset,
   type Instructor,
   type SlotsData,
@@ -63,6 +64,10 @@ export default function AssignmentsPage() {
   const [showPresetConfirm, setShowPresetConfirm] = useState<PresetConfirm>(null);
   const [applyingPreset, setApplyingPreset] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalDateString);
+  // P-ACA 지점별 보기. null = 전체(지점이 없는 학원은 늘 null).
+  const [branches, setBranches] = useState<AssignmentBranch[]>([]);
+  const [branchId, setBranchId] = useState<number | null>(null);
+  const branchChosenRef = useRef(false);
 
   useEffect(() => {
     toastRef.current = toast;
@@ -89,7 +94,18 @@ export default function AssignmentsPage() {
         await apiClient.post('/assignments/sync', { date: selectedDate });
       }
 
-      const res = await apiClient.get<{ slots?: SlotsData }>(`/assignments?date=${selectedDate}`);
+      const branchQuery = branchId ? `&branch_id=${branchId}` : '';
+      const res = await apiClient.get<{ slots?: SlotsData; branches?: AssignmentBranch[] }>(
+        `/assignments?date=${selectedDate}${branchQuery}`
+      );
+      const loadedBranches = res.data.branches || [];
+      setBranches(loadedBranches);
+      // 지점이 있는 학원은 처음에 첫 지점을 골라 둔다 (그 뒤로는 고른 대로)
+      if (loadedBranches.length > 0 && !branchChosenRef.current) {
+        branchChosenRef.current = true;
+        setBranchId(loadedBranches[0].id);
+        return;
+      }
       const slots = res.data.slots || createEmptySlots();
       setSlotsData(slots);
       setActiveSlot((currentSlot) => (preserveActiveSlot ? currentSlot : getDefaultSlot(slots)));
@@ -99,7 +115,7 @@ export default function AssignmentsPage() {
       setSyncing(false);
       setLoading(false);
     }
-  }, [selectedDate]);
+  }, [branchId, selectedDate]);
 
   const fetchPresets = useCallback(async () => {
     try {
@@ -142,7 +158,14 @@ export default function AssignmentsPage() {
   const instructorCount = currentSlotData.waitingInstructors.length
     + currentSlotData.classes.reduce((sum, classData) => sum + classData.instructors.length, 0);
 
-  const getNextClassNum = () => {
+  const getNextClassNum = async () => {
+    // 지점별로 볼 때는 다른 지점의 조 번호가 안 보이므로 서버에 다음 번호를 묻는다
+    if (branchId) {
+      const res = await apiClient.get<{ next_class_num: number }>(
+        `/assignments/next-class-num?date=${selectedDate}&time_slot=${activeSlot}`
+      );
+      return res.data.next_class_num;
+    }
     const classNums = currentSlotData.classes.map((classData) => classData.class_num);
     return classNums.length > 0 ? Math.max(...classNums) + 1 : 1;
   };
@@ -177,6 +200,7 @@ export default function AssignmentsPage() {
           date: selectedDate,
           time_slot: activeSlot,
           instructor_id: instructor.id,
+          branch_id: branchId,
         };
 
         if (overId === 'waiting-instructors') {
@@ -190,22 +214,23 @@ export default function AssignmentsPage() {
         } else if (overId === 'new-class') {
           await apiClient.post('/assignments/instructor', {
             ...payload,
-            to_class_num: getNextClassNum(),
+            to_class_num: await getNextClassNum(),
             is_main: true,
           });
         }
       }
 
       await loadAssignments();
-    } catch {
-      toastRef.current.error('배치를 저장하지 못했습니다. 다시 시도해주세요.');
+    } catch (error) {
+      const message = (error as { response?: { data?: { error?: string } } }).response?.data?.error;
+      toastRef.current.error(message && message !== 'Internal Server Error' ? message : '배치를 저장하지 못했습니다. 다시 시도해주세요.');
     }
   };
 
   const handleReset = async () => {
     try {
       setResetting(true);
-      await apiClient.post('/assignments/reset', { date: selectedDate, time_slot: activeSlot });
+      await apiClient.post('/assignments/reset', { date: selectedDate, time_slot: activeSlot, branch_id: branchId });
       setShowResetConfirm(false);
       await loadAssignments();
       toastRef.current.success('현재 시간대 배치를 초기화했습니다.');
@@ -256,7 +281,7 @@ export default function AssignmentsPage() {
             />
           </label>
           <PresetMenu
-            presets={presets}
+            presets={branchId ? [] : presets}
             disabled={loading || applyingPreset}
             open={showPresetMenu}
             menuRef={presetMenuRef}
@@ -292,6 +317,25 @@ export default function AssignmentsPage() {
         <Metric label="운영 반" value={`${currentSlotData.classes.length}개`} detail="강사 기준" />
         <Metric label="강사" value={`${instructorCount}명`} detail={isConnected ? '실시간 연결' : '수동 새로고침'} />
       </section>
+
+      {branches.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="지점">
+          {[{ id: null, name: '전체' }, ...branches].map((branch) => (
+            <button
+              key={branch.id ?? 'all'}
+              aria-pressed={branchId === branch.id}
+              onClick={() => setBranchId(branch.id)}
+              className={`inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium transition ${
+                branchId === branch.id
+                  ? 'border-orange-400 bg-orange-50 text-orange-700 shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+              }`}
+            >
+              {branch.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         {SLOT_ORDER.map((slot) => {

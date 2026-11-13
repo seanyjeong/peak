@@ -7,6 +7,8 @@ jest.mock('../../../backend/middleware/auth', () => ({
     },
 }));
 jest.mock('../../../backend/utils/encryption', () => ({ decrypt: (value) => value }));
+// 지점을 안 쓰는 학원 기준 (지점별 배치는 assignment-branches.test.js)
+jest.mock('../../../backend/services/assignmentBranchService', () => ({ getPacaBranches: async () => [] }));
 
 const express = require('express');
 const http = require('http');

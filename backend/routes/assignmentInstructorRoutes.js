@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
+const { getPacaBranches, resolveBranchId } = require('../services/assignmentBranchService');
 
 function registerAssignmentInstructorRoutes(router) {
     router.post('/instructor', verifyToken, async (req, res) => {
@@ -41,6 +42,15 @@ function registerAssignmentInstructorRoutes(router) {
                 ORDER BY order_num
             `, [academyId, targetDate, time_slot, to_class_num]);
 
+            // 조의 지점: 이미 있는 조는 그 조의 지점을 따르고, 새 조는 화면에서 고른 지점
+            let branchId = existingInsts.length > 0 ? existingInsts[0].branch_id : null;
+            if (existingInsts.length === 0 && req.body.branch_id) {
+                branchId = resolveBranchId(req.body.branch_id, await getPacaBranches(academyId));
+                if (branchId === undefined) {
+                    return res.status(400).json({ error: '지점을 확인해주세요.' });
+                }
+            }
+
             let orderNum = 0;
             const isMainFlag = is_main !== undefined ? is_main : (existingInsts.length === 0);
 
@@ -55,9 +65,10 @@ function registerAssignmentInstructorRoutes(router) {
             }
 
             await db.query(`
-                INSERT INTO class_instructors (academy_id, date, time_slot, class_num, instructor_id, is_main, order_num)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            `, [academyId, targetDate, time_slot, to_class_num, instructor_id, isMainFlag ? 1 : 0, orderNum]);
+                INSERT INTO class_instructors (academy_id, date, time_slot, class_num, instructor_id, is_main, order_num, branch_id, paca_class_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [academyId, targetDate, time_slot, to_class_num, instructor_id, isMainFlag ? 1 : 0, orderNum,
+                branchId ?? null, existingInsts[0]?.paca_class_id ?? null]);
 
             await cleanupEmptyClasses(targetDate, time_slot, academyId);
 

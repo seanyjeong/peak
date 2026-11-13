@@ -32,6 +32,11 @@ export function CompactStudentCard({ student, isDragging }: { student: Student; 
         >
           <ExternalLink size={10} className="text-orange-500" />
         </Link>
+        {student.paca_class_name ? (
+          <span className="max-w-[64px] truncate rounded bg-slate-100 px-1 py-0.5 text-[9px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+            {student.paca_class_name}
+          </span>
+        ) : null}
         {student.status === 'trial' ? (
           <span className="rounded bg-purple-100 px-1 py-0.5 text-[9px] font-medium text-purple-700">
             {student.trial_total - student.trial_remaining}/{student.trial_total}

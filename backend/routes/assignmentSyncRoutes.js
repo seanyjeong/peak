@@ -8,6 +8,7 @@ const {
     isAssignmentSyncEligible,
     isTrialAssignmentSnapshot,
 } = require('../services/assignmentEligibilityService');
+const { getPacaBranches } = require('../services/assignmentBranchService');
 
 function registerAssignmentSyncRoutes(router) {
     router.post('/sync', verifyToken, async (req, res) => {
@@ -16,6 +17,8 @@ function registerAssignmentSyncRoutes(router) {
             const targetDate = date || new Date().toISOString().split('T')[0];
             const academyId = req.user.academyId;
             const assignableStatusSql = getAssignmentSyncSourceStatusSql('s');
+            // 지점을 쓰는 학원만 학생의 P-ACA 지점·반·반 담당 강사를 같이 읽는다
+            const hasBranches = (await getPacaBranches(academyId)).length > 0;
 
             const [existingAssignments] = await db.query(`
                 SELECT id, student_id, time_slot, class_id, paca_attendance_id, is_trial, trial_total, trial_remaining
@@ -41,6 +44,7 @@ function registerAssignmentSyncRoutes(router) {
                     s.status as student_status,
                     cs.time_slot,
                     a.attendance_status,
+                    ${hasBranches ? 's.branch_id, s.class_id as paca_class_id, c.instructor_id as class_instructor_id,' : ''}
                     a.is_makeup
                 FROM attendance a
                 JOIN class_schedules cs ON a.class_schedule_id = cs.id
@@ -49,6 +53,7 @@ function registerAssignmentSyncRoutes(router) {
                     AND s.academy_id = cs.academy_id
                     AND s.deleted_at IS NULL
                     AND ${assignableStatusSql.clause}
+                ${hasBranches ? 'LEFT JOIN classes c ON c.id = s.class_id AND c.academy_id = s.academy_id' : ''}
                 WHERE cs.academy_id = ? AND cs.class_date = ?
                 ORDER BY cs.time_slot, s.name
             `, [...assignableStatusSql.params, academyId, targetDate]);
@@ -85,7 +90,8 @@ async function syncAssignments({ academyId, targetDate, pacaStudents, existingAs
     }
     await updateStudents(syncPlan.studentsToUpdate, academyId);
     await updateAssignments(syncPlan.assignmentsToUpdate, academyId);
-    await insertAssignments(syncPlan.assignmentsToInsert, academyId, targetDate, peakStudentMap);
+    const classNums = await prepareBranchClasses(syncPlan.assignmentsToInsert, academyId, targetDate);
+    await insertAssignments(syncPlan.assignmentsToInsert, academyId, targetDate, peakStudentMap, classNums);
 
     const removedCount = await removeMissingAssignments(existingAssignments, syncPlan.syncedStudentKeys, academyId);
 
@@ -180,6 +186,9 @@ function buildSyncPlan(pacaStudents, existingMap, peakStudentMap, targetDate) {
                 isTrial: trialSnapshot.isTrial ? 1 : 0,
                 trialTotal: trialSnapshot.trialTotal,
                 trialRemaining: ps.trial_remaining || 0,
+                branchId: ps.branch_id || null,
+                pacaClassId: ps.paca_class_id || null,
+                classInstructorId: ps.class_instructor_id || null,
             });
             plan.addedCount++;
         }
@@ -227,7 +236,52 @@ async function updateAssignments(assignmentsToUpdate, academyId) {
     }
 }
 
-async function insertAssignments(assignmentsToInsert, academyId, targetDate, peakStudentMap) {
+// 새로 들어온 학생을 P-ACA 반대로 나눈다: 반에 담당 강사가 있고 그 강사가 그 시간대에 근무하면
+// 그 반의 조를 만들고(이미 있으면 그 조에) 학생을 넣는다. 그 밖의 학생은 지금처럼 대기.
+// 이미 배치돼 있던 학생은 건드리지 않는다. 돌려주는 값: `${timeSlot}-${pacaClassId}` → 조 번호.
+async function prepareBranchClasses(assignmentsToInsert, academyId, targetDate) {
+    const classNums = new Map();
+    const targets = assignmentsToInsert.filter(a => a.branchId && a.pacaClassId && a.classInstructorId);
+    if (targets.length === 0) return classNums;
+
+    const [classRows] = await db.query(`
+        SELECT time_slot, class_num, instructor_id, paca_class_id FROM class_instructors
+        WHERE academy_id = ? AND date = ?
+    `, [academyId, targetDate]);
+    const [working] = await pacaPool.query(`
+        SELECT instructor_id, time_slot FROM instructor_schedules
+        WHERE academy_id = ? AND work_date = ?
+    `, [academyId, targetDate]);
+    const workingKeys = new Set(working.map(w => `${w.time_slot}-${w.instructor_id}`));
+
+    for (const target of targets) {
+        const key = `${target.timeSlot}-${target.pacaClassId}`;
+        if (classNums.has(key)) continue;
+
+        const slotRows = classRows.filter(row => row.time_slot === target.timeSlot);
+        const existing = slotRows.find(row => row.paca_class_id === target.pacaClassId);
+        if (existing) {
+            classNums.set(key, existing.class_num);
+            continue;
+        }
+        const placed = slotRows.some(row => row.instructor_id === target.classInstructorId);
+        if (placed || !workingKeys.has(`${target.timeSlot}-${target.classInstructorId}`)) continue;
+
+        const classNum = slotRows.reduce((max, row) => Math.max(max, row.class_num), 0) + 1;
+        await db.query(`
+            INSERT INTO class_instructors (academy_id, date, time_slot, class_num, instructor_id, is_main, order_num, branch_id, paca_class_id)
+            VALUES (?, ?, ?, ?, ?, 1, 0, ?, ?)
+        `, [academyId, targetDate, target.timeSlot, classNum, target.classInstructorId, target.branchId, target.pacaClassId]);
+        classRows.push({
+            time_slot: target.timeSlot, class_num: classNum,
+            instructor_id: target.classInstructorId, paca_class_id: target.pacaClassId,
+        });
+        classNums.set(key, classNum);
+    }
+    return classNums;
+}
+
+async function insertAssignments(assignmentsToInsert, academyId, targetDate, peakStudentMap, classNums) {
     if (assignmentsToInsert.length === 0) return;
 
     const assignmentValues = assignmentsToInsert.map(a => [
@@ -236,7 +290,7 @@ async function insertAssignments(assignmentsToInsert, academyId, targetDate, pea
         a.timeSlot,
         peakStudentMap.get(a.pacaStudentId),
         a.attendanceId,
-        null,
+        classNums.get(`${a.timeSlot}-${a.pacaClassId}`) ?? null,
         'enrolled',
         0,
         a.isTrial,
