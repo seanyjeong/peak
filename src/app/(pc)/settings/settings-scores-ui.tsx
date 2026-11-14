@@ -130,7 +130,7 @@ function ScoreFormCard({
   typesWithoutScore: RecordType[];
 }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+    <section className="rounded-2xl bg-card p-5">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-foreground">배점표 생성</h3>
         <button type="button" onClick={onCancel} className="rounded-md p-2 text-muted-foreground hover:bg-muted">
@@ -221,7 +221,7 @@ function ScoreTableCard({
   table: ScoreTable;
 }) {
   return (
-    <article className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <article className="overflow-hidden rounded-2xl bg-card">
       <div className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-muted">
         <button type="button" onClick={() => onToggle(table.id)} className="min-w-0 flex-1 text-left">
         <div>

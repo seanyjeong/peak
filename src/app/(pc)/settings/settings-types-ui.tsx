@@ -52,7 +52,7 @@ export function RecordTypesPanel({
         />
       )}
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-2xl bg-card">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -99,7 +99,7 @@ function TypeFormCard({
   typeForm: TypeForm;
 }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+    <section className="rounded-2xl bg-card p-5">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-foreground">{editingType ? '종목 수정' : '새 종목 추가'}</h3>
         <button type="button" onClick={onCancel} className="rounded-md p-2 text-muted-foreground hover:bg-muted">

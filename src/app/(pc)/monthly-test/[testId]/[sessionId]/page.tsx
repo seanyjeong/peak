@@ -250,7 +250,7 @@ export default function SessionGroupPage({ params }: { params: Promise<{ testId:
         <Metric label="대기 감독관" value={`${waitingInstructors.length}명`} />
       </section>
 
-      <nav className="inline-grid w-fit grid-cols-2 rounded-lg border border-border bg-card p-1 shadow-sm">
+      <nav className="inline-grid w-fit grid-cols-2 rounded-2xl bg-card p-1">
         <TabButton active={activeTab === 'grouping'} label="조 편성" onClick={() => setActiveTab('grouping')} />
         <TabButton active={activeTab === 'schedule'} label="순서표" onClick={() => setActiveTab('schedule')} />
       </nav>
@@ -306,7 +306,7 @@ function ActionButton({ disabled, icon, label, onClick, primary = false }: { dis
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+    <div className="rounded-2xl bg-card p-4">
       <div className="flex items-center justify-between text-muted-foreground">
         <span className="text-sm font-bold">{label}</span>
         <Users className="h-4 w-4" />

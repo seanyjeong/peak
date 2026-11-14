@@ -66,7 +66,7 @@ export function KPICard({
   }[tone];
 
   return (
-    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-2xl bg-card p-5">
       <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border ${toneClass}`}>{icon}</div>
       <p className="mt-4 text-sm font-semibold text-muted-foreground">{label}</p>
       <div className="mt-1 flex items-end gap-1">
@@ -79,7 +79,7 @@ export function KPICard({
 
 export function EventAverageTable({ events }: { events: EventAverage[] }) {
   return (
-    <section className="rounded-lg border border-border bg-card shadow-sm">
+    <section className="rounded-2xl bg-card">
       <div className="flex items-start gap-3 border-b border-border px-5 py-4">
         <Activity className="mt-0.5 h-5 w-5 text-primary" />
         <div>
@@ -152,7 +152,7 @@ export function EventSummaryBar({ trend }: { trend: EventTrend }) {
   const tone = getTrendTone(trend.avgTrend);
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-5 py-4 shadow-sm">
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-card px-5 py-4">
       <Trophy className="h-5 w-5 text-primary" />
       <span className="text-base font-bold text-foreground">{trend.recordTypeName}</span>
       <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${tone.badge}`}>평균 {trendLabel(trend.avgTrend)}</span>
@@ -169,7 +169,7 @@ export function RankingTable({ data, title, tone, unit }: { data: RankStudent[];
   const toneClass = tone === 'blue' ? 'bg-primary-soft text-primary' : 'bg-primary-soft text-primary';
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-2xl bg-card">
       <div className={`flex items-center gap-2 px-4 py-3 ${toneClass}`}>
         <Trophy className="h-4 w-4" />
         <span className="text-sm font-bold">{title}</span>

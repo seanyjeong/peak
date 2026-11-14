@@ -145,7 +145,7 @@ export default function AllStudentRecordsPage() {
             <p className="mt-1 text-sm text-muted-foreground">학생별 최신 실기 기록을 한 표에서 비교합니다.</p>
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-card px-4 py-3 text-right shadow-sm">
+        <div className="rounded-2xl bg-card px-4 py-3 text-right">
           <p className="text-xs font-bold text-muted-foreground">현재 표시</p>
           <p className="text-2xl font-black text-foreground">{filteredRows.length}명</p>
         </div>
@@ -158,7 +158,7 @@ export default function AllStudentRecordsPage() {
         <Metric label="기록 종목" value={recordTypes.length} />
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+      <section className="rounded-2xl bg-card p-4">
         <div className="grid gap-3 xl:grid-cols-[1fr_180px_220px]">
           <label className="relative block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -210,7 +210,7 @@ export default function AllStudentRecordsPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <section className="overflow-hidden rounded-2xl bg-card">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="border-b border-border bg-muted text-muted-foreground">
@@ -281,7 +281,7 @@ export default function AllStudentRecordsPage() {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+    <div className="rounded-2xl bg-card p-4">
       <div className="flex items-center justify-between text-muted-foreground">
         <span className="text-sm font-bold">{label}</span>
         <Users className="h-4 w-4" />

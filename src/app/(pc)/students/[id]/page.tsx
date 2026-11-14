@@ -229,7 +229,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
   if (!student || !stats) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-6">
-        <div className="rounded-lg border border-border bg-card p-6 text-center shadow-sm">
+        <div className="rounded-2xl bg-card p-6 text-center">
           <p className="text-sm font-semibold text-secondary-foreground">학생 정보를 찾지 못했습니다.</p>
           <button type="button" onClick={() => router.push('/students')} className="mt-4 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background">
             학생 관리로 이동
@@ -283,7 +283,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
 
       <section className="grid gap-4 xl:grid-cols-[360px_1fr]">
         <aside className="space-y-4">
-          <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div className="rounded-2xl bg-card p-5">
             <h2 className="text-base font-bold text-foreground">종목 선택</h2>
             <p className="mt-1 text-sm text-muted-foreground">비교와 점수 요약에 반영할 종목을 고릅니다. 최대 6개입니다.</p>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -306,7 +306,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
             </div>
           </div>
 
-          <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div className="rounded-2xl bg-card p-5">
             <h2 className="text-base font-bold text-foreground">최근 기록 요약</h2>
             <div className="mt-3 space-y-2">
               {selectedTypeObjects.map((type) => {
@@ -330,7 +330,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
         </aside>
 
         <div className="space-y-4">
-          <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <section className="rounded-2xl bg-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -389,7 +389,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
         </div>
       </section>
 
-      <section className="rounded-lg border border-border bg-card shadow-sm">
+      <section className="rounded-2xl bg-card">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="text-base font-bold text-foreground">최근 기록</h2>
           {recordHistory.length > 5 && (
@@ -440,7 +440,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
 
 function MetricCard({ badgeClass, icon, label, sub, value }: { badgeClass?: string; icon: React.ReactNode; label: string; sub: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-2xl bg-card p-5">
       <div className="flex items-center justify-between text-muted-foreground">
         <span className="text-sm font-bold">{label}</span>
         {icon}
@@ -455,7 +455,7 @@ function MetricCard({ badgeClass, icon, label, sub, value }: { badgeClass?: stri
 
 function ChartCard({ children, icon, title }: { children: React.ReactNode; icon: React.ReactNode; title: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-2xl bg-card p-5">
       <div className="mb-4 flex items-center gap-2">
         {icon}
         <h2 className="text-base font-bold text-foreground">{title}</h2>

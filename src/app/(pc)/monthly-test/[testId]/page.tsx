@@ -200,7 +200,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
   if (!test) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-6">
-        <div className="rounded-lg border border-border bg-card p-6 text-center shadow-sm">
+        <div className="rounded-2xl bg-card p-6 text-center">
           <p className="text-sm font-semibold text-secondary-foreground">월말테스트를 찾지 못했습니다.</p>
           <button type="button" onClick={() => router.push('/monthly-test')} className="mt-4 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background">
             목록으로 이동
@@ -252,7 +252,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
         <Metric label="편성 조" value={`${test.sessions.reduce((sum, session) => sum + session.group_count, 0)}개`} />
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+      <section className="rounded-2xl bg-card p-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-bold text-muted-foreground">상태 변경</span>
           {(['draft', 'active', 'completed'] as TestStatus[]).map((status) => (
@@ -278,7 +278,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       </section>
 
       {showSessionForm && (
-        <section className="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-sm md:grid-cols-[1fr_200px_auto]">
+        <section className="grid gap-3 rounded-2xl bg-card p-4 md:grid-cols-[1fr_200px_auto]">
           <input
             type="date"
             value={newSessionDate}
@@ -300,7 +300,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       )}
 
       {showSettingsPanel && (
-        <section className="space-y-4 rounded-lg border border-border bg-card p-5 shadow-sm">
+        <section className="space-y-4 rounded-2xl bg-card p-5">
           <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
             <label className="text-sm font-bold text-secondary-foreground">
               테스트 이름
@@ -371,7 +371,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
         ) : (
           <div className="grid gap-4 lg:grid-cols-3">
             {test.sessions.map((session) => (
-              <article key={session.id} className="rounded-lg border border-border bg-card p-5 shadow-sm">
+              <article key={session.id} className="rounded-2xl bg-card p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-bold text-foreground">{formatSessionDate(session.test_date)}</h3>
@@ -404,7 +404,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
 
 function Metric({ className = 'bg-muted text-secondary-foreground', label, value }: { className?: string; label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-2xl bg-card p-5">
       <p className="text-sm font-bold text-muted-foreground">{label}</p>
       <span className={`mt-3 inline-flex rounded-lg px-3 py-1 text-2xl font-black ${className}`}>{value}</span>
     </div>

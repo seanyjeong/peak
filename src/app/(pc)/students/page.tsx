@@ -234,7 +234,7 @@ export default function StudentsPage() {
       <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
 
       {/* Filters */}
-      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="rounded-2xl bg-card p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -276,7 +276,7 @@ export default function StudentsPage() {
           ) : (
             <div className="flex gap-2">
               {/* Student List with Groups */}
-              <div className="flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+              <div className="flex-1 overflow-hidden rounded-2xl bg-card">
                 <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
                   {sortedGroups.map(([chosung, students]) => (
                     <div
@@ -322,7 +322,7 @@ export default function StudentsPage() {
         {/* Student Detail */}
         {selectedStudent && (
           <div className="w-1/2">
-            <div className="sticky top-8 overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+            <div className="sticky top-8 overflow-hidden rounded-2xl bg-card">
               <div className="relative bg-foreground p-6 text-background">
                 <button onClick={() => setSelectedStudent(null)} className="absolute top-6 right-6 p-2 hover:bg-card/10 rounded-lg transition">
                   <X size={20} />

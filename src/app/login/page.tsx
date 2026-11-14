@@ -13,7 +13,7 @@ const fieldClassName =
 function AutoLoginView() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f5f7fb] px-5 text-foreground">
-      <section className="w-full max-w-sm rounded-lg border border-border bg-card p-7 text-center shadow-sm">
+      <section className="w-full max-w-sm rounded-2xl bg-card p-7 text-center">
         <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-lg bg-foreground text-background">
           <Loader2 className="size-5 animate-spin" aria-hidden="true" />
         </div>
@@ -100,7 +100,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-[#f5f7fb] text-foreground">
       <div className="mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 px-5 py-8 lg:grid-cols-[0.95fr_1.05fr] lg:px-8">
         <section className="hidden lg:block">
-          <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold text-secondary-foreground shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-2xl bg-card px-3 py-2 text-sm font-semibold text-secondary-foreground">
             <Activity className="size-4 text-success" aria-hidden="true" />
             PEAK OPERATIONS
           </div>
@@ -110,7 +110,7 @@ export default function LoginPage() {
           </p>
           <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
             {['출석', '반 배치', '기록'].map((label) => (
-              <div key={label} className="rounded-lg border border-border bg-card p-4 shadow-sm">
+              <div key={label} className="rounded-2xl bg-card p-4">
                 <p className="text-sm font-semibold text-muted-foreground">{label}</p>
                 <div className="mt-4 h-1.5 rounded-full bg-muted">
                   <div className="h-full w-2/3 rounded-full bg-success" />
@@ -120,7 +120,7 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="mx-auto w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8">
+        <section className="mx-auto w-full max-w-md rounded-2xl bg-card p-6 sm:p-8">
           <div className="mb-7">
             <div className="flex items-center justify-between gap-4">
               <div>

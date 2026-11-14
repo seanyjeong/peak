@@ -154,7 +154,7 @@ export default function RecordsPage() {
                 </div>
               ) : currentRecordType && (
                 <section className="space-y-3">
-                  <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+                  <div className="rounded-2xl bg-card p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-lg font-black text-foreground">{currentRecordType.name}</span>
                       <span className="text-sm font-semibold text-muted-foreground">{currentRecordType.unit}</span>
@@ -190,7 +190,7 @@ export default function RecordsPage() {
 
 function MetricCard({ icon: Icon, label, value }: { icon: typeof Calendar; label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+    <div className="rounded-2xl bg-card p-4">
       <div className="flex items-center gap-3">
         <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-secondary-foreground">
           <Icon className="size-5" />

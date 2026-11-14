@@ -118,7 +118,7 @@ export function WaitingArea({
   const { setNodeRef: setInstructorRef, isOver: isOverInstructors } = useDroppable({ id: 'waiting-instructors' });
 
   return (
-    <div className="mb-5 rounded-md border border-border bg-card shadow-sm">
+    <div className="mb-5 rounded-2xl bg-card">
       <div className="grid gap-4 p-4 lg:grid-cols-2">
         <WaitingPanel
           refCallback={setStudentRef}
@@ -192,7 +192,7 @@ export function ClassColumn({ classData }: { classData: ClassData }) {
   const className = mainInstructor ? `${mainInstructor.name}반` : `${classData.class_num}반`;
 
   return (
-    <div className="flex w-56 flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm">
+    <div className="flex w-56 flex-col overflow-hidden rounded-2xl bg-card">
       <div className="bg-primary px-3 py-2 text-white">
         <div className="flex items-center justify-between gap-2">
           <span className="truncate font-semibold">{className}</span>

@@ -333,7 +333,7 @@ export default function PresetsPage() {
 
 function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <article className="rounded-md border border-border bg-card p-5 shadow-sm">
+    <article className="rounded-2xl bg-card p-5">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-3 text-3xl font-semibold text-foreground">{value}</p>
       <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
@@ -402,7 +402,7 @@ function TypeButton({ active, label, detail, onClick }: { active: boolean; label
 
 function EmptyPresetState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="flex min-h-[360px] flex-col items-center justify-center rounded-md border border-border bg-card text-center shadow-sm">
+    <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl bg-card text-center">
       <Layers size={44} className="text-muted-foreground/60" />
       <p className="mt-4 font-medium text-secondary-foreground">프리셋이 없습니다.</p>
       <p className="mt-1 text-sm text-muted-foreground">새 프리셋을 만들어 자동 반 배치를 준비하세요.</p>

@@ -67,7 +67,7 @@ export function ScheduleTable({
   };
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+    <section className="rounded-2xl bg-card p-4">
       <p className="mb-3 text-sm font-semibold text-muted-foreground">종목 셀을 드래그하면 다른 셀과 교체됩니다.</p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto">

@@ -291,7 +291,7 @@ export default function TrainingPage() {
           />
 
           {isAdmin && selectedSlot && currentInstructors.length > 0 && (
-            <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            <section className="rounded-2xl bg-card p-4">
               <label className="block text-sm font-bold text-secondary-foreground">
                 강사 선택
                 <select

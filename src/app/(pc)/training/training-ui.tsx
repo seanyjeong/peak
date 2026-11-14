@@ -124,7 +124,7 @@ export function ChecklistPanel({
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card shadow-sm">
+    <section className="rounded-2xl bg-card">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-normal text-success">CHECKLIST</p>
@@ -324,7 +324,7 @@ export function StudentConditionPanel({
   students: Student[];
 }) {
   return (
-    <section className="rounded-lg border border-border bg-card shadow-sm">
+    <section className="rounded-2xl bg-card">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <h2 className="flex items-center gap-2 text-xl font-black text-foreground">
           <User className="size-5" />

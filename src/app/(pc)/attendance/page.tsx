@@ -149,7 +149,7 @@ export default function AttendancePage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="rounded-md border border-border bg-card shadow-sm">
+        <div className="rounded-2xl bg-card">
           <div className="border-b border-border px-5 py-4">
             <h2 className="text-base font-semibold text-foreground">시간대 선택</h2>
             <p className="mt-1 text-sm text-muted-foreground">강사가 배정된 반을 먼저 확인합니다.</p>
@@ -168,7 +168,7 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        <div className="rounded-md border border-border bg-card shadow-sm" data-testid="attendance-list">
+        <div className="rounded-2xl bg-card" data-testid="attendance-list">
           <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
             <div>
               <h2 className="text-base font-semibold text-foreground">
@@ -227,7 +227,7 @@ function SummaryCard({
   }[tone];
 
   return (
-    <article className="rounded-md border border-border bg-card p-5 shadow-sm">
+    <article className="rounded-2xl bg-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium text-muted-foreground">{label}</p>

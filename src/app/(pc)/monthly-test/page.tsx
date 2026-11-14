@@ -248,7 +248,7 @@ export default function MonthlyTestListPage() {
       {!loading && tests.length > 0 && (
         <div className="grid gap-3">
           {tests.map((test) => (
-            <article key={test.id} className="rounded-lg border border-border bg-card p-5 shadow-sm transition hover:border-border">
+            <article key={test.id} className="rounded-2xl bg-card p-5 transition hover:border-border">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <button type="button" onClick={() => router.push(`/monthly-test/${test.id}`)} className="min-w-0 flex-1 text-left">
                   <div className="flex flex-wrap items-center gap-2">
@@ -321,7 +321,7 @@ function ActionButton({ icon: Icon, label, onClick }: { icon: typeof Settings2; 
 
 function Metric({ icon: Icon, label, value }: { icon: typeof Trophy; label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+    <div className="rounded-2xl bg-card p-4">
       <div className="flex items-center gap-3">
         <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-secondary-foreground"><Icon className="size-5" /></span>
         <div>

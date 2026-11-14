@@ -52,7 +52,7 @@ export function PermissionsPanel({
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-2xl bg-card">
         <div className="divide-y divide-border">
           {PERMISSION_ITEMS.map((item) => {
             const enabled = permissions[item.key];

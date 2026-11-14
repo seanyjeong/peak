@@ -35,7 +35,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex min-h-[520px] items-center justify-center" data-testid="dashboard-loading">
-        <div className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-3 text-sm text-secondary-foreground shadow-sm">
+        <div className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 text-sm text-secondary-foreground">
           <RefreshCw size={18} className="animate-spin text-primary" />
           오늘 훈련 데이터를 불러오는 중입니다.
         </div>
@@ -70,7 +70,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="rounded-md border border-border bg-card shadow-sm" data-testid="dashboard-schedule">
+        <div className="rounded-2xl bg-card" data-testid="dashboard-schedule">
           <PanelHeader
             title="오늘 스케줄"
             description="시간대별 배정과 학생 수를 한 번에 확인합니다."
@@ -112,7 +112,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-md border border-border bg-card shadow-sm" data-testid="dashboard-attendance">
+        <div className="rounded-2xl bg-card" data-testid="dashboard-attendance">
           <PanelHeader
             title="강사 현황"
             description={currentAttendance ? `${currentAttendance.currentSlotLabel} 기준` : '현재 시간대 기준'}
@@ -187,7 +187,7 @@ function MetricPanel({
   }[tone];
 
   return (
-    <article className="rounded-md border border-border bg-card p-5 shadow-sm">
+    <article className="rounded-2xl bg-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium text-muted-foreground">{label}</p>

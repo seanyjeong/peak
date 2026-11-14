@@ -247,7 +247,7 @@ export default function MobileRecordsPage() {
   return (
     <div className="space-y-3">
       {/* 날짜 & 새로고침 */}
-      <div className="flex items-center justify-between bg-card rounded-xl p-3 shadow-sm border border-border">
+      <div className="flex items-center justify-between bg-card rounded-2xl p-3">
         <div className="flex items-center gap-2">
           <Calendar size={18} className="text-muted-foreground" />
           <input
@@ -277,7 +277,7 @@ export default function MobileRecordsPage() {
             className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl font-medium text-sm transition ${
               selectedTimeSlot === key
                 ? 'bg-primary text-white shadow-md'
-                : 'bg-card text-secondary-foreground shadow-sm border border-border'
+                : 'bg-card text-secondary-foreground'
             }`}
           >
             <Icon size={16} />
@@ -294,7 +294,7 @@ export default function MobileRecordsPage() {
       />
 
       {/* 입력 모드 선택 */}
-      <div className="flex gap-2 bg-card rounded-xl p-1 shadow-sm border border-border">
+      <div className="flex gap-2 bg-card rounded-2xl p-1">
         <button
           onClick={() => setInputMode('student')}
           className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
@@ -324,7 +324,7 @@ export default function MobileRecordsPage() {
           <RefreshCw size={24} className="animate-spin text-primary" />
         </div>
       ) : students.length === 0 ? (
-        <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
+        <div className="bg-card rounded-2xl p-8 text-center">
           <p className="text-muted-foreground text-sm">이 시간대에 배치된 학생이 없습니다</p>
         </div>
       ) : inputMode === 'student' ? (
@@ -340,7 +340,7 @@ export default function MobileRecordsPage() {
           {students.map((student) => {
             const isExpanded = expandedStudents.has(student.id);
             return (
-              <div key={student.id} className="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
+              <div key={student.id} className="bg-card rounded-2xl overflow-hidden">
                 <button
                   onClick={() => toggleStudent(student.id)}
                   className="w-full flex items-center justify-between p-3"
@@ -431,7 +431,7 @@ export default function MobileRecordsPage() {
             ))}
           </div>
 
-          <div className="bg-card rounded-xl shadow-sm divide-y divide-border border border-border">
+          <div className="bg-card rounded-2xl divide-y divide-border">
             {students.map((student) => {
               if (!selectedType) return null;
               const key = `${student.id}-${selectedType}`;

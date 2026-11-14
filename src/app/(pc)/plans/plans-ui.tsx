@@ -92,7 +92,7 @@ export function PlanCard({
   const visibleExercises = expanded ? plan.exercises : plan.exercises.slice(0, 4);
 
   return (
-    <article className="rounded-lg border border-border bg-card p-5 shadow-sm">
+    <article className="rounded-2xl bg-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-3">

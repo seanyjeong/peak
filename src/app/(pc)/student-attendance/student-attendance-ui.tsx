@@ -30,7 +30,7 @@ export function SummaryCard({
   }[tone];
 
   return (
-    <article className="rounded-md border border-border bg-card p-5 shadow-sm">
+    <article className="rounded-2xl bg-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium text-muted-foreground">{label}</p>

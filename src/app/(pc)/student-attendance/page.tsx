@@ -187,7 +187,7 @@ export default function StudentAttendancePage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="rounded-md border border-border bg-card shadow-sm">
+        <div className="rounded-2xl bg-card">
           <div className="border-b border-border px-5 py-4">
             <h2 className="text-base font-semibold text-foreground">시간대 선택</h2>
             <p className="mt-1 text-sm text-muted-foreground">출석 처리할 반을 선택합니다.</p>
@@ -206,7 +206,7 @@ export default function StudentAttendancePage() {
           </div>
         </div>
 
-        <div className="rounded-md border border-border bg-card shadow-sm" data-testid="student-attendance-list">
+        <div className="rounded-2xl bg-card" data-testid="student-attendance-list">
           <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-base font-semibold text-foreground">

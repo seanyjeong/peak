@@ -23,7 +23,7 @@ export function RecordModeSelector({
   onCollapseAll,
 }: RecordModeSelectorProps) {
   return (
-    <section className="mb-4 rounded-lg border border-border bg-card p-4 shadow-sm">
+    <section className="mb-4 rounded-2xl bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
           <button

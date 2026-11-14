@@ -21,7 +21,7 @@ export function DraggableParticipant({ participant }: { participant: Participant
       style={style}
       {...listeners}
       {...attributes}
-      className="mb-2 cursor-grab touch-none rounded-lg border border-border bg-card p-3 shadow-sm active:cursor-grabbing"
+      className="mb-2 cursor-grab touch-none rounded-2xl bg-card p-3 active:cursor-grabbing"
     >
       <div className="flex items-center gap-2">
         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${participant.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-destructive-soft text-destructive'}`}>
@@ -80,7 +80,7 @@ export function GroupColumn({ group, onDeleteGroup }: { group: Group; onDeleteGr
   const groupTitle = mainSupervisor ? `${mainSupervisor.name}T` : `${group.group_num}조`;
 
   return (
-    <article className="flex w-64 shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <article className="flex w-64 shrink-0 flex-col overflow-hidden rounded-2xl bg-card">
       <header className="flex items-center justify-between border-b border-border bg-muted px-3 py-3">
         <div>
           <h3 className="font-bold text-foreground">{groupTitle}</h3>

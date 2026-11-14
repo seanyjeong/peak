@@ -264,7 +264,7 @@ export default function PlansPage() {
       </section>
 
       {showForm && (
-        <section className="grid gap-4 rounded-lg border border-border bg-card p-5 shadow-sm xl:grid-cols-[1fr_0.9fr]">
+        <section className="grid gap-4 rounded-2xl bg-card p-5 xl:grid-cols-[1fr_0.9fr]">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-black text-foreground">{editingId ? '계획 수정' : `${SLOT_LABELS[activeSlot]} 계획 작성`}</h2>
@@ -411,7 +411,7 @@ export default function PlansPage() {
           ))}
         </div>
 
-        <aside className="h-fit rounded-lg border border-border bg-card p-5 shadow-sm">
+        <aside className="h-fit rounded-2xl bg-card p-5">
           <p className="text-xs font-bold uppercase tracking-normal text-muted-foreground">PLAN STATUS</p>
           <h3 className="mt-2 text-xl font-black text-foreground">작성 현황</h3>
           <div className="mt-4 space-y-2">

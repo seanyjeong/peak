@@ -234,7 +234,7 @@ export default function MobileTrainingPage() {
   return (
     <div className="space-y-3">
       {/* 날짜 선택 */}
-      <div className="flex items-center justify-between bg-card rounded-xl p-3 shadow-sm border border-border">
+      <div className="flex items-center justify-between bg-card rounded-2xl p-3">
         <div className="flex items-center gap-2">
           <Calendar size={18} className="text-muted-foreground" />
           <input
@@ -264,7 +264,7 @@ export default function MobileTrainingPage() {
             className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl font-medium text-sm transition ${
               selectedTimeSlot === key
                 ? 'bg-primary text-white shadow-md'
-                : 'bg-card text-secondary-foreground shadow-sm border border-border'
+                : 'bg-card text-secondary-foreground'
             }`}
           >
             <Icon size={16} />
@@ -281,7 +281,7 @@ export default function MobileTrainingPage() {
       />
 
       {/* 내부 탭 */}
-      <div className="flex gap-2 bg-card rounded-xl p-1 shadow-sm border border-border">
+      <div className="flex gap-2 bg-card rounded-2xl p-1">
         <button
           onClick={() => setActiveTab('condition')}
           className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
@@ -314,7 +314,7 @@ export default function MobileTrainingPage() {
         /* 학생 컨디션 탭 */
         <div className="space-y-2">
           {students.length === 0 ? (
-            <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
+            <div className="bg-card rounded-2xl p-8 text-center">
               <p className="text-muted-foreground text-sm">이 시간대에 배치된 학생이 없습니다</p>
             </div>
           ) : (
@@ -323,7 +323,7 @@ export default function MobileTrainingPage() {
               const isSavingNotes = saving === `notes-${student.id}`;
 
               return (
-                <div key={student.id} className="bg-card rounded-xl p-4 shadow-sm border border-border">
+                <div key={student.id} className="bg-card rounded-2xl p-4">
                   {/* 학생 이름 */}
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
@@ -389,7 +389,7 @@ export default function MobileTrainingPage() {
         /* 체크리스트 탭 */
         <div className="space-y-3">
           {/* 환경 체크 */}
-          <div className="bg-card rounded-xl p-3 shadow-sm border border-border">
+          <div className="bg-card rounded-2xl p-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setEnvCheck(prev => ({ ...prev, checked: !prev.checked }))}
@@ -428,7 +428,7 @@ export default function MobileTrainingPage() {
           </div>
 
           {/* 계획된 운동 */}
-          <div className="bg-card rounded-xl shadow-sm divide-y divide-border border border-border">
+          <div className="bg-card rounded-2xl divide-y divide-border">
             <div className="px-4 py-3">
               <h3 className="font-medium text-foreground">계획된 운동</h3>
             </div>

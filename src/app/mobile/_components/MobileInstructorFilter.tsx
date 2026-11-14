@@ -18,7 +18,7 @@ export function MobileInstructorFilter({
   if (!visible || options.length === 0) return null;
 
   return (
-    <section className="rounded-xl border border-border bg-card p-3 shadow-sm" aria-label="강사 필터">
+    <section className="rounded-2xl bg-card p-3" aria-label="강사 필터">
       <label htmlFor="mobile-instructor-filter" className="mb-2 block text-xs font-semibold text-muted-foreground">
         보기 범위
       </label>

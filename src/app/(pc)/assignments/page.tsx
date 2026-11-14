@@ -347,12 +347,12 @@ export default function AssignmentsPage() {
       </div>
 
       {loading ? (
-        <div className="flex min-h-[420px] items-center justify-center rounded-md border border-border bg-card text-sm text-muted-foreground shadow-sm">
+        <div className="flex min-h-[420px] items-center justify-center rounded-2xl bg-card text-sm text-muted-foreground">
           <RefreshCw size={18} className="mr-2 animate-spin text-primary" />
           반 배치 데이터를 불러오는 중입니다.
         </div>
       ) : totalStudents === 0 && currentSlotData.waitingInstructors.length === 0 ? (
-        <div className="flex min-h-[420px] flex-col items-center justify-center rounded-md border border-border bg-card text-muted-foreground shadow-sm">
+        <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl bg-card text-muted-foreground">
           <p className="font-medium">{TIME_SLOT_INFO[activeSlot].label} 수업 데이터가 없습니다.</p>
           <p className="mt-1 text-sm">날짜 또는 P-ACA 출석 동기화를 확인하세요.</p>
         </div>
@@ -404,7 +404,7 @@ export default function AssignmentsPage() {
 
 function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <article className="rounded-md border border-border bg-card p-4 shadow-sm">
+    <article className="rounded-2xl bg-card p-4">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
       <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
