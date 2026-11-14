@@ -124,7 +124,7 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-[#101114]">
         <div className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-4">
             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-pink-500 animate-spin" style={{ padding: '3px' }}>
@@ -152,7 +152,7 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-[#101114]">
         <div className="text-center px-8">
           <div className="text-5xl mb-4">📊</div>
           <h1 className="text-2xl font-bold text-white mb-2">배점표</h1>
@@ -163,19 +163,19 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-4 md:p-8">
+    <div className="min-h-screen bg-[#101114] text-white p-4 md:p-8">
       {/* 헤더 */}
       <header className="max-w-6xl mx-auto mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white">
               {data.academy.name}
             </h1>
             <p className="text-white/50">실기 배점표</p>
           </div>
           <a
             href={`/board/${slug}`}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-medium transition border border-white/10"
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-medium transition"
           >
             전광판 보기
           </a>
@@ -192,7 +192,7 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
               className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
                 selectedTable === table.id
                   ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                  : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
               }`}
             >
               {table.recordType.shortName || table.recordType.name}
@@ -205,7 +205,7 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
       {currentTable && (
         <div className="max-w-6xl mx-auto">
           {/* 종목 정보 */}
-          <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-4 mb-4">
+          <div className="bg-white/[0.06] rounded-3xl p-4 mb-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <h2 className="text-xl font-bold">{currentTable.recordType.name}</h2>
@@ -234,7 +234,7 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
           </div>
 
           {/* 점수표 */}
-          <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+          <div className="bg-white/[0.06] rounded-3xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

@@ -21,15 +21,15 @@ export function BoardPinGate({
   onSubmit,
 }: BoardPinGateProps) {
   return (
-    <div className="min-h-screen bg-[#0a0a12] px-6 text-white">
+    <div className="min-h-screen bg-[#101114] px-6 text-white">
       <div className="mx-auto flex min-h-screen max-w-md items-center justify-center">
-        <form onSubmit={onSubmit} className="w-full rounded-2xl border border-white/10 bg-white/[0.06] p-6 shadow-2xl backdrop-blur-xl">
+        <form onSubmit={onSubmit} className="w-full rounded-3xl bg-white/[0.06] p-6">
           <div className="mb-5 flex items-center gap-3">
             <span className="flex size-11 items-center justify-center rounded-xl bg-white/10 text-white">
               <LockKeyhole className="size-5" />
             </span>
             <div>
-              <h1 className="text-xl font-black">{academyName || '전광판'}</h1>
+              <h1 className="text-xl font-extrabold">{academyName || '전광판'}</h1>
               <p className="mt-1 text-sm font-semibold text-white/50">PIN 확인 후 전광판을 볼 수 있습니다.</p>
             </div>
           </div>
@@ -37,7 +37,7 @@ export function BoardPinGate({
             전광판 PIN
             <input
               autoFocus
-              className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-black/30 px-4 text-lg font-black tracking-widest text-white outline-none focus:border-white/40"
+              className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-black/30 px-4 text-lg font-extrabold tracking-widest text-white outline-none focus:border-white/40"
               inputMode="numeric"
               maxLength={12}
               onChange={(event) => onPinChange(event.target.value.replace(/\D/g, '').slice(0, 12))}
@@ -48,7 +48,7 @@ export function BoardPinGate({
           </label>
           {error && <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-200">{error}</p>}
           <button
-            className="mt-5 h-11 w-full rounded-xl bg-white text-sm font-black text-slate-950 transition hover:bg-white/90 disabled:opacity-50"
+            className="mt-5 h-11 w-full rounded-xl bg-white text-sm font-extrabold text-slate-950 transition hover:bg-white/90 disabled:opacity-50"
             disabled={submitting}
             type="submit"
           >

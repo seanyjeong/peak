@@ -144,11 +144,11 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a12]">
+      <div className="min-h-screen flex items-center justify-center bg-[#101114]">
         <div className="text-center">
           <div className="relative w-20 h-20 mx-auto mb-6">
             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-pink-500 animate-spin" style={{ padding: '3px' }}>
-              <div className="w-full h-full rounded-full bg-[#0a0a12]" />
+              <div className="w-full h-full rounded-full bg-[#101114]" />
             </div>
           </div>
           <p className="text-xl text-white/40 tracking-widest">LOADING</p>
@@ -172,7 +172,7 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   if (error || !data?.test) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a12]">
+      <div className="min-h-screen flex items-center justify-center bg-[#101114]">
         <div className="text-center px-8">
           <div className="text-6xl mb-6">🏆</div>
           <h1 className="text-3xl font-bold text-white mb-3">{data?.academy?.name}</h1>
@@ -192,16 +192,16 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
         <header className="flex-shrink-0 mb-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">{data.academy.name}</h1>
+              <h1 className="text-3xl font-extrabold tracking-tight text-white">{data.academy.name}</h1>
               <p className="text-base text-white/40">{data.test.name}</p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.06] rounded-full">
                 <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
                 <span className="text-sm text-white/60">LIVE</span>
                 <span className="text-sm text-white/30">{lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
-              <button onClick={handleFullscreen} className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-sm font-medium transition-all border border-white/10">
+              <button onClick={handleFullscreen} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-medium transition-all border border-white/10">
                 전체화면
               </button>
             </div>

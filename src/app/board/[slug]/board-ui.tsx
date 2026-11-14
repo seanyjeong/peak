@@ -6,7 +6,7 @@ import type { EventRecord, RankingItem } from './board-model';
 export function SportyBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" />
+      <div className="absolute inset-0 bg-[#101114]" />
       <div className="absolute inset-0 opacity-10">
         {[...Array(5)].map((_, i) => (
           <div key={i} className="absolute h-full border-l-2 border-white/30" style={{ left: `${20 + i * 15}%` }} />
@@ -129,7 +129,7 @@ export function Card3D({
         </>
       )}
       <div
-        className="relative bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden hover:scale-[1.02] transition-transform duration-200"
+        className="relative bg-white/[0.08] rounded-2xl overflow-hidden hover:scale-[1.02] transition-transform duration-200"
         style={{
           boxShadow: isTop3
             ? `0 0 30px ${glowColor}60, 0 20px 40px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3)`
@@ -176,7 +176,7 @@ export function RankRow3D({ item, index, total, glowColor }: { item: RankingItem
     <Card3D glowColor={isTop3 ? rankColors[item.rank - 1] : glowColor + '20'} className="mb-1.5" index={index} total={total} isTop3={isTop3}>
       <div className="flex items-center gap-3 px-3 py-2">
         <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg shadow-lg flex-shrink-0"
+          className="w-9 h-9 rounded-lg flex items-center justify-center font-extrabold text-lg shadow-lg flex-shrink-0"
           style={{
             background: isTop3 ? `linear-gradient(135deg, ${rankBg}, ${rankBg}cc)` : 'rgba(255,255,255,0.1)',
             color: isTop3 ? '#000' : '#fff',
@@ -189,7 +189,7 @@ export function RankRow3D({ item, index, total, glowColor }: { item: RankingItem
           <div className={`font-bold truncate ${isTop3 ? 'text-white text-lg' : 'text-white/90 text-base'}`}>{item.name}</div>
           {item.school && <div className="text-xs text-white/50 truncate">{item.school}</div>}
         </div>
-        <div className="text-right font-black text-xl flex-shrink-0" style={{ color: isTop3 ? rankBg : '#fff' }}>
+        <div className="text-right font-extrabold text-xl flex-shrink-0" style={{ color: isTop3 ? rankBg : '#fff' }}>
           {item.total}
           <span className="text-xs font-normal text-white/40 ml-0.5">점</span>
         </div>
@@ -207,7 +207,7 @@ export function EventRow3D({ record, index, total, unit, glowColor }: { record: 
     <Card3D glowColor={isTop3 ? rankColors[record.rank - 1] : glowColor + '20'} className="mb-1.5" index={index} total={total} isTop3={isTop3}>
       <div className="flex items-center gap-3 px-3 py-2">
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-base flex-shrink-0"
+          className="w-8 h-8 rounded-lg flex items-center justify-center font-extrabold text-base flex-shrink-0"
           style={{
             background: isTop3 ? `linear-gradient(135deg, ${rankBg}, ${rankBg}cc)` : 'rgba(255,255,255,0.1)',
             color: isTop3 ? '#000' : '#fff',
@@ -221,7 +221,7 @@ export function EventRow3D({ record, index, total, unit, glowColor }: { record: 
           {record.school && <div className="text-xs text-white/50 truncate">{record.school}</div>}
         </div>
         <div className="text-right flex-shrink-0">
-          <div className="font-black text-lg text-white">
+          <div className="font-extrabold text-lg text-white">
             {record.value}
             <span className="text-xs font-normal text-white/40 ml-0.5">{unit}</span>
           </div>
@@ -241,7 +241,7 @@ export function GenderColumn({ title, color, children }: { title: string; color:
   return (
     <div className="flex-1 flex flex-col min-w-0">
       <div className="flex-shrink-0 py-2 px-4 rounded-t-xl border-b border-white/10" style={{ background: `linear-gradient(135deg, ${colors[color].glow}, transparent)` }}>
-        <h3 className="text-2xl font-black" style={{ color: colors[color].main, textShadow: `0 0 30px ${colors[color].main}` }}>{title}</h3>
+        <h3 className="text-2xl font-extrabold" style={{ color: colors[color].main, textShadow: `0 0 30px ${colors[color].main}` }}>{title}</h3>
       </div>
       <div className="flex-1 p-2 overflow-y-auto">{children}</div>
     </div>
