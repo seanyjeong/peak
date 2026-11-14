@@ -187,18 +187,18 @@ router.get('/stats', async (req, res) => {
         const instructorId = req.user.instructorId;
         const isOwnerOrAdmin = req.user.role === 'owner' || req.user.role === 'admin';
 
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
+        // 오늘(KST)까지 포함. toISOString() 은 UTC 라 00~09시에 오늘이 빠졌다.
+        const todayStr = getKstDateString();
 
-        // 기간 계산
+        // 기간 계산 (KST 날짜 문자열 기준)
         let startDate;
         if (period === 'month') {
-            startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+            startDate = `${todayStr.slice(0, 7)}-01`;
         } else {
             // 이번 주 월요일
-            const dayOfWeek = today.getDay();
-            const monday = new Date(today);
-            monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+            const monday = new Date(`${todayStr}T00:00:00Z`);
+            const dayOfWeek = monday.getUTCDay();
+            monday.setUTCDate(monday.getUTCDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
             startDate = monday.toISOString().split('T')[0];
         }
 
