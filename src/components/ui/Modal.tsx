@@ -58,10 +58,10 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/50 transition-opacity"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity"
         onClick={closeOnOverlayClick ? onClose : undefined}
         aria-hidden="true"
       />
@@ -69,8 +69,9 @@ export function Modal({
       {/* Modal */}
       <div
         className={`
-          relative bg-card rounded-2xl shadow-2xl w-full
-          max-h-[90vh] overflow-hidden flex flex-col
+          relative bg-card text-card-foreground w-full shadow-[0_16px_48px_rgba(0,0,0,0.16)]
+          max-h-[92vh] rounded-t-3xl pb-[env(safe-area-inset-bottom)] sm:max-h-[85vh] sm:rounded-3xl sm:pb-0
+          overflow-hidden flex flex-col
           ${sizeStyles[size]}
         `}
         role="dialog"
@@ -79,16 +80,16 @@ export function Modal({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between gap-3 px-6 pb-2 pt-6">
             {title && (
-              <h2 id="modal-title" className="text-lg font-bold text-foreground">
+              <h2 id="modal-title" className="text-xl font-bold tracking-tight text-foreground">
                 {title}
               </h2>
             )}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg text-muted-foreground hover:text-secondary-foreground hover:bg-muted transition"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 aria-label="Close modal"
               >
                 <X size={20} />
@@ -98,11 +99,11 @@ export function Modal({
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 border-t border-border bg-muted">
+          <div className="px-6 pb-6 pt-3">
             {footer}
           </div>
         )}
@@ -130,7 +131,7 @@ export function ModalFooter({
   loading = false,
 }: ModalFooterProps) {
   return (
-    <div className="flex justify-end gap-3">
+    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
       {onCancel && (
         <Button variant="secondary" onClick={onCancel} disabled={loading}>
           {cancelText}

@@ -18,22 +18,22 @@ describe('Badge', () => {
   describe('variants', () => {
     it('should apply default variant styles', () => {
       render(<Badge variant="default">Default</Badge>);
-      expect(screen.getByText('Default')).toHaveClass('bg-slate-100');
+      expect(screen.getByText('Default')).toHaveClass('bg-muted');
     });
 
     it('should apply success variant styles', () => {
       render(<Badge variant="success">Success</Badge>);
-      expect(screen.getByText('Success')).toHaveClass('bg-green-100');
+      expect(screen.getByText('Success')).toHaveClass('bg-success-soft');
     });
 
     it('should apply warning variant styles', () => {
       render(<Badge variant="warning">Warning</Badge>);
-      expect(screen.getByText('Warning')).toHaveClass('bg-amber-100');
+      expect(screen.getByText('Warning')).toHaveClass('bg-warning-soft');
     });
 
     it('should apply danger variant styles', () => {
       render(<Badge variant="danger">Danger</Badge>);
-      expect(screen.getByText('Danger')).toHaveClass('bg-red-100');
+      expect(screen.getByText('Danger')).toHaveClass('bg-destructive-soft');
     });
 
     it('should apply purple variant styles', () => {
@@ -45,12 +45,12 @@ describe('Badge', () => {
   describe('sizes', () => {
     it('should apply extra small size', () => {
       render(<Badge size="xs">XS</Badge>);
-      expect(screen.getByText('XS')).toHaveClass('text-[9px]');
+      expect(screen.getByText('XS')).toHaveClass('text-[10px]');
     });
 
     it('should apply small size', () => {
       render(<Badge size="sm">SM</Badge>);
-      expect(screen.getByText('SM')).toHaveClass('text-[10px]');
+      expect(screen.getByText('SM')).toHaveClass('text-[11px]');
     });
 
     it('should apply medium size', () => {
@@ -64,7 +64,7 @@ describe('GenderBadge', () => {
   it('should render male badge correctly', () => {
     render(<GenderBadge gender="M" />);
     expect(screen.getByText('남')).toBeInTheDocument();
-    expect(screen.getByText('남')).toHaveClass('bg-blue-100');
+    expect(screen.getByText('남')).toHaveClass('bg-primary-soft');
   });
 
   it('should render female badge correctly', () => {
@@ -78,7 +78,7 @@ describe('StatusBadge', () => {
   it('should render enrolled status', () => {
     render(<StatusBadge status="enrolled" />);
     expect(screen.getByText('등록')).toBeInTheDocument();
-    expect(screen.getByText('등록')).toHaveClass('bg-green-100');
+    expect(screen.getByText('등록')).toHaveClass('bg-success-soft');
   });
 
   it('should render trial status', () => {
@@ -90,13 +90,13 @@ describe('StatusBadge', () => {
   it('should render rest status', () => {
     render(<StatusBadge status="rest" />);
     expect(screen.getByText('휴원')).toBeInTheDocument();
-    expect(screen.getByText('휴원')).toHaveClass('bg-amber-100');
+    expect(screen.getByText('휴원')).toHaveClass('bg-warning-soft');
   });
 
   it('should render injury status', () => {
     render(<StatusBadge status="injury" />);
     expect(screen.getByText('부상')).toBeInTheDocument();
-    expect(screen.getByText('부상')).toHaveClass('bg-red-100');
+    expect(screen.getByText('부상')).toHaveClass('bg-destructive-soft');
   });
 });
 

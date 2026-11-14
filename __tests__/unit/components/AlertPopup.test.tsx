@@ -170,7 +170,7 @@ describe('AlertPopup', () => {
 
       await waitFor(() => {
         // Find the alert container by its class pattern
-        const alertContainer = document.querySelector('.bg-amber-50');
+        const alertContainer = document.querySelector('.bg-warning-soft');
         expect(alertContainer).toBeInTheDocument();
       });
     });
@@ -191,7 +191,7 @@ describe('AlertPopup', () => {
 
       await waitFor(() => {
         // Find the alert container by its class pattern
-        const alertContainer = document.querySelector('.bg-blue-50');
+        const alertContainer = document.querySelector('.bg-primary-soft');
         expect(alertContainer).toBeInTheDocument();
       });
     });

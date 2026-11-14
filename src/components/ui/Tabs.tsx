@@ -93,7 +93,7 @@ export function TabsTrigger({
       disabled={disabled}
       onClick={() => !disabled && setActiveTab(value)}
       className={`
-        flex-1 px-4 py-2 text-sm font-medium rounded-lg transition
+        flex-1 px-4 py-2 text-sm font-semibold rounded-lg transition
         ${
           isActive
             ? 'bg-card text-foreground shadow-sm'
@@ -145,7 +145,7 @@ export function SimpleTabs({ tabs, activeTab, onChange, className = '' }: Simple
           key={tab.value}
           onClick={() => onChange(tab.value)}
           className={`
-            flex-1 px-4 py-2 text-sm font-medium rounded-lg transition flex items-center justify-center gap-2
+            flex-1 px-4 py-2 text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2
             ${
               activeTab === tab.value
                 ? 'bg-card text-foreground shadow-sm'

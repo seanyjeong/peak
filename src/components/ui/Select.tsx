@@ -24,7 +24,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={selectId} className="block text-sm font-medium text-secondary-foreground mb-1">
+          <label htmlFor={selectId} className="block text-sm font-semibold text-secondary-foreground mb-1.5">
             {label}
           </label>
         )}
@@ -33,12 +33,12 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             className={`
-              w-full px-4 py-2 rounded-xl border transition appearance-none bg-card
+              w-full h-11 px-4 rounded-xl border transition-colors appearance-none bg-muted text-[15px]
               text-foreground
-              focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
+              focus:outline-none focus:bg-card focus:ring-4 focus:ring-primary/10 focus:border-primary
               disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed
               pr-10
-              ${error ? 'border-destructive focus:ring-destructive/20 focus:border-destructive' : 'border-border'}
+              ${error ? 'border-destructive focus:ring-destructive/20 focus:border-destructive' : 'border-transparent'}
               ${className}
             `}
             aria-invalid={error ? 'true' : 'false'}
@@ -91,7 +91,7 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-secondary-foreground mb-1">
+          <label htmlFor={inputId} className="block text-sm font-semibold text-secondary-foreground mb-1.5">
             {label}
           </label>
         )}
@@ -100,11 +100,11 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
           type="date"
           id={inputId}
           className={`
-            w-full px-4 py-2 rounded-xl border transition
-            bg-card text-foreground
-            focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
+            w-full h-11 px-4 rounded-xl border transition-colors text-[15px]
+            bg-muted text-foreground placeholder:text-muted-foreground/80
+            focus:outline-none focus:bg-card focus:ring-4 focus:ring-primary/10 focus:border-primary
             disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed
-            ${error ? 'border-destructive focus:ring-destructive/20 focus:border-destructive' : 'border-border'}
+            ${error ? 'border-destructive focus:ring-destructive/20 focus:border-destructive' : 'border-transparent'}
             ${className}
           `}
           {...props}

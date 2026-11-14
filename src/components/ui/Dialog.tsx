@@ -24,7 +24,7 @@ const DialogOverlay = forwardRef<
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm ${className}`}
+      className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] ${className}`}
     />
   </DialogPrimitive.Overlay>
 ));
@@ -67,7 +67,7 @@ const DialogContent = forwardRef<
           className={`
             fixed left-1/2 top-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2
             ${sizeClasses[size]}
-            glass-card rounded-2xl shadow-floating
+            bg-card text-card-foreground rounded-3xl shadow-[0_16px_48px_rgba(0,0,0,0.16)]
             max-h-[90vh] overflow-hidden flex flex-col
             ${className}
           `}
@@ -89,7 +89,7 @@ DialogContent.displayName = 'DialogContent';
 function DialogHeader({ className = '', children, ...props }: ComponentPropsWithoutRef<'div'>) {
   return (
     <div
-      className={`flex flex-col space-y-1.5 px-6 py-4 border-b border-border ${className}`}
+      className={`flex flex-col space-y-1.5 px-6 pb-2 pt-6 ${className}`}
       {...props}
     >
       {children}
@@ -100,7 +100,7 @@ function DialogHeader({ className = '', children, ...props }: ComponentPropsWith
 function DialogTitle({ className = '', ...props }: ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={`text-lg font-semibold leading-none tracking-tight text-foreground ${className}`}
+      className={`text-xl font-bold tracking-tight text-foreground ${className}`}
       {...props}
     />
   );
@@ -126,7 +126,7 @@ function DialogBody({ className = '', children, ...props }: ComponentPropsWithou
 function DialogFooter({ className = '', ...props }: ComponentPropsWithoutRef<'div'>) {
   return (
     <div
-      className={`flex items-center justify-end gap-3 px-6 py-4 border-t border-border ${className}`}
+      className={`flex items-center justify-end gap-2 px-6 pb-6 pt-3 ${className}`}
       {...props}
     />
   );

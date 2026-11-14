@@ -13,23 +13,23 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles = {
-  primary: 'bg-primary text-white hover:bg-primary/90 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
-  secondary: 'bg-border text-foreground hover:bg-muted-foreground/40 active:scale-95 transition-all duration-200',
-  danger: 'bg-destructive text-white hover:bg-destructive/90 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
-  ghost: 'bg-transparent text-secondary-foreground hover:bg-muted active:scale-95 transition-all duration-200',
-  outline: 'bg-transparent border-2 border-border text-secondary-foreground hover:bg-muted active:scale-95 transition-all duration-200',
-  gradient: 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 active:scale-95 shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transition-all duration-200',
-  glass: 'bg-foreground/50 backdrop-blur-sm border border-foreground text-white hover:bg-foreground/50 hover:border-muted-foreground/40 active:scale-95 transition-all duration-200',
-  success: 'bg-success text-white hover:bg-success/90 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
-  warning: 'bg-warning text-white hover:bg-warning/90 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
+  primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+  secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/70 hover:text-foreground',
+  danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+  ghost: 'bg-transparent text-secondary-foreground hover:bg-muted hover:text-foreground',
+  outline: 'bg-secondary text-secondary-foreground hover:bg-secondary/70 hover:text-foreground',
+  gradient: 'bg-primary text-primary-foreground hover:bg-primary/90',
+  glass: 'bg-primary-soft text-primary hover:bg-primary-soft/70',
+  success: 'bg-success text-success-foreground hover:bg-success/90',
+  warning: 'bg-warning text-warning-foreground hover:bg-warning/90',
 };
 
 const sizeStyles = {
-  xs: 'px-2.5 py-1.5 text-xs rounded-lg min-h-[28px] gap-1.5',
-  sm: 'px-3 py-2 text-sm rounded-lg min-h-[36px] gap-2',
-  md: 'px-4 py-2.5 text-sm rounded-xl min-h-[40px] gap-2',
-  lg: 'px-6 py-3 text-base rounded-xl min-h-[44px] gap-2.5',
-  xl: 'px-8 py-4 text-lg rounded-xl min-h-[52px] gap-3',
+  xs: 'h-7 px-2.5 text-xs rounded-lg gap-1',
+  sm: 'h-9 px-3 text-sm rounded-lg gap-1.5',
+  md: 'h-11 px-4 text-[15px] rounded-xl gap-1.5',
+  lg: 'h-12 px-5 text-base rounded-xl gap-2',
+  xl: 'h-14 px-6 text-base rounded-2xl gap-2',
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -55,10 +55,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={isDisabled}
         className={`
-          inline-flex items-center justify-center
-          font-medium
-          disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
-          focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
+          inline-flex items-center justify-center whitespace-nowrap
+          font-semibold transition-colors duration-150 active:scale-[0.98]
+          disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100
+          focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/20
           ${variantStyles[variant]}
           ${sizeStyles[size]}
           ${fullWidth ? 'w-full' : ''}

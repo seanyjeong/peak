@@ -10,17 +10,17 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variantStyles = {
-  default: 'bg-card border border-border',
-  outlined: 'bg-transparent border border-border',
-  elevated: 'bg-card border border-border shadow-elevated',
-  glass: 'glass-card',
-  bento: 'bento-card hover-lift',
+  default: 'bg-card',
+  outlined: 'bg-card border border-border/60',
+  elevated: 'bg-card',
+  glass: 'bg-card',
+  bento: 'bg-card',
 };
 
 const paddingStyles = {
   none: '',
   sm: 'p-4',
-  md: 'p-6',
+  md: 'p-5 sm:p-6',
   lg: 'p-8',
 };
 
@@ -40,10 +40,10 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
       className={`
-          rounded-xl transition-smooth
+          rounded-2xl text-card-foreground transition-colors
           ${variantStyles[variant]}
           ${paddingStyles[padding]}
-          ${hoverable ? 'hover:shadow-md hover:border-border cursor-pointer' : ''}
+          ${hoverable ? 'hover:bg-card/70 cursor-pointer' : ''}
           ${className}
         `}
         {...props}
@@ -64,7 +64,7 @@ export interface CardHeaderProps {
 
 export function CardHeader({ children, className = '' }: CardHeaderProps) {
   return (
-    <div className={`pb-4 border-b border-border mb-4 ${className}`}>
+    <div className={`pb-3 mb-1 ${className}`}>
       {children}
     </div>
   );
@@ -78,7 +78,7 @@ export interface CardTitleProps {
 
 export function CardTitle({ children, className = '' }: CardTitleProps) {
   return (
-    <h3 className={`font-semibold text-foreground text-base tracking-tight ${className}`}>
+    <h3 className={`text-[17px] font-bold tracking-tight text-foreground ${className}`}>
       {children}
     </h3>
   );
@@ -102,7 +102,7 @@ export interface CardFooterProps {
 
 export function CardFooter({ children, className = '' }: CardFooterProps) {
   return (
-    <div className={`pt-4 border-t border-border mt-4 ${className}`}>
+    <div className={`pt-4 border-t border-border/60 mt-4 ${className}`}>
       {children}
     </div>
   );

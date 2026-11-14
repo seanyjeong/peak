@@ -50,14 +50,14 @@ describe('Modal', () => {
 
     it('should call onClose when overlay is clicked', () => {
       render(<Modal {...defaultProps} />);
-      const overlay = document.querySelector('.bg-black\\/50');
+      const overlay = document.querySelector('.bg-black\\/40');
       fireEvent.click(overlay!);
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
 
     it('should not call onClose when closeOnOverlayClick is false', () => {
       render(<Modal {...defaultProps} closeOnOverlayClick={false} />);
-      const overlay = document.querySelector('.bg-black\\/50');
+      const overlay = document.querySelector('.bg-black\\/40');
       fireEvent.click(overlay!);
       expect(defaultProps.onClose).not.toHaveBeenCalled();
     });

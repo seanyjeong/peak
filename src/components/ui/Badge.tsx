@@ -21,9 +21,9 @@ const variantStyles = {
 };
 
 const sizeStyles = {
-  xs: 'px-1 py-0.5 text-[9px]',
-  sm: 'px-1.5 py-0.5 text-[10px]',
-  md: 'px-2 py-1 text-xs',
+  xs: 'px-1.5 py-0.5 text-[10px]',
+  sm: 'px-2 py-0.5 text-[11px]',
+  md: 'px-2.5 py-0.5 text-xs',
 };
 
 export function Badge({
@@ -36,7 +36,7 @@ export function Badge({
     <span
       className={`
         inline-flex items-center justify-center
-        font-medium rounded
+        font-semibold rounded-full
         ${variantStyles[variant]}
         ${sizeStyles[size]}
         ${className}
