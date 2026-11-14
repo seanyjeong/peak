@@ -57,22 +57,22 @@ export const STATUS_CONFIG: Record<AttendanceStatus, { label: string; icon: Comp
   present: {
     label: '출석',
     icon: Check,
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300',
+    className: 'border-success/30 bg-success-soft text-success',
   },
   absent: {
     label: '결석',
     icon: X,
-    className: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300',
+    className: 'border-destructive/30 bg-destructive-soft text-destructive',
   },
   late: {
     label: '지각',
     icon: Clock3,
-    className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300',
+    className: 'border-warning/30 bg-warning-soft text-warning',
   },
   excused: {
     label: '사유',
     icon: AlertCircle,
-    className: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300',
+    className: 'border-primary/30 bg-primary-soft text-primary',
   },
 };
 

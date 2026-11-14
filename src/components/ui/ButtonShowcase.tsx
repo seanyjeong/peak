@@ -19,7 +19,7 @@ import {
  */
 export function ButtonShowcase() {
   return (
-    <div className="space-y-8 p-8 bg-slate-950">
+    <div className="space-y-8 p-8 bg-foreground">
       {/* Primary Buttons */}
       <div className="space-y-4">
         <h3 className="text-white text-lg font-semibold">Primary Buttons</h3>

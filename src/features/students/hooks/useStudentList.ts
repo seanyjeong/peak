@@ -29,28 +29,28 @@ export interface Student {
 export const STATUS_MAP: Record<string, { label: string; color: string; darkColor: string }> = {
   active: {
     label: '재원',
-    color: 'bg-green-100 text-green-700',
-    darkColor: 'dark:bg-green-900/20 dark:text-green-400'
+    color: 'bg-success-soft text-success',
+    darkColor: ''
   },
   inactive: {
     label: '퇴원',
-    color: 'bg-slate-100 text-slate-600',
-    darkColor: 'dark:bg-slate-800 dark:text-slate-400'
+    color: 'bg-muted text-secondary-foreground',
+    darkColor: ''
   },
   injury: {
     label: '부상',
-    color: 'bg-red-100 text-red-700',
-    darkColor: 'dark:bg-red-900/20 dark:text-red-400'
+    color: 'bg-destructive-soft text-destructive',
+    darkColor: ''
   },
   paused: {
     label: '휴원',
-    color: 'bg-yellow-100 text-yellow-700',
-    darkColor: 'dark:bg-yellow-900/20 dark:text-yellow-400'
+    color: 'bg-warning-soft text-warning',
+    darkColor: ''
   },
   pending: {
     label: '미등록',
-    color: 'bg-amber-100 text-amber-700',
-    darkColor: 'dark:bg-amber-900/20 dark:text-amber-400'
+    color: 'bg-warning-soft text-warning',
+    darkColor: ''
   },
   trial: {
     label: '체험',

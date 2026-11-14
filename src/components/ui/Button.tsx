@@ -13,15 +13,15 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles = {
-  primary: 'bg-orange-500 text-white hover:bg-orange-600 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
-  secondary: 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all duration-200',
-  danger: 'bg-red-500 text-white hover:bg-red-600 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
-  ghost: 'bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all duration-200',
-  outline: 'bg-transparent border-2 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all duration-200',
+  primary: 'bg-primary text-white hover:bg-primary/90 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
+  secondary: 'bg-border text-foreground hover:bg-muted-foreground/40 active:scale-95 transition-all duration-200',
+  danger: 'bg-destructive text-white hover:bg-destructive/90 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
+  ghost: 'bg-transparent text-secondary-foreground hover:bg-muted active:scale-95 transition-all duration-200',
+  outline: 'bg-transparent border-2 border-border text-secondary-foreground hover:bg-muted active:scale-95 transition-all duration-200',
   gradient: 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 active:scale-95 shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transition-all duration-200',
-  glass: 'bg-slate-900/50 backdrop-blur-sm border border-slate-800 text-white hover:bg-slate-800/50 hover:border-slate-700 active:scale-95 transition-all duration-200',
-  success: 'bg-green-500 text-white hover:bg-green-600 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
-  warning: 'bg-yellow-500 text-white hover:bg-yellow-600 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
+  glass: 'bg-foreground/50 backdrop-blur-sm border border-foreground text-white hover:bg-foreground/50 hover:border-muted-foreground/40 active:scale-95 transition-all duration-200',
+  success: 'bg-success text-white hover:bg-success/90 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
+  warning: 'bg-warning text-white hover:bg-warning/90 active:scale-95 shadow-sm hover:shadow-md transition-all duration-200',
 };
 
 const sizeStyles = {
@@ -58,7 +58,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           inline-flex items-center justify-center
           font-medium
           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
-          focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950
+          focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
           ${variantStyles[variant]}
           ${sizeStyles[size]}
           ${fullWidth ? 'w-full' : ''}

@@ -34,7 +34,7 @@ export function TagManager({
 
   const openNewForm = () => {
     setEditingTag(null);
-    setForm({ tag_id: '', label: '', color: 'bg-slate-100 text-slate-700' });
+    setForm({ tag_id: '', label: '', color: 'bg-muted text-secondary-foreground' });
     setShowForm(true);
   };
 
@@ -42,7 +42,7 @@ export function TagManager({
     <div className="space-y-4">
       <button
         onClick={openNewForm}
-        className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition"
       >
         <Plus size={18} />
         <span>태그 추가</span>
@@ -50,43 +50,43 @@ export function TagManager({
 
       {/* Tag Form */}
       {showForm && (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6">
+        <div className="bg-card rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-800 dark:text-slate-100">
+            <h3 className="font-semibold text-foreground">
               {editingTag ? '태그 수정' : '새 태그 추가'}
             </h3>
-            <button onClick={() => setShowForm(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+            <button onClick={() => setShowForm(false)} className="p-2 text-muted-foreground hover:text-secondary-foreground">
               <X size={20} />
             </button>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">태그 ID</label>
+              <label className="block text-sm font-medium text-secondary-foreground mb-1">태그 ID</label>
               <input
                 type="text"
                 value={form.tag_id}
                 onChange={e => setForm({ ...form, tag_id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
                 placeholder="lower-power"
                 disabled={!!editingTag}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-orange-500 disabled:bg-slate-100 dark:disabled:bg-slate-900"
+                className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary disabled:bg-muted"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">표시 이름</label>
+              <label className="block text-sm font-medium text-secondary-foreground mb-1">표시 이름</label>
               <input
                 type="text"
                 value={form.label}
                 onChange={e => setForm({ ...form, label: e.target.value })}
                 placeholder="하체 파워"
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">색상</label>
+              <label className="block text-sm font-medium text-secondary-foreground mb-1">색상</label>
               <select
                 value={form.color}
                 onChange={e => setForm({ ...form, color: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
               >
                 {TAG_COLORS.map(c => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -95,7 +95,7 @@ export function TagManager({
             </div>
           </div>
           <div className="flex items-center gap-4 mt-4">
-            <span className="text-sm text-slate-500 dark:text-slate-400">미리보기:</span>
+            <span className="text-sm text-muted-foreground">미리보기:</span>
             <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${form.color}`}>
               {form.label || '태그'}
             </span>
@@ -103,14 +103,14 @@ export function TagManager({
           <div className="flex justify-end gap-2 mt-4">
             <button
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
+              className="px-4 py-2 text-secondary-foreground bg-muted rounded-lg hover:bg-border"
             >
               취소
             </button>
             <button
               onClick={onSave}
               disabled={!form.label.trim() || (!editingTag && !form.tag_id.trim())}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
             >
               <Save size={16} />
               저장
@@ -120,26 +120,26 @@ export function TagManager({
       )}
 
       {/* Tags List */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden">
-        <div className="divide-y divide-slate-100 dark:divide-slate-700">
+      <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+        <div className="divide-y divide-border">
           {tags.map(tag => (
-            <div key={tag.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700">
+            <div key={tag.id} className="p-4 flex items-center justify-between hover:bg-muted">
               <div className="flex items-center gap-4">
                 <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${tag.color}`}>
                   {tag.label}
                 </span>
-                <span className="text-xs text-slate-400">{tag.tag_id}</span>
+                <span className="text-xs text-muted-foreground">{tag.tag_id}</span>
               </div>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => startEditTag(tag)}
-                  className="p-2 text-slate-400 hover:text-orange-500"
+                  className="p-2 text-muted-foreground hover:text-primary"
                 >
                   <Edit2 size={16} />
                 </button>
                 <button
                   onClick={() => onDelete(tag.id)}
-                  className="p-2 text-slate-400 hover:text-red-500"
+                  className="p-2 text-muted-foreground hover:text-destructive"
                 >
                   <Trash2 size={16} />
                 </button>

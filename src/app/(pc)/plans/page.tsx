@@ -213,35 +213,35 @@ export default function PlansPage() {
     <div className="mx-auto max-w-[1500px] space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-normal text-emerald-700">LESSON PLAN</p>
-          <h1 className="mt-1 text-3xl font-black tracking-normal text-slate-950">수업 계획</h1>
+          <p className="text-xs font-bold uppercase tracking-normal text-success">LESSON PLAN</p>
+          <h1 className="mt-1 text-3xl font-black tracking-normal text-foreground">수업 계획</h1>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, -1))} className="rounded-lg border border-slate-200 bg-white p-2">
+            <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, -1))} className="rounded-lg border border-border bg-card p-2">
               <ChevronLeft className="size-4" />
             </button>
-            <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
-              <Calendar className="size-4 text-slate-400" />
+            <label className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-secondary-foreground">
+              <Calendar className="size-4 text-muted-foreground" />
               <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="bg-transparent outline-none" />
             </label>
-            <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, 1))} className="rounded-lg border border-slate-200 bg-white p-2">
+            <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, 1))} className="rounded-lg border border-border bg-card p-2">
               <ChevronRight className="size-4" />
             </button>
-            <span className="text-sm font-semibold text-slate-500">{formatKoreanDate(selectedDate)}</span>
+            <span className="text-sm font-semibold text-muted-foreground">{formatKoreanDate(selectedDate)}</span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {canAddPlan && (
-            <button type="button" onClick={startCreate} className="flex h-10 items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white hover:bg-slate-800">
+            <button type="button" onClick={startCreate} className="flex h-10 items-center gap-2 rounded-lg bg-foreground px-4 text-sm font-bold text-background hover:bg-foreground/90">
               <Plus className="size-4" />
               {isOwner ? '계획 추가' : '내 계획 작성'}
             </button>
           )}
-          <Link href="/exercises" className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50">
+          <Link href="/exercises" className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-bold text-secondary-foreground hover:bg-muted">
             <Settings2 className="size-4" />
             운동 관리
           </Link>
-          <button type="button" onClick={fetchData} disabled={loading} className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+          <button type="button" onClick={fetchData} disabled={loading} className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-secondary-foreground hover:bg-muted disabled:opacity-50">
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -264,21 +264,21 @@ export default function PlansPage() {
       </section>
 
       {showForm && (
-        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm xl:grid-cols-[1fr_0.9fr]">
+        <section className="grid gap-4 rounded-lg border border-border bg-card p-5 shadow-sm xl:grid-cols-[1fr_0.9fr]">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-black text-slate-950">{editingId ? '계획 수정' : `${SLOT_LABELS[activeSlot]} 계획 작성`}</h2>
-              <button type="button" onClick={resetForm} className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="size-4" /></button>
+              <h2 className="text-xl font-black text-foreground">{editingId ? '계획 수정' : `${SLOT_LABELS[activeSlot]} 계획 작성`}</h2>
+              <button type="button" onClick={resetForm} className="rounded-md p-2 text-muted-foreground hover:bg-muted"><X className="size-4" /></button>
             </div>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-bold text-slate-700">강사</span>
+              <span className="mb-2 block text-sm font-bold text-secondary-foreground">강사</span>
               {isOwner ? (
                 <select
                   value={selectedInstructor || ''}
                   onChange={(event) => setSelectedInstructor(event.target.value ? Number(event.target.value) : null)}
                   disabled={!!editingId}
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-slate-900 disabled:bg-slate-100"
+                  className="h-11 w-full rounded-lg border border-border bg-card px-3 text-sm font-semibold outline-none focus:border-foreground disabled:bg-muted"
                 >
                   <option value="">선택하세요</option>
                   {(editingId ? currentInstructors : instructorsWithoutPlan).map((instructor) => (
@@ -286,12 +286,12 @@ export default function PlansPage() {
                   ))}
                 </select>
               ) : (
-                <div className="h-11 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">{currentUser?.name || '내 계정'}</div>
+                <div className="h-11 rounded-lg border border-border bg-muted px-3 py-2.5 text-sm font-semibold text-secondary-foreground">{currentUser?.name || '내 계정'}</div>
               )}
             </label>
 
             <div>
-              <p className="mb-2 text-sm font-bold text-slate-700">훈련 태그</p>
+              <p className="mb-2 text-sm font-bold text-secondary-foreground">훈련 태그</p>
               <div className="flex flex-wrap gap-2">
                 {exerciseTags.map((tag) => (
                   <button
@@ -299,7 +299,7 @@ export default function PlansPage() {
                     type="button"
                     onClick={() => toggleTag(tag.tag_id)}
                     className={`rounded-lg border px-3 py-2 text-sm font-bold transition ${
-                      selectedTags.includes(tag.tag_id) ? 'border-slate-900 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      selectedTags.includes(tag.tag_id) ? 'border-foreground bg-foreground text-background' : 'border-border bg-card text-secondary-foreground hover:bg-muted'
                     }`}
                   >
                     {tag.label}
@@ -309,13 +309,13 @@ export default function PlansPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-bold text-slate-700">운동 선택</label>
+              <label className="mb-2 block text-sm font-bold text-secondary-foreground">운동 선택</label>
               <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   value={exerciseSearch}
                   onChange={(event) => setExerciseSearch(event.target.value)}
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-slate-900"
+                  className="h-11 w-full rounded-lg border border-border bg-card pl-10 pr-3 text-sm outline-none focus:border-foreground"
                   placeholder="운동명 검색"
                 />
               </div>
@@ -327,10 +327,10 @@ export default function PlansPage() {
                       key={exercise.id}
                       type="button"
                       onClick={() => toggleExercise(exercise.id)}
-                      className={`rounded-lg border p-3 text-left transition ${selected ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                      className={`rounded-lg border p-3 text-left transition ${selected ? 'border-success/30 bg-success-soft' : 'border-border bg-card hover:bg-muted'}`}
                     >
                       <span className="flex items-center justify-between gap-3">
-                        <span className="font-bold text-slate-900">{exercise.name}</span>
+                        <span className="font-bold text-foreground">{exercise.name}</span>
                         <ExerciseVideoLink url={exercise.video_url} />
                       </span>
                       <span className="mt-2 flex flex-wrap gap-1">
@@ -343,42 +343,42 @@ export default function PlansPage() {
             </div>
           </div>
 
-          <div className="space-y-4 rounded-lg bg-slate-50 p-4">
+          <div className="space-y-4 rounded-lg bg-muted p-4">
             <div>
-              <h3 className="text-sm font-black text-slate-900">선택된 운동 {selectedExercises.length}개</h3>
+              <h3 className="text-sm font-black text-foreground">선택된 운동 {selectedExercises.length}개</h3>
               <div className="mt-3 space-y-3">
                 {selectedExercises.map((selected, index) => {
                   const exercise = exercises.find((item) => item.id === selected.exercise_id);
                   if (!exercise) return null;
                   return (
-                    <div key={selected.exercise_id} className="rounded-lg border border-slate-200 bg-white p-3">
+                    <div key={selected.exercise_id} className="rounded-lg border border-border bg-card p-3">
                       <div className="mb-3 flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-2 font-bold text-slate-900"><Dumbbell className="size-4 text-emerald-600" />{exercise.name}</span>
+                        <span className="flex items-center gap-2 font-bold text-foreground"><Dumbbell className="size-4 text-success" />{exercise.name}</span>
                         <div className="flex items-center gap-1">
                           <ReorderButtons index={index} total={selectedExercises.length} onMoveUp={() => moveSelectedExercise(index, -1)} onMoveDown={() => moveSelectedExercise(index, 1)} size="sm" />
-                          <button type="button" onClick={() => toggleExercise(selected.exercise_id)} className="rounded-md p-1.5 text-red-500 hover:bg-red-50"><X className="size-4" /></button>
+                          <button type="button" onClick={() => toggleExercise(selected.exercise_id)} className="rounded-md p-1.5 text-destructive hover:bg-destructive-soft"><X className="size-4" /></button>
                         </div>
                       </div>
                       <div className="grid grid-cols-[1fr_84px] gap-2">
-                        <input value={selected.weight || ''} onChange={(event) => updateSelectedExercise(selected.exercise_id, { weight: event.target.value })} className="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-900" placeholder="무게/개수" />
-                        <input type="number" value={selected.reps || ''} onChange={(event) => updateSelectedExercise(selected.exercise_id, { reps: event.target.value ? Number(event.target.value) : undefined })} className="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-900" placeholder="횟수" />
+                        <input value={selected.weight || ''} onChange={(event) => updateSelectedExercise(selected.exercise_id, { weight: event.target.value })} className="h-10 rounded-lg border border-border px-3 text-sm outline-none focus:border-foreground" placeholder="무게/개수" />
+                        <input type="number" value={selected.reps || ''} onChange={(event) => updateSelectedExercise(selected.exercise_id, { reps: event.target.value ? Number(event.target.value) : undefined })} className="h-10 rounded-lg border border-border px-3 text-sm outline-none focus:border-foreground" placeholder="횟수" />
                       </div>
-                      <input value={selected.note} onChange={(event) => updateSelectedExercise(selected.exercise_id, { note: event.target.value })} className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-900" placeholder="세부사항" />
+                      <input value={selected.note} onChange={(event) => updateSelectedExercise(selected.exercise_id, { note: event.target.value })} className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm outline-none focus:border-foreground" placeholder="세부사항" />
                     </div>
                   );
                 })}
-                {selectedExercises.length === 0 && <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">왼쪽에서 운동을 선택하세요.</p>}
+                {selectedExercises.length === 0 && <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">왼쪽에서 운동을 선택하세요.</p>}
               </div>
             </div>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-bold text-slate-700">추가 메모</span>
-              <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} className="w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-slate-900" placeholder="수업 방향이나 주의사항" />
+              <span className="mb-2 block text-sm font-bold text-secondary-foreground">추가 메모</span>
+              <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} className="w-full rounded-lg border border-border p-3 text-sm outline-none focus:border-foreground" placeholder="수업 방향이나 주의사항" />
             </label>
 
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={resetForm} className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700">취소</button>
-              <button type="button" onClick={savePlan} className="flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700">
+              <button type="button" onClick={resetForm} className="h-10 rounded-lg border border-border bg-card px-4 text-sm font-bold text-secondary-foreground">취소</button>
+              <button type="button" onClick={savePlan} className="flex h-10 items-center gap-2 rounded-lg bg-success px-4 text-sm font-bold text-white hover:bg-success/90">
                 <Check className="size-4" />
                 {editingId ? '수정' : '저장'}
               </button>
@@ -390,10 +390,10 @@ export default function PlansPage() {
       <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black text-slate-950">{SLOT_LABELS[activeSlot]} 수업 계획</h2>
-            <span className="text-sm font-semibold text-slate-500">{currentPlans.length} / {currentInstructors.length}명 작성</span>
+            <h2 className="text-xl font-black text-foreground">{SLOT_LABELS[activeSlot]} 수업 계획</h2>
+            <span className="text-sm font-semibold text-muted-foreground">{currentPlans.length} / {currentInstructors.length}명 작성</span>
           </div>
-          {loading && <div className="rounded-lg border border-slate-200 bg-white p-10 text-center text-slate-500">불러오는 중입니다.</div>}
+          {loading && <div className="rounded-lg border border-border bg-card p-10 text-center text-muted-foreground">불러오는 중입니다.</div>}
           {!loading && currentInstructors.length === 0 && <EmptyState message={`${SLOT_LABELS[activeSlot]}에 스케줄된 강사가 없습니다.`} />}
           {!loading && currentInstructors.length > 0 && currentPlans.length === 0 && <EmptyState message="아직 작성된 수업 계획이 없습니다." />}
           {!loading && currentPlans.map((plan) => (
@@ -411,16 +411,16 @@ export default function PlansPage() {
           ))}
         </div>
 
-        <aside className="h-fit rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-normal text-slate-500">PLAN STATUS</p>
-          <h3 className="mt-2 text-xl font-black text-slate-950">작성 현황</h3>
+        <aside className="h-fit rounded-lg border border-border bg-card p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-normal text-muted-foreground">PLAN STATUS</p>
+          <h3 className="mt-2 text-xl font-black text-foreground">작성 현황</h3>
           <div className="mt-4 space-y-2">
             {currentInstructors.map((instructor) => {
               const done = currentPlans.some((plan) => plan.instructor_id === instructor.id);
               return (
-                <div key={instructor.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-                  <span className="font-semibold text-slate-800">{instructor.name}</span>
-                  <span className={`rounded-md px-2 py-1 text-xs font-bold ${done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                <div key={instructor.id} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
+                  <span className="font-semibold text-foreground">{instructor.name}</span>
+                  <span className={`rounded-md px-2 py-1 text-xs font-bold ${done ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'}`}>
                     {done ? '작성' : '미작성'}
                   </span>
                 </div>
@@ -428,7 +428,7 @@ export default function PlansPage() {
             })}
           </div>
           {!isOwner && amIScheduled && !myPlanExists && !showForm && (
-            <button type="button" onClick={startCreate} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-slate-950 text-sm font-bold text-white">
+            <button type="button" onClick={startCreate} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-foreground text-sm font-bold text-background">
               <Plus className="size-4" />
               내 계획 작성
             </button>
@@ -441,9 +441,9 @@ export default function PlansPage() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center">
-      <ClipboardList className="mx-auto size-10 text-slate-300" />
-      <p className="mt-3 text-sm font-semibold text-slate-500">{message}</p>
+    <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+      <ClipboardList className="mx-auto size-10 text-muted-foreground/60" />
+      <p className="mt-3 text-sm font-semibold text-muted-foreground">{message}</p>
     </div>
   );
 }

@@ -53,14 +53,14 @@ export function ScoreTablesPanel({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-950 dark:text-white">배점표</h2>
-          <p className="mt-1 text-sm text-slate-500">자동 생성 후 학생별 상황에 맞게 구간을 직접 수정할 수 있습니다.</p>
+          <h2 className="text-lg font-bold text-foreground">배점표</h2>
+          <p className="mt-1 text-sm text-muted-foreground">자동 생성 후 학생별 상황에 맞게 구간을 직접 수정할 수 있습니다.</p>
         </div>
         {typesWithoutScore.length > 0 && (
           <button
             type="button"
             onClick={onShowForm}
-            className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950"
+            className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-bold text-background transition hover:bg-foreground/90"
           >
             <Calculator className="h-4 w-4" />
             배점표 생성
@@ -81,10 +81,10 @@ export function ScoreTablesPanel({
       )}
 
       {scoreTables.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-950">
-          <Calculator className="mx-auto h-10 w-10 text-slate-300" />
-          <p className="mt-3 text-sm font-bold text-slate-600 dark:text-slate-300">생성된 배점표가 없습니다.</p>
-          <p className="mt-1 text-sm text-slate-500">종목을 먼저 만든 뒤 배점표를 생성하세요.</p>
+        <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
+          <Calculator className="mx-auto h-10 w-10 text-muted-foreground/60" />
+          <p className="mt-3 text-sm font-bold text-secondary-foreground">생성된 배점표가 없습니다.</p>
+          <p className="mt-1 text-sm text-muted-foreground">종목을 먼저 만든 뒤 배점표를 생성하세요.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -130,20 +130,20 @@ function ScoreFormCard({
   typesWithoutScore: RecordType[];
 }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-slate-950 dark:text-white">배점표 생성</h3>
-        <button type="button" onClick={onCancel} className="rounded-md p-2 text-slate-400 hover:bg-slate-100">
+        <h3 className="font-bold text-foreground">배점표 생성</h3>
+        <button type="button" onClick={onCancel} className="rounded-md p-2 text-muted-foreground hover:bg-muted">
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      <label className="mt-4 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+      <label className="mt-4 block text-sm font-semibold text-secondary-foreground">
         종목
         <select
           value={selectedTypeForScore ?? ''}
           onChange={(event) => setSelectedTypeForScore(event.target.value ? Number(event.target.value) : null)}
-          className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+          className="mt-1 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-foreground"
         >
           <option value="">선택하세요</option>
           {typesWithoutScore.map((type) => (
@@ -162,12 +162,12 @@ function ScoreFormCard({
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-3">
-        <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <label className="text-sm font-semibold text-secondary-foreground">
           소수점 자리수
           <select
             value={scoreForm.decimal_places}
             onChange={(event) => onChange({ ...scoreForm, decimal_places: Number(event.target.value) })}
-            className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+            className="mt-1 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-foreground"
           >
             <option value={0}>정수</option>
             <option value={1}>소수점 1자리</option>
@@ -179,10 +179,10 @@ function ScoreFormCard({
       </div>
 
       <div className="mt-5 flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-border px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
           취소
         </button>
-        <button type="button" onClick={onCreate} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">
+        <button type="button" onClick={onCreate} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background hover:bg-foreground/90">
           <Save className="h-4 w-4" />
           생성
         </button>
@@ -221,11 +221,11 @@ function ScoreTableCard({
   table: ScoreTable;
 }) {
   return (
-    <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      <div className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-900">
+    <article className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <div className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-muted">
         <button type="button" onClick={() => onToggle(table.id)} className="min-w-0 flex-1 text-left">
         <div>
-          <h3 className="text-lg font-bold text-slate-950 dark:text-white">{table.record_type_name}</h3>
+          <h3 className="text-lg font-bold text-foreground">{table.record_type_name}</h3>
           <div className="mt-2 flex flex-wrap gap-2">
             <ScoreChip label={`만점 ${table.max_score}점`} />
             <ScoreChip label={`최소 ${table.min_score}점`} />
@@ -240,21 +240,21 @@ function ScoreTableCard({
             type="button"
             aria-label={`${table.record_type_name} 배점표 삭제`}
             onClick={() => onDelete(table.id)}
-            className="rounded-md p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+            className="rounded-md p-2 text-muted-foreground hover:bg-destructive-soft hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />
           </button>
-          <button type="button" aria-label={`${table.record_type_name} 배점표 ${expanded ? '접기' : '열기'}`} onClick={() => onToggle(table.id)} className="rounded-md p-2 text-slate-400 hover:bg-slate-100">
+          <button type="button" aria-label={`${table.record_type_name} 배점표 ${expanded ? '접기' : '열기'}`} onClick={() => onToggle(table.id)} className="rounded-md p-2 text-muted-foreground hover:bg-muted">
             {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
       {expanded && (
-        <div className="border-t border-slate-100 dark:border-slate-800">
+        <div className="border-t border-border">
           {loadingRanges ? (
             <div className="flex justify-center py-10">
-              <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
+              <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <ScoreRangeTable
@@ -300,16 +300,16 @@ function ScoreRangeTable({
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-100 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900">
+          <tr className="border-b border-border bg-muted text-muted-foreground">
             <th className="px-4 py-3 text-center font-bold">배점</th>
-            <th className="px-3 py-3 text-center font-bold text-blue-700">남자 최소</th>
-            <th className="px-3 py-3 text-center font-bold text-blue-700">남자 최대</th>
-            <th className="px-3 py-3 text-center font-bold text-rose-700">여자 최소</th>
-            <th className="px-3 py-3 text-center font-bold text-rose-700">여자 최대</th>
+            <th className="px-3 py-3 text-center font-bold text-primary">남자 최소</th>
+            <th className="px-3 py-3 text-center font-bold text-primary">남자 최대</th>
+            <th className="px-3 py-3 text-center font-bold text-destructive">여자 최소</th>
+            <th className="px-3 py-3 text-center font-bold text-destructive">여자 최대</th>
             <th className="px-4 py-3 text-center font-bold">수정</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody className="divide-y divide-border">
           {ranges.map((range) => (
             <ScoreRangeRow
               key={range.id}
@@ -355,9 +355,9 @@ function ScoreRangeRow({
   const step = String(Math.pow(10, -decimalPlaces));
 
   return (
-    <tr className={editingRange ? 'bg-amber-50 dark:bg-amber-950/20' : undefined}>
+    <tr className={editingRange ? 'bg-warning-soft' : undefined}>
       <td className="px-4 py-3 text-center">
-        <span className="inline-flex h-8 min-w-12 items-center justify-center rounded-lg bg-slate-950 px-3 font-bold text-white">
+        <span className="inline-flex h-8 min-w-12 items-center justify-center rounded-lg bg-foreground px-3 font-bold text-background">
           {range.score}
         </span>
       </td>
@@ -368,15 +368,15 @@ function ScoreRangeRow({
       <td className="px-4 py-3 text-center">
         {editingRange ? (
           <div className="flex justify-center gap-1">
-            <button type="button" aria-label={`${range.score}점 구간 저장`} onClick={() => onSaveRange(range.id)} disabled={saving} className="rounded-md p-2 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">
+            <button type="button" aria-label={`${range.score}점 구간 저장`} onClick={() => onSaveRange(range.id)} disabled={saving} className="rounded-md p-2 text-success hover:bg-success-soft disabled:opacity-50">
               {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             </button>
-            <button type="button" aria-label={`${range.score}점 수정 취소`} onClick={() => onCancelRange(range.id)} className="rounded-md p-2 text-slate-500 hover:bg-slate-100">
+            <button type="button" aria-label={`${range.score}점 수정 취소`} onClick={() => onCancelRange(range.id)} className="rounded-md p-2 text-muted-foreground hover:bg-muted">
               <X className="h-4 w-4" />
             </button>
           </div>
         ) : (
-          <button type="button" aria-label={`${range.score}점 구간 수정`} onClick={() => onEditRange(range)} className="rounded-md p-2 text-slate-500 hover:bg-slate-100">
+          <button type="button" aria-label={`${range.score}점 구간 수정`} onClick={() => onEditRange(range)} className="rounded-md p-2 text-muted-foreground hover:bg-muted">
             <Edit2 className="h-4 w-4" />
           </button>
         )}
@@ -405,7 +405,7 @@ function RangeValueCell({
   value: number;
 }) {
   return (
-    <td className="px-3 py-3 text-center font-semibold text-slate-700 dark:text-slate-200">
+    <td className="px-3 py-3 text-center font-semibold text-secondary-foreground">
       {editing ? (
         <input
           type="number"
@@ -413,7 +413,7 @@ function RangeValueCell({
           value={value >= 9999 ? '' : value}
           placeholder="이상"
           onChange={(event) => onChange(rangeId, field, event.target.value ? Number(event.target.value) : 9999.99)}
-          className="h-9 w-24 rounded-lg border border-slate-200 bg-white px-2 text-center text-sm outline-none focus:border-slate-950"
+          className="h-9 w-24 rounded-lg border border-border bg-card px-2 text-center text-sm outline-none focus:border-foreground"
         />
       ) : (
         <span>{formatRangeValue(value, decimalPlaces)} {formatRangeValue(value, decimalPlaces) === '-' ? '' : unit}</span>
@@ -436,7 +436,7 @@ function NumberField({
   value: number;
 }) {
   return (
-    <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+    <label className="text-sm font-semibold text-secondary-foreground">
       {label}
       <input
         type="number"
@@ -444,7 +444,7 @@ function NumberField({
         step={step}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+        className="mt-1 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-foreground"
       />
     </label>
   );
@@ -452,9 +452,9 @@ function NumberField({
 
 function ScoreChip({ label, tone = 'slate' }: { label: string; tone?: 'blue' | 'rose' | 'slate' }) {
   const className = {
-    blue: 'bg-blue-50 text-blue-700',
-    rose: 'bg-rose-50 text-rose-700',
-    slate: 'bg-slate-100 text-slate-600',
+    blue: 'bg-primary-soft text-primary',
+    rose: 'bg-destructive-soft text-destructive',
+    slate: 'bg-muted text-secondary-foreground',
   }[tone];
 
   return <span className={`rounded-md px-2.5 py-1 text-xs font-bold ${className}`}>{label}</span>;

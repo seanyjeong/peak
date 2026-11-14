@@ -139,16 +139,16 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+    <div className="min-h-screen flex bg-muted text-foreground">
       {/* 인앱 알림 팝업 */}
       {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
 
       {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? 'w-56' : 'w-20'} fixed z-10 flex h-full flex-col border-r border-slate-200 bg-slate-950 text-slate-100 transition-all duration-200 dark:border-slate-800 dark:bg-slate-950`}
+        className={`${sidebarOpen ? 'w-56' : 'w-20'} fixed z-10 flex h-full flex-col border-r border-border bg-foreground text-slate-100 transition-all duration-200`}
       >
         {/* Logo */}
-        <div className={`h-16 flex items-center border-b border-slate-800 ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'}`}>
+        <div className={`h-16 flex items-center border-b border-foreground ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'}`}>
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-3">
@@ -161,12 +161,12 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
                 />
                 <div>
                   <h1 className="text-lg font-semibold tracking-wide">P-EAK</h1>
-                  <p className="text-[11px] text-slate-400 -mt-0.5">Training Console</p>
+                  <p className="text-[11px] text-muted-foreground -mt-0.5">Training Console</p>
                 </div>
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="rounded-md p-2 text-slate-300 transition hover:bg-slate-900 hover:text-white"
+                className="rounded-md p-2 text-muted-foreground/60 transition hover:bg-foreground/90 hover:text-white"
               >
                 <ChevronLeft size={18} />
               </button>
@@ -174,7 +174,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
           ) : (
             <button
               onClick={() => setSidebarOpen(true)}
-              className="rounded-md p-1 transition hover:bg-slate-900"
+              className="rounded-md p-1 transition hover:bg-foreground/90"
             >
               <Image
                 src="/peak-512x512.png"
@@ -200,8 +200,8 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   className={`flex rounded-md border transition ${
                     sidebarOpen
-                      ? `items-center gap-3 px-3 py-2.5 ${isActive ? 'border-orange-500/50 bg-orange-500/15 text-orange-200' : 'border-transparent text-slate-300 hover:border-slate-800 hover:bg-slate-900 hover:text-white'}`
-                      : `flex-col items-center px-1 py-2 ${isActive ? 'border-orange-500/50 bg-orange-500/15 text-orange-200' : 'border-transparent text-slate-300 hover:bg-slate-900 hover:text-white'}`
+                      ? `items-center gap-3 px-3 py-2.5 ${isActive ? 'border-primary/50 bg-primary/15 text-orange-200' : 'border-transparent text-muted-foreground/60 hover:border-foreground hover:bg-foreground/90 hover:text-white'}`
+                      : `flex-col items-center px-1 py-2 ${isActive ? 'border-primary/50 bg-primary/15 text-orange-200' : 'border-transparent text-muted-foreground/60 hover:bg-foreground/90 hover:text-white'}`
                   }`}
                 >
                   <item.icon size={20} />
@@ -217,16 +217,16 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User Section */}
-        <div className={`border-t border-slate-800 ${sidebarOpen ? 'p-4' : 'p-2'}`}>
+        <div className={`border-t border-foreground ${sidebarOpen ? 'p-4' : 'p-2'}`}>
           {sidebarOpen && user && (
             <div className="mb-3 px-3">
               <p className="text-sm font-medium text-white">{user.name}</p>
-              <p className="text-xs text-slate-400">{getRoleDisplayName(user.role, user.position)}</p>
+              <p className="text-xs text-muted-foreground">{getRoleDisplayName(user.role, user.position)}</p>
             </div>
           )}
           <button
             onClick={handleLogout}
-            className={`flex w-full rounded-md text-slate-400 transition hover:bg-slate-900 hover:text-white ${
+            className={`flex w-full rounded-md text-muted-foreground transition hover:bg-foreground/90 hover:text-white ${
               sidebarOpen ? 'items-center gap-3 px-3 py-2' : 'flex-col items-center py-2'
             }`}
           >
@@ -238,7 +238,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
             )}
           </button>
           {sidebarOpen && (
-            <p className="mt-3 text-center text-[10px] text-slate-500">{APP_VERSION} · {APP_UPDATED}</p>
+            <p className="mt-3 text-center text-[10px] text-muted-foreground">{APP_VERSION} · {APP_UPDATED}</p>
           )}
         </div>
       </aside>
@@ -246,14 +246,14 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main className={`min-w-0 flex-1 ${sidebarOpen ? 'ml-56' : 'ml-20'} transition-all duration-200`}>
         {/* 헤더 */}
-        <div className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-200 bg-slate-50/95 px-6 dark:border-slate-800 dark:bg-slate-950/95">
+        <div className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-muted/95 px-6">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">P-EAK</p>
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">실기 훈련 운영</p>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">P-EAK</p>
+            <p className="text-sm font-medium text-secondary-foreground">실기 훈련 운영</p>
           </div>
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="rounded-md border border-slate-200 bg-white p-2.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+            className="rounded-md border border-border bg-card p-2.5 text-secondary-foreground transition hover:bg-muted hover:text-foreground"
             title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
           >
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}

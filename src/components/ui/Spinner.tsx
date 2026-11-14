@@ -17,7 +17,7 @@ const sizeStyles = {
 export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
   return (
     <Loader2
-      className={`animate-spin text-orange-500 ${sizeStyles[size]} ${className}`}
+      className={`animate-spin text-primary ${sizeStyles[size]} ${className}`}
     />
   );
 }
@@ -31,7 +31,7 @@ export function Loading({ text = '로딩 중...' }: LoadingProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[200px] gap-3">
       <Spinner size="lg" />
-      <p className="text-slate-500 text-sm">{text}</p>
+      <p className="text-muted-foreground text-sm">{text}</p>
     </div>
   );
 }
@@ -39,7 +39,7 @@ export function Loading({ text = '로딩 중...' }: LoadingProps) {
 // Inline loading indicator
 export function InlineLoading() {
   return (
-    <span className="inline-flex items-center gap-2 text-slate-500 text-sm">
+    <span className="inline-flex items-center gap-2 text-muted-foreground text-sm">
       <Spinner size="sm" />
       <span>로딩 중...</span>
     </span>

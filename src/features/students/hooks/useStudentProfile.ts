@@ -342,11 +342,11 @@ export function useStudentProfile(studentId: string, initialGaugeCount: number =
   // 등급 색상
   const getGradeColor = (grade: string): string => {
     switch (grade) {
-      case 'A': return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/20';
-      case 'B': return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20';
-      case 'C': return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/20';
-      case 'D': return 'text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-900/20';
-      default: return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/20';
+      case 'A': return 'text-success bg-success-soft';
+      case 'B': return 'text-primary bg-primary-soft';
+      case 'C': return 'text-warning bg-warning-soft';
+      case 'D': return 'text-primary bg-primary-soft';
+      default: return 'text-destructive bg-destructive-soft';
     }
   };
 

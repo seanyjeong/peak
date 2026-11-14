@@ -240,22 +240,22 @@ export default function MobilePlansPage() {
   return (
     <div className="space-y-3">
       {/* 날짜 네비게이션 */}
-      <div className="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm">
+      <div className="flex items-center justify-between bg-card rounded-xl p-3 shadow-sm">
         <button
           onClick={() => changeDate(-1)}
-          className="p-2 hover:bg-slate-100 rounded-lg"
+          className="p-2 hover:bg-muted rounded-lg"
         >
-          <ChevronLeft size={20} className="text-slate-600" />
+          <ChevronLeft size={20} className="text-secondary-foreground" />
         </button>
         <div className="text-center">
-          <p className="font-bold text-slate-800">{koreanDate}</p>
-          <p className="text-xs text-slate-500">{selectedDate}</p>
+          <p className="font-bold text-foreground">{koreanDate}</p>
+          <p className="text-xs text-muted-foreground">{selectedDate}</p>
         </div>
         <button
           onClick={() => changeDate(1)}
-          className="p-2 hover:bg-slate-100 rounded-lg"
+          className="p-2 hover:bg-muted rounded-lg"
         >
-          <ChevronRight size={20} className="text-slate-600" />
+          <ChevronRight size={20} className="text-secondary-foreground" />
         </button>
       </div>
 
@@ -267,8 +267,8 @@ export default function MobilePlansPage() {
             onClick={() => setSelectedTimeSlot(key)}
             className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl font-medium text-sm transition ${
               selectedTimeSlot === key
-                ? 'bg-orange-500 text-white shadow-md'
-                : 'bg-white text-slate-600 shadow-sm'
+                ? 'bg-primary text-white shadow-md'
+                : 'bg-card text-secondary-foreground shadow-sm'
             }`}
           >
             <Icon size={16} />
@@ -279,29 +279,29 @@ export default function MobilePlansPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <RefreshCw size={24} className="animate-spin text-orange-500" />
+          <RefreshCw size={24} className="animate-spin text-primary" />
         </div>
       ) : (
         <>
           {/* 계획 리스트 */}
           <div className="space-y-2">
             {plans.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 text-center shadow-sm">
-                <p className="text-slate-500 text-sm">등록된 계획이 없습니다</p>
+              <div className="bg-card rounded-xl p-8 text-center shadow-sm">
+                <p className="text-muted-foreground text-sm">등록된 계획이 없습니다</p>
               </div>
             ) : (
               plans.map((plan) => (
-                <div key={plan.id} className="bg-white rounded-xl p-4 shadow-sm">
+                <div key={plan.id} className="bg-card rounded-xl p-4 shadow-sm">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <p className="font-medium text-slate-800">{plan.instructor_name}</p>
+                      <p className="font-medium text-foreground">{plan.instructor_name}</p>
                       {plan.tags && plan.tags.length > 0 && (
-                        <p className="text-xs text-orange-600 mt-1">
+                        <p className="text-xs text-primary mt-1">
                           {plan.tags.map(tagId => tags.find(t => t.tag_id === tagId)?.label || tagId).join(', ')}
                         </p>
                       )}
                       {plan.exercises && plan.exercises.length > 0 && (
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           {plan.exercises.map(e => {
                             const exId = e.exercise_id || e.id;
                             return e.name || exercises.find(ex => ex.id === exId)?.name || `운동 #${exId}`;
@@ -309,19 +309,19 @@ export default function MobilePlansPage() {
                         </p>
                       )}
                       {plan.description && (
-                        <p className="text-xs text-slate-400 mt-2">{plan.description}</p>
+                        <p className="text-xs text-muted-foreground mt-2">{plan.description}</p>
                       )}
                     </div>
                     <div className="flex gap-1">
                       <button
                         onClick={() => openForm(plan)}
-                        className="p-2 text-slate-400 hover:text-slate-600"
+                        className="p-2 text-muted-foreground hover:text-secondary-foreground"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => deletePlan(plan.id)}
-                        className="p-2 text-slate-400 hover:text-red-500"
+                        className="p-2 text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -335,7 +335,7 @@ export default function MobilePlansPage() {
           {/* 추가 버튼 */}
           <button
             onClick={() => openForm()}
-            className="w-full py-3 bg-orange-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 shadow-md"
+            className="w-full py-3 bg-primary text-white rounded-xl font-medium flex items-center justify-center gap-2 shadow-md"
           >
             <Plus size={18} />
             <span>계획 추가</span>
@@ -347,17 +347,17 @@ export default function MobilePlansPage() {
       {showForm && (
         <div className="fixed inset-0 bg-black/50 z-40" onClick={closeForm}>
           <div
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto safe-area-pb"
+            className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl max-h-[85vh] overflow-y-auto safe-area-pb"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 핸들 & 헤더 */}
-            <div className="sticky top-0 bg-white pt-3 pb-2 px-4 border-b border-slate-100">
-              <div className="w-10 h-1 bg-slate-300 rounded-full mx-auto mb-3" />
+            <div className="sticky top-0 bg-card pt-3 pb-2 px-4 border-b border-border">
+              <div className="w-10 h-1 bg-muted-foreground/40 rounded-full mx-auto mb-3" />
               <div className="flex items-center justify-between">
-                <h2 className="font-bold text-lg text-slate-800">
+                <h2 className="font-bold text-lg text-foreground">
                   {editingPlan ? '계획 수정' : '계획 추가'}
                 </h2>
-                <button onClick={closeForm} className="p-2 text-slate-400">
+                <button onClick={closeForm} className="p-2 text-muted-foreground">
                   <X size={20} />
                 </button>
               </div>
@@ -370,11 +370,11 @@ export default function MobilePlansPage() {
                   onClick={() => toggleSection('tags')}
                   className="w-full flex items-center justify-between py-2"
                 >
-                  <span className="font-medium text-slate-800">태그 선택</span>
+                  <span className="font-medium text-foreground">태그 선택</span>
                   {expandedSections.has('tags') ? (
-                    <ChevronUp size={18} className="text-slate-400" />
+                    <ChevronUp size={18} className="text-muted-foreground" />
                   ) : (
-                    <ChevronDown size={18} className="text-slate-400" />
+                    <ChevronDown size={18} className="text-muted-foreground" />
                   )}
                 </button>
                 {expandedSections.has('tags') && (
@@ -385,17 +385,17 @@ export default function MobilePlansPage() {
                         onClick={() => toggleTag(tag.tag_id)}
                         className={`w-full flex items-center gap-3 p-3 rounded-xl border transition ${
                           selectedTags.includes(tag.tag_id)
-                            ? 'border-orange-500 bg-orange-50'
-                            : 'border-slate-200'
+                            ? 'border-primary bg-primary-soft'
+                            : 'border-border'
                         }`}
                       >
                         <div
                           className="w-4 h-4 rounded-full"
                           style={{ backgroundColor: tag.color }}
                         />
-                        <span className="text-sm font-medium text-slate-700">{tag.label}</span>
+                        <span className="text-sm font-medium text-secondary-foreground">{tag.label}</span>
                         {selectedTags.includes(tag.tag_id) && (
-                          <Check size={16} className="ml-auto text-orange-500" />
+                          <Check size={16} className="ml-auto text-primary" />
                         )}
                       </button>
                     ))}
@@ -409,28 +409,28 @@ export default function MobilePlansPage() {
                   onClick={() => toggleSection('exercises')}
                   className="w-full flex items-center justify-between py-2"
                 >
-                  <span className="font-medium text-slate-800">
+                  <span className="font-medium text-foreground">
                     운동 선택 ({selectedExercises.length}개)
                   </span>
                   {expandedSections.has('exercises') ? (
-                    <ChevronUp size={18} className="text-slate-400" />
+                    <ChevronUp size={18} className="text-muted-foreground" />
                   ) : (
-                    <ChevronDown size={18} className="text-slate-400" />
+                    <ChevronDown size={18} className="text-muted-foreground" />
                   )}
                 </button>
                 {expandedSections.has('exercises') && (
                   <>
                   <div className="relative mb-2">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <input
                       type="text"
                       value={exerciseSearch}
                       onChange={(e) => setExerciseSearch(e.target.value)}
                       placeholder="운동 검색..."
-                      className="w-full pl-9 pr-8 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                      className="w-full pl-9 pr-8 py-2.5 border border-border rounded-xl text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                     />
                     {exerciseSearch && (
-                      <button onClick={() => setExerciseSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <button onClick={() => setExerciseSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-secondary-foreground">
                         <X size={16} />
                       </button>
                     )}
@@ -444,13 +444,13 @@ export default function MobilePlansPage() {
                           onClick={() => toggleExercise(ex)}
                           className={`w-full flex items-center gap-3 p-3 rounded-xl border transition ${
                             isSelected
-                              ? 'border-orange-500 bg-orange-50'
-                              : 'border-slate-200'
+                              ? 'border-primary bg-primary-soft'
+                              : 'border-border'
                           }`}
                         >
-                          <span className="text-sm font-medium text-slate-700">{ex.name}</span>
+                          <span className="text-sm font-medium text-secondary-foreground">{ex.name}</span>
                           {isSelected && (
-                            <Check size={16} className="ml-auto text-orange-500" />
+                            <Check size={16} className="ml-auto text-primary" />
                           )}
                         </button>
                       );
@@ -462,13 +462,13 @@ export default function MobilePlansPage() {
 
               {/* 메모 */}
               <div>
-                <label className="block font-medium text-slate-800 mb-2">메모</label>
+                <label className="block font-medium text-foreground mb-2">메모</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="추가 메모..."
                   rows={3}
-                  className="w-full p-3 border border-slate-200 rounded-xl text-sm resize-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                  className="w-full p-3 border border-border rounded-xl text-sm resize-none focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 />
               </div>
 
@@ -476,7 +476,7 @@ export default function MobilePlansPage() {
               <button
                 onClick={savePlan}
                 disabled={saving}
-                className="w-full py-3 bg-orange-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3 bg-primary text-white rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {saving ? (
                   <RefreshCw size={18} className="animate-spin" />

@@ -27,8 +27,8 @@ export function BranchTabs({
           onClick={() => onChange(branch.id)}
           className={`inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium transition ${
             value === branch.id
-              ? 'border-orange-400 bg-orange-50 text-orange-700 shadow-sm'
-              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+              ? 'border-primary bg-primary-soft text-primary shadow-sm'
+              : 'border-border bg-card text-secondary-foreground hover:bg-muted'
           }`}
         >
           {branch.name}

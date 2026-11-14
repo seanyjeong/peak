@@ -35,8 +35,8 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex min-h-[520px] items-center justify-center" data-testid="dashboard-loading">
-        <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-          <RefreshCw size={18} className="animate-spin text-orange-500" />
+        <div className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-3 text-sm text-secondary-foreground shadow-sm">
+          <RefreshCw size={18} className="animate-spin text-primary" />
           오늘 훈련 데이터를 불러오는 중입니다.
         </div>
       </div>
@@ -47,9 +47,9 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-[1480px] space-y-6" data-testid="dashboard-page">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Today</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">대시보드</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{today}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Today</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-foreground">대시보드</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{today}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <ActionButton icon={Calendar} label="반 배치 관리" onClick={() => router.push('/assignments')} primary />
@@ -70,7 +70,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" data-testid="dashboard-schedule">
+        <div className="rounded-md border border-border bg-card shadow-sm" data-testid="dashboard-schedule">
           <PanelHeader
             title="오늘 스케줄"
             description="시간대별 배정과 학생 수를 한 번에 확인합니다."
@@ -85,25 +85,25 @@ export default function DashboardPage() {
               onAction={() => router.push('/assignments')}
             />
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-border">
               {scheduleData.map((schedule) => {
                 const Icon = schedule.icon;
                 return (
                   <button
                     key={schedule.slot}
                     onClick={() => router.push('/assignments')}
-                    className="grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                    className="grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 text-left transition hover:bg-muted"
                   >
-                    <span className="flex h-11 w-11 items-center justify-center rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-md bg-muted text-secondary-foreground">
                       <Icon size={20} />
                     </span>
                     <span className="min-w-0">
-                      <span className="block font-medium text-slate-950 dark:text-slate-50">{schedule.label}</span>
-                      <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">{schedule.trainer}</span>
+                      <span className="block font-medium text-foreground">{schedule.label}</span>
+                      <span className="mt-1 block truncate text-sm text-muted-foreground">{schedule.trainer}</span>
                     </span>
                     <span className="text-right">
-                      <span className="block text-sm font-semibold text-slate-950 dark:text-slate-50">{schedule.students}명</span>
-                      <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{schedule.time}</span>
+                      <span className="block text-sm font-semibold text-foreground">{schedule.students}명</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">{schedule.time}</span>
                     </span>
                   </button>
                 );
@@ -112,7 +112,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" data-testid="dashboard-attendance">
+        <div className="rounded-md border border-border bg-card shadow-sm" data-testid="dashboard-attendance">
           <PanelHeader
             title="강사 현황"
             description={currentAttendance ? `${currentAttendance.currentSlotLabel} 기준` : '현재 시간대 기준'}
@@ -157,8 +157,8 @@ function ActionButton({
       onClick={onClick}
       className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium transition ${
         primary
-          ? 'border-orange-600 bg-orange-600 text-white hover:bg-orange-700'
-          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+          ? 'border-primary bg-primary text-white hover:bg-primary/90'
+          : 'border-border bg-card text-secondary-foreground hover:bg-muted'
       }`}
     >
       <Icon size={16} />
@@ -181,18 +181,18 @@ function MetricPanel({
   tone: 'orange' | 'blue' | 'slate';
 }) {
   const toneClass = {
-    orange: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-900',
-    blue: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900',
-    slate: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+    orange: 'bg-primary-soft text-primary border-primary/30',
+    blue: 'bg-primary-soft text-primary border-primary/30',
+    slate: 'bg-muted text-secondary-foreground border-border',
   }[tone];
 
   return (
-    <article className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <article className="rounded-md border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-          <p className="mt-3 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">{value}</p>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{detail}</p>
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-normal text-foreground">{value}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
         </div>
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border ${toneClass}`}>
           <Icon size={19} />
@@ -214,13 +214,13 @@ function PanelHeader({
   onAction?: () => void;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+    <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
       <div>
-        <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">{title}</h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
       {actionLabel && onAction ? (
-        <button onClick={onAction} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white">
+        <button onClick={onAction} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-secondary-foreground transition hover:bg-muted hover:text-foreground">
           {actionLabel}
           <ChevronRight size={16} />
         </button>
@@ -242,11 +242,11 @@ function EmptyPanel({
 }) {
   return (
     <div className="flex min-h-[220px] flex-col items-center justify-center px-6 py-10 text-center">
-      <Clock3 size={28} className="text-slate-300 dark:text-slate-600" />
-      <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">{title}</p>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
+      <Clock3 size={28} className="text-muted-foreground/60" />
+      <p className="mt-3 font-medium text-secondary-foreground">{title}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       {actionLabel && onAction ? (
-        <button onClick={onAction} className="mt-4 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800">
+        <button onClick={onAction} className="mt-4 rounded-md border border-border px-3 py-2 text-sm font-medium text-secondary-foreground transition hover:bg-muted">
           {actionLabel}
         </button>
       ) : null}
@@ -256,31 +256,31 @@ function EmptyPanel({
 
 function MiniStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-950">
-      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-slate-950 dark:text-slate-50">{value}</p>
+    <div className="rounded-md border border-border bg-muted px-3 py-2">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
     </div>
   );
 }
 
 function InstructorRow({ instructor }: { instructor: CurrentInstructor }) {
   return (
-    <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-3 dark:border-slate-800">
+    <div className="flex items-center justify-between rounded-md border border-border px-3 py-3">
       <div className="flex min-w-0 items-center gap-3">
         <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold ${
           instructor.checkedIn
-            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
-            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+            ? 'bg-success-soft text-success'
+            : 'bg-muted text-muted-foreground'
         }`}>
           {instructor.checkedIn ? <CheckCircle2 size={18} /> : instructor.name.charAt(0)}
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-sm font-medium text-slate-950 dark:text-slate-50">{instructor.name}</span>
-          <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{instructor.checkedIn ? '출근 완료' : '미출근'}</span>
+          <span className="block truncate text-sm font-medium text-foreground">{instructor.name}</span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">{instructor.checkedIn ? '출근 완료' : '미출근'}</span>
         </span>
       </div>
       {instructor.checkedIn && instructor.checkInTime ? (
-        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{instructor.checkInTime.slice(0, 5)}</span>
+        <span className="text-sm font-medium text-secondary-foreground">{instructor.checkInTime.slice(0, 5)}</span>
       ) : null}
     </div>
   );

@@ -57,19 +57,19 @@ const TIME_SLOT_INFO: Record<TimeSlot, { label: string; time: string; icon: Comp
 const STATUS_INFO: Record<AttendanceStatus, { label: string; className: string }> = {
   present: {
     label: '출근',
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300',
+    className: 'border-success/30 bg-success-soft text-success',
   },
   scheduled: {
     label: '예정',
-    className: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300',
+    className: 'border-border bg-muted text-secondary-foreground',
   },
   absent: {
     label: '결근',
-    className: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300',
+    className: 'border-destructive/30 bg-destructive-soft text-destructive',
   },
   late: {
     label: '지각',
-    className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300',
+    className: 'border-warning/30 bg-warning-soft text-warning',
   },
 };
 
@@ -128,14 +128,14 @@ export default function AttendancePage() {
     <div className="mx-auto max-w-[1280px] space-y-6" data-testid="attendance-page">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Staff Attendance</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">출근 체크</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{today}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Staff Attendance</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-foreground">출근 체크</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{today}</p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-950"
+          className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-secondary-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           새로고침
@@ -149,10 +149,10 @@ export default function AttendancePage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-            <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">시간대 선택</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">강사가 배정된 반을 먼저 확인합니다.</p>
+        <div className="rounded-md border border-border bg-card shadow-sm">
+          <div className="border-b border-border px-5 py-4">
+            <h2 className="text-base font-semibold text-foreground">시간대 선택</h2>
+            <p className="mt-1 text-sm text-muted-foreground">강사가 배정된 반을 먼저 확인합니다.</p>
           </div>
           <div className="space-y-2 p-3">
             {SLOT_ORDER.map((slot) => (
@@ -168,30 +168,30 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        <div className="rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" data-testid="attendance-list">
-          <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+        <div className="rounded-md border border-border bg-card shadow-sm" data-testid="attendance-list">
+          <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
             <div>
-              <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">
+              <h2 className="text-base font-semibold text-foreground">
                 {TIME_SLOT_INFO[activeSlot].label} 강사
               </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {TIME_SLOT_INFO[activeSlot].time} · {currentInstructors.length}명 배정
               </p>
             </div>
-            <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+            <span className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm font-medium text-secondary-foreground">
               {getSlotCheckedIn(currentInstructors)}/{currentInstructors.length}
             </span>
           </div>
 
           {loading ? (
-            <div className="flex min-h-[300px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
-              <RefreshCw size={18} className="mr-2 animate-spin text-orange-500" />
+            <div className="flex min-h-[300px] items-center justify-center text-sm text-muted-foreground">
+              <RefreshCw size={18} className="mr-2 animate-spin text-primary" />
               출근 현황을 불러오는 중입니다.
             </div>
           ) : currentInstructors.length === 0 ? (
             <EmptyState slot={activeSlot} />
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-border">
               {currentInstructors.map((instructor) => (
                 <InstructorRow key={`${instructor.id}-${instructor.time_slot}`} instructor={instructor} />
               ))}
@@ -200,7 +200,7 @@ export default function AttendancePage() {
         </div>
       </section>
 
-      <aside className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+      <aside className="rounded-md border border-border bg-muted px-4 py-3 text-sm text-secondary-foreground">
         출근 상태 변경은 P-ACA에서 처리됩니다. 이 화면은 Peak 수업 운영자가 현재 반 배정과 강사 출근 상태를 빠르게 확인하는 용도입니다.
       </aside>
     </div>
@@ -221,18 +221,18 @@ function SummaryCard({
   tone: 'orange' | 'blue' | 'slate';
 }) {
   const toneClass = {
-    orange: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-900',
-    blue: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900',
-    slate: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+    orange: 'bg-primary-soft text-primary border-primary/30',
+    blue: 'bg-primary-soft text-primary border-primary/30',
+    slate: 'bg-muted text-secondary-foreground border-border',
   }[tone];
 
   return (
-    <article className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <article className="rounded-md border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-          <p className="mt-3 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">{value}</p>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{detail}</p>
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-normal text-foreground">{value}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
         </div>
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border ${toneClass}`}>
           <Icon size={19} />
@@ -261,20 +261,20 @@ function SlotButton({
   return (
     <button
       onClick={onClick}
-      className={`grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-md border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${
+      className={`grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-md border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
         active
-          ? 'border-orange-400 bg-orange-50 text-slate-950 shadow-sm ring-1 ring-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-slate-50 dark:ring-orange-900/40'
-          : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 dark:text-slate-300 dark:hover:border-slate-800 dark:hover:bg-slate-800'
+          ? 'border-primary bg-primary-soft text-foreground shadow-sm ring-1 ring-primary/30'
+          : 'border-transparent text-secondary-foreground hover:border-border hover:bg-muted'
       }`}
     >
-      <span className="flex h-10 w-10 items-center justify-center rounded-md bg-white text-orange-600 shadow-sm dark:bg-slate-900 dark:text-orange-300">
+      <span className="flex h-10 w-10 items-center justify-center rounded-md bg-card text-primary shadow-sm">
         <Icon size={18} />
       </span>
       <span className="min-w-0">
         <span className="block font-medium">{info.label}</span>
-        <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{info.time}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">{info.time}</span>
       </span>
-      <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm font-semibold text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+      <span className="rounded-md border border-border bg-card px-2 py-1 text-sm font-semibold text-foreground">
         {checkedIn}/{count}
       </span>
     </button>
@@ -290,21 +290,21 @@ function InstructorRow({ instructor }: { instructor: Instructor }) {
       <div className="flex min-w-0 items-center gap-3">
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-sm font-semibold ${
           isPresent
-            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
-            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+            ? 'bg-success-soft text-success'
+            : 'bg-muted text-muted-foreground'
         }`}>
           {isPresent ? <CheckCircle2 size={19} /> : instructor.name.charAt(0)}
         </span>
         <span className="min-w-0">
-          <span className="block truncate font-medium text-slate-950 dark:text-slate-50">{instructor.name}</span>
-          <span className="mt-1 block text-sm text-slate-500 dark:text-slate-400">
+          <span className="block truncate font-medium text-foreground">{instructor.name}</span>
+          <span className="mt-1 block text-sm text-muted-foreground">
             {TIME_SLOT_INFO[instructor.time_slot].label} 근무
           </span>
         </span>
       </div>
       <div className="flex items-center gap-2">
         {instructor.check_in_time ? (
-          <span className="hidden items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 sm:inline-flex">
+          <span className="hidden items-center gap-1.5 text-sm font-medium text-secondary-foreground sm:inline-flex">
             <Clock3 size={15} />
             {instructor.check_in_time.slice(0, 5)}
           </span>
@@ -318,11 +318,11 @@ function InstructorRow({ instructor }: { instructor: Instructor }) {
 function EmptyState({ slot }: { slot: TimeSlot }) {
   return (
     <div className="flex min-h-[300px] flex-col items-center justify-center px-6 py-10 text-center">
-      <AlertCircle size={30} className="text-slate-300 dark:text-slate-600" />
-      <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">
+      <AlertCircle size={30} className="text-muted-foreground/60" />
+      <p className="mt-3 font-medium text-secondary-foreground">
         {TIME_SLOT_INFO[slot].label}에 배정된 강사가 없습니다.
       </p>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">P-ACA에서 강사 스케줄을 확인해주세요.</p>
+      <p className="mt-1 text-sm text-muted-foreground">P-ACA에서 강사 스케줄을 확인해주세요.</p>
     </div>
   );
 }

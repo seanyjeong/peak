@@ -159,10 +159,10 @@ export default function RankingsPage({
 
   // 순위 아이콘
   const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Trophy className="text-yellow-500" size={20} />;
-    if (rank === 2) return <Medal className="text-gray-400 dark:text-slate-500" size={20} />;
-    if (rank === 3) return <Award className="text-amber-600" size={20} />;
-    return <span className="w-5 text-center text-gray-500 dark:text-slate-400">{rank}</span>;
+    if (rank === 1) return <Trophy className="text-warning" size={20} />;
+    if (rank === 2) return <Medal className="text-muted-foreground" size={20} />;
+    if (rank === 3) return <Award className="text-warning" size={20} />;
+    return <span className="w-5 text-center text-muted-foreground">{rank}</span>;
   };
 
   if (loading) {
@@ -178,9 +178,9 @@ export default function RankingsPage({
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-6">
+    <div className="min-h-screen bg-muted pb-6">
       {/* 헤더 */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-slate-800 border-b shadow-sm">
+      <div className="sticky top-0 z-10 bg-card border-b shadow-sm">
         <div className="px-6 py-4 flex items-center gap-3">
           <Button
             variant="ghost"
@@ -192,7 +192,7 @@ export default function RankingsPage({
           </Button>
           <div className="flex-1">
             <h1 className="text-xl font-bold">{test?.test_name || '월말테스트'}</h1>
-            <p className="text-sm text-gray-500 dark:text-slate-400">
+            <p className="text-sm text-muted-foreground">
               {classFilter === 'advance' ? '선행반' : '전체'} 순위 · {rankedParticipants.length}명
             </p>
           </div>
@@ -261,7 +261,7 @@ export default function RankingsPage({
       <div className="px-6 mt-4">
         <Card className="overflow-hidden">
           {/* 테이블 헤더 */}
-          <div className="bg-gray-100 dark:bg-slate-900 px-4 py-3 grid grid-cols-12 gap-2 text-sm font-medium text-gray-600 dark:text-slate-400 border-b">
+          <div className="bg-muted px-4 py-3 grid grid-cols-12 gap-2 text-sm font-medium text-secondary-foreground border-b">
             <div className="col-span-1 text-center">순위</div>
             <div className="col-span-3">이름</div>
             <div className="col-span-1 text-center">성별</div>
@@ -282,7 +282,7 @@ export default function RankingsPage({
           {/* 테이블 바디 */}
           <div className="divide-y">
             {rankedParticipants.length === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+              <div className="px-4 py-8 text-center text-muted-foreground">
                 참가자가 없습니다
               </div>
             ) : (
@@ -290,7 +290,7 @@ export default function RankingsPage({
                 <div
                   key={p.student_id || p.test_applicant_id}
                   className={`px-4 py-3 grid grid-cols-12 gap-2 items-center text-sm ${
-                    (p as any).rank <= 3 ? 'bg-amber-50' : ''
+                    (p as any).rank <= 3 ? 'bg-warning-soft' : ''
                   }`}
                 >
                   {/* 순위 */}
@@ -302,21 +302,21 @@ export default function RankingsPage({
                   <div className="col-span-3 font-medium truncate">
                     {p.name}
                     {p.participant_type === 'test_new' && (
-                      <span className="ml-1 text-xs text-orange-500">(신규)</span>
+                      <span className="ml-1 text-xs text-primary">(신규)</span>
                     )}
                   </div>
 
                   {/* 성별 */}
                   <div className="col-span-1 text-center">
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                      p.gender === 'M' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'
+                      p.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-100 text-pink-700'
                     }`}>
                       {GENDER_LABELS[p.gender]}
                     </span>
                   </div>
 
                   {/* 학교 */}
-                  <div className="col-span-2 text-gray-600 dark:text-slate-400 truncate text-xs">
+                  <div className="col-span-2 text-secondary-foreground truncate text-xs">
                     {p.school || '-'}
                   </div>
 
@@ -327,7 +327,7 @@ export default function RankingsPage({
                         {recordTypes.map(type => (
                           <span
                             key={type.record_type_id}
-                            className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-slate-900 rounded"
+                            className="text-xs px-1.5 py-0.5 bg-muted rounded"
                             title={type.name}
                           >
                             {p.scores[type.record_type_id] ?? '-'}
@@ -337,10 +337,10 @@ export default function RankingsPage({
 
                       {/* 총점 */}
                       <div className="col-span-2 text-center">
-                        <span className="font-bold text-lg text-indigo-600">
+                        <span className="font-bold text-lg text-primary">
                           {p.total_score}
                         </span>
-                        <span className="text-xs text-gray-400 dark:text-slate-500 ml-1">점</span>
+                        <span className="text-xs text-muted-foreground ml-1">점</span>
                       </div>
                     </>
                   ) : (
@@ -348,18 +348,18 @@ export default function RankingsPage({
                       {/* 기록 */}
                       <div className="col-span-2 text-center font-medium">
                         {formatValue(p.records[selectedTypeId], selectedType?.unit || '')}
-                        <span className="text-xs text-gray-400 dark:text-slate-500 ml-0.5">
+                        <span className="text-xs text-muted-foreground ml-0.5">
                           {selectedType?.unit}
                         </span>
                       </div>
 
                       {/* 점수 */}
                       <div className="col-span-3 text-center">
-                        <span className="font-bold text-lg text-indigo-600">
+                        <span className="font-bold text-lg text-primary">
                           {p.scores[selectedTypeId] ?? '-'}
                         </span>
                         {p.scores[selectedTypeId] !== null && (
-                          <span className="text-xs text-gray-400 dark:text-slate-500 ml-1">점</span>
+                          <span className="text-xs text-muted-foreground ml-1">점</span>
                         )}
                       </div>
                     </>

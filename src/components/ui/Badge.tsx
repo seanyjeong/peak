@@ -10,14 +10,14 @@ export interface BadgeProps {
 }
 
 const variantStyles = {
-  default: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
-  success: 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300',
-  warning: 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300',
-  danger: 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300',
-  info: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300',
+  default: 'bg-muted text-secondary-foreground',
+  success: 'bg-success-soft text-success',
+  warning: 'bg-warning-soft text-warning',
+  danger: 'bg-destructive-soft text-destructive',
+  info: 'bg-primary-soft text-primary',
   purple: 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300',
   pink: 'bg-pink-100 dark:bg-pink-900 text-pink-700 dark:text-pink-300',
-  blue: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300',
+  blue: 'bg-primary-soft text-primary',
 };
 
 const sizeStyles = {

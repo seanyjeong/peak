@@ -10,9 +10,9 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variantStyles = {
-  default: 'bg-surface-base border border-border',
+  default: 'bg-card border border-border',
   outlined: 'bg-transparent border border-border',
-  elevated: 'bg-surface-base border border-border shadow-elevated',
+  elevated: 'bg-card border border-border shadow-elevated',
   glass: 'glass-card',
   bento: 'bento-card hover-lift',
 };
@@ -43,7 +43,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
           rounded-xl transition-smooth
           ${variantStyles[variant]}
           ${paddingStyles[padding]}
-          ${hoverable ? 'hover:shadow-md hover:border-neutral-300 dark:hover:border-neutral-600 cursor-pointer' : ''}
+          ${hoverable ? 'hover:shadow-md hover:border-border cursor-pointer' : ''}
           ${className}
         `}
         {...props}

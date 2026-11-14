@@ -23,7 +23,7 @@ export function RecordModeSelector({
   onCollapseAll,
 }: RecordModeSelectorProps) {
   return (
-    <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="mb-4 rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
           <button
@@ -31,8 +31,8 @@ export function RecordModeSelector({
             onClick={() => setInputMode('student')}
             className={`flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-black transition ${
               inputMode === 'student'
-                ? 'bg-slate-950 text-white'
-                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                ? 'bg-foreground text-background'
+                : 'border border-border bg-card text-secondary-foreground hover:bg-muted'
             }`}
           >
             <Users size={18} />
@@ -43,8 +43,8 @@ export function RecordModeSelector({
             onClick={() => setInputMode('event')}
             className={`flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-black transition ${
               inputMode === 'event'
-                ? 'bg-slate-950 text-white'
-                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                ? 'bg-foreground text-background'
+                : 'border border-border bg-card text-secondary-foreground hover:bg-muted'
             }`}
           >
             <List size={18} />
@@ -61,8 +61,8 @@ export function RecordModeSelector({
                 onClick={() => setSelectedRecordType(type.id)}
                 className={`h-9 rounded-lg px-3 text-sm font-bold transition ${
                   selectedRecordType === type.id
-                    ? 'bg-emerald-600 text-white'
-                    : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    ? 'bg-success text-white'
+                    : 'border border-border bg-card text-secondary-foreground hover:bg-muted'
                 }`}
               >
                 {type.name}
@@ -76,14 +76,14 @@ export function RecordModeSelector({
             <button
               type="button"
               onClick={onExpandAll}
-              className="h-9 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-600 hover:bg-slate-50"
+              className="h-9 rounded-lg border border-border px-3 text-sm font-bold text-secondary-foreground hover:bg-muted"
             >
               전체 펼치기
             </button>
             <button
               type="button"
               onClick={onCollapseAll}
-              className="h-9 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-600 hover:bg-slate-50"
+              className="h-9 rounded-lg border border-border px-3 text-sm font-bold text-secondary-foreground hover:bg-muted"
             >
               전체 접기
             </button>

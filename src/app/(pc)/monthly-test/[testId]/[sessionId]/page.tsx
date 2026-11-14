@@ -213,20 +213,20 @@ export default function SessionGroupPage({ params }: { params: Promise<{ testId:
   }
 
   if (loading) {
-    return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>;
+    return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
     <main className="flex h-[calc(100vh-56px)] flex-col gap-4 px-6 py-5 lg:px-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <button type="button" onClick={() => router.push(`/monthly-test/${testId}`)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50">
+          <button type="button" onClick={() => router.push(`/monthly-test/${testId}`)} className="rounded-lg border border-border bg-card p-2 text-secondary-foreground hover:bg-muted">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <p className="text-sm font-bold text-orange-700">SESSION BOARD</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{session?.test_name || '월말테스트 세션'}</h1>
-            <p className="mt-1 text-sm text-slate-500">{session ? formatSessionDate(session.test_date) : ''}</p>
+            <p className="text-sm font-bold text-primary">SESSION BOARD</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">{session?.test_name || '월말테스트 세션'}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{session ? formatSessionDate(session.test_date) : ''}</p>
           </div>
         </div>
 
@@ -250,7 +250,7 @@ export default function SessionGroupPage({ params }: { params: Promise<{ testId:
         <Metric label="대기 감독관" value={`${waitingInstructors.length}명`} />
       </section>
 
-      <nav className="inline-grid w-fit grid-cols-2 rounded-lg border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <nav className="inline-grid w-fit grid-cols-2 rounded-lg border border-border bg-card p-1 shadow-sm">
         <TabButton active={activeTab === 'grouping'} label="조 편성" onClick={() => setActiveTab('grouping')} />
         <TabButton active={activeTab === 'schedule'} label="순서표" onClick={() => setActiveTab('schedule')} />
       </nav>
@@ -295,7 +295,7 @@ function ActionButton({ disabled, icon, label, onClick, primary = false }: { dis
       onClick={onClick}
       disabled={disabled}
       className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition disabled:opacity-50 ${
-        primary ? 'bg-slate-950 text-white hover:bg-slate-800' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+        primary ? 'bg-foreground text-background hover:bg-foreground/90' : 'border border-border bg-card text-secondary-foreground hover:bg-muted'
       }`}
     >
       {icon}
@@ -306,19 +306,19 @@ function ActionButton({ disabled, icon, label, onClick, primary = false }: { dis
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      <div className="flex items-center justify-between text-slate-500">
+    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-center justify-between text-muted-foreground">
         <span className="text-sm font-bold">{label}</span>
         <Users className="h-4 w-4" />
       </div>
-      <p className="mt-2 text-2xl font-black text-slate-950 dark:text-white">{value}</p>
+      <p className="mt-2 text-2xl font-black text-foreground">{value}</p>
     </div>
   );
 }
 
 function TabButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className={`h-10 rounded-md px-5 text-sm font-bold transition ${active ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+    <button type="button" onClick={onClick} className={`h-10 rounded-md px-5 text-sm font-bold transition ${active ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>
       {label}
     </button>
   );
@@ -326,16 +326,16 @@ function TabButton({ active, label, onClick }: { active: boolean; label: string;
 
 function EmptyState({ actionLabel, message, onAction }: { actionLabel: string; message: string; onAction: () => void }) {
   return (
-    <div className="flex h-full min-h-80 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white text-sm font-semibold text-slate-500">
+    <div className="flex h-full min-h-80 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card text-sm font-semibold text-muted-foreground">
       <p>{message}</p>
-      <button type="button" onClick={onAction} className="mt-4 rounded-lg bg-slate-950 px-4 py-2 font-bold text-white">{actionLabel}</button>
+      <button type="button" onClick={onAction} className="mt-4 rounded-lg bg-foreground px-4 py-2 font-bold text-background">{actionLabel}</button>
     </div>
   );
 }
 
 function OverlayLabel({ gender, label }: { gender?: 'M' | 'F'; label: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-lg">
+    <div className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-lg">
       {gender ? `${gender === 'M' ? '남' : '여'} · ${label}` : label}
     </div>
   );

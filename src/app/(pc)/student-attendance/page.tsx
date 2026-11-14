@@ -163,14 +163,14 @@ export default function StudentAttendancePage() {
     <div className="mx-auto max-w-[1380px] space-y-6" data-testid="student-attendance-page">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Student Attendance</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">학생 출석</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{today}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Student Attendance</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-foreground">학생 출석</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{today}</p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-950"
+          className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-secondary-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           새로고침
@@ -187,10 +187,10 @@ export default function StudentAttendancePage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-            <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">시간대 선택</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">출석 처리할 반을 선택합니다.</p>
+        <div className="rounded-md border border-border bg-card shadow-sm">
+          <div className="border-b border-border px-5 py-4">
+            <h2 className="text-base font-semibold text-foreground">시간대 선택</h2>
+            <p className="mt-1 text-sm text-muted-foreground">출석 처리할 반을 선택합니다.</p>
           </div>
           <div className="space-y-2 p-3">
             {SLOT_ORDER.map((slot) => (
@@ -206,20 +206,20 @@ export default function StudentAttendancePage() {
           </div>
         </div>
 
-        <div className="rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" data-testid="student-attendance-list">
-          <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800 sm:flex-row sm:items-start sm:justify-between">
+        <div className="rounded-md border border-border bg-card shadow-sm" data-testid="student-attendance-list">
+          <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">
+              <h2 className="text-base font-semibold text-foreground">
                 {TIME_SLOT_INFO[activeSlot].label} 학생
               </h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {TIME_SLOT_INFO[activeSlot].time} · {currentStudents.length}명 배정
               </p>
             </div>
             <button
               onClick={handleMarkUncheckedPresent}
               disabled={loading || updating !== null || currentUnchecked.length === 0}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-950/50 dark:focus-visible:ring-offset-slate-900"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-success/30 bg-success-soft px-3 text-sm font-medium text-success transition hover:bg-success-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {updating === 'batch' ? <RefreshCw size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
               미체크 출석 처리
@@ -227,14 +227,14 @@ export default function StudentAttendancePage() {
           </div>
 
           {loading ? (
-            <div className="flex min-h-[360px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
-              <RefreshCw size={18} className="mr-2 animate-spin text-orange-500" />
+            <div className="flex min-h-[360px] items-center justify-center text-sm text-muted-foreground">
+              <RefreshCw size={18} className="mr-2 animate-spin text-primary" />
               학생 출석 현황을 불러오는 중입니다.
             </div>
           ) : currentStudents.length === 0 ? (
             <EmptyState slot={activeSlot} />
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-border">
               {currentStudents.map((student) => (
                 <StudentRow
                   key={student.assignment_id}
@@ -248,7 +248,7 @@ export default function StudentAttendancePage() {
         </div>
       </section>
 
-      <aside className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+      <aside className="rounded-md border border-border bg-muted px-4 py-3 text-sm text-secondary-foreground">
         출석 변경은 P-ACA에 바로 반영됩니다. 학생이 동기화 필요 상태라면 먼저 반 배치에서 출석 동기화를 실행하세요.
       </aside>
     </div>

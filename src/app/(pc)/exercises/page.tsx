@@ -42,7 +42,7 @@ export default function ExercisesPage() {
   const [showTagForm, setShowTagForm] = useState(false);
   const [editingTag, setEditingTag] = useState<ExerciseTag | null>(null);
   const [tagForm, setTagForm] = useState<TagFormData>({
-    tag_id: '', label: '', color: 'bg-slate-100 text-slate-700'
+    tag_id: '', label: '', color: 'bg-muted text-secondary-foreground'
   });
 
   // 팩 관리 상태
@@ -150,7 +150,7 @@ export default function ExercisesPage() {
       }
       setShowTagForm(false);
       setEditingTag(null);
-      setTagForm({ tag_id: '', label: '', color: 'bg-slate-100 text-slate-700' });
+      setTagForm({ tag_id: '', label: '', color: 'bg-muted text-secondary-foreground' });
       fetchData();
     } catch (error) {
       toast.error(getExerciseErrorMessage(error, '태그를 저장하지 못했습니다.'));
@@ -259,18 +259,18 @@ export default function ExercisesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Link href="/plans" className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">
+          <Link href="/plans" className="p-2 text-muted-foreground hover:text-secondary-foreground hover:bg-muted rounded-lg transition">
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">운동 관리</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">수업에서 사용할 운동 목록</p>
+            <h1 className="text-2xl font-bold text-foreground">운동 관리</h1>
+            <p className="text-muted-foreground mt-1">수업에서 사용할 운동 목록</p>
           </div>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 text-secondary-foreground bg-card border border-border rounded-lg hover:bg-muted transition disabled:opacity-50"
         >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           <span>새로고침</span>
@@ -278,11 +278,11 @@ export default function ExercisesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 bg-white dark:bg-slate-800 rounded-lg p-1 shadow-sm mb-6">
+      <div className="flex gap-2 bg-card rounded-lg p-1 shadow-sm mb-6">
         <button
           onClick={() => setActiveTab('list')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-            activeTab === 'list' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+            activeTab === 'list' ? 'bg-primary-soft text-primary' : 'text-muted-foreground hover:bg-muted'
           }`}
         >
           <Dumbbell size={16} />
@@ -292,7 +292,7 @@ export default function ExercisesPage() {
           <button
             onClick={() => setActiveTab('tags')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              activeTab === 'tags' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+              activeTab === 'tags' ? 'bg-primary-soft text-primary' : 'text-muted-foreground hover:bg-muted'
             }`}
           >
             <Tag size={16} />
@@ -303,7 +303,7 @@ export default function ExercisesPage() {
           <button
             onClick={() => setActiveTab('packs')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              activeTab === 'packs' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+              activeTab === 'packs' ? 'bg-primary-soft text-primary' : 'text-muted-foreground hover:bg-muted'
             }`}
           >
             <Package size={16} />
@@ -313,8 +313,8 @@ export default function ExercisesPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
-          <RefreshCw size={32} className="animate-spin text-slate-400" />
+        <div className="flex items-center justify-center h-64 bg-card rounded-2xl shadow-sm">
+          <RefreshCw size={32} className="animate-spin text-muted-foreground" />
         </div>
       ) : activeTab === 'list' ? (
         <div className="space-y-4">
@@ -322,7 +322,7 @@ export default function ExercisesPage() {
           <div className="flex gap-2">
             <button
               onClick={openNewExerciseForm}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition"
             >
               <Plus size={18} />
               <span>운동 추가</span>
@@ -344,8 +344,8 @@ export default function ExercisesPage() {
               onClick={() => setSelectedTagFilter('all')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                 selectedTagFilter === 'all'
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
+                  ? 'bg-primary text-white'
+                  : 'bg-card text-secondary-foreground border border-border hover:border-primary/30'
               }`}
             >
               전체 ({exercises.length})
@@ -358,7 +358,7 @@ export default function ExercisesPage() {
                   onClick={() => setSelectedTagFilter(tag.tag_id)}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition ${tag.color} ${
                     selectedTagFilter === tag.tag_id
-                      ? 'ring-2 ring-offset-2 ring-slate-400'
+                      ? 'ring-2 ring-offset-2 ring-muted-foreground/40'
                       : 'opacity-80 hover:opacity-100'
                   }`}
                 >
@@ -370,8 +370,8 @@ export default function ExercisesPage() {
               onClick={() => setSelectedTagFilter('no-tag')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                 selectedTagFilter === 'no-tag'
-                  ? 'bg-slate-500 text-white'
-                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-300'
+                  ? 'bg-muted-foreground text-white'
+                  : 'bg-card text-secondary-foreground border border-border hover:border-primary/30'
               }`}
             >
               기타 ({exercises.filter(ex => ex.tags.length === 0).length})

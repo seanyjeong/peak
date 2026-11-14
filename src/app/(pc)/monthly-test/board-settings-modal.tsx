@@ -46,10 +46,10 @@ export function BoardSettingsModal({
   return (
     <Modal isOpen={open} onClose={onClose} title="전광판 설정">
       <div className="space-y-4">
-        <label className="block text-sm font-bold text-slate-700">
+        <label className="block text-sm font-bold text-secondary-foreground">
           전광판 주소
-          <div className="mt-2 flex items-center rounded-lg border border-slate-200 bg-white px-3">
-            <span className="text-sm font-semibold text-slate-400">/board/</span>
+          <div className="mt-2 flex items-center rounded-lg border border-border bg-card px-3">
+            <span className="text-sm font-semibold text-muted-foreground">/board/</span>
             <input
               className="h-10 min-w-0 flex-1 bg-transparent px-1 font-mono outline-none"
               onChange={(event) => setSlugInput(event.target.value)}
@@ -57,7 +57,7 @@ export function BoardSettingsModal({
               value={slugInput}
             />
             <button
-              className="ml-2 h-8 rounded-md border border-slate-200 px-3 text-xs font-black text-slate-700 disabled:opacity-50"
+              className="ml-2 h-8 rounded-md border border-border px-3 text-xs font-black text-secondary-foreground disabled:opacity-50"
               disabled={slugCheck.status === 'checking'}
               onClick={onCheckSlug}
               type="button"
@@ -70,24 +70,24 @@ export function BoardSettingsModal({
           <StatusMessage status={slugCheck.status} message={slugCheck.message} />
         )}
         {currentSlug && (
-          <div className="rounded-lg bg-slate-50 p-3 text-sm font-semibold text-slate-600">
+          <div className="rounded-lg bg-muted p-3 text-sm font-semibold text-secondary-foreground">
             <p>{origin}/board/{currentSlug}</p>
             <p className="mt-1">{origin}/board/{currentSlug}/scores</p>
           </div>
         )}
-        <div className="rounded-lg border border-slate-200 p-3">
+        <div className="rounded-lg border border-border p-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-black text-slate-800">전광판 PIN</p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">
+              <p className="text-sm font-black text-foreground">전광판 PIN</p>
+              <p className="mt-1 text-xs font-semibold text-muted-foreground">
                 {hasBoardPin ? '현재 PIN이 설정되어 있습니다.' : '현재 PIN이 없습니다.'}
               </p>
             </div>
             {hasBoardPin && (
-              <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
+              <label className="flex items-center gap-2 text-xs font-bold text-secondary-foreground">
                 <input
                   checked={clearBoardPin}
-                  className="size-4 rounded border-slate-300"
+                  className="size-4 rounded border-border"
                   onChange={(event) => onClearBoardPinChange(event.target.checked)}
                   type="checkbox"
                 />
@@ -97,7 +97,7 @@ export function BoardSettingsModal({
           </div>
           {!clearBoardPin && (
             <input
-              className="mt-3 h-10 w-full rounded-lg border border-slate-200 px-3 font-mono outline-none focus:border-slate-900"
+              className="mt-3 h-10 w-full rounded-lg border border-border px-3 font-mono outline-none focus:border-foreground"
               inputMode="numeric"
               maxLength={12}
               onChange={(event) => onPinChange(event.target.value.replace(/\D/g, '').slice(0, 12))}
@@ -108,8 +108,8 @@ export function BoardSettingsModal({
           )}
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-700">취소</button>
-          <button type="button" onClick={onSave} disabled={saving} className="h-10 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white disabled:opacity-50">
+          <button type="button" onClick={onClose} className="h-10 rounded-lg border border-border px-4 text-sm font-bold text-secondary-foreground">취소</button>
+          <button type="button" onClick={onSave} disabled={saving} className="h-10 rounded-lg bg-foreground px-4 text-sm font-bold text-background disabled:opacity-50">
             {saving ? '저장 중' : '저장'}
           </button>
         </div>
@@ -124,7 +124,7 @@ function StatusMessage({ status, message }: { status: SlugCheckState['status']; 
   const Icon = isChecking ? Loader2 : isGood ? CheckCircle2 : XCircle;
 
   return (
-    <p className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${isGood ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+    <p className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${isGood ? 'bg-success-soft text-success' : 'bg-destructive-soft text-destructive'}`}>
       <Icon className={`size-4 ${isChecking ? 'animate-spin' : ''}`} />
       {message}
     </p>

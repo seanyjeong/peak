@@ -63,24 +63,24 @@ export default function RecordsPage() {
     <div className="mx-auto max-w-[1500px] space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-normal text-emerald-700">RECORD ENTRY</p>
-          <h1 className="mt-1 text-3xl font-black tracking-normal text-slate-950">기록 측정</h1>
-          <p className="mt-2 text-sm font-semibold text-slate-500">
+          <p className="text-xs font-bold uppercase tracking-normal text-success">RECORD ENTRY</p>
+          <h1 className="mt-1 text-3xl font-black tracking-normal text-foreground">기록 측정</h1>
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">
             {isAdmin ? `${SLOT_LABELS[selectedSlot] || ''} 전체 학생` : `${currentUser?.name || ''} ${roleLabel} 반`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setMeasuredAt(shiftDate(measuredAt, -1))} className="rounded-lg border border-slate-200 bg-white p-2">
+          <button type="button" onClick={() => setMeasuredAt(shiftDate(measuredAt, -1))} className="rounded-lg border border-border bg-card p-2">
             <ChevronLeft className="size-4" />
           </button>
-          <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
-            <Calendar className="size-4 text-slate-400" />
+          <label className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-secondary-foreground">
+            <Calendar className="size-4 text-muted-foreground" />
             <input type="date" value={measuredAt} onChange={(event) => setMeasuredAt(event.target.value)} className="bg-transparent outline-none" />
           </label>
-          <button type="button" onClick={() => setMeasuredAt(shiftDate(measuredAt, 1))} className="rounded-lg border border-slate-200 bg-white p-2">
+          <button type="button" onClick={() => setMeasuredAt(shiftDate(measuredAt, 1))} className="rounded-lg border border-border bg-card p-2">
             <ChevronRight className="size-4" />
           </button>
-          <button type="button" onClick={fetchData} disabled={loading} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 disabled:opacity-50">
+          <button type="button" onClick={fetchData} disabled={loading} className="rounded-lg border border-border bg-card p-2 text-secondary-foreground disabled:opacity-50">
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -88,7 +88,7 @@ export default function RecordsPage() {
 
       <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
 
-      {loading && <div className="rounded-lg border border-slate-200 bg-white p-12 text-center text-sm font-semibold text-slate-500">불러오는 중입니다.</div>}
+      {loading && <div className="rounded-lg border border-border bg-card p-12 text-center text-sm font-semibold text-muted-foreground">불러오는 중입니다.</div>}
       {!loading && availableSlots.length === 0 && (
         <EmptyState message="해당 날짜에 배정된 학생이 없습니다." subMessage="반 배치에서 학생을 먼저 배정해주세요." />
       )}
@@ -111,8 +111,8 @@ export default function RecordsPage() {
                 }}
                 className={`h-12 rounded-lg border px-4 text-left text-sm font-black transition ${
                   selectedSlot === slot
-                    ? 'border-slate-950 bg-slate-950 text-white'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-border bg-card text-secondary-foreground hover:bg-muted'
                 }`}
               >
                 {SLOT_LABELS[slot]}
@@ -154,11 +154,11 @@ export default function RecordsPage() {
                 </div>
               ) : currentRecordType && (
                 <section className="space-y-3">
-                  <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-lg font-black text-slate-950">{currentRecordType.name}</span>
-                      <span className="text-sm font-semibold text-slate-500">{currentRecordType.unit}</span>
-                      <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
+                      <span className="text-lg font-black text-foreground">{currentRecordType.name}</span>
+                      <span className="text-sm font-semibold text-muted-foreground">{currentRecordType.unit}</span>
+                      <span className="rounded-md bg-muted px-2 py-1 text-xs font-bold text-secondary-foreground">
                         {currentRecordType.direction === 'higher' ? '높을수록 좋음' : '낮을수록 좋음'}
                       </span>
                     </div>
@@ -190,14 +190,14 @@ export default function RecordsPage() {
 
 function MetricCard({ icon: Icon, label, value }: { icon: typeof Calendar; label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+        <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-secondary-foreground">
           <Icon className="size-5" />
         </span>
         <div>
-          <p className="text-xs font-bold text-slate-500">{label}</p>
-          <p className="mt-1 text-lg font-black text-slate-950">{value}</p>
+          <p className="text-xs font-bold text-muted-foreground">{label}</p>
+          <p className="mt-1 text-lg font-black text-foreground">{value}</p>
         </div>
       </div>
     </div>
@@ -206,10 +206,10 @@ function MetricCard({ icon: Icon, label, value }: { icon: typeof Calendar; label
 
 function EmptyState({ message, subMessage }: { message: string; subMessage?: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center">
-      <AlertCircle className="mx-auto size-10 text-slate-300" />
-      <p className="mt-3 text-sm font-bold text-slate-600">{message}</p>
-      {subMessage && <p className="mt-1 text-sm text-slate-500">{subMessage}</p>}
+    <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+      <AlertCircle className="mx-auto size-10 text-muted-foreground/60" />
+      <p className="mt-3 text-sm font-bold text-secondary-foreground">{message}</p>
+      {subMessage && <p className="mt-1 text-sm text-muted-foreground">{subMessage}</p>}
     </div>
   );
 }

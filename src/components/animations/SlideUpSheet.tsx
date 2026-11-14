@@ -62,11 +62,11 @@ export function SlideUpSheet({ isOpen, onClose, children, title }: SlideUpSheetP
             dragElastic={{ top: 0, bottom: 0.5 }}
             onDragEnd={handleDragEnd}
             style={{ y }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-neutral-800 rounded-t-2xl shadow-floating max-h-[85vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl shadow-floating max-h-[85vh] flex flex-col"
           >
             {/* Drag Handle */}
             <div className="flex items-center justify-center py-3 cursor-grab active:cursor-grabbing">
-              <div className="w-12 h-1 bg-neutral-300 dark:bg-neutral-600 rounded-full" />
+              <div className="w-12 h-1 bg-muted-foreground/40 rounded-full" />
             </div>
 
             {/* Header */}

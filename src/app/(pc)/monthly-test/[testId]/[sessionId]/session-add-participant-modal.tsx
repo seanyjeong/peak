@@ -137,7 +137,7 @@ export function AddParticipantModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="참가자 추가">
       <div className="min-h-[420px]">
-        <div className="mb-4 grid grid-cols-4 overflow-hidden rounded-lg border border-slate-200">
+        <div className="mb-4 grid grid-cols-4 overflow-hidden rounded-lg border border-border">
           {TABS.map((tab) => (
             <button
               key={tab.key}
@@ -146,7 +146,7 @@ export function AddParticipantModal({
                 setActiveTab(tab.key);
                 setSelected(new Set());
               }}
-              className={`h-11 text-sm font-bold transition ${activeTab === tab.key ? 'bg-slate-950 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+              className={`h-11 text-sm font-bold transition ${activeTab === tab.key ? 'bg-foreground text-background' : 'bg-card text-secondary-foreground hover:bg-muted'}`}
             >
               {tab.label}
             </button>
@@ -159,22 +159,22 @@ export function AddParticipantModal({
               <button
                 type="button"
                 onClick={() => setShowNewForm(true)}
-                className="w-full rounded-lg border-2 border-dashed border-slate-300 py-3 text-sm font-bold text-slate-500 hover:border-blue-300 hover:text-blue-700"
+                className="w-full rounded-lg border-2 border-dashed border-border py-3 text-sm font-bold text-muted-foreground hover:border-primary/30 hover:text-primary"
               >
                 새 테스트신규 등록
               </button>
             ) : (
-              <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="space-y-2 rounded-lg border border-border bg-muted p-3">
                 <div className="flex gap-2">
-                  <input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="이름" className="h-10 flex-1 rounded-lg border border-slate-200 px-3 text-sm" />
-                  <select value={newGender} onChange={(event) => setNewGender(event.target.value as 'M' | 'F')} className="h-10 rounded-lg border border-slate-200 px-3 text-sm">
+                  <input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="이름" className="h-10 flex-1 rounded-lg border border-border px-3 text-sm" />
+                  <select value={newGender} onChange={(event) => setNewGender(event.target.value as 'M' | 'F')} className="h-10 rounded-lg border border-border px-3 text-sm">
                     <option value="M">남</option>
                     <option value="F">여</option>
                   </select>
                 </div>
                 <div className="flex gap-2">
-                  <input value={newSchool} onChange={(event) => setNewSchool(event.target.value)} placeholder="학교" className="h-10 flex-1 rounded-lg border border-slate-200 px-3 text-sm" />
-                  <select value={newGrade} onChange={(event) => setNewGrade(event.target.value)} className="h-10 rounded-lg border border-slate-200 px-3 text-sm">
+                  <input value={newSchool} onChange={(event) => setNewSchool(event.target.value)} placeholder="학교" className="h-10 flex-1 rounded-lg border border-border px-3 text-sm" />
+                  <select value={newGrade} onChange={(event) => setNewGrade(event.target.value)} className="h-10 rounded-lg border border-border px-3 text-sm">
                     <option value="">학년</option>
                     {['중1', '중2', '중3', '고1', '고2', '고3', 'N수'].map((grade) => <option key={grade} value={grade}>{grade}</option>)}
                   </select>
@@ -191,24 +191,24 @@ export function AddParticipantModal({
         {loading ? (
           <div className="flex justify-center py-10"><Spinner /></div>
         ) : currentList.length === 0 ? (
-          <div className="py-10 text-center text-sm font-semibold text-slate-400">추가 가능한 대상이 없습니다.</div>
+          <div className="py-10 text-center text-sm font-semibold text-muted-foreground">추가 가능한 대상이 없습니다.</div>
         ) : (
           <div className="max-h-[300px] space-y-1 overflow-y-auto">
             {currentList.map((item) => (
-              <label key={item.id} className={`flex cursor-pointer items-center gap-3 rounded-lg p-2 transition ${selected.has(item.id) ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
+              <label key={item.id} className={`flex cursor-pointer items-center gap-3 rounded-lg p-2 transition ${selected.has(item.id) ? 'bg-primary-soft' : 'hover:bg-muted'}`}>
                 <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggleSelect(item.id)} className="h-4 w-4" />
-                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${item.gender === 'M' ? 'bg-blue-50 text-blue-700' : 'bg-rose-50 text-rose-700'}`}>
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${item.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-destructive-soft text-destructive'}`}>
                   {item.gender === 'M' ? '남' : '여'}
                 </span>
-                <span className="flex-1 font-bold text-slate-800">{item.name}</span>
-                <span className="text-sm text-slate-500">{item.school || ''} {item.grade || ''}</span>
+                <span className="flex-1 font-bold text-foreground">{item.name}</span>
+                <span className="text-sm text-muted-foreground">{item.school || ''} {item.grade || ''}</span>
               </label>
             ))}
           </div>
         )}
 
-        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-          <span className="text-sm font-semibold text-slate-500">{selected.size > 0 ? `${selected.size}명 선택됨` : ''}</span>
+        <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+          <span className="text-sm font-semibold text-muted-foreground">{selected.size > 0 ? `${selected.size}명 선택됨` : ''}</span>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}>취소</Button>
             <Button onClick={handleAdd} disabled={adding || selected.size === 0}>{adding ? '추가 중' : '추가'}</Button>

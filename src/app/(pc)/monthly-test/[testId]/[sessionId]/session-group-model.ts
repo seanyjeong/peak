@@ -65,10 +65,10 @@ export const PARTICIPANT_TYPE_LABELS: Record<Participant['participant_type'], st
 };
 
 export const PARTICIPANT_TYPE_CLASSES: Record<Participant['participant_type'], string> = {
-  enrolled: 'bg-emerald-50 text-emerald-700',
-  rest: 'bg-slate-100 text-slate-600',
+  enrolled: 'bg-success-soft text-success',
+  rest: 'bg-muted text-secondary-foreground',
   trial: 'bg-violet-50 text-violet-700',
-  test_new: 'bg-orange-50 text-orange-700',
+  test_new: 'bg-primary-soft text-primary',
 };
 
 export const snapCenterToCursor: Modifier = ({ activatorEvent, draggingNodeRect, transform }) => {

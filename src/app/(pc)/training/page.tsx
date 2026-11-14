@@ -245,22 +245,22 @@ export default function TrainingPage() {
     <div className="mx-auto max-w-[1500px] space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-normal text-emerald-700">TRAINING LOG</p>
-          <h1 className="mt-1 text-3xl font-black tracking-normal text-slate-950">수업 기록</h1>
-          <p className="mt-2 text-sm font-semibold text-slate-500">{formatKoreanDate(selectedDate)}</p>
+          <p className="text-xs font-bold uppercase tracking-normal text-success">TRAINING LOG</p>
+          <h1 className="mt-1 text-3xl font-black tracking-normal text-foreground">수업 기록</h1>
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">{formatKoreanDate(selectedDate)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, -1))} className="rounded-lg border border-slate-200 bg-white p-2">
+          <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, -1))} className="rounded-lg border border-border bg-card p-2">
             <ChevronLeft className="size-4" />
           </button>
-          <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
-            <Calendar className="size-4 text-slate-400" />
+          <label className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-secondary-foreground">
+            <Calendar className="size-4 text-muted-foreground" />
             <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="bg-transparent outline-none" />
           </label>
-          <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, 1))} className="rounded-lg border border-slate-200 bg-white p-2">
+          <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, 1))} className="rounded-lg border border-border bg-card p-2">
             <ChevronRight className="size-4" />
           </button>
-          <button type="button" onClick={fetchData} disabled={loading} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 disabled:opacity-50">
+          <button type="button" onClick={fetchData} disabled={loading} className="rounded-lg border border-border bg-card p-2 text-secondary-foreground disabled:opacity-50">
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -275,7 +275,7 @@ export default function TrainingPage() {
         }}
       />
 
-      {loading && <div className="rounded-lg border border-slate-200 bg-white p-12 text-center text-sm font-semibold text-slate-500">불러오는 중입니다.</div>}
+      {loading && <div className="rounded-lg border border-border bg-card p-12 text-center text-sm font-semibold text-muted-foreground">불러오는 중입니다.</div>}
       {!loading && availableSlots.length === 0 && (
         <EmptyState message="해당 날짜에 배정된 학생이 없습니다." subMessage="반 배치에서 학생을 먼저 배정해주세요." />
       )}
@@ -291,13 +291,13 @@ export default function TrainingPage() {
           />
 
           {isAdmin && selectedSlot && currentInstructors.length > 0 && (
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <label className="block text-sm font-bold text-slate-700">
+            <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+              <label className="block text-sm font-bold text-secondary-foreground">
                 강사 선택
                 <select
                   value={selectedInstructorId || ''}
                   onChange={(event) => setSelectedInstructorId(event.target.value ? Number(event.target.value) : null)}
-                  className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-slate-900"
+                  className="mt-2 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm font-semibold outline-none focus:border-foreground"
                 >
                   <option value="">전체 보기</option>
                   {currentInstructors.map((instructor) => (

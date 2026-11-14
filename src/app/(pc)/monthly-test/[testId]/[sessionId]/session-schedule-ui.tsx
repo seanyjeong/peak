@@ -67,18 +67,18 @@ export function ScheduleTable({
   };
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      <p className="mb-3 text-sm font-semibold text-slate-500">종목 셀을 드래그하면 다른 셀과 교체됩니다.</p>
+    <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+      <p className="mb-3 text-sm font-semibold text-muted-foreground">종목 셀을 드래그하면 다른 셀과 교체됩니다.</p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto">
           <table className="min-w-full border-collapse text-sm">
             <thead>
               <tr>
-                <th className="border border-slate-200 bg-slate-50 p-3 text-left font-bold text-slate-600">타임</th>
+                <th className="border border-border bg-muted p-3 text-left font-bold text-secondary-foreground">타임</th>
                 {groups.map((group) => {
                   const mainSupervisor = group.supervisors.find((supervisor) => supervisor.is_main);
                   return (
-                    <th key={group.id} className="min-w-36 border border-slate-200 bg-slate-50 p-3 text-center font-bold text-slate-700">
+                    <th key={group.id} className="min-w-36 border border-border bg-muted p-3 text-center font-bold text-secondary-foreground">
                       {mainSupervisor ? `${mainSupervisor.name}반` : `${group.group_num}조`}
                     </th>
                   );
@@ -88,18 +88,18 @@ export function ScheduleTable({
             <tbody>
               {timeSlots.map((timeOrder) => (
                 <tr key={timeOrder}>
-                  <td className="border border-slate-200 bg-slate-50 p-3 font-bold text-slate-600">타임 {timeOrder + 1}</td>
+                  <td className="border border-border bg-muted p-3 font-bold text-secondary-foreground">타임 {timeOrder + 1}</td>
                   {groups.map((group) => {
                     const item = schedule.find((entry) => entry.group_id === group.id && entry.time_order === timeOrder);
                     const cellId = `schedule-${timeOrder}-${group.id}`;
                     return (
                       <ScheduleCell key={cellId} groupId={group.id} id={cellId} timeOrder={timeOrder}>
                         {item?.record_type_id ? (
-                          <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
+                          <span className="inline-flex rounded-full bg-primary-soft px-3 py-1 text-sm font-bold text-primary">
                             {item.record_type_short || item.record_type_name}
                           </span>
                         ) : (
-                          <span className="text-sm font-semibold text-slate-400">휴식</span>
+                          <span className="text-sm font-semibold text-muted-foreground">휴식</span>
                         )}
                       </ScheduleCell>
                     );
@@ -110,14 +110,14 @@ export function ScheduleTable({
           </table>
         </div>
         <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
-          {dragItem && <div className="rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-lg">{dragItem.name}</div>}
+          {dragItem && <div className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-white shadow-lg">{dragItem.name}</div>}
         </DragOverlay>
       </DndContext>
 
       {recordTypes.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
           {recordTypes.map((type) => (
-            <span key={type.id} className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-600">
+            <span key={type.id} className="rounded-full bg-muted px-3 py-1 text-sm font-bold text-secondary-foreground">
               {type.short_name || type.name}
             </span>
           ))}
@@ -153,8 +153,8 @@ function ScheduleCell({
         setDragRef(node);
         setDropRef(node);
       }}
-      className={`cursor-grab select-none border border-slate-200 p-3 text-center transition active:cursor-grabbing ${
-        isOver ? 'bg-blue-50 ring-2 ring-inset ring-blue-300' : ''
+      className={`cursor-grab select-none border border-border p-3 text-center transition active:cursor-grabbing ${
+        isOver ? 'bg-primary-soft ring-2 ring-inset ring-primary/30' : ''
       } ${isDragging ? 'opacity-50' : ''}`}
       {...listeners}
       {...attributes}

@@ -5,35 +5,35 @@ import { Crown, ExternalLink, Plus, Star, Users } from 'lucide-react';
 import type { ClassData, Instructor, Student } from './assignments-model';
 
 export function CompactStudentCard({ student, isDragging }: { student: Student; isDragging?: boolean }) {
-  const genderColor = student.gender === 'M' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700';
+  const genderColor = student.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-100 text-pink-700';
   const isAbsent = student.attendance_status === 'absent';
 
   return (
     <div
-      className={`cursor-grab rounded-md border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition active:cursor-grabbing dark:border-slate-700 dark:bg-slate-800 ${
-        isDragging ? 'scale-105 border-orange-400 opacity-50 shadow-lg' : ''
-      } ${isAbsent ? 'border-red-200 bg-red-50 opacity-60 dark:bg-red-950/30' : 'hover:border-slate-300 dark:hover:border-slate-600'}`}
+      className={`cursor-grab rounded-md border border-border bg-card px-2 py-1.5 shadow-sm transition active:cursor-grabbing ${
+        isDragging ? 'scale-105 border-primary opacity-50 shadow-lg' : ''
+      } ${isAbsent ? 'border-destructive/30 bg-destructive-soft opacity-60' : 'hover:border-border'}`}
     >
       <div className="flex items-center gap-1.5">
         <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${genderColor}`}>
           {student.gender === 'M' ? '남' : '여'}
         </span>
         <span className={`max-w-[86px] truncate text-sm font-medium ${
-          isAbsent ? 'text-slate-400 line-through dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'
+          isAbsent ? 'text-muted-foreground line-through' : 'text-foreground'
         }`}>
           {student.student_name}
         </span>
         <Link
           href={`/students/${student.student_id}`}
-          className="rounded p-0.5 transition hover:bg-orange-100"
+          className="rounded p-0.5 transition hover:bg-primary-soft"
           title="학생 프로필"
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <ExternalLink size={10} className="text-orange-500" />
+          <ExternalLink size={10} className="text-primary" />
         </Link>
         {student.paca_class_name ? (
-          <span className="max-w-[64px] truncate rounded bg-slate-100 px-1 py-0.5 text-[9px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+          <span className="max-w-[64px] truncate rounded bg-muted px-1 py-0.5 text-[9px] font-medium text-secondary-foreground">
             {student.paca_class_name}
           </span>
         ) : null}
@@ -43,11 +43,11 @@ export function CompactStudentCard({ student, isDragging }: { student: Student; 
           </span>
         ) : null}
         {isAbsent ? (
-          <span className="rounded bg-red-100 px-1 py-0.5 text-[9px] font-medium text-red-600">결석</span>
+          <span className="rounded bg-destructive-soft px-1 py-0.5 text-[9px] font-medium text-destructive">결석</span>
         ) : null}
       </div>
       {isAbsent && student.absence_reason ? (
-        <p className="mt-0.5 truncate pl-6 text-[10px] text-red-500" title={student.absence_reason}>
+        <p className="mt-0.5 truncate pl-6 text-[10px] text-destructive" title={student.absence_reason}>
           {student.absence_reason}
         </p>
       ) : null}
@@ -63,7 +63,7 @@ export function DraggableStudent({ student }: { student: Student }) {
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
 
   return (
-    <div ref={setNodeRef} style={style} className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" {...attributes} {...listeners}>
       <CompactStudentCard student={student} isDragging={isDragging} />
     </div>
   );
@@ -82,13 +82,13 @@ export function InstructorChip({
     <div
       className={`flex cursor-grab items-center gap-1 rounded-full border px-2 py-1 transition active:cursor-grabbing ${
         isDragging
-          ? 'scale-105 border-orange-400 bg-orange-200 shadow-lg'
-          : 'border-orange-200 bg-orange-50 hover:bg-orange-100'
+          ? 'scale-105 border-primary bg-primary/20 shadow-lg'
+          : 'border-primary/30 bg-primary-soft hover:bg-primary-soft'
       }`}
     >
-      {showMain && instructor.isMain ? <Star size={12} className="fill-orange-500 text-orange-500" /> : null}
-      {instructor.isOwner ? <Crown size={12} className="text-amber-500" /> : null}
-      <span className="text-sm font-medium text-orange-700">{instructor.name}</span>
+      {showMain && instructor.isMain ? <Star size={12} className="fill-primary text-primary" /> : null}
+      {instructor.isOwner ? <Crown size={12} className="text-warning" /> : null}
+      <span className="text-sm font-medium text-primary">{instructor.name}</span>
     </div>
   );
 }
@@ -101,7 +101,7 @@ export function DraggableInstructor({ instructor, showMain = false }: { instruct
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
 
   return (
-    <div ref={setNodeRef} style={style} className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" {...attributes} {...listeners}>
       <InstructorChip instructor={instructor} isDragging={isDragging} showMain={showMain} />
     </div>
   );
@@ -118,7 +118,7 @@ export function WaitingArea({
   const { setNodeRef: setInstructorRef, isOver: isOverInstructors } = useDroppable({ id: 'waiting-instructors' });
 
   return (
-    <div className="mb-5 rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="mb-5 rounded-md border border-border bg-card shadow-sm">
       <div className="grid gap-4 p-4 lg:grid-cols-2">
         <WaitingPanel
           refCallback={setStudentRef}
@@ -128,7 +128,7 @@ export function WaitingArea({
           tone="blue"
         >
           {waitingStudents.map((student) => <DraggableStudent key={student.id} student={student} />)}
-          {waitingStudents.length === 0 ? <span className="text-sm text-slate-400 dark:text-slate-500">대기 중인 학생 없음</span> : null}
+          {waitingStudents.length === 0 ? <span className="text-sm text-muted-foreground">대기 중인 학생 없음</span> : null}
         </WaitingPanel>
         <WaitingPanel
           refCallback={setInstructorRef}
@@ -138,7 +138,7 @@ export function WaitingArea({
           tone="orange"
         >
           {waitingInstructors.map((instructor) => <DraggableInstructor key={instructor.id} instructor={instructor} />)}
-          {waitingInstructors.length === 0 ? <span className="text-sm text-slate-400 dark:text-slate-500">대기 중인 강사 없음</span> : null}
+          {waitingInstructors.length === 0 ? <span className="text-sm text-muted-foreground">대기 중인 강사 없음</span> : null}
         </WaitingPanel>
       </div>
     </div>
@@ -161,20 +161,20 @@ function WaitingPanel({
   children: ReactNode;
 }) {
   const overClass = tone === 'blue'
-    ? 'ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-950/30'
-    : 'ring-2 ring-orange-400 bg-orange-50 dark:bg-orange-950/30';
+    ? 'ring-2 ring-primary bg-primary-soft'
+    : 'ring-2 ring-primary bg-primary-soft';
 
   return (
     <div
       ref={refCallback}
-      className={`min-h-[92px] rounded-md border border-slate-200 bg-slate-50 p-3 transition dark:border-slate-800 dark:bg-slate-950 ${
+      className={`min-h-[92px] rounded-md border border-border bg-muted p-3 transition ${
         isOver ? overClass : ''
       }`}
     >
-      <div className="mb-2 flex items-center gap-2 text-slate-600 dark:text-slate-300">
+      <div className="mb-2 flex items-center gap-2 text-secondary-foreground">
         <Users size={16} />
         <span className="text-sm font-medium">{title}</span>
-        <span className="rounded bg-white px-1.5 py-0.5 text-xs dark:bg-slate-800">{count}</span>
+        <span className="rounded bg-card px-1.5 py-0.5 text-xs">{count}</span>
       </div>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
@@ -192,36 +192,36 @@ export function ClassColumn({ classData }: { classData: ClassData }) {
   const className = mainInstructor ? `${mainInstructor.name}반` : `${classData.class_num}반`;
 
   return (
-    <div className="flex w-56 flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="bg-orange-600 px-3 py-2 text-white">
+    <div className="flex w-56 flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm">
+      <div className="bg-primary px-3 py-2 text-white">
         <div className="flex items-center justify-between gap-2">
           <span className="truncate font-semibold">{className}</span>
-          <span className="shrink-0 rounded bg-white/20 px-1.5 py-0.5 text-xs">{classData.students.length}명</span>
+          <span className="shrink-0 rounded bg-card/20 px-1.5 py-0.5 text-xs">{classData.students.length}명</span>
         </div>
       </div>
       <div
         ref={setInstructorRef}
-        className={`min-h-[44px] border-b border-slate-200 bg-orange-50 p-2 transition dark:border-slate-800 dark:bg-orange-950/20 ${
-          isOverInstructors ? 'bg-orange-100 ring-2 ring-inset ring-orange-400 dark:bg-orange-950/40' : ''
+        className={`min-h-[44px] border-b border-border bg-primary-soft p-2 transition ${
+          isOverInstructors ? 'bg-primary-soft ring-2 ring-inset ring-primary' : ''
         }`}
       >
         <div className="flex flex-wrap gap-1">
           {classData.instructors.map((instructor) => (
             <DraggableInstructor key={instructor.id} instructor={instructor} showMain />
           ))}
-          {classData.instructors.length === 0 ? <span className="text-xs text-orange-500">강사 배치 필요</span> : null}
+          {classData.instructors.length === 0 ? <span className="text-xs text-primary">강사 배치 필요</span> : null}
         </div>
       </div>
       <div
         ref={setStudentRef}
         className={`min-h-[140px] flex-1 overflow-y-auto p-2 transition ${
-          isOverStudents ? 'bg-blue-50 ring-2 ring-inset ring-blue-400 dark:bg-blue-950/30' : ''
+          isOverStudents ? 'bg-primary-soft ring-2 ring-inset ring-primary' : ''
         }`}
       >
         <div className="space-y-1.5">
           {classData.students.map((student) => <DraggableStudent key={student.id} student={student} />)}
           {classData.students.length === 0 ? (
-            <div className="py-4 text-center text-xs text-slate-400 dark:text-slate-500">학생을 드래그하세요</div>
+            <div className="py-4 text-center text-xs text-muted-foreground">학생을 드래그하세요</div>
           ) : null}
         </div>
       </div>
@@ -237,15 +237,15 @@ export function NewClassZone() {
       ref={setNodeRef}
       className={`flex min-h-[220px] w-56 flex-col items-center justify-center rounded-md border-2 border-dashed transition ${
         isOver
-          ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/30'
-          : 'border-slate-300 bg-white hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-500'
+          ? 'border-primary bg-primary-soft'
+          : 'border-border bg-card hover:border-muted-foreground/40'
       }`}
     >
-      <Plus size={30} className={isOver ? 'text-orange-500' : 'text-slate-400 dark:text-slate-500'} />
-      <span className={`mt-2 text-sm font-medium ${isOver ? 'text-orange-600' : 'text-slate-500 dark:text-slate-400'}`}>
+      <Plus size={30} className={isOver ? 'text-primary' : 'text-muted-foreground'} />
+      <span className={`mt-2 text-sm font-medium ${isOver ? 'text-primary' : 'text-muted-foreground'}`}>
         새 반 생성
       </span>
-      <span className="mt-1 text-xs text-slate-400 dark:text-slate-500">강사를 드롭하세요</span>
+      <span className="mt-1 text-xs text-muted-foreground">강사를 드롭하세요</span>
     </div>
   );
 }

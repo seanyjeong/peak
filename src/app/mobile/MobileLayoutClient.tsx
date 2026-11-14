@@ -71,29 +71,29 @@ export default function MobileLayoutClient({ children }: { children: React.React
   const currentPage = bottomTabs.find(tab => pathname.startsWith(tab.href))?.name || 'P-EAK';
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900">
+    <div className="min-h-screen flex flex-col bg-muted">
       {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
 
       {/* Header */}
-      <header className="h-14 bg-neutral-900 dark:bg-neutral-950 flex items-center justify-between px-4 sticky top-0 z-20 border-b border-neutral-800">
+      <header className="h-14 bg-foreground flex items-center justify-between px-4 sticky top-0 z-20 border-b border-foreground">
         <div className="flex items-center gap-2">
           <Image src="/peak-512x512.png" alt="P-EAK" width={32} height={32} className="rounded-lg" />
           <div>
             <h1 className="text-white font-bold text-sm">{currentPage}</h1>
-            <p className="text-[8px] text-neutral-400">{APP_VERSION}</p>
+            <p className="text-[8px] text-muted-foreground">{APP_VERSION}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-neutral-800 transition text-neutral-300">
+          <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-foreground/90 transition text-muted-foreground/60">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
           {user && (
             <button onClick={() => setShowMenu(!showMenu)} className="flex items-center gap-2">
               <div className="text-right">
                 <p className="text-xs font-medium text-white">{user.name}</p>
-                <p className="text-[10px] text-neutral-400">{getRoleDisplayName(user.role, user.position)}</p>
+                <p className="text-[10px] text-muted-foreground">{getRoleDisplayName(user.role, user.position)}</p>
               </div>
-              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm">
                 {user.name.charAt(0)}
               </div>
             </button>
@@ -104,8 +104,8 @@ export default function MobileLayoutClient({ children }: { children: React.React
       {/* Dropdown */}
       {showMenu && (
         <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)}>
-          <div className="absolute top-14 right-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-2 w-40 border border-slate-200 dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
-            <button onClick={handleLogout} className="flex items-center gap-2 w-full px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm transition">
+          <div className="absolute top-14 right-2 bg-card rounded-xl shadow-lg p-2 w-40 border border-border" onClick={(e) => e.stopPropagation()}>
+            <button onClick={handleLogout} className="flex items-center gap-2 w-full px-3 py-2 text-destructive hover:bg-destructive-soft rounded-lg text-sm transition">
               <LogOut size={16} /><span>로그아웃</span>
             </button>
           </div>
@@ -118,7 +118,7 @@ export default function MobileLayoutClient({ children }: { children: React.React
       </main>
 
       {/* Bottom Tabs - 4 tabs */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-2 z-20 safe-area-pb">
+      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border flex items-center justify-around px-2 z-20 safe-area-pb">
         {bottomTabs.map((tab) => {
           const isActive = pathname.startsWith(tab.href);
           return (
@@ -127,8 +127,8 @@ export default function MobileLayoutClient({ children }: { children: React.React
               href={tab.href}
               className={`flex flex-col items-center justify-center py-2 px-3 min-w-[70px] rounded-xl transition ${
                 isActive
-                  ? 'text-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                  : 'text-slate-400 dark:text-slate-500'
+                  ? 'text-primary bg-primary-soft'
+                  : 'text-muted-foreground'
               }`}
             >
               <tab.icon size={22} strokeWidth={isActive ? 2.5 : 2} />

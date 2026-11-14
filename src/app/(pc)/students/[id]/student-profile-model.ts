@@ -80,18 +80,18 @@ export function trendLabel(trend: string): string {
 }
 
 export function trendClass(trend: string): string {
-  if (trend === 'up') return 'bg-emerald-50 text-emerald-700';
-  if (trend === 'down') return 'bg-rose-50 text-rose-700';
-  if (trend === 'need_more') return 'bg-amber-50 text-amber-700';
-  return 'bg-slate-100 text-slate-600';
+  if (trend === 'up') return 'bg-success-soft text-success';
+  if (trend === 'down') return 'bg-destructive-soft text-destructive';
+  if (trend === 'need_more') return 'bg-warning-soft text-warning';
+  return 'bg-muted text-secondary-foreground';
 }
 
 export function gradeClass(grade: string): string {
-  if (grade === 'A') return 'bg-orange-50 text-orange-700 border-orange-200';
-  if (grade === 'B') return 'bg-blue-50 text-blue-700 border-blue-200';
+  if (grade === 'A') return 'bg-primary-soft text-primary border-primary/30';
+  if (grade === 'B') return 'bg-primary-soft text-primary border-primary/30';
   if (grade === 'C') return 'bg-cyan-50 text-cyan-700 border-cyan-200';
-  if (grade === 'D') return 'bg-slate-100 text-slate-700 border-slate-200';
-  return 'bg-slate-900 text-white border-slate-900';
+  if (grade === 'D') return 'bg-muted text-secondary-foreground border-border';
+  return 'bg-foreground text-background border-foreground';
 }
 
 export function getRecordPercentage({

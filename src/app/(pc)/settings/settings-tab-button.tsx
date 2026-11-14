@@ -14,7 +14,7 @@ export function TabButton({
       type="button"
       onClick={onClick}
       className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition ${
-        active ? 'bg-slate-950 text-white dark:bg-white dark:text-slate-950' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900'
+        active ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'
       }`}
     >
       {icon}

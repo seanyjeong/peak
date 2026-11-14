@@ -29,10 +29,10 @@ export function ChosungJumpNav({
             className={`
               w-7 h-7 rounded text-xs font-medium transition-all
               ${isActive
-                ? 'bg-orange-500 text-white scale-110'
+                ? 'bg-primary text-white scale-110'
                 : isAvailable
-                  ? 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-orange-100 dark:hover:bg-orange-900/30 hover:text-orange-600 dark:hover:text-orange-400'
-                  : 'bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-default'
+                  ? 'bg-muted text-secondary-foreground hover:bg-primary-soft hover:text-primary'
+                  : 'bg-muted text-muted-foreground/60 cursor-default'
               }
             `}
           >

@@ -194,15 +194,15 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
   };
 
   if (loading) {
-    return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>;
+    return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   }
 
   if (!test) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-6">
-        <div className="rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
-          <p className="text-sm font-semibold text-slate-600">월말테스트를 찾지 못했습니다.</p>
-          <button type="button" onClick={() => router.push('/monthly-test')} className="mt-4 rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white">
+        <div className="rounded-lg border border-border bg-card p-6 text-center shadow-sm">
+          <p className="text-sm font-semibold text-secondary-foreground">월말테스트를 찾지 못했습니다.</p>
+          <button type="button" onClick={() => router.push('/monthly-test')} className="mt-4 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background">
             목록으로 이동
           </button>
         </div>
@@ -214,31 +214,31 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
     <main className="max-w-[1440px] space-y-5 px-6 py-6 lg:px-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <button type="button" onClick={() => router.push('/monthly-test')} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50">
+          <button type="button" onClick={() => router.push('/monthly-test')} className="rounded-lg border border-border bg-card p-2 text-secondary-foreground hover:bg-muted">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <p className="text-sm font-bold text-orange-700">MONTHLY TEST</p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{test.test_name}</h1>
-            <p className="mt-1 text-sm text-slate-500">{test.test_month} · {test.record_types.length}개 종목 · {test.sessions.length}개 세션</p>
+            <p className="text-sm font-bold text-primary">MONTHLY TEST</p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{test.test_name}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{test.test_month} · {test.record_types.length}개 종목 · {test.sessions.length}개 세션</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => router.push(`/monthly-test/${testId}/rankings`)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+          <button type="button" onClick={() => router.push(`/monthly-test/${testId}/rankings`)} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
             <FileBarChart className="h-4 w-4" />
             전체 순위
           </button>
-          <button type="button" onClick={handleExportExcel} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+          <button type="button" onClick={handleExportExcel} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
             <Download className="h-4 w-4" />
             엑셀 저장
           </button>
           {test.status === 'draft' && (
-            <button type="button" onClick={openSettingsPanel} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            <button type="button" onClick={openSettingsPanel} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
               <Edit3 className="h-4 w-4" />
               테스트 설정
             </button>
           )}
-          <button type="button" onClick={() => setShowSessionForm((prev) => !prev)} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">
+          <button type="button" onClick={() => setShowSessionForm((prev) => !prev)} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background hover:bg-foreground/90">
             <Plus className="h-4 w-4" />
             세션 추가
           </button>
@@ -252,16 +252,16 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
         <Metric label="편성 조" value={`${test.sessions.reduce((sum, session) => sum + session.group_count, 0)}개`} />
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-bold text-slate-500">상태 변경</span>
+          <span className="text-sm font-bold text-muted-foreground">상태 변경</span>
           {(['draft', 'active', 'completed'] as TestStatus[]).map((status) => (
             <button
               key={status}
               type="button"
               onClick={() => handleStatusChange(status)}
               className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                test.status === status ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                test.status === status ? 'bg-foreground text-background' : 'bg-muted text-secondary-foreground hover:bg-border'
               }`}
             >
               {STATUS_LABELS[status]}
@@ -270,7 +270,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           {test.record_types.map((type) => (
-            <span key={type.record_type_id} className="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700">
+            <span key={type.record_type_id} className="rounded-lg bg-primary-soft px-3 py-1.5 text-sm font-bold text-primary">
               {type.name} · {type.unit}
             </span>
           ))}
@@ -278,21 +278,21 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       </section>
 
       {showSessionForm && (
-        <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_200px_auto] dark:border-slate-800 dark:bg-slate-950">
+        <section className="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-sm md:grid-cols-[1fr_200px_auto]">
           <input
             type="date"
             value={newSessionDate}
             onChange={(event) => setNewSessionDate(event.target.value)}
-            className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-slate-950"
+            className="h-11 rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-foreground"
           />
           <select
             value={newSessionSlot}
             onChange={(event) => setNewSessionSlot(event.target.value as TimeSlot)}
-            className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-slate-950"
+            className="h-11 rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-foreground"
           >
             {Object.entries(TIME_SLOT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
-          <button type="button" onClick={handleAddSession} disabled={addingSession} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white disabled:opacity-50">
+          <button type="button" onClick={handleAddSession} disabled={addingSession} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-sm font-bold text-background disabled:opacity-50">
             <CalendarPlus className="h-4 w-4" />
             {addingSession ? '추가 중' : '추가'}
           </button>
@@ -300,14 +300,14 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       )}
 
       {showSettingsPanel && (
-        <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <section className="space-y-4 rounded-lg border border-border bg-card p-5 shadow-sm">
           <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-            <label className="text-sm font-bold text-slate-700">
+            <label className="text-sm font-bold text-secondary-foreground">
               테스트 이름
-              <input value={editName} onChange={(event) => setEditName(event.target.value)} className="mt-1 h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-950" />
+              <input value={editName} onChange={(event) => setEditName(event.target.value)} className="mt-1 h-11 w-full rounded-lg border border-border px-3 text-sm outline-none focus:border-foreground" />
             </label>
             <div>
-              <p className="text-sm font-bold text-slate-700">측정 종목</p>
+              <p className="text-sm font-bold text-secondary-foreground">측정 종목</p>
               <div className="mt-1 flex flex-wrap gap-2">
                 {allRecordTypes.map((type) => {
                   const selected = editSelectedTypes.includes(type.id);
@@ -316,7 +316,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
                       key={type.id}
                       type="button"
                       onClick={() => toggleEditType(type.id)}
-                      className={`rounded-lg border px-3 py-2 text-sm font-bold ${selected ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600'}`}
+                      className={`rounded-lg border px-3 py-2 text-sm font-bold ${selected ? 'border-foreground bg-foreground text-background' : 'border-border bg-card text-secondary-foreground'}`}
                     >
                       {type.short_name || type.name}
                     </button>
@@ -328,8 +328,8 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
 
           {selectedTypes.length >= 2 && (
             <div>
-              <p className="text-sm font-bold text-slate-700">충돌 종목</p>
-              <p className="mt-1 text-xs text-slate-500">같은 장소나 장비를 쓰는 종목을 표시하면 조 편성 스케줄에서 겹치지 않게 처리합니다.</p>
+              <p className="text-sm font-bold text-secondary-foreground">충돌 종목</p>
+              <p className="mt-1 text-xs text-muted-foreground">같은 장소나 장비를 쓰는 종목을 표시하면 조 편성 스케줄에서 겹치지 않게 처리합니다.</p>
               <div className="mt-3 grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                 {selectedTypes.flatMap((left, leftIndex) => (
                   selectedTypes.slice(leftIndex + 1).map((right) => {
@@ -340,7 +340,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
                         key={key}
                         type="button"
                         onClick={() => toggleConflict(left.id, right.id)}
-                        className={`rounded-lg border px-3 py-2 text-left text-sm font-bold transition ${active ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                        className={`rounded-lg border px-3 py-2 text-left text-sm font-bold transition ${active ? 'border-destructive/30 bg-destructive-soft text-destructive' : 'border-border bg-card text-secondary-foreground hover:bg-muted'}`}
                       >
                         {left.short_name || left.name} / {right.short_name || right.name}
                       </button>
@@ -352,10 +352,10 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
           )}
 
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setShowSettingsPanel(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">
+            <button type="button" onClick={() => setShowSettingsPanel(false)} className="rounded-lg border border-border px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
               취소
             </button>
-            <button type="button" onClick={handleSaveEdit} disabled={saving} className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
+            <button type="button" onClick={handleSaveEdit} disabled={saving} className="rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background disabled:opacity-50">
               {saving ? '저장 중' : '저장'}
             </button>
           </div>
@@ -363,33 +363,33 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       )}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-bold text-slate-950 dark:text-white">세션 목록</h2>
+        <h2 className="text-lg font-bold text-foreground">세션 목록</h2>
         {test.sessions.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-sm font-semibold text-slate-500">
+          <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center text-sm font-semibold text-muted-foreground">
             등록된 세션이 없습니다.
           </div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-3">
             {test.sessions.map((session) => (
-              <article key={session.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+              <article key={session.id} className="rounded-lg border border-border bg-card p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-950 dark:text-white">{formatSessionDate(session.test_date)}</h3>
-                    <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{TIME_SLOT_LABELS[session.time_slot]}</span>
+                    <h3 className="text-lg font-bold text-foreground">{formatSessionDate(session.test_date)}</h3>
+                    <span className="mt-2 inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-secondary-foreground">{TIME_SLOT_LABELS[session.time_slot]}</span>
                   </div>
-                  <button type="button" onClick={() => handleDeleteSession(session.id)} className="rounded-md p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600">
+                  <button type="button" onClick={() => handleDeleteSession(session.id)} className="rounded-md p-2 text-muted-foreground hover:bg-destructive-soft hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                  <span className="rounded-lg bg-slate-50 px-3 py-2 font-semibold text-slate-600"><Users className="mr-1 inline h-4 w-4" /> {session.participant_count}명</span>
-                  <span className="rounded-lg bg-slate-50 px-3 py-2 font-semibold text-slate-600">조 {session.group_count}개</span>
+                  <span className="rounded-lg bg-muted px-3 py-2 font-semibold text-secondary-foreground"><Users className="mr-1 inline h-4 w-4" /> {session.participant_count}명</span>
+                  <span className="rounded-lg bg-muted px-3 py-2 font-semibold text-secondary-foreground">조 {session.group_count}개</span>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => router.push(`/monthly-test/${testId}/${session.id}`)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                  <button type="button" onClick={() => router.push(`/monthly-test/${testId}/${session.id}`)} className="rounded-lg border border-border px-3 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
                     조 편성
                   </button>
-                  <button type="button" onClick={() => router.push(`/monthly-test/${testId}/${session.id}/records`)} className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-bold text-white hover:bg-slate-800">
+                  <button type="button" onClick={() => router.push(`/monthly-test/${testId}/${session.id}/records`)} className="rounded-lg bg-foreground px-3 py-2 text-sm font-bold text-background hover:bg-foreground/90">
                     기록 측정
                   </button>
                 </div>
@@ -402,10 +402,10 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
   );
 }
 
-function Metric({ className = 'bg-slate-50 text-slate-700', label, value }: { className?: string; label: string; value: string }) {
+function Metric({ className = 'bg-muted text-secondary-foreground', label, value }: { className?: string; label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      <p className="text-sm font-bold text-slate-500">{label}</p>
+    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+      <p className="text-sm font-bold text-muted-foreground">{label}</p>
       <span className={`mt-3 inline-flex rounded-lg px-3 py-1 text-2xl font-black ${className}`}>{value}</span>
     </div>
   );

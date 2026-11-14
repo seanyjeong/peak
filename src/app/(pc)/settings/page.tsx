@@ -318,22 +318,22 @@ export default function SettingsPage() {
     <main className="max-w-[1440px] space-y-6 px-6 py-6 lg:px-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-bold text-orange-700">MEASUREMENT SETTINGS</p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">실기 측정 설정</h1>
-          <p className="mt-1 text-sm text-slate-500">측정 종목과 배점표를 한곳에서 관리합니다.</p>
+          <p className="text-sm font-bold text-primary">MEASUREMENT SETTINGS</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">실기 측정 설정</h1>
+          <p className="mt-1 text-sm text-muted-foreground">측정 종목과 배점표를 한곳에서 관리합니다.</p>
         </div>
         <button
           type="button"
           onClick={fetchData}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-bold text-secondary-foreground transition hover:bg-muted disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           새로고침
         </button>
       </header>
 
-      <div className={`grid gap-2 rounded-lg border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:inline-grid ${canManagePermissions ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+      <div className={`grid gap-2 rounded-lg border border-border bg-card p-1 shadow-sm sm:inline-grid ${canManagePermissions ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
         <TabButton active={activeTab === 'types'} icon={<ListChecks className="h-4 w-4" />} label="측정 종목" onClick={() => setActiveTab('types')} />
         <TabButton active={activeTab === 'scores'} icon={<Calculator className="h-4 w-4" />} label="배점표" onClick={() => setActiveTab('scores')} />
         {canManagePermissions && (
@@ -342,8 +342,8 @@ export default function SettingsPage() {
       </div>
 
       {loading ? (
-        <div className="flex h-64 items-center justify-center rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-          <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
+        <div className="flex h-64 items-center justify-center rounded-lg border border-border bg-card">
+          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : activeTab === 'permissions' && canManagePermissions ? (
         <PermissionsPanel

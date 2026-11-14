@@ -58,9 +58,9 @@ export interface AssignmentPreset {
 export const SLOT_ORDER: TimeSlot[] = ['morning', 'afternoon', 'evening'];
 
 export const TIME_SLOT_INFO: Record<TimeSlot, { label: string; color: string; bgColor: string }> = {
-  morning: { label: '오전반', color: 'text-orange-700', bgColor: 'bg-orange-50' },
-  afternoon: { label: '오후반', color: 'text-blue-700', bgColor: 'bg-blue-50' },
-  evening: { label: '저녁반', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  morning: { label: '오전반', color: 'text-primary', bgColor: 'bg-primary-soft' },
+  afternoon: { label: '오후반', color: 'text-primary', bgColor: 'bg-primary-soft' },
+  evening: { label: '저녁반', color: 'text-secondary-foreground', bgColor: 'bg-muted' },
 };
 
 export function createEmptySlots(): SlotsData {

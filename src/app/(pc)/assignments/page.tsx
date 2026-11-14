@@ -270,13 +270,13 @@ export default function AssignmentsPage() {
     <div className="mx-auto max-w-[1540px] space-y-6" data-testid="assignments-page">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Class Assignment</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">반 배치</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{formatDateKorean(selectedDate)}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Class Assignment</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-foreground">반 배치</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{formatDateKorean(selectedDate)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-            <Calendar size={16} className="text-slate-400" />
+          <label className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm text-secondary-foreground">
+            <Calendar size={16} className="text-muted-foreground" />
             <input
               type="date"
               value={selectedDate}
@@ -298,7 +298,7 @@ export default function AssignmentsPage() {
           <button
             onClick={() => setShowResetConfirm(true)}
             disabled={loading || resetting}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-red-200 bg-white px-3 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:bg-slate-900 dark:text-red-300 dark:hover:bg-red-950/30"
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-destructive/30 bg-card px-3 text-sm font-medium text-destructive transition hover:bg-destructive-soft disabled:opacity-50"
           >
             <RotateCcw size={16} />
             초기화
@@ -306,12 +306,12 @@ export default function AssignmentsPage() {
           <button
             onClick={() => loadAssignments()}
             disabled={loading}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium text-secondary-foreground transition hover:bg-muted disabled:opacity-60"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             새로고침
           </button>
-          <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} title={isConnected ? '실시간 연결됨' : '연결 끊김'} />
+          <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-success' : 'bg-destructive'}`} title={isConnected ? '실시간 연결됨' : '연결 끊김'} />
         </div>
       </header>
 
@@ -335,24 +335,24 @@ export default function AssignmentsPage() {
               onClick={() => setActiveSlot(slot)}
               className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium transition ${
                 isActive
-                  ? 'border-orange-400 bg-orange-50 text-orange-700 shadow-sm'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                  ? 'border-primary bg-primary-soft text-primary shadow-sm'
+                  : 'border-border bg-card text-secondary-foreground hover:bg-muted'
               }`}
             >
               {info.label}
-              <span className="rounded bg-white px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">{count}명</span>
+              <span className="rounded bg-card px-2 py-0.5 text-xs text-secondary-foreground">{count}명</span>
             </button>
           );
         })}
       </div>
 
       {loading ? (
-        <div className="flex min-h-[420px] items-center justify-center rounded-md border border-slate-200 bg-white text-sm text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-          <RefreshCw size={18} className="mr-2 animate-spin text-orange-500" />
+        <div className="flex min-h-[420px] items-center justify-center rounded-md border border-border bg-card text-sm text-muted-foreground shadow-sm">
+          <RefreshCw size={18} className="mr-2 animate-spin text-primary" />
           반 배치 데이터를 불러오는 중입니다.
         </div>
       ) : totalStudents === 0 && currentSlotData.waitingInstructors.length === 0 ? (
-        <div className="flex min-h-[420px] flex-col items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+        <div className="flex min-h-[420px] flex-col items-center justify-center rounded-md border border-border bg-card text-muted-foreground shadow-sm">
           <p className="font-medium">{TIME_SLOT_INFO[activeSlot].label} 수업 데이터가 없습니다.</p>
           <p className="mt-1 text-sm">날짜 또는 P-ACA 출석 동기화를 확인하세요.</p>
         </div>
@@ -404,10 +404,10 @@ export default function AssignmentsPage() {
 
 function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <article className="rounded-md border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-slate-50">{value}</p>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{detail}</p>
+    <article className="rounded-md border border-border bg-card p-4 shadow-sm">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
     </article>
   );
 }
@@ -434,22 +434,22 @@ function PresetMenu({
       <button
         onClick={onToggle}
         disabled={disabled}
-        className="inline-flex h-10 items-center gap-2 rounded-md border border-indigo-200 bg-white px-3 text-sm font-medium text-indigo-600 transition hover:bg-indigo-50 disabled:opacity-50 dark:border-indigo-900 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/30"
+        className="inline-flex h-10 items-center gap-2 rounded-md border border-primary/30 bg-card px-3 text-sm font-medium text-primary transition hover:bg-primary-soft disabled:opacity-50"
       >
         <Layers size={16} />
         프리셋
         <ChevronDown size={14} />
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+        <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-md border border-border bg-card py-1 shadow-lg">
           {presets.map((preset) => (
             <button
               key={preset.id}
               onClick={() => onSelect(preset)}
-              className="w-full px-4 py-2.5 text-left text-sm transition hover:bg-slate-50 dark:hover:bg-slate-800"
+              className="w-full px-4 py-2.5 text-left text-sm transition hover:bg-muted"
             >
-              <span className="text-slate-800 dark:text-slate-100">{preset.name}</span>
-              <span className="ml-2 text-xs text-slate-400">{preset.type === 'homeroom' ? '담임' : '그룹'}</span>
+              <span className="text-foreground">{preset.name}</span>
+              <span className="ml-2 text-xs text-muted-foreground">{preset.type === 'homeroom' ? '담임' : '그룹'}</span>
             </button>
           ))}
         </div>

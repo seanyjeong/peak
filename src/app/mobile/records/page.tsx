@@ -247,23 +247,23 @@ export default function MobileRecordsPage() {
   return (
     <div className="space-y-3">
       {/* 날짜 & 새로고침 */}
-      <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm border border-slate-200 dark:border-slate-700">
+      <div className="flex items-center justify-between bg-card rounded-xl p-3 shadow-sm border border-border">
         <div className="flex items-center gap-2">
-          <Calendar size={18} className="text-slate-500 dark:text-slate-400" />
+          <Calendar size={18} className="text-muted-foreground" />
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="text-sm font-medium text-slate-800 dark:text-slate-100 bg-transparent border-none outline-none"
+            className="text-sm font-medium text-foreground bg-transparent border-none outline-none"
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 dark:text-slate-400">{koreanDate}</span>
+          <span className="text-xs text-muted-foreground">{koreanDate}</span>
           <button
             onClick={loadData}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
+            className="p-2 hover:bg-muted rounded-lg transition"
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin text-orange-500' : 'text-slate-500 dark:text-slate-400'} />
+            <RefreshCw size={18} className={loading ? 'animate-spin text-primary' : 'text-muted-foreground'} />
           </button>
         </div>
       </div>
@@ -276,8 +276,8 @@ export default function MobileRecordsPage() {
             onClick={() => setSelectedTimeSlot(key)}
             className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl font-medium text-sm transition ${
               selectedTimeSlot === key
-                ? 'bg-orange-500 text-white shadow-md'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700'
+                ? 'bg-primary text-white shadow-md'
+                : 'bg-card text-secondary-foreground shadow-sm border border-border'
             }`}
           >
             <Icon size={16} />
@@ -294,13 +294,13 @@ export default function MobileRecordsPage() {
       />
 
       {/* 입력 모드 선택 */}
-      <div className="flex gap-2 bg-white dark:bg-slate-800 rounded-xl p-1 shadow-sm border border-slate-200 dark:border-slate-700">
+      <div className="flex gap-2 bg-card rounded-xl p-1 shadow-sm border border-border">
         <button
           onClick={() => setInputMode('student')}
           className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
             inputMode === 'student'
-              ? 'bg-neutral-900 dark:bg-neutral-700 text-white'
-              : 'text-slate-600 dark:text-slate-300'
+              ? 'bg-foreground text-background'
+              : 'text-secondary-foreground'
           }`}
         >
           <Users size={16} />
@@ -310,8 +310,8 @@ export default function MobileRecordsPage() {
           onClick={() => setInputMode('type')}
           className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium transition ${
             inputMode === 'type'
-              ? 'bg-neutral-900 dark:bg-neutral-700 text-white'
-              : 'text-slate-600 dark:text-slate-300'
+              ? 'bg-foreground text-background'
+              : 'text-secondary-foreground'
           }`}
         >
           <Trophy size={16} />
@@ -321,18 +321,18 @@ export default function MobileRecordsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <RefreshCw size={24} className="animate-spin text-orange-500" />
+          <RefreshCw size={24} className="animate-spin text-primary" />
         </div>
       ) : students.length === 0 ? (
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center shadow-sm border border-slate-200 dark:border-slate-700">
-          <p className="text-slate-500 dark:text-slate-400 text-sm">이 시간대에 배치된 학생이 없습니다</p>
+        <div className="bg-card rounded-xl p-8 text-center shadow-sm border border-border">
+          <p className="text-muted-foreground text-sm">이 시간대에 배치된 학생이 없습니다</p>
         </div>
       ) : inputMode === 'student' ? (
         /* 학생별 모드 */
         <div className="space-y-2">
           <button
             onClick={toggleAll}
-            className="text-xs text-slate-500 dark:text-slate-400 underline"
+            className="text-xs text-muted-foreground underline"
           >
             {expandedStudents.size === students.length ? '전체 접기' : '전체 펼치기'}
           </button>
@@ -340,40 +340,40 @@ export default function MobileRecordsPage() {
           {students.map((student) => {
             const isExpanded = expandedStudents.has(student.id);
             return (
-              <div key={student.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+              <div key={student.id} className="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
                 <button
                   onClick={() => toggleStudent(student.id)}
                   className="w-full flex items-center justify-between p-3"
                 >
                   <div className="flex items-center gap-2">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                      student.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500'
+                      student.gender === 'male' ? 'bg-primary' : 'bg-pink-500'
                     }`}>
                       {student.name.charAt(0)}
                     </div>
                     <div className="text-left">
                       <div className="flex items-center gap-1">
-                        <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{student.name}</p>
+                        <p className="font-medium text-foreground text-sm">{student.name}</p>
                         {!!student.is_trial && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
                             {(student.trial_total || 0) - (student.trial_remaining || 0)}/{student.trial_total || 0}
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      <p className="text-[10px] text-muted-foreground">
                         {student.gender === 'male' ? '남' : '여'}
                       </p>
                     </div>
                   </div>
                   {isExpanded ? (
-                    <ChevronUp size={20} className="text-slate-400" />
+                    <ChevronUp size={20} className="text-muted-foreground" />
                   ) : (
-                    <ChevronDown size={20} className="text-slate-400" />
+                    <ChevronDown size={20} className="text-muted-foreground" />
                   )}
                 </button>
 
                 {isExpanded && (
-                  <div className="px-3 pb-3 space-y-2 border-t border-slate-100 dark:border-slate-700">
+                  <div className="px-3 pb-3 space-y-2 border-t border-border">
                     {recordTypes.map((type) => {
                       const key = `${student.id}-${type.id}`;
                       const record = records[key];
@@ -381,7 +381,7 @@ export default function MobileRecordsPage() {
 
                       return (
                         <div key={type.id} className="flex items-center gap-2 pt-2">
-                          <span className="text-xs text-slate-600 dark:text-slate-300 w-20 truncate">
+                          <span className="text-xs text-secondary-foreground w-20 truncate">
                             {type.short_name || type.name}
                           </span>
                           <div className="flex-1 relative">
@@ -391,15 +391,15 @@ export default function MobileRecordsPage() {
                               placeholder="기록"
                               defaultValue={record?.value ?? ''}
                               onBlur={(e) => saveRecord(student.id, type.id, e.target.value)}
-                              className="w-full h-10 px-3 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                              className="w-full h-10 px-3 text-sm border border-border rounded-lg bg-card text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                             />
                             {isSaving && (
-                              <Check size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
+                              <Check size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-success" />
                             )}
                           </div>
-                          <span className="text-xs text-slate-400 w-8">{type.unit}</span>
+                          <span className="text-xs text-muted-foreground w-8">{type.unit}</span>
                           {record?.score != null && (
-                            <span className="text-xs font-medium text-orange-500 w-10 text-right">
+                            <span className="text-xs font-medium text-primary w-10 text-right">
                               {record.score}점
                             </span>
                           )}
@@ -422,8 +422,8 @@ export default function MobileRecordsPage() {
                 onClick={() => setSelectedType(type.id)}
                 className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition ${
                   selectedType === type.id
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                    ? 'bg-primary text-white'
+                    : 'bg-card text-secondary-foreground border border-border'
                 }`}
               >
                 {type.short_name || type.name}
@@ -431,7 +431,7 @@ export default function MobileRecordsPage() {
             ))}
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700">
+          <div className="bg-card rounded-xl shadow-sm divide-y divide-border border border-border">
             {students.map((student) => {
               if (!selectedType) return null;
               const key = `${student.id}-${selectedType}`;
@@ -442,13 +442,13 @@ export default function MobileRecordsPage() {
               return (
                 <div key={student.id} className="flex items-center gap-2 p-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${
-                    student.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500'
+                    student.gender === 'male' ? 'bg-primary' : 'bg-pink-500'
                   }`}>
                     {student.name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
-                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm truncate">{student.name}</p>
+                      <p className="font-medium text-foreground text-sm truncate">{student.name}</p>
                       {!!student.is_trial && (
                         <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 flex-shrink-0">
                           {(student.trial_total || 0) - (student.trial_remaining || 0)}/{student.trial_total || 0}
@@ -463,15 +463,15 @@ export default function MobileRecordsPage() {
                       placeholder="기록"
                       defaultValue={record?.value ?? ''}
                       onBlur={(e) => saveRecord(student.id, selectedType, e.target.value)}
-                      className="w-20 h-10 px-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                      className="w-20 h-10 px-2 text-sm text-right border border-border rounded-lg bg-card text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                     />
                     {isSaving && (
-                      <Check size={14} className="text-green-500" />
+                      <Check size={14} className="text-success" />
                     )}
-                    <span className="text-xs text-slate-400 w-6">{type?.unit}</span>
+                    <span className="text-xs text-muted-foreground w-6">{type?.unit}</span>
                   </div>
                   {record?.score != null && (
-                    <span className="text-xs font-medium text-orange-500 w-10 text-right">
+                    <span className="text-xs font-medium text-primary w-10 text-right">
                       {record.score}점
                     </span>
                   )}

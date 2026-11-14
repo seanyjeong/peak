@@ -29,13 +29,13 @@ export function RecordTypesPanel({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-950 dark:text-white">측정 종목</h2>
-          <p className="mt-1 text-sm text-slate-500">기록 입력, 수업 계획, 월말테스트에서 함께 쓰는 기준입니다.</p>
+          <h2 className="text-lg font-bold text-foreground">측정 종목</h2>
+          <p className="mt-1 text-sm text-muted-foreground">기록 입력, 수업 계획, 월말테스트에서 함께 쓰는 기준입니다.</p>
         </div>
         <button
           type="button"
           onClick={onAdd}
-          className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950"
+          className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-bold text-background transition hover:bg-foreground/90"
         >
           <Plus className="h-4 w-4" />
           종목 추가
@@ -52,11 +52,11 @@ export function RecordTypesPanel({
         />
       )}
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900">
+              <tr className="border-b border-border bg-muted text-muted-foreground">
                 <th className="px-5 py-3 text-left font-bold">종목명</th>
                 <th className="px-3 py-3 text-center font-bold">단위</th>
                 <th className="px-3 py-3 text-center font-bold">방향</th>
@@ -65,7 +65,7 @@ export function RecordTypesPanel({
                 <th className="px-5 py-3 text-right font-bold">관리</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-border">
               {recordTypes.map((type) => (
                 <RecordTypeRow
                   key={type.id}
@@ -78,7 +78,7 @@ export function RecordTypesPanel({
           </table>
         </div>
         {recordTypes.length === 0 && (
-          <div className="px-5 py-10 text-center text-sm font-semibold text-slate-500">등록된 종목이 없습니다.</div>
+          <div className="px-5 py-10 text-center text-sm font-semibold text-muted-foreground">등록된 종목이 없습니다.</div>
         )}
       </div>
     </div>
@@ -99,10 +99,10 @@ function TypeFormCard({
   typeForm: TypeForm;
 }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-slate-950 dark:text-white">{editingType ? '종목 수정' : '새 종목 추가'}</h3>
-        <button type="button" onClick={onCancel} className="rounded-md p-2 text-slate-400 hover:bg-slate-100">
+        <h3 className="font-bold text-foreground">{editingType ? '종목 수정' : '새 종목 추가'}</h3>
+        <button type="button" onClick={onCancel} className="rounded-md p-2 text-muted-foreground hover:bg-muted">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -120,12 +120,12 @@ function TypeFormCard({
           placeholder="cm, m, 초"
           onChange={(value) => onChange({ ...typeForm, unit: value })}
         />
-        <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <label className="text-sm font-semibold text-secondary-foreground">
           방향
           <select
             value={typeForm.direction}
             onChange={(event) => onChange({ ...typeForm, direction: event.target.value as TypeForm['direction'] })}
-            className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+            className="mt-1 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-foreground"
           >
             <option value="higher">높을수록 좋음</option>
             <option value="lower">낮을수록 좋음</option>
@@ -151,10 +151,10 @@ function TypeFormCard({
       </div>
 
       <div className="mt-5 flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-border px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
           취소
         </button>
-        <button type="button" onClick={onSave} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">
+        <button type="button" onClick={onSave} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background hover:bg-foreground/90">
           <Save className="h-4 w-4" />
           저장
         </button>
@@ -173,35 +173,35 @@ function RecordTypeRow({
   type: RecordType;
 }) {
   return (
-    <tr className={type.is_active ? 'text-slate-700 dark:text-slate-200' : 'bg-slate-50 text-slate-400 dark:bg-slate-900/50'}>
-      <td className="px-5 py-3 font-bold text-slate-950 dark:text-white">{type.name}</td>
+    <tr className={type.is_active ? 'text-secondary-foreground' : 'bg-muted text-muted-foreground'}>
+      <td className="px-5 py-3 font-bold text-foreground">{type.name}</td>
       <td className="px-3 py-3 text-center">{type.unit}</td>
       <td className="px-3 py-3 text-center">
         <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-          type.direction === 'higher' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+          type.direction === 'higher' ? 'bg-success-soft text-success' : 'bg-primary-soft text-primary'
         }`}>
           {getDirectionLabel(type.direction)}
         </span>
       </td>
-      <td className="px-3 py-3 text-center text-xs font-semibold text-slate-500">
+      <td className="px-3 py-3 text-center text-xs font-semibold text-muted-foreground">
         {type.min_value != null || type.max_value != null ? `${type.min_value ?? '~'} ~ ${type.max_value ?? '~'}` : '-'}
       </td>
       <td className="px-3 py-3 text-center">
         <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-          type.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+          type.is_active ? 'bg-success-soft text-success' : 'bg-muted text-muted-foreground'
         }`}>
           {type.is_active ? '활성' : '비활성'}
         </span>
       </td>
       <td className="px-5 py-3 text-right">
-        <button type="button" aria-label={`${type.name} 수정`} onClick={() => onEdit(type)} className="rounded-md p-2 text-slate-500 hover:bg-slate-100">
+        <button type="button" aria-label={`${type.name} 수정`} onClick={() => onEdit(type)} className="rounded-md p-2 text-muted-foreground hover:bg-muted">
           <Edit2 className="h-4 w-4" />
         </button>
         <button
           type="button"
           aria-label={`${type.name} ${type.is_active ? '비활성화' : '활성화'}`}
           onClick={() => onToggleActive(type)}
-          className={`rounded-md p-2 ${type.is_active ? 'text-emerald-600 hover:bg-rose-50 hover:text-rose-600' : 'text-slate-400 hover:bg-emerald-50 hover:text-emerald-600'}`}
+          className={`rounded-md p-2 ${type.is_active ? 'text-success hover:bg-destructive-soft hover:text-destructive' : 'text-muted-foreground hover:bg-success-soft hover:text-success'}`}
           title={type.is_active ? '비활성화' : '활성화'}
         >
           {type.is_active ? <ToggleRight className="h-5 w-5" /> : <ToggleLeft className="h-5 w-5" />}
@@ -225,14 +225,14 @@ function InputField({
   value: string;
 }) {
   return (
-    <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+    <label className="text-sm font-semibold text-secondary-foreground">
       {label}
       <input
         type={type}
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+        className="mt-1 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-foreground"
       />
     </label>
   );

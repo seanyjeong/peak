@@ -25,14 +25,14 @@ export function RecordAddForm({
   getDecimalPlaces,
 }: RecordAddFormProps) {
   return (
-    <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+    <div className="mb-4 rounded-lg border border-success/30 bg-success-soft p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Calendar size={16} className="text-emerald-700" />
+        <Calendar size={16} className="text-success" />
         <input
           type="date"
           value={recordDate}
           onChange={e => setRecordDate(e.target.value)}
-          className="h-10 rounded-lg border border-emerald-200 bg-white px-3 text-sm font-semibold outline-none focus:border-emerald-600"
+          className="h-10 rounded-lg border border-success/30 bg-card px-3 text-sm font-semibold outline-none focus:border-success"
         />
       </div>
       <div className="mb-3 grid grid-cols-2 gap-3">
@@ -42,7 +42,7 @@ export function RecordAddForm({
 
           return (
             <div key={type.id}>
-              <label className="mb-1 block text-xs font-bold text-slate-600">
+              <label className="mb-1 block text-xs font-bold text-secondary-foreground">
                 {type.name} ({type.unit})
               </label>
               <div className="relative">
@@ -52,12 +52,12 @@ export function RecordAddForm({
                   value={inputData.value}
                   onChange={e => onInputChange(type.id, e.target.value)}
                   placeholder="0"
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 pr-14 text-sm font-semibold outline-none focus:border-slate-900"
+                  className="h-10 w-full rounded-lg border border-border bg-card px-3 pr-14 text-sm font-semibold outline-none focus:border-foreground"
                 />
                 {inputData.score !== null && (
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <Trophy size={12} className="text-emerald-600" />
-                    <span className="text-xs font-black text-emerald-700">{inputData.score}</span>
+                    <Trophy size={12} className="text-success" />
+                    <span className="text-xs font-black text-success">{inputData.score}</span>
                   </div>
                 )}
               </div>
@@ -69,7 +69,7 @@ export function RecordAddForm({
         type="button"
         onClick={onSave}
         disabled={saving}
-        className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-50"
+        className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-sm font-bold text-background transition hover:bg-foreground/90 disabled:opacity-50"
       >
         {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
         저장

@@ -69,7 +69,7 @@ export function Modal({
       {/* Modal */}
       <div
         className={`
-          relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full
+          relative bg-card rounded-2xl shadow-2xl w-full
           max-h-[90vh] overflow-hidden flex flex-col
           ${sizeStyles[size]}
         `}
@@ -79,16 +79,16 @@ export function Modal({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             {title && (
-              <h2 id="modal-title" className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              <h2 id="modal-title" className="text-lg font-bold text-foreground">
                 {title}
               </h2>
             )}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                className="p-2 rounded-lg text-muted-foreground hover:text-secondary-foreground hover:bg-muted transition"
                 aria-label="Close modal"
               >
                 <X size={20} />
@@ -102,7 +102,7 @@ export function Modal({
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+          <div className="px-6 py-4 border-t border-border bg-muted">
             {footer}
           </div>
         )}

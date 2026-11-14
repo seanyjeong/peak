@@ -213,8 +213,8 @@ export default function PresetsPage() {
   if (loading) {
     return (
       <div className="flex min-h-[520px] items-center justify-center" data-testid="presets-loading">
-        <RefreshCw size={18} className="mr-2 animate-spin text-orange-500" />
-        <span className="text-sm text-slate-500 dark:text-slate-400">프리셋 데이터를 불러오는 중입니다.</span>
+        <RefreshCw size={18} className="mr-2 animate-spin text-primary" />
+        <span className="text-sm text-muted-foreground">프리셋 데이터를 불러오는 중입니다.</span>
       </div>
     );
   }
@@ -223,13 +223,13 @@ export default function PresetsPage() {
     <div className="mx-auto max-w-[1480px] space-y-6" data-testid="presets-page">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Preset Desk</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50">반 프리셋</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">자동 반 배치에 사용할 학생 그룹과 담당 강사를 관리합니다.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Preset Desk</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-foreground">반 프리셋</h1>
+          <p className="mt-2 text-sm text-muted-foreground">자동 반 배치에 사용할 학생 그룹과 담당 강사를 관리합니다.</p>
         </div>
         <button
           onClick={() => setShowNewPreset(true)}
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-orange-600 px-4 text-sm font-medium text-white transition hover:bg-orange-700"
+          className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-white transition hover:bg-primary/90"
         >
           <Plus size={16} />
           새 프리셋
@@ -266,20 +266,20 @@ export default function PresetsPage() {
                   onClick={() => setActivePresetId(preset.id)}
                   className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium transition ${
                     activePreset?.id === preset.id
-                      ? 'border-orange-500 bg-orange-50 text-orange-700'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                      ? 'border-primary bg-primary-soft text-primary'
+                      : 'border-border bg-card text-secondary-foreground hover:bg-muted'
                   }`}
                 >
                   <Layers size={14} />
                   {preset.name}
-                  <span className="rounded bg-white px-1.5 py-0.5 text-xs text-slate-500 dark:bg-slate-800">
+                  <span className="rounded bg-card px-1.5 py-0.5 text-xs text-muted-foreground">
                     {getPresetTypeLabel(preset.type)}
                   </span>
                 </button>
                 {activePreset?.id === preset.id ? (
                   <button
                     onClick={() => handleDeletePreset(preset.id)}
-                    className="ml-1 rounded-md p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
+                    className="ml-1 rounded-md p-2 text-muted-foreground transition hover:bg-destructive-soft hover:text-destructive"
                     title="프리셋 삭제"
                   >
                     <Trash2 size={14} />
@@ -294,7 +294,7 @@ export default function PresetsPage() {
             {activePreset.branch_id && activePreset.groups.length === 0 ? (
               <button
                 onClick={handleFillFromClasses}
-                className="inline-flex h-10 items-center gap-2 rounded-md border border-orange-300 bg-orange-50 px-4 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
+                className="inline-flex h-10 items-center gap-2 rounded-md border border-primary/30 bg-primary-soft px-4 text-sm font-medium text-primary transition hover:bg-primary-soft"
               >
                 <Layers size={14} />
                 P-ACA 반대로 채우기
@@ -315,10 +315,10 @@ export default function PresetsPage() {
                 ))}
                 <button
                   onClick={handleAddGroup}
-                  className="flex min-h-[220px] w-52 shrink-0 flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-slate-300 bg-white transition hover:border-orange-400 hover:bg-orange-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-orange-950/30"
+                  className="flex min-h-[220px] w-52 shrink-0 flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-card transition hover:border-primary hover:bg-primary-soft"
                 >
-                  <Plus size={24} className="text-slate-300 dark:text-slate-600" />
-                  <span className="text-sm text-slate-400 dark:text-slate-500">그룹 추가</span>
+                  <Plus size={24} className="text-muted-foreground/60" />
+                  <span className="text-sm text-muted-foreground">그룹 추가</span>
                 </button>
               </div>
               <DragOverlay>{activeItem ? <StudentPill student={activeItem.student} /> : null}</DragOverlay>
@@ -333,10 +333,10 @@ export default function PresetsPage() {
 
 function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <article className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-3 text-3xl font-semibold text-slate-950 dark:text-slate-50">{value}</p>
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{detail}</p>
+    <article className="rounded-md border border-border bg-card p-5 shadow-sm">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-3 text-3xl font-semibold text-foreground">{value}</p>
+      <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
     </article>
   );
 }
@@ -358,16 +358,16 @@ function NewPresetModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-md rounded-md bg-white p-6 shadow-xl dark:bg-slate-900">
-        <h3 className="text-lg font-semibold text-slate-950 dark:text-slate-50">새 프리셋 만들기</h3>
+      <div className="mx-4 w-full max-w-md rounded-md bg-card p-6 shadow-xl">
+        <h3 className="text-lg font-semibold text-foreground">새 프리셋 만들기</h3>
         <div className="mt-4 space-y-4">
           <label className="block">
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">프리셋 이름</span>
+            <span className="text-sm font-medium text-secondary-foreground">프리셋 이름</span>
             <input
               value={name}
               onChange={(event) => onNameChange(event.target.value)}
               placeholder="예: 담임제, 대학별"
-              className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              className="mt-1 w-full rounded-md border border-border bg-card px-3 py-2 text-foreground"
               autoFocus
               onKeyDown={(event) => event.key === 'Enter' && onSubmit()}
             />
@@ -378,8 +378,8 @@ function NewPresetModal({
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-2">
-          <button onClick={onCancel} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">취소</button>
-          <button onClick={onSubmit} disabled={!name.trim()} className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-orange-700 disabled:opacity-50">만들기</button>
+          <button onClick={onCancel} className="rounded-md px-4 py-2 text-sm font-medium text-secondary-foreground transition hover:bg-muted">취소</button>
+          <button onClick={onSubmit} disabled={!name.trim()} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary/90 disabled:opacity-50">만들기</button>
         </div>
       </div>
     </div>
@@ -391,22 +391,22 @@ function TypeButton({ active, label, detail, onClick }: { active: boolean; label
     <button
       onClick={onClick}
       className={`rounded-md border-2 p-3 text-left transition ${
-        active ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30' : 'border-slate-200 hover:border-slate-300 dark:border-slate-700'
+        active ? 'border-primary bg-primary-soft' : 'border-border hover:border-border'
       }`}
     >
-      <p className="text-sm font-medium text-slate-950 dark:text-slate-50">{label}</p>
-      <p className="text-xs text-slate-500 dark:text-slate-400">{detail}</p>
+      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className="text-xs text-muted-foreground">{detail}</p>
     </button>
   );
 }
 
 function EmptyPresetState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="flex min-h-[360px] flex-col items-center justify-center rounded-md border border-slate-200 bg-white text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <Layers size={44} className="text-slate-300 dark:text-slate-600" />
-      <p className="mt-4 font-medium text-slate-700 dark:text-slate-200">프리셋이 없습니다.</p>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">새 프리셋을 만들어 자동 반 배치를 준비하세요.</p>
-      <button onClick={onCreate} className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-orange-600 px-4 text-sm font-medium text-white hover:bg-orange-700">
+    <div className="flex min-h-[360px] flex-col items-center justify-center rounded-md border border-border bg-card text-center shadow-sm">
+      <Layers size={44} className="text-muted-foreground/60" />
+      <p className="mt-4 font-medium text-secondary-foreground">프리셋이 없습니다.</p>
+      <p className="mt-1 text-sm text-muted-foreground">새 프리셋을 만들어 자동 반 배치를 준비하세요.</p>
+      <button onClick={onCreate} className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90">
         <Plus size={16} />
         새 프리셋
       </button>

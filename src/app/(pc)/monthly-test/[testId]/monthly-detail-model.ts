@@ -49,9 +49,9 @@ export const STATUS_LABELS: Record<TestStatus, string> = {
 };
 
 export const STATUS_CLASSES: Record<TestStatus, string> = {
-  draft: 'bg-slate-100 text-slate-700',
-  active: 'bg-emerald-50 text-emerald-700',
-  completed: 'bg-blue-50 text-blue-700',
+  draft: 'bg-muted text-secondary-foreground',
+  active: 'bg-success-soft text-success',
+  completed: 'bg-primary-soft text-primary',
 };
 
 export function formatSessionDate(date: string): string {

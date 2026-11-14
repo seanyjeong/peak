@@ -145,19 +145,19 @@ export default function AnalyticsReportPage() {
     <div ref={reportRef} className="max-w-[1440px] space-y-6 px-6 py-6 lg:px-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-sm font-bold text-blue-700">
+          <div className="flex items-center gap-2 text-sm font-bold text-primary">
             <BarChart3 className="h-4 w-4" />
             PERFORMANCE REPORT
           </div>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">
             {summary.academyName} 분석 리포트
           </h1>
-          <p className="mt-1 text-sm text-slate-500">생성일 {summary.reportDate} · 최근 기록 기준</p>
+          <p className="mt-1 text-sm text-muted-foreground">생성일 {summary.reportDate} · 최근 기록 기준</p>
         </div>
         <button
           onClick={downloadPDF}
           disabled={pdfLoading}
-          className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-950"
+          className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-bold text-background transition hover:bg-foreground/90 disabled:opacity-50"
         >
           <Download className="h-4 w-4" />
           {pdfLoading ? '생성 중' : 'PDF 저장'}
@@ -177,8 +177,8 @@ export default function AnalyticsReportPage() {
 
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-bold tracking-tight text-slate-950 dark:text-white">종목별 상세</h2>
-          <p className="mt-1 text-sm text-slate-500">순위는 최신 기록, 트렌드는 최근 5회 변화 기준입니다.</p>
+          <h2 className="text-lg font-bold tracking-tight text-foreground">종목별 상세</h2>
+          <p className="mt-1 text-sm text-muted-foreground">순위는 최신 기록, 트렌드는 최근 5회 변화 기준입니다.</p>
         </div>
         <EventTabs events={eventAverages} selectedEvent={selectedEvent} onSelect={handleEventSelect} />
 
