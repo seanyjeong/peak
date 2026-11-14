@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { StatTile, type Tone } from '@/components/ui/page';
 import {
   STATUS_CONFIG,
   STATUS_ORDER,
@@ -16,33 +17,14 @@ export function SummaryCard({
   detail,
   tone,
 }: {
-  icon: ComponentType<{ size?: number }>;
+  icon: ComponentType<{ className?: string }>;
   label: string;
   value: string;
   detail: string;
   tone: 'green' | 'red' | 'amber' | 'slate';
 }) {
-  const toneClass = {
-    green: 'bg-success-soft text-success border-success/30',
-    red: 'bg-destructive-soft text-destructive border-destructive/30',
-    amber: 'bg-warning-soft text-warning border-warning/30',
-    slate: 'bg-muted text-secondary-foreground border-border',
-  }[tone];
-
-  return (
-    <article className="rounded-2xl bg-card p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">{label}</p>
-          <p className="mt-3 text-3xl font-semibold tracking-normal text-foreground">{value}</p>
-          <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
-        </div>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border ${toneClass}`}>
-          <Icon size={19} />
-        </span>
-      </div>
-    </article>
-  );
+  const toneMap: Record<typeof tone, Tone> = { green: 'success', red: 'danger', amber: 'warning', slate: 'neutral' };
+  return <StatTile icon={Icon} tone={toneMap[tone]} label={label} value={value} note={detail} />;
 }
 
 export function SlotButton({
@@ -64,20 +46,21 @@ export function SlotButton({
   return (
     <button
       onClick={onClick}
-      className={`grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-md border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+      aria-pressed={active}
+      className={`grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         active
-          ? 'border-primary bg-primary-soft text-foreground shadow-sm ring-1 ring-primary/30'
-          : 'border-transparent text-secondary-foreground hover:border-border hover:bg-muted'
+          ? 'bg-primary-soft text-foreground'
+          : 'text-secondary-foreground hover:bg-muted'
       }`}
     >
-      <span className="flex h-10 w-10 items-center justify-center rounded-md bg-card text-primary shadow-sm">
+      <span className={`flex h-10 w-10 items-center justify-center rounded-full ${active ? 'bg-card text-primary' : 'bg-muted text-muted-foreground'}`}>
         <Icon size={18} />
       </span>
       <span className="min-w-0">
-        <span className="block font-medium">{info.label}</span>
+        <span className="block text-[15px] font-semibold">{info.label}</span>
         <span className="mt-0.5 block text-xs text-muted-foreground">{info.time}</span>
       </span>
-      <span className="rounded-md border border-border bg-card px-2 py-1 text-sm font-semibold text-foreground">
+      <span className="text-sm font-bold tabular-nums text-foreground">
         {present}/{count}
       </span>
     </button>
@@ -98,11 +81,11 @@ export function StudentRow({
 
   return (
     <div
-      className={`grid gap-3 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center ${noLink ? 'opacity-60' : ''}`}
+      className={`grid gap-3 py-3.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center ${noLink ? 'opacity-60' : ''}`}
       data-testid={`student-row-${student.assignment_id}`}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-sm font-semibold ${
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
           student.attendance_status === 'present'
             ? 'bg-success-soft text-success'
             : 'bg-muted text-muted-foreground'
@@ -111,12 +94,12 @@ export function StudentRow({
         </span>
         <span className="min-w-0">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="font-medium text-foreground">{student.student_name}</span>
+            <span className="text-[15px] font-semibold text-foreground">{student.student_name}</span>
             {student.is_trial === 1 ? <Badge label="체험" tone="amber" /> : null}
             {student.class_id ? <Badge label={`${student.class_id}반`} tone="slate" /> : null}
             {status ? <Badge label={status.label} tone={student.attendance_status || 'slate'} /> : <Badge label="미체크" tone="slate" />}
           </span>
-          <span className="mt-1 block text-sm text-muted-foreground">
+          <span className="mt-0.5 block text-[13px] text-muted-foreground">
             {student.grade || '학년 미입력'}{student.school ? ` · ${student.school}` : ''}
           </span>
         </span>
@@ -171,10 +154,11 @@ function StatusButton({
     <button
       onClick={onClick}
       disabled={disabled || active}
-      className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-md border px-2.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+      aria-pressed={active}
+      className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed ${
         active
           ? config.className
-          : 'border-border bg-card text-muted-foreground hover:bg-muted'
+          : 'border-transparent bg-muted text-muted-foreground hover:bg-border hover:text-foreground disabled:opacity-60'
       }`}
     >
       {disabled && !active ? <RefreshCw size={14} className="animate-spin" /> : <Icon size={14} />}
@@ -193,5 +177,5 @@ function Badge({ label, tone }: { label: string; tone: AttendanceStatus | 'amber
     slate: 'bg-muted text-secondary-foreground',
   }[tone];
 
-  return <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${className}`}>{label}</span>;
+  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${className}`}>{label}</span>;
 }

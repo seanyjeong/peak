@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock3, RefreshCw, UserRoundCheck, X } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { BranchTabs, type Branch } from '@/components/BranchTabs';
+import { PageHeader, toolbarButtonClass } from '@/components/ui/page';
 import { useSocket } from '@/hooks/useSocket';
 import { useToast } from '@/hooks/useToast';
 import {
@@ -160,39 +161,34 @@ export default function StudentAttendancePage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1380px] space-y-6" data-testid="student-attendance-page">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Student Attendance</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-foreground">학생 출석</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{today}</p>
-        </div>
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-secondary-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
-        >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          새로고침
-        </button>
-      </header>
+    <div className="mx-auto max-w-[1380px] space-y-4" data-testid="student-attendance-page">
+      <PageHeader
+        title="학생 출석"
+        description={today}
+        actions={(
+          <button onClick={fetchData} disabled={loading} className={toolbarButtonClass()}>
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            새로고침
+          </button>
+        )}
+      />
 
       <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="학생 출석 요약">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="학생 출석 요약">
         <SummaryCard icon={UserRoundCheck} label="출석 완료" value={`${stats.present}/${stats.total}`} detail={`${completionRate}% 확인`} tone="green" />
         <SummaryCard icon={AlertCircle} label="미체크" value={`${stats.unchecked}명`} detail="확인 필요" tone="slate" />
         <SummaryCard icon={X} label="결석" value={`${stats.absent}명`} detail="오늘 결석" tone="red" />
         <SummaryCard icon={Clock3} label="지각/사유" value={`${stats.late + stats.excused}명`} detail={`지각 ${stats.late} · 사유 ${stats.excused}`} tone="amber" />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="rounded-2xl bg-card">
-          <div className="border-b border-border px-5 py-4">
-            <h2 className="text-base font-semibold text-foreground">시간대 선택</h2>
-            <p className="mt-1 text-sm text-muted-foreground">출석 처리할 반을 선택합니다.</p>
+      <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="self-start rounded-2xl bg-card">
+          <div className="px-5 pb-2 pt-5">
+            <h2 className="text-[17px] font-bold tracking-tight text-foreground">시간대 선택</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">출석 처리할 반을 선택합니다.</p>
           </div>
-          <div className="space-y-2 p-3">
+          <div className="space-y-1 p-3">
             {SLOT_ORDER.map((slot) => (
               <SlotButton
                 key={slot}
@@ -207,19 +203,19 @@ export default function StudentAttendancePage() {
         </div>
 
         <div className="rounded-2xl bg-card" data-testid="student-attendance-list">
-          <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-3 px-5 pb-2 pt-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-base font-semibold text-foreground">
+              <h2 className="text-[17px] font-bold tracking-tight text-foreground">
                 {TIME_SLOT_INFO[activeSlot].label} 학생
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 {TIME_SLOT_INFO[activeSlot].time} · {currentStudents.length}명 배정
               </p>
             </div>
             <button
               onClick={handleMarkUncheckedPresent}
               disabled={loading || updating !== null || currentUnchecked.length === 0}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-success/30 bg-success-soft px-3 text-sm font-medium text-success transition hover:bg-success-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-success-soft px-3 text-sm font-semibold text-success transition hover:bg-success-soft/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success disabled:cursor-not-allowed disabled:opacity-50"
             >
               {updating === 'batch' ? <RefreshCw size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
               미체크 출석 처리
@@ -234,7 +230,7 @@ export default function StudentAttendancePage() {
           ) : currentStudents.length === 0 ? (
             <EmptyState slot={activeSlot} />
           ) : (
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/60 px-5 pb-2">
               {currentStudents.map((student) => (
                 <StudentRow
                   key={student.assignment_id}
@@ -248,7 +244,7 @@ export default function StudentAttendancePage() {
         </div>
       </section>
 
-      <aside className="rounded-md border border-border bg-muted px-4 py-3 text-sm text-secondary-foreground">
+      <aside className="rounded-2xl bg-card px-5 py-4 text-sm text-muted-foreground">
         출석 변경은 P-ACA에 바로 반영됩니다. 학생이 동기화 필요 상태라면 먼저 반 배치에서 출석 동기화를 실행하세요.
       </aside>
     </div>

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { useToast } from '@/hooks/useToast';
+import { PageHeader, StatTile, toolbarButtonClass } from '@/components/ui/page';
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening';
 type AttendanceStatus = 'scheduled' | 'present' | 'absent' | 'late';
@@ -125,36 +126,31 @@ export default function AttendancePage() {
   const pendingCount = Math.max(stats.uniqueInstructors - stats.checkedIn, 0);
 
   return (
-    <div className="mx-auto max-w-[1280px] space-y-6" data-testid="attendance-page">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Staff Attendance</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-foreground">출근 체크</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{today}</p>
-        </div>
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-secondary-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
-        >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          새로고침
-        </button>
-      </header>
+    <div className="mx-auto max-w-[1280px] space-y-4" data-testid="attendance-page">
+      <PageHeader
+        title="출근 체크"
+        description={today}
+        actions={(
+          <button onClick={fetchData} disabled={loading} className={toolbarButtonClass()}>
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            새로고침
+          </button>
+        )}
+      />
 
-      <section className="grid gap-3 md:grid-cols-3" aria-label="출근 요약">
-        <SummaryCard icon={UserCheck} label="출근 강사" value={`${stats.checkedIn}/${stats.uniqueInstructors}`} detail={`${attendanceRate}% 완료`} tone="orange" />
-        <SummaryCard icon={Clock3} label="확인 필요" value={`${pendingCount}명`} detail="미출근 또는 예정" tone="slate" />
-        <SummaryCard icon={Users} label="오늘 배정" value={`${stats.total}건`} detail="시간대 중복 포함" tone="blue" />
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3" aria-label="출근 요약">
+        <StatTile icon={UserCheck} tone="primary" label="출근 강사" value={`${stats.checkedIn}/${stats.uniqueInstructors}`} note={`${attendanceRate}% 완료`} />
+        <StatTile icon={Clock3} tone={pendingCount > 0 ? 'warning' : 'neutral'} label="확인 필요" value={`${pendingCount}명`} note="미출근 또는 예정" />
+        <StatTile icon={Users} className="col-span-2 lg:col-span-1" label="오늘 배정" value={`${stats.total}건`} note="시간대 중복 포함" />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="rounded-2xl bg-card">
-          <div className="border-b border-border px-5 py-4">
-            <h2 className="text-base font-semibold text-foreground">시간대 선택</h2>
-            <p className="mt-1 text-sm text-muted-foreground">강사가 배정된 반을 먼저 확인합니다.</p>
+      <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="self-start rounded-2xl bg-card">
+          <div className="px-5 pb-2 pt-5">
+            <h2 className="text-[17px] font-bold tracking-tight text-foreground">시간대 선택</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">강사가 배정된 반을 먼저 확인합니다.</p>
           </div>
-          <div className="space-y-2 p-3">
+          <div className="space-y-1 p-3">
             {SLOT_ORDER.map((slot) => (
               <SlotButton
                 key={slot}
@@ -169,18 +165,13 @@ export default function AttendancePage() {
         </div>
 
         <div className="rounded-2xl bg-card" data-testid="attendance-list">
-          <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-            <div>
-              <h2 className="text-base font-semibold text-foreground">
-                {TIME_SLOT_INFO[activeSlot].label} 강사
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {TIME_SLOT_INFO[activeSlot].time} · {currentInstructors.length}명 배정
-              </p>
-            </div>
-            <span className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm font-medium text-secondary-foreground">
-              {getSlotCheckedIn(currentInstructors)}/{currentInstructors.length}
-            </span>
+          <div className="px-5 pb-2 pt-5">
+            <h2 className="text-[17px] font-bold tracking-tight text-foreground">
+              {TIME_SLOT_INFO[activeSlot].label} 강사
+            </h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {TIME_SLOT_INFO[activeSlot].time} · {currentInstructors.length}명 배정
+            </p>
           </div>
 
           {loading ? (
@@ -191,7 +182,7 @@ export default function AttendancePage() {
           ) : currentInstructors.length === 0 ? (
             <EmptyState slot={activeSlot} />
           ) : (
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/60 px-5 pb-2">
               {currentInstructors.map((instructor) => (
                 <InstructorRow key={`${instructor.id}-${instructor.time_slot}`} instructor={instructor} />
               ))}
@@ -200,45 +191,10 @@ export default function AttendancePage() {
         </div>
       </section>
 
-      <aside className="rounded-md border border-border bg-muted px-4 py-3 text-sm text-secondary-foreground">
+      <aside className="rounded-2xl bg-card px-5 py-4 text-sm text-muted-foreground">
         출근 상태 변경은 P-ACA에서 처리됩니다. 이 화면은 Peak 수업 운영자가 현재 반 배정과 강사 출근 상태를 빠르게 확인하는 용도입니다.
       </aside>
     </div>
-  );
-}
-
-function SummaryCard({
-  icon: Icon,
-  label,
-  value,
-  detail,
-  tone,
-}: {
-  icon: ComponentType<{ size?: number }>;
-  label: string;
-  value: string;
-  detail: string;
-  tone: 'orange' | 'blue' | 'slate';
-}) {
-  const toneClass = {
-    orange: 'bg-primary-soft text-primary border-primary/30',
-    blue: 'bg-primary-soft text-primary border-primary/30',
-    slate: 'bg-muted text-secondary-foreground border-border',
-  }[tone];
-
-  return (
-    <article className="rounded-2xl bg-card p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">{label}</p>
-          <p className="mt-3 text-3xl font-semibold tracking-normal text-foreground">{value}</p>
-          <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
-        </div>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border ${toneClass}`}>
-          <Icon size={19} />
-        </span>
-      </div>
-    </article>
   );
 }
 
@@ -261,20 +217,21 @@ function SlotButton({
   return (
     <button
       onClick={onClick}
-      className={`grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-md border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+      aria-pressed={active}
+      className={`grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         active
-          ? 'border-primary bg-primary-soft text-foreground shadow-sm ring-1 ring-primary/30'
-          : 'border-transparent text-secondary-foreground hover:border-border hover:bg-muted'
+          ? 'bg-primary-soft text-foreground'
+          : 'text-secondary-foreground hover:bg-muted'
       }`}
     >
-      <span className="flex h-10 w-10 items-center justify-center rounded-md bg-card text-primary shadow-sm">
+      <span className={`flex h-10 w-10 items-center justify-center rounded-full ${active ? 'bg-card text-primary' : 'bg-muted text-muted-foreground'}`}>
         <Icon size={18} />
       </span>
       <span className="min-w-0">
-        <span className="block font-medium">{info.label}</span>
+        <span className="block text-[15px] font-semibold">{info.label}</span>
         <span className="mt-0.5 block text-xs text-muted-foreground">{info.time}</span>
       </span>
-      <span className="rounded-md border border-border bg-card px-2 py-1 text-sm font-semibold text-foreground">
+      <span className="text-sm font-bold tabular-nums text-foreground">
         {checkedIn}/{count}
       </span>
     </button>
@@ -286,9 +243,9 @@ function InstructorRow({ instructor }: { instructor: Instructor }) {
   const isPresent = instructor.attendance_status === 'present' || instructor.attendance_status === 'late';
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3.5">
       <div className="flex min-w-0 items-center gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-sm font-semibold ${
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
           isPresent
             ? 'bg-success-soft text-success'
             : 'bg-muted text-muted-foreground'
@@ -296,8 +253,8 @@ function InstructorRow({ instructor }: { instructor: Instructor }) {
           {isPresent ? <CheckCircle2 size={19} /> : instructor.name.charAt(0)}
         </span>
         <span className="min-w-0">
-          <span className="block truncate font-medium text-foreground">{instructor.name}</span>
-          <span className="mt-1 block text-sm text-muted-foreground">
+          <span className="block truncate text-[15px] font-semibold text-foreground">{instructor.name}</span>
+          <span className="mt-0.5 block text-[13px] text-muted-foreground">
             {TIME_SLOT_INFO[instructor.time_slot].label} 근무
           </span>
         </span>
@@ -309,7 +266,7 @@ function InstructorRow({ instructor }: { instructor: Instructor }) {
             {instructor.check_in_time.slice(0, 5)}
           </span>
         ) : null}
-        <span className={`rounded-md border px-2.5 py-1 text-sm font-medium ${status.className}`}>{status.label}</span>
+        <span className={`rounded-full border px-2.5 py-0.5 text-[13px] font-semibold ${status.className}`}>{status.label}</span>
       </div>
     </div>
   );
