@@ -13,7 +13,8 @@ export function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-bold transition ${
+      aria-pressed={active}
+      className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${
         active ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'
       }`}
     >

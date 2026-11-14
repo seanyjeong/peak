@@ -60,7 +60,7 @@ export function ScoreTablesPanel({
           <button
             type="button"
             onClick={onShowForm}
-            className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-bold text-background transition hover:bg-foreground/90"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 h-10 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
           >
             <Calculator className="h-4 w-4" />
             배점표 생성
@@ -143,7 +143,7 @@ function ScoreFormCard({
         <select
           value={selectedTypeForScore ?? ''}
           onChange={(event) => setSelectedTypeForScore(event.target.value ? Number(event.target.value) : null)}
-          className="mt-1 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-foreground"
+          className="mt-1 h-11 w-full rounded-xl border border-transparent bg-muted px-3 text-sm text-foreground outline-none transition focus:border-primary"
         >
           <option value="">선택하세요</option>
           {typesWithoutScore.map((type) => (
@@ -167,7 +167,7 @@ function ScoreFormCard({
           <select
             value={scoreForm.decimal_places}
             onChange={(event) => onChange({ ...scoreForm, decimal_places: Number(event.target.value) })}
-            className="mt-1 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-foreground"
+            className="mt-1 h-11 w-full rounded-xl border border-transparent bg-muted px-3 text-sm text-foreground outline-none transition focus:border-primary"
           >
             <option value={0}>정수</option>
             <option value={1}>소수점 1자리</option>
@@ -179,10 +179,10 @@ function ScoreFormCard({
       </div>
 
       <div className="mt-5 flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-lg border border-border px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
+        <button type="button" onClick={onCancel} className="bg-secondary rounded-xl px-4 py-2 text-sm font-semibold text-secondary-foreground hover:bg-secondary/70">
           취소
         </button>
-        <button type="button" onClick={onCreate} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background hover:bg-foreground/90">
+        <button type="button" onClick={onCreate} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 h-10 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
           <Save className="h-4 w-4" />
           생성
         </button>
@@ -413,7 +413,7 @@ function RangeValueCell({
           value={value >= 9999 ? '' : value}
           placeholder="이상"
           onChange={(event) => onChange(rangeId, field, event.target.value ? Number(event.target.value) : 9999.99)}
-          className="h-9 w-24 rounded-lg border border-border bg-card px-2 text-center text-sm outline-none focus:border-foreground"
+          className="h-9 w-24 rounded-xl border border-transparent bg-muted px-2 text-center text-sm outline-none focus:border-primary"
         />
       ) : (
         <span>{formatRangeValue(value, decimalPlaces)} {formatRangeValue(value, decimalPlaces) === '-' ? '' : unit}</span>
@@ -444,7 +444,7 @@ function NumberField({
         step={step}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-1 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-foreground"
+        className="mt-1 h-11 w-full rounded-xl border border-transparent bg-muted px-3 text-sm text-foreground outline-none transition focus:border-primary"
       />
     </label>
   );

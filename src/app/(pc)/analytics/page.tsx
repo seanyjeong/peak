@@ -20,6 +20,7 @@ import {
   RankingTable,
   TrendGroup,
 } from './analytics-ui';
+import { PageHeader } from '@/components/ui/page';
 
 const TREND_KEYS = ['declining', 'improving', 'maintaining'] as const;
 const ACCORDION_DEFAULTS = { declining: true, improving: false, maintaining: false };
@@ -142,31 +143,25 @@ export default function AnalyticsReportPage() {
   const trendTotal = summary.overallTrend.improving + summary.overallTrend.maintaining + summary.overallTrend.declining;
 
   return (
-    <div ref={reportRef} className="max-w-[1440px] space-y-6 px-6 py-6 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-sm font-bold text-primary">
-            <BarChart3 className="h-4 w-4" />
-            PERFORMANCE REPORT
-          </div>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">
-            {summary.academyName} 분석 리포트
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">생성일 {summary.reportDate} · 최근 기록 기준</p>
-        </div>
-        <button
-          onClick={downloadPDF}
-          disabled={pdfLoading}
-          className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-bold text-background transition hover:bg-foreground/90 disabled:opacity-50"
-        >
-          <Download className="h-4 w-4" />
-          {pdfLoading ? '생성 중' : 'PDF 저장'}
-        </button>
-      </header>
+    <div ref={reportRef} className="mx-auto max-w-[1440px] space-y-4 py-2">
+      <PageHeader
+        title={`${summary.academyName} 분석 리포트`}
+        description={`생성일 ${summary.reportDate} · 최근 기록 기준`}
+        actions={(
+          <button
+            onClick={downloadPDF}
+            disabled={pdfLoading}
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {pdfLoading ? '생성 중' : 'PDF 저장'}
+          </button>
+        )}
+      />
 
       <BranchTabs branches={data.branches || []} value={branchId} onChange={handleBranchChange} />
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KPICard icon={<BarChart3 className="h-4 w-4" />} label="총 기록" value={summary.totalRecords.toLocaleString()} unit="건" tone="blue" />
         <KPICard icon={<Users className="h-4 w-4" />} label="분석 학생" value={String(summary.totalStudents)} unit="명" />
         <KPICard icon={<Trophy className="h-4 w-4" />} label="활성 종목" value={String(summary.totalEvents)} unit="개" tone="orange" />
@@ -177,8 +172,8 @@ export default function AnalyticsReportPage() {
 
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-bold tracking-tight text-foreground">종목별 상세</h2>
-          <p className="mt-1 text-sm text-muted-foreground">순위는 최신 기록, 트렌드는 최근 5회 변화 기준입니다.</p>
+          <h2 className="px-1 text-[17px] font-bold tracking-tight text-foreground">종목별 상세</h2>
+          <p className="mt-0.5 px-1 text-sm text-muted-foreground">순위는 최신 기록, 트렌드는 최근 5회 변화 기준입니다.</p>
         </div>
         <EventTabs events={eventAverages} selectedEvent={selectedEvent} onSelect={handleEventSelect} />
 

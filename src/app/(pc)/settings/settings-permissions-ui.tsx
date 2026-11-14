@@ -45,7 +45,7 @@ export function PermissionsPanel({
           type="button"
           onClick={onSave}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-bold text-background transition hover:bg-foreground/90 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 h-10 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
           {saving ? '저장 중' : '저장'}

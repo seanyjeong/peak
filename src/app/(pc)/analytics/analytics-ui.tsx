@@ -12,17 +12,18 @@ import {
 import type { ReactNode } from 'react';
 import type { EventAverage, EventTrend, RankStudent, TrendStudent, TrendType } from './analytics-model';
 import { formatMetric, slopeToText, sortTrendStudents, trendLabel } from './analytics-model';
+import { chipClass } from '@/components/ui/page';
 
 export function AnalyticsSkeleton() {
   return (
-    <div className="space-y-5 px-6 py-6 lg:px-8">
-      <div className="h-10 w-80 animate-pulse rounded-lg bg-border" />
-      <div className="grid gap-4 md:grid-cols-4">
+    <div className="space-y-4 py-2">
+      <div className="h-10 w-80 max-w-full animate-pulse rounded-xl bg-card" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[1, 2, 3, 4].map((item) => (
-          <div key={item} className="h-28 animate-pulse rounded-lg bg-border" />
+          <div key={item} className="h-28 animate-pulse rounded-2xl bg-card" />
         ))}
       </div>
-      <div className="h-96 animate-pulse rounded-lg bg-border" />
+      <div className="h-96 animate-pulse rounded-2xl bg-card" />
     </div>
   );
 }
@@ -30,13 +31,13 @@ export function AnalyticsSkeleton() {
 export function AnalyticsErrorState({ message, onBack }: { message: string; onBack: () => void }) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-6 py-8">
-      <div className="w-full max-w-md rounded-lg border border-warning/30 bg-warning-soft p-6 text-center">
+      <div className="w-full max-w-md rounded-2xl bg-warning-soft p-6 text-center">
         <AlertTriangle className="mx-auto h-10 w-10 text-warning" />
         <h1 className="mt-4 text-lg font-bold text-foreground">리포트를 열 수 없습니다</h1>
         <p className="mt-2 text-sm leading-6 text-secondary-foreground">{message}</p>
         <button
           onClick={onBack}
-          className="mt-5 rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background transition hover:bg-foreground/90"
+          className="mt-5 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
         >
           대시보드로 이동
         </button>
@@ -66,11 +67,13 @@ export function KPICard({
   }[tone];
 
   return (
-    <div className="rounded-2xl bg-card p-5">
-      <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border ${toneClass}`}>{icon}</div>
-      <p className="mt-4 text-sm font-semibold text-muted-foreground">{label}</p>
-      <div className="mt-1 flex items-end gap-1">
-        <span className="text-3xl font-bold tracking-tight text-foreground">{value}</span>
+    <div className="min-w-0 rounded-2xl bg-card p-5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-secondary-foreground">{label}</span>
+        <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${toneClass}`}>{icon}</span>
+      </div>
+      <div className="mt-2 flex items-end gap-1">
+        <span className="text-[26px] font-extrabold leading-tight tracking-tight text-foreground tabular-nums">{value}</span>
         <span className="pb-1 text-sm text-muted-foreground">{unit}</span>
       </div>
     </div>
@@ -80,17 +83,17 @@ export function KPICard({
 export function EventAverageTable({ events }: { events: EventAverage[] }) {
   return (
     <section className="rounded-2xl bg-card">
-      <div className="flex items-start gap-3 border-b border-border px-5 py-4">
+      <div className="flex items-start gap-3 px-5 pb-2 pt-5 sm:px-6">
         <Activity className="mt-0.5 h-5 w-5 text-primary" />
         <div>
-          <h2 className="text-base font-bold text-foreground">종목별 최신 평균</h2>
+          <h2 className="text-[17px] font-bold tracking-tight text-foreground">종목별 최신 평균</h2>
           <p className="mt-1 text-sm text-muted-foreground">학생별 가장 최근 기록 1개만 반영합니다.</p>
         </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted text-muted-foreground">
+            <tr className="border-b border-border/60 text-[13px] text-muted-foreground">
               <th className="px-5 py-3 text-left font-semibold">종목</th>
               <th className="px-3 py-3 text-center font-semibold">단위</th>
               <th className="px-3 py-3 text-right font-semibold text-primary">남자 평균</th>
@@ -99,7 +102,7 @@ export function EventAverageTable({ events }: { events: EventAverage[] }) {
               <th className="px-3 py-3 text-right font-semibold">인원</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border/60">
             {events.map((event) => (
               <tr key={event.recordTypeId} className="text-secondary-foreground">
                 <td className="px-5 py-3 font-semibold">{event.recordTypeName}</td>
@@ -134,11 +137,8 @@ export function EventTabs({
           <button
             key={event.recordTypeId}
             onClick={() => onSelect(event.recordTypeId)}
-            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-              selected
-                ? 'border-foreground bg-foreground text-background'
-                : 'border-border bg-card text-secondary-foreground hover:bg-muted'
-            }`}
+            aria-pressed={selected}
+            className={chipClass(selected)}
           >
             {event.shortName || event.recordTypeName}
           </button>
@@ -174,7 +174,7 @@ export function RankingTable({ data, title, tone, unit }: { data: RankStudent[];
         <Trophy className="h-4 w-4" />
         <span className="text-sm font-bold">{title}</span>
       </div>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border/60">
         {data.length === 0 ? (
           <p className="px-4 py-4 text-sm text-muted-foreground">최근 기록이 없습니다</p>
         ) : data.map((student) => (
@@ -211,7 +211,7 @@ export function TrendGroup({
   const Icon = type === 'improving' ? TrendingUp : type === 'declining' ? TrendingDown : Minus;
 
   return (
-    <div className={`overflow-hidden rounded-lg border bg-card shadow-sm ${tone.border}`}>
+    <div className={`overflow-hidden rounded-2xl bg-card ${tone.border}`}>
       <button onClick={onToggle} className={`flex w-full items-center gap-3 px-5 py-3 text-left ${tone.surface}`}>
         {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         <Icon className="h-4 w-4" />
@@ -220,7 +220,7 @@ export function TrendGroup({
         <span className="text-xs opacity-70">남 {males.length} / 여 {females.length}</span>
       </button>
       {open && (
-        <div className="grid md:grid-cols-2 md:divide-x md:divide-border">
+        <div className="grid md:grid-cols-2 md:divide-x md:divide-border/60">
           <TrendColumn direction={direction} label="남자" students={males} type={type} unit={unit} />
           <TrendColumn direction={direction} label="여자" students={females} type={type} unit={unit} />
         </div>
@@ -237,7 +237,7 @@ export function InsufficientDataPanel({
   if (students.length === 0) return null;
 
   return (
-    <section className="rounded-lg border border-warning/30 bg-warning-soft p-5">
+    <section className="rounded-2xl bg-warning-soft p-5">
       <div className="flex items-start gap-3">
         <Info className="mt-0.5 h-5 w-5 text-warning" />
         <div>
@@ -247,7 +247,7 @@ export function InsufficientDataPanel({
       </div>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
         {students.slice(0, 20).map((student) => (
-          <div key={student.studentId} className="rounded-lg bg-card/70 px-3 py-2 text-sm text-secondary-foreground">
+          <div key={student.studentId} className="rounded-xl bg-card/70 px-3 py-2 text-sm text-secondary-foreground">
             <span className="font-bold">{student.studentName}</span>
             <span className="ml-2 text-muted-foreground">
               {student.events.map((event) => `${event.recordTypeName} ${event.recordCount}개`).join(', ')}
@@ -281,7 +281,7 @@ function TrendColumn({
       {students.length === 0 ? (
         <p className="px-4 py-4 text-sm text-muted-foreground">해당 학생이 없습니다</p>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border/60">
           {students.map((student) => (
             <div key={student.studentId} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-4 py-3 text-sm">
               <span className="truncate font-semibold text-foreground">{student.studentName}</span>

@@ -35,7 +35,7 @@ export function RecordTypesPanel({
         <button
           type="button"
           onClick={onAdd}
-          className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-bold text-background transition hover:bg-foreground/90"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 h-10 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
           종목 추가
@@ -125,7 +125,7 @@ function TypeFormCard({
           <select
             value={typeForm.direction}
             onChange={(event) => onChange({ ...typeForm, direction: event.target.value as TypeForm['direction'] })}
-            className="mt-1 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-foreground"
+            className="mt-1 h-11 w-full rounded-xl border border-transparent bg-muted px-3 text-sm text-foreground outline-none transition focus:border-primary"
           >
             <option value="higher">높을수록 좋음</option>
             <option value="lower">낮을수록 좋음</option>
@@ -151,10 +151,10 @@ function TypeFormCard({
       </div>
 
       <div className="mt-5 flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-lg border border-border px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
+        <button type="button" onClick={onCancel} className="bg-secondary rounded-xl px-4 py-2 text-sm font-semibold text-secondary-foreground hover:bg-secondary/70">
           취소
         </button>
-        <button type="button" onClick={onSave} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background hover:bg-foreground/90">
+        <button type="button" onClick={onSave} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 h-10 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
           <Save className="h-4 w-4" />
           저장
         </button>
@@ -232,7 +232,7 @@ function InputField({
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-foreground"
+        className="mt-1 h-11 w-full rounded-xl border border-transparent bg-muted px-3 text-sm text-foreground outline-none transition focus:border-primary"
       />
     </label>
   );
