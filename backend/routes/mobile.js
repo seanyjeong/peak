@@ -10,13 +10,14 @@ const db = require('../config/database');
 const { decryptStudentFields } = require('../utils/paca-student');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
+const { getKstDateString } = require('../utils/kst-date');
 
 // GET /peak/mobile/my-class - 내 수업 한방 조회
 // 강사 기준: 오늘 내가 배치된 반 + 학생 + 출석 + 수업계획
 router.get('/my-class', async (req, res) => {
     try {
         const { date } = req.query;
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        const targetDate = date || getKstDateString();
         const academyId = req.user.academyId;
         const userId = req.user.id;
         const instructorId = req.user.instructorId;

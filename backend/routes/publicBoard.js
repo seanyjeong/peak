@@ -10,6 +10,7 @@ const {
   verifyBoardPin,
 } = require('../utils/board-access');
 const { decrypt } = require('../utils/encryption');
+const { getKstDateString } = require('../utils/kst-date');
 const {
   findBoardSettingsBySlug,
   toBoardAcademy,
@@ -462,7 +463,7 @@ router.get('/:slug/absent', async (req, res) => {
     const [settings] = await pool.query('SELECT academy_id FROM peak_settings WHERE slug = ?', [slug]);
     if (settings.length === 0) return res.status(404).json({ success: false, message: 'slug not found' });
     const academyId = settings[0].academy_id;
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const targetDate = date || getKstDateString();
     const [absent] = await pacaPool.query(
       'SELECT DISTINCT a.student_id AS paca_student_id FROM attendance a JOIN class_schedules cs ON a.class_schedule_id = cs.id WHERE cs.academy_id = ? AND cs.class_date = ? AND cs.time_slot = ? AND a.attendance_status = ?',
       [academyId, targetDate, time_slot, 'absent']

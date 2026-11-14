@@ -10,6 +10,7 @@ const db = require('../config/database');
 const { decryptStudentFields } = require('../utils/paca-student');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
+const { getKstDateString } = require('../utils/kst-date');
 const { verifyToken } = require('../middleware/auth');
 const {
     emitStudentAttendanceBatchUpdated,
@@ -30,7 +31,7 @@ const {
 router.get('/', verifyToken, async (req, res) => {
     try {
         const { date } = req.query;
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        const targetDate = date || getKstDateString();
         const academyId = req.user.academyId;
 
         const [instructors] = await pacaPool.query(`
@@ -92,7 +93,7 @@ router.get('/', verifyToken, async (req, res) => {
 router.get('/current', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
-        const today = new Date().toISOString().split('T')[0];
+        const today = getKstDateString();
         const now = new Date();
         const currentHour = now.getHours();
 
@@ -154,7 +155,7 @@ router.post('/checkin', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const { trainer_id } = req.body;
-        const today = new Date().toISOString().split('T')[0];
+        const today = getKstDateString();
         const now = new Date().toTimeString().split(' ')[0];
 
         const requesterId = req.user.instructorId;
@@ -204,7 +205,7 @@ router.post('/checkin', verifyToken, async (req, res) => {
 router.get('/students', verifyToken, async (req, res) => {
     try {
         const { date } = req.query;
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        const targetDate = date || getKstDateString();
         const academyId = req.user.academyId;
 
         // Peak daily_assignments에서 학생 조회 + Paca attendance 상태

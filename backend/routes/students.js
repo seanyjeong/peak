@@ -14,6 +14,7 @@ const fs = require('fs');
 const os = require('os');
 const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
+const { getKstDateString } = require('../utils/kst-date');
 const pacaPool = require('../config/paca-database');
 const { verifyToken } = require('../middleware/auth');
 
@@ -291,7 +292,7 @@ router.get('/today', verifyToken, async (req, res) => {
         const students = decryptStudentFields(rows);
         res.json({
             success: true,
-            date: today.toISOString().split('T')[0],
+            date: getKstDateString(today),
             dayOfWeek,
             students
         });
@@ -330,7 +331,7 @@ router.get('/schedule', verifyToken, async (req, res) => {
         const students = decryptStudentFields(rows);
         res.json({
             success: true,
-            date: targetDate.toISOString().split('T')[0],
+            date: getKstDateString(targetDate),
             dayOfWeek,
             students
         });
@@ -854,7 +855,7 @@ router.get('/:id/export-pdf', verifyToken, async (req, res) => {
         });
 
         // 11. Send PDF
-        const fileName = encodeURIComponent(`${student.name}_실기기록_${new Date().toISOString().split('T')[0]}.pdf`);
+        const fileName = encodeURIComponent(`${student.name}_실기기록_${getKstDateString()}.pdf`);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${fileName}`);
 

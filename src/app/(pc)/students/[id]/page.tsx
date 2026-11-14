@@ -37,6 +37,7 @@ import {
   displayTypeName,
   formatDate,
   formatRecordValue,
+  getLocalDateString,
   getProfileErrorMessage,
   getRecordPercentage,
   gradeClass,
@@ -197,7 +198,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
       const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${student.name}_실기기록_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = `${student.name}_실기기록_${getLocalDateString()}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

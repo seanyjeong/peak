@@ -2,6 +2,7 @@ const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { verifyToken } = require('../middleware/auth');
 const { decrypt } = require('../utils/encryption');
+const { getKstDateString } = require('../utils/kst-date');
 const {
     getAssignmentSyncSourceStatusSql,
     getTrialAssignmentSnapshot,
@@ -13,7 +14,7 @@ function registerAssignmentSyncRoutes(router) {
     router.post('/sync', verifyToken, async (req, res) => {
         try {
             const { date } = req.body;
-            const targetDate = date || new Date().toISOString().split('T')[0];
+            const targetDate = date || getKstDateString();
             const academyId = req.user.academyId;
             const assignableStatusSql = getAssignmentSyncSourceStatusSql('s');
 

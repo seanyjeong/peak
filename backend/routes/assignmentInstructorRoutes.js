@@ -1,12 +1,13 @@
 const db = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
+const { getKstDateString } = require('../utils/kst-date');
 
 function registerAssignmentInstructorRoutes(router) {
     router.post('/instructor', verifyToken, async (req, res) => {
         try {
             const academyId = req.user.academyId;
             const { date, time_slot, instructor_id, to_class_num, is_main } = req.body;
-            const targetDate = date || new Date().toISOString().split('T')[0];
+            const targetDate = date || getKstDateString();
 
             if (to_class_num === null || to_class_num === undefined) {
                 const [deleted] = await db.query(`

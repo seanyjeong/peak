@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { decryptStudentFields } = require('../utils/paca-student');
+const { getKstDateString } = require('../utils/kst-date');
 const { verifyToken } = require('../middleware/auth');
 
 // GET /peak/training - 훈련 기록 목록
@@ -15,7 +16,7 @@ router.get('/', verifyToken, async (req, res) => {
         const academyId = req.user.academyId;
         const userRole = req.user.role;
         const { date, trainer_id, student_id } = req.query;
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        const targetDate = date || getKstDateString();
 
         // trainer_id는 P-ACA instructor_id 직접 사용 (trainers 테이블 사용 안함)
         let query = `

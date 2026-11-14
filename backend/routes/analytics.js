@@ -9,6 +9,7 @@ const router = express.Router();
 const db = require('../config/database');
 const { decryptStudentFields } = require('../utils/paca-student');
 const { requireFeaturePermission } = require('../utils/feature-permissions');
+const { getKstDateString } = require('../utils/kst-date');
 
 /**
  * 일상 측정(student_records) + 재원생 월말 테스트(test_records) 합산.
@@ -351,7 +352,7 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
                 totalRecords,
                 totalStudents,
                 academyName,
-                reportDate: new Date().toISOString().split('T')[0],
+                reportDate: getKstDateString(),
                 totalEvents: recordTypes.length,
                 overallTrend: { improving: overallImproving, maintaining: overallMaintaining, declining: overallDeclining }
             },

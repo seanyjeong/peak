@@ -10,6 +10,7 @@ const router = express.Router();
 const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
+const { getKstDateString } = require('../utils/kst-date');
 const { verifyToken } = require('../middleware/auth');
 
 /**
@@ -40,7 +41,7 @@ router.get('/', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const { date, time_slot } = req.query;
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        const targetDate = date || getKstDateString();
 
         // P-ACA에서 해당 날짜 스케줄된 강사 조회
         const [scheduledInstructors] = await pacaPool.query(`
