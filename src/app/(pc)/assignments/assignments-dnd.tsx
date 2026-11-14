@@ -209,7 +209,7 @@ export function ClassColumn({ classData }: { classData: ClassData }) {
           {classData.instructors.map((instructor) => (
             <DraggableInstructor key={instructor.id} instructor={instructor} showMain />
           ))}
-          {classData.instructors.length === 0 ? <span className="text-xs text-primary">강사 배치 필요</span> : null}
+          {classData.instructors.length === 0 ? <span className="text-xs text-warning">강사 배치 필요</span> : null}
         </div>
       </div>
       <div

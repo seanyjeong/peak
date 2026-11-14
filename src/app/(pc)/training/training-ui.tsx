@@ -30,8 +30,8 @@ import {
 
 const CONDITION_OPTIONS = [
   { score: 1, icon: Frown, label: '매우 나쁨', className: 'border-destructive/30 bg-destructive-soft text-destructive' },
-  { score: 2, icon: Frown, label: '나쁨', className: 'border-primary/30 bg-primary-soft text-primary' },
-  { score: 3, icon: Meh, label: '보통', className: 'border-warning/30 bg-warning-soft text-warning' },
+  { score: 2, icon: Frown, label: '나쁨', className: 'border-warning/30 bg-warning-soft text-warning' },
+  { score: 3, icon: Meh, label: '보통', className: 'border-border bg-muted text-secondary-foreground' },
   { score: 4, icon: Smile, label: '좋음', className: 'border-success/30 bg-success-soft text-success' },
   { score: 5, icon: ThumbsUp, label: '최상', className: 'border-primary/30 bg-primary-soft text-primary' },
 ];

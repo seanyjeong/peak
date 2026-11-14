@@ -87,7 +87,7 @@ export function trendClass(trend: string): string {
 }
 
 export function gradeClass(grade: string): string {
-  if (grade === 'A') return 'bg-primary-soft text-primary border-primary/30';
+  if (grade === 'A') return 'bg-primary text-primary-foreground border-primary';
   if (grade === 'B') return 'bg-primary-soft text-primary border-primary/30';
   if (grade === 'C') return 'bg-cyan-50 text-cyan-700 border-cyan-200';
   if (grade === 'D') return 'bg-muted text-secondary-foreground border-border';

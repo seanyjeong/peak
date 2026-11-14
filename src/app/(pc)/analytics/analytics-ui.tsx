@@ -94,7 +94,7 @@ export function EventAverageTable({ events }: { events: EventAverage[] }) {
               <th className="px-5 py-3 text-left font-semibold">종목</th>
               <th className="px-3 py-3 text-center font-semibold">단위</th>
               <th className="px-3 py-3 text-right font-semibold text-primary">남자 평균</th>
-              <th className="px-3 py-3 text-right font-semibold text-primary">여자 평균</th>
+              <th className="px-3 py-3 text-right font-semibold text-pink-600 dark:text-pink-400">여자 평균</th>
               <th className="px-3 py-3 text-right font-semibold">전체 평균</th>
               <th className="px-3 py-3 text-right font-semibold">인원</th>
             </tr>
@@ -105,7 +105,7 @@ export function EventAverageTable({ events }: { events: EventAverage[] }) {
                 <td className="px-5 py-3 font-semibold">{event.recordTypeName}</td>
                 <td className="px-3 py-3 text-center text-muted-foreground">{event.unit}</td>
                 <td className="px-3 py-3 text-right font-semibold text-primary">{formatMetric(event.maleAvg)}</td>
-                <td className="px-3 py-3 text-right font-semibold text-primary">{formatMetric(event.femaleAvg)}</td>
+                <td className="px-3 py-3 text-right font-semibold text-pink-600 dark:text-pink-400">{formatMetric(event.femaleAvg)}</td>
                 <td className="px-3 py-3 text-right">{formatMetric(event.totalAvg)}</td>
                 <td className="px-3 py-3 text-right text-muted-foreground">{event.maleCount + event.femaleCount}명</td>
               </tr>
@@ -166,7 +166,7 @@ export function EventSummaryBar({ trend }: { trend: EventTrend }) {
 }
 
 export function RankingTable({ data, title, tone, unit }: { data: RankStudent[]; title: string; tone: 'blue' | 'orange'; unit: string }) {
-  const toneClass = tone === 'blue' ? 'bg-primary-soft text-primary' : 'bg-primary-soft text-primary';
+  const toneClass = tone === 'blue' ? 'bg-primary-soft text-primary' : 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400';
 
   return (
     <div className="overflow-hidden rounded-2xl bg-card">

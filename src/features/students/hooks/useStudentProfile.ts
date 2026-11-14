@@ -344,8 +344,8 @@ export function useStudentProfile(studentId: string, initialGaugeCount: number =
     switch (grade) {
       case 'A': return 'text-success bg-success-soft';
       case 'B': return 'text-primary bg-primary-soft';
-      case 'C': return 'text-warning bg-warning-soft';
-      case 'D': return 'text-primary bg-primary-soft';
+      case 'C': return 'text-secondary-foreground bg-muted';
+      case 'D': return 'text-warning bg-warning-soft';
       default: return 'text-destructive bg-destructive-soft';
     }
   };

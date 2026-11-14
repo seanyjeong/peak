@@ -15,7 +15,7 @@ const SLOT_ICONS = {
 };
 
 const SLOT_STYLES = {
-  morning: 'border-primary/30 bg-primary-soft text-primary',
+  morning: 'border-warning/30 bg-warning-soft text-warning',
   afternoon: 'border-primary/30 bg-primary-soft text-primary',
   evening: 'border-violet-200 bg-violet-50 text-violet-700',
 };
