@@ -138,7 +138,7 @@ function TypeFormCard({
           label="허용 최소값"
           type="number"
           value={typeForm.min_value}
-          placeholder="비워두면 제한 없음"
+          placeholder="비워두면 0 이상(음수가 필요하면 입력)"
           onChange={(value) => onChange({ ...typeForm, min_value: value })}
         />
         <InputField

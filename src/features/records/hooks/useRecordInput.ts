@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import apiClient from '@/lib/api/client';
 import { useToast } from '@/hooks/useToast';
+import { buildRecordRangeMessage, isRecordValueOutOfRange } from '@/lib/utils/record-range';
 import {
   RecordInput,
   RecordType,
@@ -150,16 +151,9 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
       return;
     }
     const recordType = recordTypes.find(rt => rt.id === recordTypeId);
-    if (recordType) {
-      const { min_value, max_value } = recordType;
-      const outOfRange =
-        (min_value != null && numValue < min_value) ||
-        (max_value != null && numValue > max_value);
-      if (outOfRange) {
-        const rangeText = `${min_value ?? ''} ~ ${max_value ?? ''}`;
-        toastRef.current.error(`${recordType.name} 기록은 ${rangeText}${recordType.unit} 사이로 입력해주세요.`);
-        return;
-      }
+    if (recordType && isRecordValueOutOfRange(recordType, numValue)) {
+      toastRef.current.error(buildRecordRangeMessage(recordType));
+      return;
     }
 
     try {
@@ -215,8 +209,7 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
     if (isNaN(numValue)) return false;
     const recordType = recordTypes.find(rt => rt.id === recordTypeId);
     if (!recordType) return false;
-    const { min_value, max_value } = recordType;
-    return (min_value != null && numValue < min_value) || (max_value != null && numValue > max_value);
+    return isRecordValueOutOfRange(recordType, numValue);
   }, [recordTypes]);
 
   return {

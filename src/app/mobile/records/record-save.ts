@@ -1,3 +1,5 @@
+import { buildRecordRangeMessage, isRecordValueOutOfRange } from '@/lib/utils/record-range';
+
 interface RecordType {
   id: number;
   name: string;
@@ -24,21 +26,6 @@ export interface SaveMobileRecordResult {
 async function parseApiError(response: Response, fallback: string): Promise<Error> {
   const data = await response.json().catch(() => ({}));
   return new Error(data.message || fallback);
-}
-
-function buildRangeMessage(recordType: RecordType | undefined): string {
-  const name = recordType?.name || '선택한 종목';
-  const unit = recordType?.unit || '';
-  const minValue = recordType?.min_value ?? null;
-  const maxValue = recordType?.max_value ?? null;
-
-  if (minValue != null && maxValue != null) {
-    return `${name} 기록은 ${minValue}~${maxValue}${unit} 사이로 입력해주세요.`;
-  }
-  if (minValue != null) {
-    return `${name} 기록은 ${minValue}${unit} 이상으로 입력해주세요.`;
-  }
-  return `${name} 기록은 ${maxValue}${unit} 이하로 입력해주세요.`;
 }
 
 export async function saveMobileRecord(params: SaveMobileRecordParams): Promise<SaveMobileRecordResult> {
@@ -69,10 +56,8 @@ export async function saveMobileRecord(params: SaveMobileRecordParams): Promise<
     throw new Error('기록은 숫자로 입력해주세요.');
   }
 
-  const minValue = recordType?.min_value ?? null;
-  const maxValue = recordType?.max_value ?? null;
-  if ((minValue != null && numValue < minValue) || (maxValue != null && numValue > maxValue)) {
-    throw new Error(buildRangeMessage(recordType));
+  if (isRecordValueOutOfRange(recordType, numValue)) {
+    throw new Error(buildRecordRangeMessage(recordType));
   }
 
   const response = await fetch(`${apiBase}/records/batch`, {

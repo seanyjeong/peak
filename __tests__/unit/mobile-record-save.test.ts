@@ -105,6 +105,22 @@ describe('saveMobileRecord', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
+  it('blocks negative values when the record type has no minimum (D13)', async () => {
+    global.fetch = jest.fn() as jest.Mock;
+
+    await expect(saveMobileRecord({
+      apiBase: 'https://supermax.kr/peak',
+      token: 'token',
+      studentId: 9640,
+      recordTypeId: 1,
+      selectedDate: '2026-06-17',
+      value: '-1',
+      recordTypes: [{ id: 1, name: '제자리멀리뛰기', unit: 'cm', min_value: null, max_value: null }],
+    })).rejects.toThrow('제자리멀리뛰기 기록은 0cm 이상으로 입력해주세요.');
+
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it('shows Korean API messages on save failure', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,

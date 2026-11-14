@@ -17,18 +17,19 @@ function formatRecordValue(value) {
   return Number.isInteger(numberValue) ? String(numberValue) : String(numberValue);
 }
 
+// 최소값을 정하지 않은 종목은 0 을 하한으로 본다(거리·시간·횟수에는 음수가 없다).
+// 음수가 필요한 종목(예: 좌전굴)은 실기 측정 설정에서 최소값을 0 아래로 정한다. 화면 src/lib/utils/record-range.ts 와 같은 규칙.
+const DEFAULT_MIN_VALUE = 0;
+
 function buildRangeMessage(recordType) {
-  const minValue = recordType.min_value != null ? formatRecordValue(recordType.min_value) : null;
+  const minValue = formatRecordValue(recordType.min_value != null ? recordType.min_value : DEFAULT_MIN_VALUE);
   const maxValue = recordType.max_value != null ? formatRecordValue(recordType.max_value) : null;
   const unit = recordType.unit || '';
 
-  if (minValue !== null && maxValue !== null) {
+  if (maxValue !== null) {
     return `${recordType.name} 기록은 ${minValue}~${maxValue}${unit} 사이로 입력해주세요.`;
   }
-  if (minValue !== null) {
-    return `${recordType.name} 기록은 ${minValue}${unit} 이상으로 입력해주세요.`;
-  }
-  return `${recordType.name} 기록은 ${maxValue}${unit} 이하로 입력해주세요.`;
+  return `${recordType.name} 기록은 ${minValue}${unit} 이상으로 입력해주세요.`;
 }
 
 async function assertStudentInAcademy(connection, academyId, studentId) {
@@ -76,9 +77,9 @@ async function validateRecordValue(connection, academyId, recordTypeId, value) {
     );
   }
 
-  const minValue = recordType.min_value != null ? toNumber(recordType.min_value) : null;
+  const minValue = recordType.min_value != null ? toNumber(recordType.min_value) : DEFAULT_MIN_VALUE;
   const maxValue = recordType.max_value != null ? toNumber(recordType.max_value) : null;
-  const isBelowMin = minValue !== null && numericValue < minValue;
+  const isBelowMin = numericValue < minValue;
   const isAboveMax = maxValue !== null && numericValue > maxValue;
 
   if (isBelowMin || isAboveMax) {

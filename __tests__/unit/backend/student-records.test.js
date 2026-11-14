@@ -233,4 +233,38 @@ describe('student record academy guard', () => {
       publicMessage: '기록 종목을 찾을 수 없습니다.',
     });
   });
+
+  it('blocks negative values when the record type has no minimum (D13)', async () => {
+    const connection = createConnection({
+      students: [{ id: 9640, academy_id: 5 }],
+      recordTypes: [{ id: 13, academy_id: 5, name: '제자리멀리뛰기', unit: 'cm', min_value: null, max_value: null }],
+    });
+
+    await expect(saveStudentRecord(connection, {
+      academyId: 5,
+      studentId: 9640,
+      recordTypeId: 13,
+      measuredAt: '2026-05-25',
+      value: -1,
+    })).rejects.toMatchObject({
+      statusCode: 400,
+      publicMessage: '제자리멀리뛰기 기록은 0cm 이상으로 입력해주세요.',
+    });
+    expect(connection.query.mock.calls.some(([sql]) => sql.includes('INSERT INTO student_records'))).toBe(false);
+  });
+
+  it('allows negative values only when the record type minimum is below zero', async () => {
+    const connection = createConnection({
+      students: [{ id: 9640, academy_id: 5 }],
+      recordTypes: [{ id: 20, academy_id: 5, name: '좌전굴', unit: 'cm', min_value: '-20.00', max_value: null }],
+    });
+
+    await expect(saveStudentRecord(connection, {
+      academyId: 5,
+      studentId: 9640,
+      recordTypeId: 20,
+      measuredAt: '2026-05-25',
+      value: -3.5,
+    })).resolves.toMatchObject({ action: 'inserted', newValue: -3.5 });
+  });
 });
