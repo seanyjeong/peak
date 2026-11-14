@@ -21,6 +21,7 @@ import {
   ScoreTable,
   SettingsTab,
   toNullableNumber,
+  validateScoreRange,
   TypeForm,
 } from './settings-model';
 import { SettingsAccessDenied } from './settings-access-denied';
@@ -273,6 +274,16 @@ export default function SettingsPage() {
   const saveRange = async (rangeId: number) => {
     const range = editingRanges[rangeId];
     if (!range) return;
+
+    const invalidMessage = validateScoreRange(
+      range,
+      scoreRanges.filter((item) => item.id !== rangeId),
+      currentTable?.decimal_places ?? 0,
+    );
+    if (invalidMessage) {
+      toast.error(invalidMessage);
+      return;
+    }
 
     try {
       setSavingRange(rangeId);

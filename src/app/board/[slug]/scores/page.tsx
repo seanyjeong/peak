@@ -90,8 +90,10 @@ export default function ScoresPage({ params }: { params: Promise<{ slug: string 
     }
   }, [data]);
 
+  // 배점표 소수 자리로 보이되, 그보다 잘게 저장된 옛 값은 반올림하지 않고 그대로 보인다(D14)
   const formatValue = (value: number, decimalPlaces: number) => {
-    return value.toFixed(decimalPlaces);
+    const fixed = value.toFixed(decimalPlaces);
+    return Number(fixed) === value ? fixed : String(Number(value.toFixed(2)));
   };
 
   const handlePinSubmit = async (event: FormEvent<HTMLFormElement>) => {

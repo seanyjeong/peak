@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
 const { requireFeaturePermission } = require('../utils/feature-permissions');
+const { validateScoreRange } = require('../utils/score-ranges');
 
 const requireMeasurementSettings = requireFeaturePermission('measurementSettingsManage');
 
@@ -272,13 +273,27 @@ router.put('/ranges/:id', verifyToken, requireMeasurementSettings, async (req, r
 
         // 해당 구간이 이 학원 소유인지 확인
         const [rangeCheck] = await db.query(`
-            SELECT sr.id FROM score_ranges sr
+            SELECT sr.id, sr.score_table_id, st.decimal_places FROM score_ranges sr
             JOIN score_tables st ON sr.score_table_id = st.id
             WHERE sr.id = ? AND st.academy_id = ?
         `, [req.params.id, academyId]);
 
         if (rangeCheck.length === 0) {
             return res.status(404).json({ error: '구간을 찾을 수 없습니다.' });
+        }
+
+        // 소수 자리·최소≤최대·다른 구간과 겹침 검사 (D14)
+        const [otherRanges] = await db.query(
+            'SELECT id, score, male_min, male_max, female_min, female_max FROM score_ranges WHERE score_table_id = ? AND id <> ?',
+            [rangeCheck[0].score_table_id, req.params.id]
+        );
+        const invalidMessage = validateScoreRange({
+            range: { male_min, male_max, female_min, female_max },
+            others: otherRanges,
+            decimalPlaces: Number(rangeCheck[0].decimal_places) || 0,
+        });
+        if (invalidMessage) {
+            return res.status(400).json({ error: invalidMessage, message: invalidMessage });
         }
 
         await db.query(`
