@@ -18,33 +18,33 @@ export function RecordTypeCard({ type, value, trend, isSelected, hasData, onClic
       type="button"
       onClick={onClick}
       disabled={!hasData}
-      className={`rounded-lg border p-4 text-left transition ${
+      className={`rounded-xl p-4 text-left transition ${
         isSelected
-          ? 'border-foreground bg-foreground text-background'
+          ? 'bg-foreground text-background'
           : hasData
-            ? 'border-border bg-card hover:bg-muted'
-            : 'cursor-not-allowed border-border bg-muted opacity-50'
+            ? 'bg-muted hover:bg-border'
+            : 'cursor-not-allowed bg-muted opacity-50'
       }`}
     >
       <div className="mb-1 flex items-center justify-between">
-        <p className={`text-xs font-bold ${isSelected ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}>
+        <p className={`text-xs font-semibold ${isSelected ? 'text-background/70' : 'text-muted-foreground'}`}>
           {type.name}
         </p>
         {hasData && (
-          <BarChart3 size={14} className={isSelected ? 'text-white' : 'text-muted-foreground'} />
+          <BarChart3 size={14} className={isSelected ? 'text-background' : 'text-muted-foreground'} />
         )}
       </div>
       <div className="flex items-end justify-between">
-        <p className={`text-2xl font-black ${isSelected ? 'text-white' : 'text-foreground'}`}>
+        <p className={`text-2xl font-extrabold tabular-nums ${isSelected ? 'text-background' : 'text-foreground'}`}>
           {value !== null ? value : '-'}
-          <span className={`ml-1 text-sm font-semibold ${isSelected ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}>
+          <span className={`ml-1 text-sm font-semibold ${isSelected ? 'text-background/70' : 'text-muted-foreground'}`}>
             {type.unit}
           </span>
         </p>
         {trend && (
           <div className={`flex items-center gap-1 text-sm ${
             isSelected
-              ? 'text-white'
+              ? 'text-background'
               : trend.direction === 'up' ? 'text-success'
               : trend.direction === 'down' ? 'text-destructive'
               : 'text-muted-foreground'

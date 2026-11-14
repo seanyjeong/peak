@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Loader2, Search, Users } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Loader2, Search } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
+import { PageHeader, chipClass, decorTone, toolbarButtonClass } from '@/components/ui/page';
 import apiClient from '@/lib/api/client';
 import { Student, RecordType, STATUS_MAP } from '@/components/students/types';
 import { formatRecordValue, getProfileErrorMessage } from '../[id]/student-profile-model';
@@ -133,32 +134,15 @@ export default function AllStudentRecordsPage() {
   }
 
   return (
-    <main className="max-w-[1440px] space-y-5 px-6 py-6 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <Link href="/students" className="rounded-lg border border-border bg-card p-2 text-secondary-foreground hover:bg-muted">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <p className="text-sm font-bold text-primary">STUDENT RECORDS</p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">전체 기록 관리</h1>
-            <p className="mt-1 text-sm text-muted-foreground">학생별 최신 실기 기록을 한 표에서 비교합니다.</p>
-          </div>
-        </div>
-        <div className="rounded-2xl bg-card px-4 py-3 text-right">
-          <p className="text-xs font-bold text-muted-foreground">현재 표시</p>
-          <p className="text-2xl font-black text-foreground">{filteredRows.length}명</p>
-        </div>
-      </header>
+    <div className="mx-auto max-w-[1440px] space-y-4">
+      <div className="flex items-start gap-2">
+        <Link href="/students" className={`${toolbarButtonClass()} mt-2.5 w-10 px-0`} aria-label="학생 관리로">
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        <PageHeader className="min-w-0 flex-1" title="전체 기록 관리" description="학생별 최신 실기 기록을 한 표에서 비교합니다." />
+      </div>
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <Metric label="전체" value={students.length} />
-        <Metric label="재원" value={statusCounts.active || 0} />
-        <Metric label="체험" value={statusCounts.trial || 0} />
-        <Metric label="기록 종목" value={recordTypes.length} />
-      </section>
-
-      <section className="rounded-2xl bg-card p-4">
+      <section className="rounded-2xl bg-card p-4 sm:p-5">
         <div className="grid gap-3 xl:grid-cols-[1fr_180px_220px]">
           <label className="relative block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -167,25 +151,26 @@ export default function AllStudentRecordsPage() {
               placeholder="학생 이름 또는 학교 검색"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              className="h-11 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm outline-none focus:border-foreground"
+              className="h-11 w-full rounded-xl border border-transparent bg-muted pl-9 pr-3 text-[15px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
             />
           </label>
           <select
             value={gradeFilter}
             onChange={(event) => setGradeFilter(event.target.value)}
-            className="h-11 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-secondary-foreground outline-none focus:border-foreground"
+            className="h-11 rounded-xl border border-transparent bg-muted px-3 text-sm font-semibold text-secondary-foreground outline-none focus:border-primary"
           >
             <option value="">학년 전체</option>
             {grades.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
           </select>
-          <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-border">
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-muted p-1">
             {([['', '전체'], ['M', '남'], ['F', '여']] as const).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setGenderFilter(value)}
-                className={`h-11 text-sm font-bold transition ${
-                  genderFilter === value ? 'bg-foreground text-background' : 'bg-card text-secondary-foreground hover:bg-muted'
+                aria-pressed={genderFilter === value}
+                className={`h-9 rounded-lg text-sm font-semibold transition ${
+                  genderFilter === value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {label}
@@ -200,30 +185,32 @@ export default function AllStudentRecordsPage() {
               key={filter.key}
               type="button"
               onClick={() => setStatusFilter(filter.key)}
-              className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                statusFilter === filter.key ? 'bg-foreground text-background' : 'bg-muted text-secondary-foreground hover:bg-border'
-              }`}
+              aria-pressed={statusFilter === filter.key}
+              className={chipClass(statusFilter === filter.key, 'card')}
             >
-              {filter.label} {statusCounts[filter.key] ?? 0}
+              {filter.label} <span className="tabular-nums opacity-70">{statusCounts[filter.key] ?? 0}</span>
             </button>
           ))}
         </div>
       </section>
 
       <section className="overflow-hidden rounded-2xl bg-card">
+        <div className="px-5 pb-1 pt-4 text-sm font-semibold text-muted-foreground sm:px-6">
+          <span className="tabular-nums text-foreground">{filteredRows.length}명</span> 표시 · 기록 종목 {recordTypes.length}개
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="border-b border-border bg-muted text-muted-foreground">
+            <thead className="border-b border-border/60 text-[13px] text-muted-foreground">
               <tr>
-                <th className="sticky left-0 z-20 w-12 bg-muted px-3 py-3 text-left font-bold">#</th>
-                <th className="sticky left-12 z-20 min-w-36 bg-muted px-3 py-3 text-left font-bold">학생</th>
-                <th className="sticky left-48 z-20 min-w-32 bg-muted px-3 py-3 text-left font-bold">학교</th>
-                <th className="min-w-20 px-3 py-3 text-left font-bold">학년</th>
+                <th className="sticky left-0 z-20 w-12 bg-card px-3 py-3 text-left font-semibold">#</th>
+                <th className="sticky left-12 z-20 min-w-36 bg-card px-3 py-3 text-left font-semibold">학생</th>
+                <th className="sticky left-48 z-20 min-w-32 bg-card px-3 py-3 text-left font-semibold">학교</th>
+                <th className="min-w-20 px-3 py-3 text-left font-semibold">학년</th>
                 {recordTypes.map((type) => (
                   <th
                     key={type.id}
                     onClick={() => handleSort(type.id, type.direction)}
-                    className="min-w-32 cursor-pointer px-3 py-3 text-center font-bold hover:text-foreground"
+                    className="min-w-32 cursor-pointer px-3 py-3 text-center font-semibold hover:text-foreground"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
                       {type.short_name || type.name}
@@ -236,27 +223,32 @@ export default function AllStudentRecordsPage() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-border/60">
               {filteredRows.map((student, index) => {
                 const status = STATUS_MAP[student.status] || STATUS_MAP.active;
-                const stickyBg = student.gender === 'M' ? 'bg-primary-soft' : student.gender === 'F' ? 'bg-destructive-soft' : 'bg-card';
+                const stickyBg = 'bg-card';
                 return (
-                  <tr key={student.id} className="hover:bg-muted">
-                    <td className={`sticky left-0 z-10 px-3 py-3 text-muted-foreground ${stickyBg}`}>{index + 1}</td>
-                    <td className={`sticky left-12 z-10 px-3 py-3 ${stickyBg}`}>
+                  <tr key={student.id} className="hover:bg-muted/60">
+                    <td className={`sticky left-0 z-10 px-3 py-3.5 tabular-nums text-muted-foreground ${stickyBg}`}>{index + 1}</td>
+                    <td className={`sticky left-12 z-10 px-3 py-3.5 ${stickyBg}`}>
                       <div className="flex items-center gap-2">
+                        {student.gender === 'M' || student.gender === 'F' ? (
+                          <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${student.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink}`}>
+                            {student.gender === 'M' ? '남' : '여'}
+                          </span>
+                        ) : null}
                         <Link href={`/students/${student.id}`} className="truncate font-bold text-foreground hover:text-primary">
                           {student.name}
                         </Link>
-                        <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${status.color}`}>{status.label}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.color}`}>{status.label}</span>
                       </div>
                     </td>
-                    <td className={`sticky left-48 z-10 px-3 py-3 text-secondary-foreground ${stickyBg}`}>{student.school || '-'}</td>
-                    <td className="px-3 py-3 text-secondary-foreground">{student.grade || '-'}</td>
+                    <td className={`sticky left-48 z-10 px-3 py-3.5 text-secondary-foreground ${stickyBg}`}>{student.school || '-'}</td>
+                    <td className="px-3 py-3.5 text-secondary-foreground">{student.grade || '-'}</td>
                     {recordTypes.map((type) => {
                       const value = recordMap.get(`${student.id}-${type.id}`);
                       return (
-                        <td key={type.id} className="px-3 py-3 text-center font-mono font-semibold text-foreground">
+                        <td key={type.id} className="px-3 py-3.5 text-center font-semibold tabular-nums text-foreground">
                           {value !== undefined ? formatRecordValue(value, type.unit) : <span className="text-muted-foreground/60">-</span>}
                         </td>
                       );
@@ -275,18 +267,6 @@ export default function AllStudentRecordsPage() {
           </table>
         </div>
       </section>
-    </main>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl bg-card p-4">
-      <div className="flex items-center justify-between text-muted-foreground">
-        <span className="text-sm font-bold">{label}</span>
-        <Users className="h-4 w-4" />
-      </div>
-      <p className="mt-3 text-2xl font-black text-foreground">{value}</p>
     </div>
   );
 }

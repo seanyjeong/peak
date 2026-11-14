@@ -32,6 +32,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useToast } from '@/hooks/useToast';
+import { PageHeader, StatTile, chipClass, toolbarButtonClass } from '@/components/ui/page';
 import apiClient from '@/lib/api/client';
 import {
   displayTypeName,
@@ -231,7 +232,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
       <div className="flex min-h-[70vh] items-center justify-center px-6">
         <div className="rounded-2xl bg-card p-6 text-center">
           <p className="text-sm font-semibold text-secondary-foreground">학생 정보를 찾지 못했습니다.</p>
-          <button type="button" onClick={() => router.push('/students')} className="mt-4 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background">
+          <button type="button" onClick={() => router.push('/students')} className="mt-4 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground">
             학생 관리로 이동
           </button>
         </div>
@@ -243,48 +244,45 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
   const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 5);
 
   return (
-    <main className="max-w-[1440px] space-y-5 px-6 py-6 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <button type="button" onClick={() => router.back()} className="rounded-lg border border-border bg-card p-2 text-secondary-foreground hover:bg-muted">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <p className="text-sm font-bold text-primary">STUDENT PROFILE</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">{student.name}</h1>
-              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-secondary-foreground">{student.gender === 'M' ? '남' : '여'}</span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">{student.school || '-'} · {student.grade || '-'} · {trendLabel(stats.overallTrend)} 추세</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => router.push('/records')} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
-            <Plus className="h-4 w-4" />
-            기록 입력
-          </button>
-          <button type="button" onClick={() => router.push('/students/records')} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
-            <TableProperties className="h-4 w-4" />
-            전체 기록표
-          </button>
-          <button type="button" onClick={handleDownloadPDF} disabled={pdfLoading} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background hover:bg-foreground/90 disabled:opacity-50">
-            <Download className="h-4 w-4" />
-            {pdfLoading ? '저장 중' : 'PDF 저장'}
-          </button>
-        </div>
-      </header>
+    <div className="mx-auto max-w-[1440px] space-y-4">
+      <div className="flex items-start gap-2">
+        <button type="button" onClick={() => router.back()} className={`${toolbarButtonClass()} mt-2.5 w-10 px-0`} aria-label="뒤로">
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <PageHeader
+          className="min-w-0 flex-1"
+          title={student.name}
+          description={`${student.gender === 'M' ? '남' : '여'} · ${student.school || '-'} · ${student.grade || '-'} · ${trendLabel(stats.overallTrend)} 추세`}
+          actions={(
+            <>
+              <button type="button" onClick={() => router.push('/records')} className={toolbarButtonClass()}>
+                <Plus className="h-4 w-4" />
+                기록 입력
+              </button>
+              <button type="button" onClick={() => router.push('/students/records')} className={toolbarButtonClass()}>
+                <TableProperties className="h-4 w-4" />
+                전체 기록표
+              </button>
+              <button type="button" onClick={handleDownloadPDF} disabled={pdfLoading} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50">
+                <Download className="h-4 w-4" />
+                {pdfLoading ? '저장 중' : 'PDF 저장'}
+              </button>
+            </>
+          )}
+        />
+      </div>
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <MetricCard icon={<Target className="h-4 w-4" />} label="선택 종목 점수" value={`${selectedSummary.totalScore}`} sub={`/ ${selectedSummary.maxScore}점 · ${selectedSummary.percentage}%`} />
-        <MetricCard icon={<Medal className="h-4 w-4" />} label="등급" value={selectedSummary.grade} sub={`${selectedSummary.recordedCount}개 종목 반영`} badgeClass={gradeClass(selectedSummary.grade)} />
-        <MetricCard icon={<Activity className="h-4 w-4" />} label="전체 추세" value={trendLabel(stats.overallTrend)} sub={`${stats.recordCount}개 기록`} badgeClass={trendClass(stats.overallTrend)} />
-        <MetricCard icon={<User className="h-4 w-4" />} label="기록 종목" value={`${stats.typesWithRecords}`} sub={`${recordHistory.length}회 측정`} />
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile icon={Target} tone="primary" label="선택 종목 점수" value={`${selectedSummary.totalScore}`} note={`/ ${selectedSummary.maxScore}점 · ${selectedSummary.percentage}%`} />
+        <StatTile icon={Medal} label="등급" value={<BadgeValue value={selectedSummary.grade} className={gradeClass(selectedSummary.grade)} />} note={`${selectedSummary.recordedCount}개 종목 반영`} />
+        <StatTile icon={Activity} label="전체 추세" value={<BadgeValue value={trendLabel(stats.overallTrend)} className={trendClass(stats.overallTrend)} />} note={`${stats.recordCount}개 기록`} />
+        <StatTile icon={User} label="기록 종목" value={`${stats.typesWithRecords}`} note={`${recordHistory.length}회 측정`} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[360px_1fr]">
         <aside className="space-y-4">
           <div className="rounded-2xl bg-card p-5">
-            <h2 className="text-base font-bold text-foreground">종목 선택</h2>
+            <h2 className="text-[17px] font-bold tracking-tight text-foreground">종목 선택</h2>
             <p className="mt-1 text-sm text-muted-foreground">비교와 점수 요약에 반영할 종목을 고릅니다. 최대 6개입니다.</p>
             <div className="mt-4 flex flex-wrap gap-2">
               {typesWithRecords.map((type) => {
@@ -295,9 +293,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
                     type="button"
                     onClick={() => toggleType(type.id)}
                     disabled={!selected && selectedTypes.length >= 6}
-                    className={`rounded-lg border px-3 py-2 text-sm font-bold transition disabled:opacity-40 ${
-                      selected ? 'border-foreground bg-foreground text-background' : 'border-border bg-card text-secondary-foreground hover:bg-muted'
-                    }`}
+                    aria-pressed={selected}
+                    className={`${chipClass(selected, 'card')} disabled:opacity-40`}
                   >
                     {displayTypeName(type)}
                   </button>
@@ -307,13 +304,13 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
           </div>
 
           <div className="rounded-2xl bg-card p-5">
-            <h2 className="text-base font-bold text-foreground">최근 기록 요약</h2>
+            <h2 className="text-[17px] font-bold tracking-tight text-foreground">최근 기록 요약</h2>
             <div className="mt-3 space-y-2">
               {selectedTypeObjects.map((type) => {
                 const latest = stats.latests[type.id];
                 const score = stats.scores[type.id];
                 return (
-                  <div key={type.id} className="grid grid-cols-[1fr_auto] gap-3 rounded-lg bg-muted px-3 py-2 text-sm">
+                  <div key={type.id} className="grid grid-cols-[1fr_auto] gap-3 rounded-xl bg-muted px-3.5 py-2.5 text-sm">
                     <div className="min-w-0">
                       <p className="truncate font-bold text-foreground">{type.name}</p>
                       <p className="text-xs text-muted-foreground">최고 {formatRecordValue(stats.bests[type.id]?.value, type.unit)}</p>
@@ -335,14 +332,14 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
               <div>
                 <div className="flex items-center gap-2">
                   <LineChartIcon className="h-5 w-5 text-primary" />
-                  <h2 className="text-base font-bold text-foreground">기록 추이</h2>
+                  <h2 className="text-[17px] font-bold tracking-tight text-foreground">기록 추이</h2>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">선택한 종목의 날짜별 기록입니다.</p>
               </div>
               <select
                 value={selectedChartType ?? ''}
                 onChange={(event) => setSelectedChartType(Number(event.target.value))}
-                className="h-10 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-secondary-foreground"
+                className="h-10 rounded-xl border border-transparent bg-muted px-3 text-sm font-semibold text-secondary-foreground outline-none focus:border-primary"
               >
                 {typesWithRecords.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
               </select>
@@ -354,7 +351,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
                   <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 12 }} />
                   <YAxis domain={trendDomain} reversed={chartType?.direction === 'lower'} tick={{ fill: '#64748b', fontSize: 12 }} />
                   <Tooltip formatter={(value) => [`${value}${chartType?.unit || ''}`, '기록']} />
-                  <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} dot={{ fill: '#2563eb', r: 4 }} />
+                  <Line type="monotone" dataKey="value" stroke="#3182F6" strokeWidth={3} dot={{ fill: '#3182F6', r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -369,7 +366,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
                   <YAxis dataKey="name" type="category" width={70} tick={{ fill: '#64748b', fontSize: 11 }} />
                   <Tooltip formatter={(value, name, props) => [`${value}%`, name === 'student' ? `${student.name} ${props.payload.raw}` : `학원 ${props.payload.academyRaw}`]} />
                   <Bar dataKey="academy" name="academy" fill="#94a3b8" radius={[0, 4, 4, 0]} />
-                  <Bar dataKey="student" name="student" fill="#f97316" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="student" name="student" fill="#3182F6" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -380,7 +377,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
                   <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11 }} />
                   <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10 }} />
                   <Radar dataKey="academy" name="학원" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.18} />
-                  <Radar dataKey="student" name={student.name} stroke="#f97316" fill="#f97316" fillOpacity={0.28} />
+                  <Radar dataKey="student" name={student.name} stroke="#3182F6" fill="#3182F6" fillOpacity={0.28} />
                   <Tooltip />
                 </RadarChart>
               </ResponsiveContainer>
@@ -390,8 +387,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
       </section>
 
       <section className="rounded-2xl bg-card">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-base font-bold text-foreground">최근 기록</h2>
+        <div className="flex items-center justify-between px-5 pb-2 pt-5 sm:px-6">
+          <h2 className="text-[17px] font-bold tracking-tight text-foreground">최근 기록</h2>
           {recordHistory.length > 5 && (
             <button type="button" onClick={() => setShowAllRecords((prev) => !prev)} className="text-sm font-bold text-primary">
               {showAllRecords ? '접기' : `전체 ${recordHistory.length}회 보기`}
@@ -400,20 +397,20 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-muted text-muted-foreground">
-              <tr>
-                <th className="px-5 py-3 text-left font-bold">날짜</th>
-                {selectedTypeObjects.map((type) => <th key={type.id} className="px-3 py-3 text-center font-bold">{displayTypeName(type)}</th>)}
+            <thead className="text-[13px] text-muted-foreground">
+              <tr className="border-b border-border/60">
+                <th className="px-5 py-3 text-left font-semibold sm:px-6">날짜</th>
+                {selectedTypeObjects.map((type) => <th key={type.id} className="px-3 py-3 text-center font-semibold">{displayTypeName(type)}</th>)}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-border/60">
               {visibleRecords.map((history) => (
                 <tr key={history.measured_at}>
-                  <td className="px-5 py-3 font-semibold text-secondary-foreground">{formatDate(history.measured_at)}</td>
+                  <td className="px-5 py-3.5 font-semibold text-secondary-foreground sm:px-6">{formatDate(history.measured_at)}</td>
                   {selectedTypeObjects.map((type) => {
                     const matches = history.records.filter((item) => item.record_type_id === type.id);
                     return (
-                      <td key={type.id} className="px-3 py-3 text-center font-mono font-semibold text-foreground">
+                      <td key={type.id} className="px-3 py-3.5 text-center font-semibold tabular-nums text-foreground">
                         {matches.length === 0
                           ? '-'
                           : matches.map((record, idx) => {
@@ -434,23 +431,12 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
           </table>
         </div>
       </section>
-    </main>
+    </div>
   );
 }
 
-function MetricCard({ badgeClass, icon, label, sub, value }: { badgeClass?: string; icon: React.ReactNode; label: string; sub: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-card p-5">
-      <div className="flex items-center justify-between text-muted-foreground">
-        <span className="text-sm font-bold">{label}</span>
-        {icon}
-      </div>
-      <div className="mt-3 flex items-end gap-2">
-        <span className={`rounded-lg border px-3 py-1 text-2xl font-black tracking-tight ${badgeClass || 'border-transparent text-foreground'}`}>{value}</span>
-      </div>
-      <p className="mt-2 text-sm text-muted-foreground">{sub}</p>
-    </div>
-  );
+function BadgeValue({ className, value }: { className: string; value: string }) {
+  return <span className={`inline-flex rounded-lg border px-2.5 py-0.5 ${className}`}>{value}</span>;
 }
 
 function ChartCard({ children, icon, title }: { children: React.ReactNode; icon: React.ReactNode; title: string }) {
@@ -458,7 +444,7 @@ function ChartCard({ children, icon, title }: { children: React.ReactNode; icon:
     <div className="rounded-2xl bg-card p-5">
       <div className="mb-4 flex items-center gap-2">
         {icon}
-        <h2 className="text-base font-bold text-foreground">{title}</h2>
+        <h2 className="text-[17px] font-bold tracking-tight text-foreground">{title}</h2>
       </div>
       <div className="h-72">{children}</div>
     </div>

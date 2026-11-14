@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Users, RefreshCw, Search, User, X, Activity, Plus, ExternalLink, TableProperties } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { BranchTabs } from '@/components/BranchTabs';
+import { PageHeader, chipClass, decorTone, toolbarButtonClass } from '@/components/ui/page';
 import {
   StudentListItem,
   RecordAddForm,
@@ -210,66 +211,61 @@ export default function StudentsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-normal text-success">STUDENTS</p>
-          <h1 className="mt-1 text-3xl font-black tracking-normal text-foreground">학생 관리</h1>
-          <p className="mt-2 text-sm font-semibold text-muted-foreground">총 {statusCounts.all}명</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/students/records"
-            className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-bold text-secondary-foreground transition hover:bg-muted">
-            <TableProperties size={18} />
-            <span>전체 기록</span>
-          </Link>
-          <button onClick={fetchStudents} disabled={loading}
-            className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-secondary-foreground transition hover:bg-muted disabled:opacity-50">
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          </button>
-        </div>
-      </div>
+    <div className="mx-auto max-w-[1500px] space-y-4">
+      <PageHeader
+        title="학생 관리"
+        actions={(
+          <>
+            <Link href="/students/records" className={toolbarButtonClass()}>
+              <TableProperties size={16} />
+              <span>전체 기록</span>
+            </Link>
+            <button onClick={fetchStudents} disabled={loading} className={`${toolbarButtonClass()} w-10 px-0`} aria-label="새로고침">
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </>
+        )}
+      />
 
       <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
 
       {/* Filters */}
-      <div className="rounded-2xl bg-card p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <div className="rounded-2xl bg-card p-4 sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="relative lg:w-72">
+            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              placeholder="학생 이름 검색" className="h-10 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-sm font-semibold text-foreground outline-none focus:border-foreground" />
+              placeholder="학생 이름 검색" className="h-11 w-full rounded-xl border border-transparent bg-muted pl-10 pr-4 text-[15px] text-foreground outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" />
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <button onClick={() => setStatusFilter('all')}
-              className={`h-10 rounded-lg px-4 text-sm font-bold transition ${statusFilter === 'all' ? 'bg-foreground text-background' : 'border border-border bg-card text-secondary-foreground hover:bg-muted'}`}>
-              전체 <span className="ml-1 opacity-80">{statusCounts.all}</span>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setStatusFilter('all')} aria-pressed={statusFilter === 'all'}
+              className={chipClass(statusFilter === 'all', 'card')}>
+              전체 <span className="tabular-nums opacity-70">{statusCounts.all}</span>
             </button>
             {Object.entries(STATUS_MAP).map(([key, value]) => (
-              <button key={key} onClick={() => setStatusFilter(key)}
-                className={`h-10 rounded-lg px-4 text-sm font-bold transition ${statusFilter === key ? 'bg-foreground text-background' : 'border border-border bg-card text-secondary-foreground hover:bg-muted'}`}>
-                {value.label} <span className="ml-1 opacity-80">{statusCounts[key as keyof typeof statusCounts] ?? 0}</span>
+              <button key={key} onClick={() => setStatusFilter(key)} aria-pressed={statusFilter === key}
+                className={chipClass(statusFilter === key, 'card')}>
+                {value.label} <span className="tabular-nums opacity-70">{statusCounts[key as keyof typeof statusCounts] ?? 0}</span>
               </button>
             ))}
-            <button onClick={() => setStatusFilter('trial')}
-              className={`h-10 rounded-lg px-4 text-sm font-bold transition ${statusFilter === 'trial' ? 'bg-foreground text-background' : 'border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>
-              체험생 <span className="ml-1 opacity-80">{statusCounts.trial}</span>
+            <button onClick={() => setStatusFilter('trial')} aria-pressed={statusFilter === 'trial'}
+              className={statusFilter === 'trial' ? chipClass(true, 'card') : `inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors ${decorTone.purple}`}>
+              체험생 <span className="tabular-nums opacity-70">{statusCounts.trial}</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex gap-5">
+      <div className="flex gap-4">
         {/* Student List with Chosung Jump */}
-        <div className={`${selectedStudent ? 'w-1/2' : 'w-full'} relative transition-all`}>
+        <div className={`${selectedStudent ? 'hidden lg:block lg:w-1/2' : 'w-full'} relative transition-all`}>
           {loading ? (
-            <div className="flex h-64 items-center justify-center rounded-lg border border-border bg-card">
+            <div className="flex h-64 items-center justify-center rounded-2xl bg-card">
               <RefreshCw size={32} className="animate-spin text-muted-foreground" />
             </div>
           ) : filteredStudents.length === 0 ? (
-            <div className="rounded-lg border border-border bg-card p-16 text-center">
+            <div className="rounded-2xl bg-card p-16 text-center">
               <Users size={48} className="mx-auto text-muted-foreground/60 mb-4" />
               <p className="text-muted-foreground">학생이 없습니다.</p>
             </div>
@@ -284,8 +280,8 @@ export default function StudentsPage() {
                       ref={(el) => { groupRefs.current[chosung] = el; }}
                     >
                       {/* Chosung Header */}
-                      <div className="sticky top-0 z-10 border-b border-border bg-muted px-5 py-2">
-                        <span className="text-sm font-black text-muted-foreground">
+                      <div className="sticky top-0 z-10 bg-muted/90 px-5 py-2 backdrop-blur">
+                        <span className="text-sm font-bold text-secondary-foreground">
                           {chosung}
                         </span>
                         <span className="ml-2 text-xs font-semibold text-muted-foreground">
@@ -293,7 +289,7 @@ export default function StudentsPage() {
                         </span>
                       </div>
                       {/* Students in Group */}
-                      <div className="divide-y divide-border">
+                      <div className="divide-y divide-border/60">
                         {students.map(student => (
                           <StudentListItem
                             key={student.id}
@@ -321,20 +317,20 @@ export default function StudentsPage() {
 
         {/* Student Detail */}
         {selectedStudent && (
-          <div className="w-1/2">
-            <div className="sticky top-8 overflow-hidden rounded-2xl bg-card">
-              <div className="relative bg-foreground p-6 text-background">
-                <button onClick={() => setSelectedStudent(null)} className="absolute top-6 right-6 p-2 hover:bg-card/10 rounded-lg transition">
+          <div className="w-full lg:w-1/2">
+            <div className="sticky top-20 overflow-hidden rounded-2xl bg-card">
+              <div className="relative border-b border-border/60 p-5 sm:p-6">
+                <button onClick={() => setSelectedStudent(null)} className="absolute right-4 top-4 rounded-xl p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground" aria-label="닫기">
                   <X size={20} />
                 </button>
                 <div className="flex items-center gap-4">
-                  <div className={`flex size-14 items-center justify-center rounded-lg ${selectedStudent.gender === 'M' ? 'bg-primary/30' : 'bg-pink-500/30'}`}>
-                    <User size={32} />
+                  <div className={`flex size-14 items-center justify-center rounded-full ${selectedStudent.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink}`}>
+                    <User size={28} />
                   </div>
                   <div>
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-2xl font-black tracking-normal">{selectedStudent.name}</h2>
-                      <Link href={`/students/${selectedStudent.id}`} className="p-2 bg-card/10 hover:bg-card/20 rounded-lg transition" title="프로필 보기">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-bold tracking-tight text-foreground">{selectedStudent.name}</h2>
+                      <Link href={`/students/${selectedStudent.id}`} className="rounded-lg p-2 text-primary transition hover:bg-primary-soft" title="프로필 보기">
                         <ExternalLink size={16} />
                       </Link>
                     </div>
@@ -348,11 +344,11 @@ export default function StudentsPage() {
 
               <div className="p-5">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-semibold text-foreground flex items-center gap-2 text-base">
+                  <h3 className="flex items-center gap-2 text-[17px] font-bold tracking-tight text-foreground">
                     <Activity size={18} /> 측정 종목 기록
                   </h3>
                   <button onClick={() => { setShowAddRecord(!showAddRecord); setRecordInputs({}); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${showAddRecord ? 'bg-muted text-secondary-foreground hover:bg-border' : 'bg-foreground text-background hover:bg-foreground/90'}`}>
+                    className={`flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${showAddRecord ? 'bg-secondary text-secondary-foreground hover:bg-secondary/70' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}>
                     {showAddRecord ? <X size={16} /> : <Plus size={16} />}
                     {showAddRecord ? '취소' : '기록 추가'}
                   </button>
