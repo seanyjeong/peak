@@ -30,7 +30,7 @@ export function ExerciseForm({
   };
 
   return (
-    <div className="bg-card rounded-xl shadow-sm p-6">
+    <div className="bg-card rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-foreground">
           {editingExercise ? '운동 수정' : '새 운동 추가'}
@@ -49,7 +49,7 @@ export function ExerciseForm({
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
               placeholder="박스점프, 메디신볼 던지기..."
-              className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-transparent bg-muted text-foreground rounded-xl focus:border-primary"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -60,7 +60,7 @@ export function ExerciseForm({
                 value={form.default_sets}
                 onChange={e => setForm({ ...form, default_sets: e.target.value })}
                 placeholder="3"
-                className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-transparent bg-muted text-foreground rounded-xl focus:border-primary"
               />
             </div>
             <div>
@@ -70,7 +70,7 @@ export function ExerciseForm({
                 value={form.default_reps}
                 onChange={e => setForm({ ...form, default_reps: e.target.value })}
                 placeholder="10"
-                className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-transparent bg-muted text-foreground rounded-xl focus:border-primary"
               />
             </div>
           </div>
@@ -103,7 +103,7 @@ export function ExerciseForm({
             onChange={e => setForm({ ...form, description: e.target.value })}
             placeholder="운동 방법이나 주의사항..."
             rows={2}
-            className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 border border-transparent bg-muted text-foreground rounded-xl focus:border-primary"
           />
         </div>
 
@@ -117,7 +117,7 @@ export function ExerciseForm({
             value={form.video_url}
             onChange={e => setForm({ ...form, video_url: e.target.value })}
             placeholder="https://youtube.com/watch?v=..."
-            className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 border border-transparent bg-muted text-foreground rounded-xl focus:border-primary"
           />
           <p className="text-xs text-muted-foreground mt-1">유튜브, 네이버TV, 비메오 등 모든 영상 링크 가능</p>
         </div>
@@ -126,14 +126,14 @@ export function ExerciseForm({
       <div className="flex justify-end gap-2 mt-4">
         <button
           onClick={onClose}
-          className="px-4 py-2 text-secondary-foreground bg-muted rounded-lg hover:bg-border"
+          className="h-10 rounded-xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground hover:bg-secondary/70"
         >
           취소
         </button>
         <button
           onClick={onSave}
           disabled={!form.name.trim()}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save size={16} />
           저장

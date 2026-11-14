@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { Dumbbell, Plus, RefreshCw, Tag, Package, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { PageHeader, chipClass, toolbarButtonClass } from '@/components/ui/page';
 import apiClient from '@/lib/api/client';
 import { authAPI } from '@/lib/api/auth';
 import {
@@ -255,34 +256,31 @@ export default function ExercisesPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="mx-auto max-w-6xl space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Link href="/plans" className="p-2 text-muted-foreground hover:text-secondary-foreground hover:bg-muted rounded-lg transition">
-            <ArrowLeft size={20} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">운동 관리</h1>
-            <p className="text-muted-foreground mt-1">수업에서 사용할 운동 목록</p>
-          </div>
-        </div>
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-secondary-foreground bg-card border border-border rounded-lg hover:bg-muted transition disabled:opacity-50"
-        >
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          <span>새로고침</span>
-        </button>
+      <div className="flex items-start gap-2">
+        <Link href="/plans" className={`${toolbarButtonClass()} mt-2.5 w-10 px-0`} aria-label="수업 계획으로">
+          <ArrowLeft size={20} />
+        </Link>
+        <PageHeader
+          className="min-w-0 flex-1"
+          title="운동 관리"
+          description="수업에서 사용할 운동 목록"
+          actions={(
+            <button onClick={fetchData} disabled={loading} className={toolbarButtonClass()}>
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              <span>새로고침</span>
+            </button>
+          )}
+        />
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 bg-card rounded-lg p-1 shadow-sm mb-6">
+      <div className="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl bg-card p-1">
         <button
           onClick={() => setActiveTab('list')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-            activeTab === 'list' ? 'bg-primary-soft text-primary' : 'text-muted-foreground hover:bg-muted'
+          className={`flex h-9 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${
+            activeTab === 'list' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'
           }`}
         >
           <Dumbbell size={16} />
@@ -291,8 +289,8 @@ export default function ExercisesPage() {
         {isAdmin && (
           <button
             onClick={() => setActiveTab('tags')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              activeTab === 'tags' ? 'bg-primary-soft text-primary' : 'text-muted-foreground hover:bg-muted'
+            className={`flex h-9 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${
+              activeTab === 'tags' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'
             }`}
           >
             <Tag size={16} />
@@ -302,8 +300,8 @@ export default function ExercisesPage() {
         {isAdmin && (
           <button
             onClick={() => setActiveTab('packs')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              activeTab === 'packs' ? 'bg-primary-soft text-primary' : 'text-muted-foreground hover:bg-muted'
+            className={`flex h-9 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${
+              activeTab === 'packs' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'
             }`}
           >
             <Package size={16} />
@@ -313,7 +311,7 @@ export default function ExercisesPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-card rounded-2xl shadow-sm">
+        <div className="flex items-center justify-center h-64 bg-card rounded-2xl">
           <RefreshCw size={32} className="animate-spin text-muted-foreground" />
         </div>
       ) : activeTab === 'list' ? (
@@ -322,7 +320,7 @@ export default function ExercisesPage() {
           <div className="flex gap-2">
             <button
               onClick={openNewExerciseForm}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition"
+              className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
             >
               <Plus size={18} />
               <span>운동 추가</span>
@@ -330,7 +328,7 @@ export default function ExercisesPage() {
             {isAdmin && exercisePacks.length > 0 && (
               <button
                 onClick={() => setShowPackApplyModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
+                className="flex h-10 items-center gap-2 rounded-xl bg-primary-soft px-4 text-sm font-semibold text-primary transition hover:bg-primary-soft/70"
               >
                 <Package size={18} />
                 <span>팩 불러오기</span>
@@ -342,11 +340,8 @@ export default function ExercisesPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedTagFilter('all')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                selectedTagFilter === 'all'
-                  ? 'bg-primary text-white'
-                  : 'bg-card text-secondary-foreground border border-border hover:border-primary/30'
-              }`}
+              aria-pressed={selectedTagFilter === 'all'}
+              className={chipClass(selectedTagFilter === 'all')}
             >
               전체 ({exercises.length})
             </button>
@@ -356,9 +351,10 @@ export default function ExercisesPage() {
                 <button
                   key={tag.tag_id}
                   onClick={() => setSelectedTagFilter(tag.tag_id)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition ${tag.color} ${
+                  aria-pressed={selectedTagFilter === tag.tag_id}
+                  className={`inline-flex h-9 items-center rounded-full px-3.5 text-sm font-semibold transition ${tag.color} ${
                     selectedTagFilter === tag.tag_id
-                      ? 'ring-2 ring-offset-2 ring-muted-foreground/40'
+                      ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background'
                       : 'opacity-80 hover:opacity-100'
                   }`}
                 >
@@ -368,11 +364,8 @@ export default function ExercisesPage() {
             })}
             <button
               onClick={() => setSelectedTagFilter('no-tag')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                selectedTagFilter === 'no-tag'
-                  ? 'bg-muted-foreground text-white'
-                  : 'bg-card text-secondary-foreground border border-border hover:border-primary/30'
-              }`}
+              aria-pressed={selectedTagFilter === 'no-tag'}
+              className={chipClass(selectedTagFilter === 'no-tag')}
             >
               기타 ({exercises.filter(ex => ex.tags.length === 0).length})
             </button>

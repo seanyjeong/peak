@@ -13,7 +13,7 @@ interface ExerciseListProps {
 export function ExerciseList({ exercises, tags, onEdit, onDelete }: ExerciseListProps) {
   if (exercises.length === 0) {
     return (
-      <div className="bg-card rounded-xl shadow-sm p-12 text-center">
+      <div className="bg-card rounded-2xl p-12 text-center">
         <Dumbbell size={48} className="mx-auto text-muted-foreground/60 mb-4" />
         <p className="text-muted-foreground">등록된 운동이 없습니다.</p>
         <p className="text-muted-foreground text-sm mt-1">운동 추가 버튼을 눌러 만들어보세요.</p>
@@ -22,8 +22,8 @@ export function ExerciseList({ exercises, tags, onEdit, onDelete }: ExerciseList
   }
 
   return (
-    <div className="bg-card rounded-xl shadow-sm overflow-hidden">
-      <div className="divide-y divide-border">
+    <div className="bg-card rounded-2xl overflow-hidden">
+      <div className="divide-y divide-border/60">
         {exercises.map(exercise => (
           <div key={exercise.id} className="p-4 hover:bg-muted">
             <div className="flex items-start justify-between">

@@ -141,7 +141,7 @@ export function PackManager({
       <div className="flex gap-2">
         <button
           onClick={openNewForm}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition"
+          className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
         >
           <Plus size={18} />
           <span>팩 만들기</span>
@@ -164,7 +164,7 @@ export function PackManager({
 
       {/* Pack Form */}
       {showForm && (
-        <div className="bg-card rounded-xl shadow-sm p-6">
+        <div className="bg-card rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground">
               {editingPack ? '팩 수정' : '새 운동 팩 만들기'}
@@ -182,7 +182,7 @@ export function PackManager({
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="하체 훈련 팩"
-                  className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 border border-transparent bg-muted text-foreground rounded-xl focus:border-primary"
                 />
               </div>
               <div>
@@ -192,7 +192,7 @@ export function PackManager({
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
                   placeholder="제멀, 스쿼트 관련 운동들"
-                  className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 border border-transparent bg-muted text-foreground rounded-xl focus:border-primary"
                 />
               </div>
             </div>
@@ -243,7 +243,7 @@ export function PackManager({
                   );
                 })}
               </div>
-              <div className="max-h-48 overflow-y-auto border border-border rounded-lg divide-y divide-border">
+              <div className="max-h-48 overflow-y-auto border border-border rounded-lg divide-y divide-border/60">
                 {exercises.map(ex => (
                   <label
                     key={ex.id}
@@ -274,14 +274,14 @@ export function PackManager({
           <div className="flex justify-end gap-2 mt-4">
             <button
               onClick={() => { setShowForm(false); setEditingPack(null); }}
-              className="px-4 py-2 text-secondary-foreground bg-muted rounded-lg hover:bg-border"
+              className="h-10 rounded-xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground hover:bg-secondary/70"
             >
               취소
             </button>
             <button
               onClick={handleSave}
               disabled={!form.name.trim() || form.exercise_ids.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
+              className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               <Save size={16} />
               {editingPack ? '수정' : '저장'}
@@ -292,14 +292,14 @@ export function PackManager({
 
       {/* Packs List */}
       {packs.length === 0 ? (
-        <div className="bg-card rounded-xl shadow-sm p-12 text-center">
+        <div className="bg-card rounded-2xl p-12 text-center">
           <Package size={48} className="mx-auto text-muted-foreground/60 mb-4" />
           <p className="text-muted-foreground">생성된 운동 팩이 없습니다.</p>
           <p className="text-muted-foreground text-sm mt-1">팩을 만들어 다른 학원과 공유해보세요!</p>
         </div>
       ) : (
-        <div className="bg-card rounded-xl shadow-sm overflow-hidden">
-          <div className="divide-y divide-border">
+        <div className="bg-card rounded-2xl overflow-hidden">
+          <div className="divide-y divide-border/60">
             {packs.map(pack => {
               const isExpanded = expandedPackId === pack.id;
               const isLoading = loadingPackId === pack.id;

@@ -52,7 +52,7 @@ export function PackApplyModal({ packs, applying, onApply, onClose }: PackApplyM
         <div className="flex justify-end mt-4">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-secondary-foreground bg-muted rounded-lg hover:bg-border"
+            className="h-10 rounded-xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground hover:bg-secondary/70"
           >
             취소
           </button>

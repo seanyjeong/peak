@@ -53,16 +53,17 @@ export function SlotButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-20 flex-1 items-center justify-between rounded-lg border px-4 text-left transition ${
-        active ? SLOT_STYLES[slot] : 'border-border bg-card text-secondary-foreground hover:border-border'
+      aria-pressed={active}
+      className={`flex min-h-20 flex-1 items-center justify-between rounded-2xl border px-4 text-left transition ${
+        active ? SLOT_STYLES[slot] : 'border-transparent bg-card text-secondary-foreground hover:bg-card/70'
       }`}
     >
       <span className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-lg bg-card/80">
+        <span className={`flex size-10 items-center justify-center rounded-full ${active ? 'bg-card/80' : 'bg-muted'}`}>
           <Icon className="size-5" aria-hidden="true" />
         </span>
         <span>
-          <span className="block text-sm font-bold">{SLOT_LABELS[slot]}</span>
+          <span className="block text-[15px] font-bold">{SLOT_LABELS[slot]}</span>
           <span className="text-xs text-muted-foreground">작성 {planned} / 스케줄 {scheduled}</span>
         </span>
       </span>
@@ -96,11 +97,11 @@ export function PlanCard({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground text-sm font-black text-background">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary">
               {plan.instructor_name.charAt(0)}
             </span>
             <div>
-              <h3 className="text-lg font-black text-foreground">{plan.instructor_name}</h3>
+              <h3 className="text-[17px] font-bold tracking-tight text-foreground">{plan.instructor_name}</h3>
               <p className="text-sm text-muted-foreground">{plan.exercises.length}개 운동</p>
             </div>
           </div>
@@ -130,7 +131,7 @@ export function PlanCard({
 
       <div className="mt-5 space-y-2">
         {visibleExercises.map((selected, index) => (
-          <div key={`${selected.exercise_id}-${index}`} className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm">
+          <div key={`${selected.exercise_id}-${index}`} className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2.5 text-sm">
             <Dumbbell className="size-4 shrink-0 text-success" aria-hidden="true" />
             <span className="font-semibold text-foreground">{findExerciseName(exercises, selected.exercise_id)}</span>
             {(selected.weight || selected.reps) && (
@@ -152,7 +153,7 @@ export function PlanCard({
       )}
 
       {plan.description && (
-        <p className="mt-4 rounded-lg border border-border bg-card px-3 py-2 text-sm leading-6 text-secondary-foreground">
+        <p className="mt-4 rounded-xl bg-muted px-3.5 py-2.5 text-sm leading-6 text-secondary-foreground">
           {plan.description}
         </p>
       )}

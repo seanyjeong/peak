@@ -42,7 +42,7 @@ export function TagManager({
     <div className="space-y-4">
       <button
         onClick={openNewForm}
-        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition"
+        className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
       >
         <Plus size={18} />
         <span>태그 추가</span>
@@ -50,7 +50,7 @@ export function TagManager({
 
       {/* Tag Form */}
       {showForm && (
-        <div className="bg-card rounded-xl shadow-sm p-6">
+        <div className="bg-card rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground">
               {editingTag ? '태그 수정' : '새 태그 추가'}
@@ -59,7 +59,7 @@ export function TagManager({
               <X size={20} />
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <label className="block text-sm font-medium text-secondary-foreground mb-1">태그 ID</label>
               <input
@@ -68,7 +68,7 @@ export function TagManager({
                 onChange={e => setForm({ ...form, tag_id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
                 placeholder="lower-power"
                 disabled={!!editingTag}
-                className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary disabled:bg-muted"
+                className="w-full px-3 py-2 border border-transparent bg-muted text-foreground rounded-xl disabled:bg-muted focus:border-primary"
               />
             </div>
             <div>
@@ -78,7 +78,7 @@ export function TagManager({
                 value={form.label}
                 onChange={e => setForm({ ...form, label: e.target.value })}
                 placeholder="하체 파워"
-                className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-transparent bg-muted text-foreground rounded-xl focus:border-primary"
               />
             </div>
             <div>
@@ -86,7 +86,7 @@ export function TagManager({
               <select
                 value={form.color}
                 onChange={e => setForm({ ...form, color: e.target.value })}
-                className="w-full px-3 py-2 border border-border bg-card text-foreground rounded-lg focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-transparent bg-muted text-foreground rounded-xl focus:border-primary"
               >
                 {TAG_COLORS.map(c => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -103,14 +103,14 @@ export function TagManager({
           <div className="flex justify-end gap-2 mt-4">
             <button
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 text-secondary-foreground bg-muted rounded-lg hover:bg-border"
+              className="h-10 rounded-xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground hover:bg-secondary/70"
             >
               취소
             </button>
             <button
               onClick={onSave}
               disabled={!form.label.trim() || (!editingTag && !form.tag_id.trim())}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
+              className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               <Save size={16} />
               저장
@@ -120,8 +120,8 @@ export function TagManager({
       )}
 
       {/* Tags List */}
-      <div className="bg-card rounded-xl shadow-sm overflow-hidden">
-        <div className="divide-y divide-border">
+      <div className="bg-card rounded-2xl overflow-hidden">
+        <div className="divide-y divide-border/60">
           {tags.map(tag => (
             <div key={tag.id} className="p-4 flex items-center justify-between hover:bg-muted">
               <div className="flex items-center gap-4">

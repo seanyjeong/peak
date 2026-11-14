@@ -14,8 +14,8 @@ export function DragStudentPill({ student, groupId }: { student: Student; groupI
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`inline-flex cursor-grab items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-sm shadow-sm transition active:cursor-grabbing ${
-        isDragging ? 'border-primary opacity-40' : 'hover:border-border'
+      className={`inline-flex cursor-grab items-center gap-1 rounded-lg bg-card px-2 py-1 text-sm transition active:cursor-grabbing ${
+        isDragging ? 'opacity-40 ring-2 ring-primary' : ''
       }`}
     >
       <GenderBadge gender={student.gender} />
@@ -26,7 +26,7 @@ export function DragStudentPill({ student, groupId }: { student: Student; groupI
 
 export function StudentPill({ student }: { student: Student }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-md border border-primary bg-card px-2 py-1 text-sm shadow-lg">
+    <div className="inline-flex items-center gap-1 rounded-lg bg-card px-2 py-1 text-sm shadow-lg ring-2 ring-primary">
       <GenderBadge gender={student.gender} />
       <span className="max-w-[72px] truncate text-foreground">{student.name}</span>
     </div>
@@ -75,11 +75,11 @@ export function GroupColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`w-60 shrink-0 rounded-md border-2 bg-card transition ${
-        isOver ? 'border-primary bg-primary-soft' : 'border-border'
+      className={`w-60 shrink-0 rounded-xl transition ${
+        isOver ? 'bg-primary-soft ring-2 ring-primary' : 'bg-muted'
       }`}
     >
-      <div className="border-b border-border p-3">
+      <div className="p-3 pb-1">
         <div className="mb-2 flex items-center justify-between gap-2">
           {editing ? (
             <div className="flex min-w-0 flex-1 items-center gap-1">
@@ -87,7 +87,7 @@ export function GroupColumn({
                 value={editName}
                 onChange={(event) => setEditName(event.target.value)}
                 onKeyDown={(event) => event.key === 'Enter' && handleSaveName()}
-                className="min-w-0 flex-1 rounded-md border border-border bg-card px-2 py-1 text-sm"
+                className="min-w-0 flex-1 rounded-lg border border-transparent bg-card px-2 py-1 text-sm outline-none focus:border-primary"
                 autoFocus
               />
               <button onClick={handleSaveName} className="rounded p-1 text-success hover:bg-success-soft"><Check size={14} /></button>
@@ -110,7 +110,7 @@ export function GroupColumn({
         <div className="relative">
           <button
             onClick={() => setShowInstructorPicker((open) => !open)}
-            className="flex w-full items-center justify-between rounded-md bg-muted px-2 py-1.5 text-xs transition hover:bg-muted"
+            className="flex w-full items-center justify-between rounded-lg bg-card px-2.5 py-1.5 text-xs transition hover:bg-card/70"
           >
             <span className={group.instructor_name ? 'text-secondary-foreground' : 'text-muted-foreground'}>
               {group.instructor_name || '강사 선택'}
@@ -118,7 +118,7 @@ export function GroupColumn({
             <ChevronDown size={12} className="text-muted-foreground" />
           </button>
           {showInstructorPicker ? (
-            <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-44 overflow-auto rounded-md border border-border bg-card py-1 shadow-lg">
+            <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-44 overflow-auto rounded-xl bg-popover p-1 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
               <InstructorOptionButton label="선택 안 함" onClick={() => handlePickInstructor(null)} />
               {instructors.map((instructor) => (
                 <InstructorOptionButton
@@ -152,8 +152,8 @@ export function UnassignedArea({ students }: { students: Student[] }) {
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-md border-2 border-dashed bg-card p-3 transition ${
-        isOver ? 'border-primary bg-primary-soft' : 'border-border'
+      className={`rounded-xl p-3 transition ${
+        isOver ? 'bg-primary-soft ring-2 ring-primary' : 'bg-muted'
       }`}
     >
       <div className="mb-2 flex items-center gap-2">
@@ -175,7 +175,7 @@ function InstructorOptionButton({ label, active = false, onClick }: { label: str
   return (
     <button
       onClick={onClick}
-      className={`w-full px-3 py-2 text-left text-xs transition hover:bg-muted ${
+      className={`w-full rounded-lg px-3 py-2 text-left text-xs transition hover:bg-muted ${
         active ? 'bg-primary-soft text-primary' : 'text-secondary-foreground'
       }`}
     >
