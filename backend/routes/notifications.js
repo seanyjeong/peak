@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
+const { getKstDateString } = require('../utils/kst-date');
 
 /**
  * GET /peak/notifications
@@ -76,7 +77,7 @@ router.get('/check', verifyToken, async (req, res) => {
         // 1. 기록 미입력 체크 (최근 7일간 기록이 없는 학생)
         const oneWeekAgo = new Date(today);
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        const weekAgoStr = oneWeekAgo.toISOString().split('T')[0];
+        const weekAgoStr = getKstDateString(oneWeekAgo);
 
         // 현재 주차 계산 (월 기준 N주차)
         const weekOfMonth = Math.ceil(today.getDate() / 7);
@@ -109,12 +110,12 @@ router.get('/check', verifyToken, async (req, res) => {
         }
 
         // 2. 수업계획 미제출 체크 (오늘/내일 수업인데 계획 없음)
-        const todayStr = today.toISOString().split('T')[0];
+        const todayStr = getKstDateString(today);
         const todayFormatted = `${today.getMonth() + 1}.${String(today.getDate()).padStart(2, '0')}`;
 
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        const tomorrowStr = getKstDateString(tomorrow);
         const tomorrowFormatted = `${tomorrow.getMonth() + 1}.${String(tomorrow.getDate()).padStart(2, '0')}`;
 
         // 원장(owner)인 경우 instructor_id는 -user_id로 저장됨

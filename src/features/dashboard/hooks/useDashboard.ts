@@ -27,6 +27,11 @@ export interface CurrentAttendance {
   };
 }
 
+export interface DailyAttendanceStats {
+  checkedIn: number;
+  uniqueInstructors: number;
+}
+
 export interface ClassData {
   class_num: number;
   instructors: Instructor[];
@@ -92,6 +97,7 @@ export function useDashboard() {
   const [loading, setLoading] = useState(true);
   const [slotsData, setSlotsData] = useState<SlotsData | null>(null);
   const [currentAttendance, setCurrentAttendance] = useState<CurrentAttendance | null>(null);
+  const [dailyAttendanceStats, setDailyAttendanceStats] = useState<DailyAttendanceStats | null>(null);
   const [timeSlots, setTimeSlots] = useState<TimeSlots>({
     morning: '09:00-12:00',
     afternoon: '13:00-17:00',
@@ -104,10 +110,11 @@ export function useDashboard() {
       setLoading(true);
       const dateStr = getLocalDateString();
 
-      // 반 배치 데이터와 현재 강사 출근 현황 동시 조회
-      const [assignmentsRes, attendanceRes] = await Promise.all([
+      // 반 배치 데이터와 현재 강사 출근 현황, 오늘 강사 출근 집계(출근 체크 화면과 같은 기준) 동시 조회
+      const [assignmentsRes, attendanceRes, dailyAttendanceRes] = await Promise.all([
         apiClient.get(`/assignments?date=${dateStr}`),
-        apiClient.get('/attendance/current')
+        apiClient.get('/attendance/current'),
+        apiClient.get(`/attendance?date=${dateStr}`)
       ]);
 
       setSlotsData(assignmentsRes.data.slots);
@@ -117,6 +124,10 @@ export function useDashboard() {
 
       if (attendanceRes.data.success) {
         setCurrentAttendance(attendanceRes.data);
+      }
+
+      if (dailyAttendanceRes.data.success) {
+        setDailyAttendanceStats(dailyAttendanceRes.data.stats);
       }
     } catch {
     } finally {
@@ -132,25 +143,23 @@ export function useDashboard() {
   const getStats = (): Stats => {
     if (!slotsData) return { trainersPresent: 0, totalTrainers: 0, studentsToday: 0 };
 
-    const allInstructors = new Set<number>();
     let totalStudents = 0;
 
     (['morning', 'afternoon', 'evening'] as const).forEach(slot => {
       const slotData = slotsData[slot];
-      // 대기 중인 강사
-      slotData.waitingInstructors?.forEach(i => allInstructors.add(i.id));
-      // 반에 배치된 강사 + 학생 수
+      // 반에 배치된 학생 수
       slotData.classes?.forEach(cls => {
-        cls.instructors?.forEach(i => allInstructors.add(i.id));
         totalStudents += cls.students?.length || 0;
       });
       // 대기 중인 학생도 카운트
       totalStudents += slotData.waitingStudents?.length || 0;
     });
 
+    // 강사 수는 반 배치 목록(원장이 모든 시간대에 들어 있음)이 아니라
+    // P-ACA 근무 일정·출근 기록으로 센다. 출근 체크 화면과 같은 값.
     return {
-      trainersPresent: allInstructors.size,
-      totalTrainers: allInstructors.size,
+      trainersPresent: dailyAttendanceStats?.checkedIn ?? 0,
+      totalTrainers: dailyAttendanceStats?.uniqueInstructors ?? 0,
       studentsToday: totalStudents,
     };
   };

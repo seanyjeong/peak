@@ -10,6 +10,7 @@ const router = express.Router();
 const db = require('../config/database');
 const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
+const { getKstDateString } = require('../utils/kst-date');
 const { verifyToken } = require('../middleware/auth');
 const { getAssignmentReadEligibilitySql } = require('../services/assignmentEligibilityService');
 const {
@@ -25,7 +26,7 @@ const registerAssignmentSyncRoutes = require('./assignmentSyncRoutes');
 router.get('/', verifyToken, async (req, res) => {
     try {
         const { date } = req.query;
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        const targetDate = date || getKstDateString();
         const academyId = req.user.academyId;  // 토큰에서 학원 ID 가져오기
         const assignableStatusSql = getAssignmentReadEligibilitySql('ps', 'a');
 
@@ -368,7 +369,7 @@ router.post('/reset', verifyToken, async (req, res) => {
     try {
         const academyId = req.user.academyId;
         const { date, time_slot } = req.body;
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        const targetDate = date || getKstDateString();
 
         // 지점을 주면 그 지점의 조와 그 지점 학생만 초기화한다
         const branchId = resolveBranchId(req.body.branch_id, await getPacaBranches(academyId));
@@ -446,7 +447,7 @@ router.post('/reset', verifyToken, async (req, res) => {
 router.get('/next-class-num', verifyToken, async (req, res) => {
     try {
         const { date, time_slot } = req.query;
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        const targetDate = date || getKstDateString();
         const academyId = req.user.academyId;
 
         // academy_id 필터 추가하여 다른 학원의 반 번호와 충돌 방지
@@ -467,7 +468,7 @@ router.get('/next-class-num', verifyToken, async (req, res) => {
 router.get('/instructors', verifyToken, async (req, res) => {
     try {
         const { date } = req.query;
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        const targetDate = date || getKstDateString();
         const academyId = req.user.academyId;  // 토큰에서 학원 ID
 
         const [instructors] = await pacaPool.query(`

@@ -62,6 +62,11 @@ export interface UseRecordsReturn {
   getDecimalPlaces: (recordTypeId: number) => number;
 }
 
+const getLocalDateString = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+
 export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
   const { initialDate, ownClassOnly = false } = options;
 
@@ -70,7 +75,7 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [measuredAt, setMeasuredAt] = useState(() => initialDate || new Date().toISOString().split('T')[0]);
+  const [measuredAt, setMeasuredAt] = useState(() => initialDate || getLocalDateString());
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState<number | null>(null);

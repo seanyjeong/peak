@@ -244,7 +244,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 ${sidebarOpen ? 'ml-56' : 'ml-20'} transition-all duration-200`}>
+      <main className={`min-w-0 flex-1 ${sidebarOpen ? 'ml-56' : 'ml-20'} transition-all duration-200`}>
         {/* 헤더 */}
         <div className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-200 bg-slate-50/95 px-6 dark:border-slate-800 dark:bg-slate-950/95">
           <div>

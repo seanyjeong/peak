@@ -205,7 +205,7 @@ export default function RankingsPage({
         ) : null}
 
         {/* 필터 */}
-        <div className="px-6 pb-3 flex gap-4 items-center">
+        <div className="px-6 pb-3 flex flex-wrap gap-4 items-center">
           {/* 성별 필터 */}
           <div className="flex gap-2">
             {(['all', 'M', 'F'] as const).map(g => (

@@ -58,6 +58,11 @@ export function formatDate(date: string): string {
   return new Date(date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
 }
 
+export function getLocalDateString() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 export function formatRecordValue(value: number | undefined, unit = ''): string {
   if (value === undefined || value === null) return '-';
   const rounded = Math.round(value * 100) / 100;
