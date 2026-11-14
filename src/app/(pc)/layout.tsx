@@ -145,10 +145,10 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? 'w-56' : 'w-20'} fixed z-10 flex h-full flex-col border-r border-border bg-foreground text-slate-100 transition-all duration-200`}
+        className={`${sidebarOpen ? 'w-56' : 'w-20'} fixed z-10 flex h-full flex-col border-r border-border/60 bg-card text-foreground transition-all duration-200`}
       >
         {/* Logo */}
-        <div className={`h-16 flex items-center border-b border-foreground ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'}`}>
+        <div className={`h-16 flex items-center border-b border-border/60 ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'}`}>
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-3">
@@ -166,7 +166,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="rounded-md p-2 text-muted-foreground/60 transition hover:bg-foreground/90 hover:text-white"
+                className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
               >
                 <ChevronLeft size={18} />
               </button>
@@ -174,7 +174,7 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
           ) : (
             <button
               onClick={() => setSidebarOpen(true)}
-              className="rounded-md p-1 transition hover:bg-foreground/90"
+              className="rounded-md p-1 transition hover:bg-muted"
             >
               <Image
                 src="/peak-512x512.png"
@@ -200,8 +200,8 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   className={`flex rounded-md border transition ${
                     sidebarOpen
-                      ? `items-center gap-3 px-3 py-2.5 ${isActive ? 'border-primary/50 bg-primary/15 text-orange-200' : 'border-transparent text-muted-foreground/60 hover:border-foreground hover:bg-foreground/90 hover:text-white'}`
-                      : `flex-col items-center px-1 py-2 ${isActive ? 'border-primary/50 bg-primary/15 text-orange-200' : 'border-transparent text-muted-foreground/60 hover:bg-foreground/90 hover:text-white'}`
+                      ? `items-center gap-3 px-3 py-2.5 ${isActive ? 'border-transparent bg-primary-soft font-semibold text-primary' : 'border-transparent text-secondary-foreground hover:bg-muted hover:text-foreground'}`
+                      : `flex-col items-center px-1 py-2 ${isActive ? 'border-transparent bg-primary-soft font-semibold text-primary' : 'border-transparent text-secondary-foreground hover:bg-muted hover:text-foreground'}`
                   }`}
                 >
                   <item.icon size={20} />
@@ -217,16 +217,16 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User Section */}
-        <div className={`border-t border-foreground ${sidebarOpen ? 'p-4' : 'p-2'}`}>
+        <div className={`border-t border-border/60 ${sidebarOpen ? 'p-4' : 'p-2'}`}>
           {sidebarOpen && user && (
             <div className="mb-3 px-3">
-              <p className="text-sm font-medium text-white">{user.name}</p>
+              <p className="text-sm font-medium text-foreground">{user.name}</p>
               <p className="text-xs text-muted-foreground">{getRoleDisplayName(user.role, user.position)}</p>
             </div>
           )}
           <button
             onClick={handleLogout}
-            className={`flex w-full rounded-md text-muted-foreground transition hover:bg-foreground/90 hover:text-white ${
+            className={`flex w-full rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground ${
               sidebarOpen ? 'items-center gap-3 px-3 py-2' : 'flex-col items-center py-2'
             }`}
           >

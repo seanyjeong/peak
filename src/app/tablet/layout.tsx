@@ -152,9 +152,9 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
           {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
 
           {/* 축소형 사이드바 */}
-          <aside className="w-20 bg-foreground text-background flex flex-col fixed h-full z-20 border-r border-foreground">
+          <aside className="w-20 bg-card text-foreground flex flex-col fixed h-full z-20 border-r border-border/60">
             {/* 로고 */}
-            <div className="h-16 flex items-center justify-center border-b border-foreground">
+            <div className="h-16 flex items-center justify-center border-b border-border/60">
               <Image
                 src="/peak-512x512.png"
                 alt="P-EAK"
@@ -177,8 +177,8 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
                         href={item.href}
                         className={`flex flex-col items-center py-3 px-1 rounded-lg transition-smooth touch-target ${
                           isActive
-                            ? 'bg-primary/15 text-primary'
-                            : 'text-muted-foreground/60 hover:bg-foreground/90 hover:text-white'
+                            ? 'bg-primary-soft text-primary'
+                            : 'text-secondary-foreground hover:bg-muted hover:text-foreground'
                         }`}
                         title={item.name}
                       >
@@ -191,10 +191,10 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
             </nav>
 
             {/* 사용자 & 로그아웃 */}
-            <div className="border-t border-foreground p-2">
+            <div className="border-t border-border/60 p-2">
               <button
                 onClick={handleLogout}
-                className="flex flex-col items-center py-2 px-1 rounded-lg text-muted-foreground hover:text-white hover:bg-foreground/90 transition-smooth w-full touch-target"
+                className="flex flex-col items-center py-2 px-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth w-full touch-target"
                 title="로그아웃"
               >
                 <LogOut size={20} />
@@ -252,7 +252,7 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
         {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
 
         {/* 헤더 */}
-        <header className="h-16 bg-foreground flex items-center justify-between px-4 sticky top-0 z-20 border-b border-foreground">
+        <header className="h-16 bg-card flex items-center justify-between px-4 sticky top-0 z-20 border-b border-border/60">
           <div className="flex items-center gap-3">
             <Image
               src="/peak-512x512.png"
@@ -262,7 +262,7 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
               className="rounded-lg"
             />
             <div>
-              <h1 className="text-white font-bold">P-EAK</h1>
+              <h1 className="text-foreground font-bold">P-EAK</h1>
               <p className="text-[10px] text-muted-foreground">{APP_VERSION} · {APP_UPDATED}</p>
             </div>
           </div>
@@ -270,7 +270,7 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
             {/* 다크모드 토글 */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg hover:bg-foreground/90 transition-smooth text-muted-foreground/60"
+              className="p-2 rounded-lg hover:bg-muted transition-smooth text-muted-foreground"
               title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
@@ -278,7 +278,7 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
             {user && (
               <>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-white">{user.name}</p>
+                  <p className="text-sm font-medium text-foreground">{user.name}</p>
                   <p className="text-[10px] text-muted-foreground">{getRoleDisplayName(user.role, user.position)}</p>
                 </div>
                 <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">

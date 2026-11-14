@@ -57,7 +57,7 @@ export default function AlertPopup({ onClose }: AlertPopupProps) {
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-card rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
         {/* 헤더 */}
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 flex items-center justify-between">
+        <div className="bg-primary px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Bell className="text-white" size={24} />
             <h2 className="text-xl font-bold text-white">알림</h2>

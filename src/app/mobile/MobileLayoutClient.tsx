@@ -75,22 +75,22 @@ export default function MobileLayoutClient({ children }: { children: React.React
       {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
 
       {/* Header */}
-      <header className="h-14 bg-foreground flex items-center justify-between px-4 sticky top-0 z-20 border-b border-foreground">
+      <header className="h-14 bg-card flex items-center justify-between px-4 sticky top-0 z-20 border-b border-border/60">
         <div className="flex items-center gap-2">
           <Image src="/peak-512x512.png" alt="P-EAK" width={32} height={32} className="rounded-lg" />
           <div>
-            <h1 className="text-white font-bold text-sm">{currentPage}</h1>
+            <h1 className="text-foreground font-bold text-sm">{currentPage}</h1>
             <p className="text-[8px] text-muted-foreground">{APP_VERSION}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-foreground/90 transition text-muted-foreground/60">
+          <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-muted transition text-muted-foreground">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
           {user && (
             <button onClick={() => setShowMenu(!showMenu)} className="flex items-center gap-2">
               <div className="text-right">
-                <p className="text-xs font-medium text-white">{user.name}</p>
+                <p className="text-xs font-medium text-foreground">{user.name}</p>
                 <p className="text-[10px] text-muted-foreground">{getRoleDisplayName(user.role, user.position)}</p>
               </div>
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm">
