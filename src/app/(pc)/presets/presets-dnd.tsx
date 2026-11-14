@@ -185,6 +185,6 @@ function InstructorOptionButton({ label, active = false, onClick }: { label: str
 }
 
 function GenderBadge({ gender }: { gender: string }) {
-  const genderColor = gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-100 text-pink-700';
+  const genderColor = gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-500/15 text-pink-600';
   return <span className={`rounded px-1 py-0.5 text-[10px] font-medium ${genderColor}`}>{gender === 'M' ? '남' : '여'}</span>;
 }

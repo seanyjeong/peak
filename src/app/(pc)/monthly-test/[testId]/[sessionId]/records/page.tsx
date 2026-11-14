@@ -245,7 +245,7 @@ export default function SessionRecordsPage({
   const typeColors: Record<string, string> = {
     enrolled: 'bg-success-soft text-success',
     rest: 'bg-muted text-secondary-foreground',
-    trial: 'bg-purple-100 text-purple-700',
+    trial: 'bg-purple-500/15 text-purple-600',
     test_new: 'bg-primary-soft text-primary'
   };
 
@@ -378,7 +378,7 @@ export default function SessionRecordsPage({
                     <td className="px-4 py-3 font-medium">{p.name}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs ${
-                        p.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-100 text-pink-600'
+                        p.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-500/15 text-pink-600'
                       }`}>
                         {p.gender === 'M' ? '남' : '여'}
                       </span>

@@ -67,7 +67,7 @@ export const STATUS_MAP: Record<string, { label: string; color: string }> = {
   injury: { label: '부상', color: 'bg-destructive-soft text-destructive' },
   paused: { label: '휴원', color: 'bg-warning-soft text-warning' },
   pending: { label: '미등록', color: 'bg-warning-soft text-warning' },
-  trial: { label: '체험', color: 'bg-purple-100 text-purple-700' },
+  trial: { label: '체험', color: 'bg-purple-500/15 text-purple-600' },
 };
 
 export const GENDER_COLORS = {
@@ -76,7 +76,7 @@ export const GENDER_COLORS = {
     border: 'border-l-primary',
   },
   F: {
-    icon: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400',
+    icon: 'bg-pink-500/15 text-pink-600',
     border: 'border-l-pink-500',
   },
 } as const;

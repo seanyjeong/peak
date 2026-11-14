@@ -17,7 +17,7 @@ const SLOT_ICONS = {
 const SLOT_STYLES = {
   morning: 'border-warning/30 bg-warning-soft text-warning',
   afternoon: 'border-primary/30 bg-primary-soft text-primary',
-  evening: 'border-violet-200 bg-violet-50 text-violet-700',
+  evening: 'border-violet-500/30 bg-violet-500/15 text-violet-600',
 };
 
 export function TagBadge({ tagId, tags, small = false }: { tagId: string; tags: ExerciseTag[]; small?: boolean }) {

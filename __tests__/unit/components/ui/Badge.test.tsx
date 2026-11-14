@@ -38,7 +38,7 @@ describe('Badge', () => {
 
     it('should apply purple variant styles', () => {
       render(<Badge variant="purple">Purple</Badge>);
-      expect(screen.getByText('Purple')).toHaveClass('bg-purple-100');
+      expect(screen.getByText('Purple')).toHaveClass('bg-purple-500/15');
     });
   });
 
@@ -70,7 +70,7 @@ describe('GenderBadge', () => {
   it('should render female badge correctly', () => {
     render(<GenderBadge gender="F" />);
     expect(screen.getByText('여')).toBeInTheDocument();
-    expect(screen.getByText('여')).toHaveClass('bg-pink-100');
+    expect(screen.getByText('여')).toHaveClass('bg-pink-500/15');
   });
 });
 
@@ -84,7 +84,7 @@ describe('StatusBadge', () => {
   it('should render trial status', () => {
     render(<StatusBadge status="trial" />);
     expect(screen.getByText('체험')).toBeInTheDocument();
-    expect(screen.getByText('체험')).toHaveClass('bg-purple-100');
+    expect(screen.getByText('체험')).toHaveClass('bg-purple-500/15');
   });
 
   it('should render rest status', () => {
@@ -104,6 +104,6 @@ describe('TrialBadge', () => {
   it('should render trial progress correctly', () => {
     render(<TrialBadge completed={1} total={3} />);
     expect(screen.getByText('1/3')).toBeInTheDocument();
-    expect(screen.getByText('1/3')).toHaveClass('bg-purple-100');
+    expect(screen.getByText('1/3')).toHaveClass('bg-purple-500/15');
   });
 });

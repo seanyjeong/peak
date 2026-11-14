@@ -355,7 +355,7 @@ export default function MobileRecordsPage() {
                       <div className="flex items-center gap-1">
                         <p className="font-medium text-foreground text-sm">{student.name}</p>
                         {!!student.is_trial && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-500/15 text-purple-600">
                             {(student.trial_total || 0) - (student.trial_remaining || 0)}/{student.trial_total || 0}
                           </span>
                         )}
@@ -450,7 +450,7 @@ export default function MobileRecordsPage() {
                     <div className="flex items-center gap-1">
                       <p className="font-medium text-foreground text-sm truncate">{student.name}</p>
                       {!!student.is_trial && (
-                        <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 flex-shrink-0">
+                        <span className="px-1 py-0.5 rounded text-[9px] font-medium bg-purple-500/15 text-purple-600 flex-shrink-0">
                           {(student.trial_total || 0) - (student.trial_remaining || 0)}/{student.trial_total || 0}
                         </span>
                       )}

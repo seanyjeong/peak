@@ -166,7 +166,7 @@ export function EventSummaryBar({ trend }: { trend: EventTrend }) {
 }
 
 export function RankingTable({ data, title, tone, unit }: { data: RankStudent[]; title: string; tone: 'blue' | 'orange'; unit: string }) {
-  const toneClass = tone === 'blue' ? 'bg-primary-soft text-primary' : 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400';
+  const toneClass = tone === 'blue' ? 'bg-primary-soft text-primary' : 'bg-pink-500/15 text-pink-600';
 
   return (
     <div className="overflow-hidden rounded-2xl bg-card">

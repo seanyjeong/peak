@@ -309,7 +309,7 @@ export default function RankingsPage({
                   {/* 성별 */}
                   <div className="col-span-1 text-center">
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                      p.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-100 text-pink-700'
+                      p.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-500/15 text-pink-600'
                     }`}>
                       {GENDER_LABELS[p.gender]}
                     </span>

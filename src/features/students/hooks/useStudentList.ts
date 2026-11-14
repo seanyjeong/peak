@@ -54,8 +54,8 @@ export const STATUS_MAP: Record<string, { label: string; color: string; darkColo
   },
   trial: {
     label: '체험',
-    color: 'bg-purple-100 text-purple-700',
-    darkColor: 'dark:bg-purple-900/20 dark:text-purple-400'
+    color: 'bg-purple-500/15 text-purple-600',
+    darkColor: ''
   },
 };
 

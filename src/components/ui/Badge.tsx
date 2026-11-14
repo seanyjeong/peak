@@ -15,8 +15,8 @@ const variantStyles = {
   warning: 'bg-warning-soft text-warning',
   danger: 'bg-destructive-soft text-destructive',
   info: 'bg-primary-soft text-primary',
-  purple: 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300',
-  pink: 'bg-pink-100 dark:bg-pink-900 text-pink-700 dark:text-pink-300',
+  purple: 'bg-purple-500/15 text-purple-600',
+  pink: 'bg-pink-500/15 text-pink-600',
   blue: 'bg-primary-soft text-primary',
 };
 

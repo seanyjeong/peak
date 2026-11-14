@@ -67,7 +67,7 @@ export const PARTICIPANT_TYPE_LABELS: Record<Participant['participant_type'], st
 export const PARTICIPANT_TYPE_CLASSES: Record<Participant['participant_type'], string> = {
   enrolled: 'bg-success-soft text-success',
   rest: 'bg-muted text-secondary-foreground',
-  trial: 'bg-violet-50 text-violet-700',
+  trial: 'bg-violet-500/15 text-violet-600',
   test_new: 'bg-primary-soft text-primary',
 };
 

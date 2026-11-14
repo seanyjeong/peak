@@ -47,7 +47,7 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {student.status === 'trial' && (
-          <span className="rounded-md bg-purple-100 px-2 py-1 text-xs font-bold text-purple-700">
+          <span className="rounded-md bg-purple-500/15 px-2 py-1 text-xs font-bold text-purple-600">
             체험 {student.trial_total - student.trial_remaining}/{student.trial_total}
           </span>
         )}
