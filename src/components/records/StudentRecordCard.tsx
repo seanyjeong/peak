@@ -2,6 +2,7 @@
 
 import { ChevronDown, ChevronUp, Check, Trophy } from 'lucide-react';
 import { Student, RecordType, RecordInput } from './types';
+import { decorTone } from '@/components/ui/page';
 
 interface StudentRecordCardProps {
   student: Student;
@@ -35,13 +36,13 @@ export function StudentRecordCard({
 
   return (
     <div
-      className={`overflow-hidden rounded-lg border bg-card shadow-sm transition ${
-        isSaved ? 'border-success/30' : 'border-border'
+      className={`overflow-hidden rounded-2xl bg-card transition ${
+        isSaved ? 'ring-1 ring-inset ring-success/40' : ''
       } ${isAbsent ? 'opacity-60' : ''}`}
     >
       <button
         type="button"
-        className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-muted"
+        className="flex w-full items-center justify-between px-4 py-3.5 text-left transition hover:bg-muted/60"
         onClick={onToggle}
       >
         <div className="flex min-w-0 items-center gap-3">
@@ -51,17 +52,17 @@ export function StudentRecordCard({
             </span>
           ) : (
             <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-bold ${
-              student.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-100 text-pink-600'
+              student.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink
             }`}>
               {student.gender === 'M' ? '남' : '여'}
             </span>
           )}
-          <span className={`truncate text-base font-black ${isAbsent ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{student.student_name}</span>
+          <span className={`truncate text-[15px] font-bold ${isAbsent ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{student.student_name}</span>
           {isSaved && <Check size={14} className="shrink-0 text-success" />}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {inputCount > 0 && (
-            <span className="rounded-md bg-success-soft px-2 py-1 text-xs font-black text-success">
+            <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs font-bold tabular-nums text-success">
               {totalScore !== null ? `${totalScore}점` : `${inputCount}개`}
             </span>
           )}
@@ -74,7 +75,7 @@ export function StudentRecordCard({
       </button>
 
       {isExpanded && (
-        <div className="border-t border-border bg-muted px-4 py-3">
+        <div className="border-t border-border/60 px-4 py-3">
           <div className="grid grid-cols-2 gap-2">
             {recordTypes.map(type => {
               const inputData = inputs[type.id] || { value: '', score: null };
@@ -94,10 +95,10 @@ export function StudentRecordCard({
                       onChange={e => onInputChange(type.id, e.target.value)}
                       onBlur={() => onInputBlur(type.id)}
                       placeholder="0"
-                      className={`h-10 w-full rounded-lg border bg-card px-3 pr-12 text-sm font-semibold outline-none focus:ring-1 ${
+                      className={`h-11 w-full rounded-xl border px-3 pr-12 text-[15px] font-semibold tabular-nums outline-none transition focus:ring-4 ${
                         outOfRange
-                          ? 'border-destructive bg-destructive-soft focus:border-destructive focus:ring-destructive'
-                          : 'border-border focus:border-foreground focus:ring-border'
+                          ? 'border-destructive bg-destructive-soft focus:ring-destructive/15'
+                          : 'border-transparent bg-muted focus:border-primary focus:ring-primary/10'
                       }`}
                     />
                     {inputData.score !== null && (

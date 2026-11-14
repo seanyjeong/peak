@@ -2,6 +2,7 @@
 
 import { Users, List } from 'lucide-react';
 import { InputMode, RecordType } from './types';
+import { chipClass } from '@/components/ui/page';
 
 interface RecordModeSelectorProps {
   inputMode: InputMode;
@@ -23,16 +24,16 @@ export function RecordModeSelector({
   onCollapseAll,
 }: RecordModeSelectorProps) {
   return (
-    <section className="mb-4 rounded-2xl bg-card p-4">
+    <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
+        <div className="flex gap-1 rounded-xl bg-muted p-1">
           <button
             type="button"
             onClick={() => setInputMode('student')}
-            className={`flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-black transition ${
+            className={`flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${
               inputMode === 'student'
-                ? 'bg-foreground text-background'
-                : 'border border-border bg-card text-secondary-foreground hover:bg-muted'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Users size={18} />
@@ -41,10 +42,10 @@ export function RecordModeSelector({
           <button
             type="button"
             onClick={() => setInputMode('event')}
-            className={`flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-black transition ${
+            className={`flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${
               inputMode === 'event'
-                ? 'bg-foreground text-background'
-                : 'border border-border bg-card text-secondary-foreground hover:bg-muted'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <List size={18} />
@@ -59,11 +60,8 @@ export function RecordModeSelector({
                 key={type.id}
                 type="button"
                 onClick={() => setSelectedRecordType(type.id)}
-                className={`h-9 rounded-lg px-3 text-sm font-bold transition ${
-                  selectedRecordType === type.id
-                    ? 'bg-success text-white'
-                    : 'border border-border bg-card text-secondary-foreground hover:bg-muted'
-                }`}
+                aria-pressed={selectedRecordType === type.id}
+                className={chipClass(selectedRecordType === type.id, 'card')}
               >
                 {type.name}
               </button>
@@ -76,20 +74,20 @@ export function RecordModeSelector({
             <button
               type="button"
               onClick={onExpandAll}
-              className="h-9 rounded-lg border border-border px-3 text-sm font-bold text-secondary-foreground hover:bg-muted"
+              className="h-9 rounded-xl bg-muted px-3 text-sm font-semibold text-secondary-foreground transition hover:bg-border hover:text-foreground"
             >
               전체 펼치기
             </button>
             <button
               type="button"
               onClick={onCollapseAll}
-              className="h-9 rounded-lg border border-border px-3 text-sm font-bold text-secondary-foreground hover:bg-muted"
+              className="h-9 rounded-xl bg-muted px-3 text-sm font-semibold text-secondary-foreground transition hover:bg-border hover:text-foreground"
             >
               전체 접기
             </button>
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }
