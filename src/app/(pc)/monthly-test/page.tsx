@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import { Modal } from '@/components/ui/Modal';
 import { getMonthlyErrorMessage } from './[testId]/monthly-detail-model';
 import { BoardSettingsModal, type SlugCheckState } from './board-settings-modal';
+import { PageHeader, StatTile, toolbarButtonClass } from '@/components/ui/page';
 
 interface MonthlyTest {
   id: number;
@@ -210,52 +211,51 @@ export default function MonthlyTestListPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-normal text-success">MONTHLY TEST</p>
-          <h1 className="mt-1 text-3xl font-black tracking-normal text-foreground">월말테스트</h1>
-          <p className="mt-2 text-sm font-semibold text-muted-foreground">측정 회차, 세션, 전광판 주소를 관리합니다.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <ActionButton icon={Settings2} label="전광판 설정" onClick={() => setShowSlugModal(true)} />
-          <ActionButton icon={Copy} label="URL 복사" onClick={copyBoardUrl} />
-          {currentSlug && <ActionButton icon={Monitor} label="전광판 보기" onClick={() => window.open(`/board/${currentSlug}`, '_blank')} />}
-          <button type="button" onClick={() => setShowCreateModal(true)} className="flex h-10 items-center gap-2 rounded-lg bg-foreground px-4 text-sm font-bold text-background hover:bg-foreground/90">
-            <Plus className="size-4" />
-            새 테스트
-          </button>
-          <button type="button" onClick={fetchData} disabled={loading} className="rounded-lg border border-border bg-card p-2 text-secondary-foreground disabled:opacity-50">
-            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </header>
+    <div className="mx-auto max-w-[1500px] space-y-4">
+      <PageHeader
+        title="월말테스트"
+        description="측정 회차, 세션, 전광판 주소를 관리합니다."
+        actions={(
+          <>
+            <ActionButton icon={Settings2} label="전광판 설정" onClick={() => setShowSlugModal(true)} />
+            <ActionButton icon={Copy} label="URL 복사" onClick={copyBoardUrl} />
+            {currentSlug && <ActionButton icon={Monitor} label="전광판 보기" onClick={() => window.open(`/board/${currentSlug}`, '_blank')} />}
+            <button type="button" onClick={() => setShowCreateModal(true)} className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">
+              <Plus className="size-4" />
+              새 테스트
+            </button>
+            <button type="button" onClick={fetchData} disabled={loading} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-secondary-foreground transition-colors hover:text-foreground disabled:opacity-50" aria-label="새로고침">
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </>
+        )}
+      />
 
-      <section className="grid gap-3 lg:grid-cols-3">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Metric icon={Trophy} label="테스트" value={`${tests.length}개`} />
         <Metric icon={Users} label="총 참가자" value={`${tests.reduce((sum, test) => sum + test.participant_count, 0)}명`} />
         <Metric icon={Link2} label="전광판" value={currentSlug || '미설정'} />
       </section>
 
-      {loading && <div className="rounded-lg border border-border bg-card p-12 text-center text-sm font-semibold text-muted-foreground">불러오는 중입니다.</div>}
+      {loading && <div className="rounded-2xl bg-card p-12 text-center text-sm font-semibold text-muted-foreground">불러오는 중입니다.</div>}
       {!loading && tests.length === 0 && (
-        <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+        <div className="rounded-2xl bg-card p-10 text-center">
           <Trophy className="mx-auto size-10 text-muted-foreground/60" />
           <p className="mt-3 text-sm font-bold text-secondary-foreground">등록된 월말테스트가 없습니다.</p>
-          <button type="button" onClick={() => setShowCreateModal(true)} className="mt-4 h-10 rounded-lg bg-foreground px-4 text-sm font-bold text-background">첫 테스트 만들기</button>
+          <button type="button" onClick={() => setShowCreateModal(true)} className="mt-4 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground">첫 테스트 만들기</button>
         </div>
       )}
       {!loading && tests.length > 0 && (
         <div className="grid gap-3">
           {tests.map((test) => (
-            <article key={test.id} className="rounded-2xl bg-card p-5 transition hover:border-border">
+            <article key={test.id} className="rounded-2xl bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <button type="button" onClick={() => router.push(`/monthly-test/${test.id}`)} className="min-w-0 flex-1 text-left">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-xl font-black text-foreground">{test.test_name}</h2>
-                    <span className={`rounded-md px-2 py-1 text-xs font-black ${STATUS_STYLE[test.status]}`}>{STATUS_LABEL[test.status]}</span>
+                    <h2 className="text-lg font-bold tracking-tight text-foreground">{test.test_name}</h2>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[test.status]}`}>{STATUS_LABEL[test.status]}</span>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold text-muted-foreground">
+                  <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
                     <span>{test.test_month}</span>
                     <span>세션 {test.session_count}개</span>
                     <span>참가자 {test.participant_count}명</span>
@@ -263,10 +263,10 @@ export default function MonthlyTestListPage() {
                   </div>
                 </button>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => router.push(`/monthly-test/${test.id}`)} className="rounded-lg border border-border p-2 text-secondary-foreground hover:bg-muted" title="열기">
+                  <button type="button" onClick={() => router.push(`/monthly-test/${test.id}`)} className="rounded-xl bg-muted p-2.5 text-secondary-foreground hover:bg-border" title="열기" aria-label="열기">
                     <ExternalLink className="size-4" />
                   </button>
-                  <button type="button" onClick={() => deleteTest(test)} className="rounded-lg border border-destructive/30 p-2 text-destructive hover:bg-destructive-soft" title="삭제">
+                  <button type="button" onClick={() => deleteTest(test)} className="rounded-xl bg-destructive-soft p-2.5 text-destructive hover:bg-destructive-soft/70" title="삭제" aria-label="삭제">
                     <Trash2 className="size-4" />
                   </button>
                 </div>
@@ -312,7 +312,7 @@ export default function MonthlyTestListPage() {
 
 function ActionButton({ icon: Icon, label, onClick }: { icon: typeof Settings2; label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-bold text-secondary-foreground hover:bg-muted">
+    <button type="button" onClick={onClick} className={toolbarButtonClass()}>
       <Icon className="size-4" />
       {label}
     </button>
@@ -320,17 +320,7 @@ function ActionButton({ icon: Icon, label, onClick }: { icon: typeof Settings2; 
 }
 
 function Metric({ icon: Icon, label, value }: { icon: typeof Trophy; label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-card p-4">
-      <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-secondary-foreground"><Icon className="size-5" /></span>
-        <div>
-          <p className="text-xs font-bold text-muted-foreground">{label}</p>
-          <p className="mt-1 text-lg font-black text-foreground">{value}</p>
-        </div>
-      </div>
-    </div>
-  );
+  return <StatTile icon={Icon} label={label} value={value} />;
 }
 
 function CreateTestModal({
@@ -362,10 +352,10 @@ function CreateTestModal({
     <Modal isOpen={open} onClose={onClose} title="새 월말테스트">
       <div className="space-y-4">
         <label className="block text-sm font-bold text-secondary-foreground">테스트 월
-          <input type="month" value={month} onChange={(event) => onMonthChange(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-border px-3 outline-none focus:border-foreground" />
+          <input type="month" value={month} onChange={(event) => onMonthChange(event.target.value)} className="mt-2 h-10 w-full rounded-xl border border-transparent px-3 outline-none focus:border-primary bg-muted" />
         </label>
         <label className="block text-sm font-bold text-secondary-foreground">테스트 이름
-          <input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={defaultTestName(month)} className="mt-2 h-10 w-full rounded-lg border border-border px-3 outline-none focus:border-foreground" />
+          <input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={defaultTestName(month)} className="mt-2 h-10 w-full rounded-xl border border-transparent px-3 outline-none focus:border-primary bg-muted" />
         </label>
         <div>
           <p className="mb-2 text-sm font-bold text-secondary-foreground">측정 종목</p>
@@ -380,7 +370,7 @@ function CreateTestModal({
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="h-10 rounded-lg border border-border px-4 text-sm font-bold text-secondary-foreground">취소</button>
-          <button type="button" onClick={onCreate} disabled={creating || selectedTypes.length === 0} className="h-10 rounded-lg bg-foreground px-4 text-sm font-bold text-background disabled:opacity-50">
+          <button type="button" onClick={onCreate} disabled={creating || selectedTypes.length === 0} className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50">
             {creating ? '생성 중' : '생성'}
           </button>
         </div>

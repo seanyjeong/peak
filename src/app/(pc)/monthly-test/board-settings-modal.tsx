@@ -97,7 +97,7 @@ export function BoardSettingsModal({
           </div>
           {!clearBoardPin && (
             <input
-              className="mt-3 h-10 w-full rounded-lg border border-border px-3 font-mono outline-none focus:border-foreground"
+              className="mt-3 h-10 w-full rounded-xl border border-transparent px-3 font-mono outline-none focus:border-primary bg-muted"
               inputMode="numeric"
               maxLength={12}
               onChange={(event) => onPinChange(event.target.value.replace(/\D/g, '').slice(0, 12))}
@@ -109,7 +109,7 @@ export function BoardSettingsModal({
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="h-10 rounded-lg border border-border px-4 text-sm font-bold text-secondary-foreground">취소</button>
-          <button type="button" onClick={onSave} disabled={saving} className="h-10 rounded-lg bg-foreground px-4 text-sm font-bold text-background disabled:opacity-50">
+          <button type="button" onClick={onSave} disabled={saving} className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50">
             {saving ? '저장 중' : '저장'}
           </button>
         </div>

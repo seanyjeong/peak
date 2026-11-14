@@ -7,6 +7,7 @@ import {
   PARTICIPANT_TYPE_LABELS,
   Supervisor,
 } from './session-group-model';
+import { decorTone } from '@/components/ui/page';
 
 export function DraggableParticipant({ participant }: { participant: Participant }) {
   const { attributes, isDragging, listeners, setNodeRef, transform } = useDraggable({
@@ -21,16 +22,16 @@ export function DraggableParticipant({ participant }: { participant: Participant
       style={style}
       {...listeners}
       {...attributes}
-      className="mb-2 cursor-grab touch-none rounded-2xl bg-card p-3 active:cursor-grabbing"
+      className="mb-2 cursor-grab touch-none rounded-xl bg-muted p-3 active:cursor-grabbing"
     >
       <div className="flex items-center gap-2">
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${participant.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-destructive-soft text-destructive'}`}>
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${participant.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink}`}>
           {participant.gender === 'M' ? '남' : '여'}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1">
             <span className="truncate text-sm font-bold text-foreground">{participant.name}</span>
-            <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-bold ${PARTICIPANT_TYPE_CLASSES[participant.participant_type]}`}>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${PARTICIPANT_TYPE_CLASSES[participant.participant_type]}`}>
               {PARTICIPANT_TYPE_LABELS[participant.participant_type]}
             </span>
           </div>
@@ -81,7 +82,7 @@ export function GroupColumn({ group, onDeleteGroup }: { group: Group; onDeleteGr
 
   return (
     <article className="flex w-64 shrink-0 flex-col overflow-hidden rounded-2xl bg-card">
-      <header className="flex items-center justify-between border-b border-border bg-muted px-3 py-3">
+      <header className="flex items-center justify-between px-4 pb-2 pt-4">
         <div>
           <h3 className="font-bold text-foreground">{groupTitle}</h3>
           <p className="text-xs text-muted-foreground">{group.participants.length}명 배치</p>
@@ -93,7 +94,7 @@ export function GroupColumn({ group, onDeleteGroup }: { group: Group; onDeleteGr
 
       <div
         ref={setSupervisorsRef}
-        className={`min-h-16 border-b border-border p-3 transition ${isOverSupervisors ? 'bg-primary-soft ring-2 ring-primary/30' : 'bg-muted'}`}
+        className={`mx-3 min-h-16 rounded-xl p-3 transition ${isOverSupervisors ? 'bg-primary-soft ring-2 ring-primary/30' : 'bg-muted/60'}`}
       >
         {group.supervisors.length === 0 ? (
           <span className="text-xs font-semibold text-muted-foreground">감독관 드롭</span>
@@ -118,8 +119,8 @@ export function NewGroupZone() {
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-96 w-52 shrink-0 items-center justify-center rounded-lg border-2 border-dashed transition ${
-        isOver ? 'border-primary bg-primary-soft ring-2 ring-primary/30' : 'border-border bg-card'
+      className={`flex min-h-96 w-52 shrink-0 items-center justify-center rounded-2xl border-2 border-dashed transition ${
+        isOver ? 'border-primary bg-primary-soft ring-2 ring-primary/30' : 'border-border'
       }`}
     >
       <div className="text-center text-sm font-bold text-muted-foreground">
@@ -150,15 +151,15 @@ export function WaitingArea({
 
   return (
     <aside className="flex w-80 shrink-0 flex-col gap-4">
-      <section className={`overflow-hidden rounded-lg border border-border bg-card shadow-sm transition ${isDragging ? 'ring-2 ring-dashed ring-primary/30' : ''}`}>
-        <header className="border-b border-border bg-muted px-4 py-3 text-sm font-bold text-secondary-foreground">감독관 대기 {waitingInstructors.length}명</header>
+      <section className={`overflow-hidden rounded-2xl bg-card transition ${isDragging ? 'ring-2 ring-dashed ring-primary/30' : ''}`}>
+        <header className="px-4 pb-1 pt-4 text-[15px] font-bold text-foreground">감독관 대기 {waitingInstructors.length}명</header>
         <div ref={setWaitingSupervisorsRef} className={`min-h-24 p-3 transition ${isOverSupervisors ? 'bg-primary-soft ring-2 ring-primary/30' : ''}`}>
           {waitingInstructors.length === 0 ? <EmptyDropText text="감독관을 여기로 이동" /> : <div className="flex flex-wrap gap-1">{waitingInstructors.map((supervisor) => <DraggableSupervisor key={supervisor.instructor_id} supervisor={supervisor} />)}</div>}
         </div>
       </section>
 
-      <section className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm transition ${isDragging ? 'ring-2 ring-dashed ring-success/30' : ''}`}>
-        <header className="border-b border-border bg-muted px-4 py-3 text-sm font-bold text-secondary-foreground">미배치 학생 {waitingParticipants.length}명</header>
+      <section className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-card transition ${isDragging ? 'ring-2 ring-dashed ring-success/30' : ''}`}>
+        <header className="px-4 pb-1 pt-4 text-[15px] font-bold text-foreground">미배치 학생 {waitingParticipants.length}명</header>
         <div ref={setWaitingParticipantsRef} className={`min-h-80 flex-1 overflow-y-auto p-3 transition ${isOverParticipants ? 'bg-success-soft ring-2 ring-success/30' : ''}`}>
           {waitingParticipants.length === 0 ? <EmptyDropText text="학생을 여기로 이동" /> : waitingParticipants.map((participant) => <DraggableParticipant key={participant.id} participant={participant} />)}
         </div>

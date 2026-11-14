@@ -4,10 +4,10 @@ import { useState, useEffect, useRef, useCallback, use } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
-import { Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
+import { PageHeader, chipClass, toolbarButtonClass } from '@/components/ui/page';
 import { getSessionErrorMessage } from '../session-group-model';
 
 interface RecordType {
@@ -265,91 +265,87 @@ export default function SessionRecordsPage({
   }
 
   return (
-    <div className="p-6">
-      {/* 헤더 */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <button
-            onClick={() => router.push(`/monthly-test/${testId}/${sessionId}`)}
-            className="text-sm text-muted-foreground hover:text-secondary-foreground"
-          >
-            ← 조 편성으로 돌아가기
-          </button>
-          <h1 className="text-xl font-bold">
-            기록 측정
-          </h1>
-          <div className="text-sm text-muted-foreground">
-            {session && new Date(session.test_date).toLocaleDateString('ko-KR')} | 참가자 {participants.length}명
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleDeleteAllRecords} leftIcon={<Trash2 size={16} />}>
-            기록 전체 삭제
-          </Button>
-        </div>
+    <div className="mx-auto max-w-[1440px] space-y-4">
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          onClick={() => router.push(`/monthly-test/${testId}/${sessionId}`)}
+          className={`${toolbarButtonClass()} mt-2.5 w-10 px-0`}
+          aria-label="조 편성으로 돌아가기"
+          title="조 편성으로 돌아가기"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <PageHeader
+          className="min-w-0 flex-1"
+          title="기록 측정"
+          description={`${session ? new Date(session.test_date).toLocaleDateString('ko-KR') : ''} · 참가자 ${participants.length}명`}
+          actions={(
+            <button type="button" onClick={handleDeleteAllRecords} className={toolbarButtonClass('danger')}>
+              <Trash2 size={16} />
+              기록 전체 삭제
+            </button>
+          )}
+        />
       </div>
 
-      {/* 강사별 필터 */}
-      {groups.length > 0 && (
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-          <button
-            onClick={() => setSelectedGroupId(null)}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-              selectedGroupId === null
-                ? 'bg-foreground text-background'
-                : 'bg-muted hover:bg-border'
-            }`}
-          >
-            전체 ({participants.length}명)
-          </button>
-          {groups.map(group => {
-            const mainInstructor = group.instructors.find(i => i.is_main);
-            const groupParticipants = participants.filter(p => p.test_group_id === group.id);
-            return (
-              <button
-                key={group.id}
-                onClick={() => setSelectedGroupId(group.id)}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors flex items-center gap-2 ${
-                  selectedGroupId === group.id
-                    ? 'bg-primary text-white'
-                    : 'bg-muted hover:bg-border'
-                }`}
-              >
-                <span className="font-medium">
+      <div className="space-y-3 rounded-2xl bg-card p-4 sm:p-5">
+        {/* 강사별 필터 */}
+        {groups.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto">
+            <button
+              type="button"
+              aria-pressed={selectedGroupId === null}
+              onClick={() => setSelectedGroupId(null)}
+              className={chipClass(selectedGroupId === null, 'card')}
+            >
+              전체 <span className="tabular-nums opacity-70">{participants.length}명</span>
+            </button>
+            {groups.map(group => {
+              const mainInstructor = group.instructors.find(i => i.is_main);
+              const groupParticipants = participants.filter(p => p.test_group_id === group.id);
+              return (
+                <button
+                  key={group.id}
+                  type="button"
+                  aria-pressed={selectedGroupId === group.id}
+                  onClick={() => setSelectedGroupId(group.id)}
+                  className={chipClass(selectedGroupId === group.id, 'card')}
+                >
                   {mainInstructor?.name || `${group.group_num}조`}
-                </span>
-                <span className={`text-xs ${selectedGroupId === group.id ? 'text-blue-200' : 'text-muted-foreground'}`}>
-                  ({groupParticipants.length}명)
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+                  <span className="tabular-nums opacity-70">{groupParticipants.length}명</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-      {/* 종목 탭 */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        {recordTypes.map(type => (
-          <button
-            key={type.record_type_id}
-            onClick={() => setSelectedTypeId(type.record_type_id)}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-              selectedTypeId === type.record_type_id
-                ? 'bg-primary text-white'
-                : 'bg-muted hover:bg-border'
-            }`}
-          >
-            {type.short_name || type.name}
-            <span className="text-xs ml-1 opacity-70">({type.unit})</span>
-          </button>
-        ))}
+        {/* 종목 탭 */}
+        <div className="flex gap-1 overflow-x-auto rounded-xl bg-muted p-1">
+          {recordTypes.map(type => (
+            <button
+              key={type.record_type_id}
+              type="button"
+              aria-pressed={selectedTypeId === type.record_type_id}
+              onClick={() => setSelectedTypeId(type.record_type_id)}
+              className={`h-9 shrink-0 whitespace-nowrap rounded-lg px-4 text-sm font-semibold transition ${
+                selectedTypeId === type.record_type_id
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {type.short_name || type.name}
+              <span className="ml-1 text-xs opacity-70">({type.unit})</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 기록 입력 테이블 */}
       {selectedType && (
         <Card className="overflow-hidden">
           <table className="w-full">
-            <thead className="bg-muted">
+            <thead className="border-b border-border/60 text-[13px] text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">이름</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">성별</th>
@@ -361,7 +357,7 @@ export default function SessionRecordsPage({
                 <th className="px-4 py-3 text-center text-sm font-medium w-16">상태</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-border/60">
               {filteredParticipants.map(p => {
                 const key = getParticipantKey(p);
                 const saveKey = `${key}-${selectedType.record_type_id}`;

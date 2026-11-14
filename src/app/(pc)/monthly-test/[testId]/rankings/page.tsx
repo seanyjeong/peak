@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api/client';
 import { BranchTabs, type Branch } from '@/components/BranchTabs';
-import { Button } from '@/components/ui/Button';
+import { PageHeader, chipClass, toolbarButtonClass } from '@/components/ui/page';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { ChevronLeft, Trophy, Medal, Award } from 'lucide-react';
@@ -178,90 +178,86 @@ export default function RankingsPage({
     : null;
 
   return (
-    <div className="min-h-screen bg-muted pb-6">
-      {/* 헤더 */}
-      <div className="sticky top-0 z-10 bg-card border-b shadow-sm">
-        <div className="px-6 py-4 flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push(`/monthly-test/${testId}`)}
-          >
-            <ChevronLeft size={20} />
-            뒤로
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold">{test?.test_name || '월말테스트'}</h1>
-            <p className="text-sm text-muted-foreground">
-              {classFilter === 'advance' ? '선행반' : '전체'} 순위 · {rankedParticipants.length}명
-            </p>
-          </div>
+    <div className="mx-auto max-w-[1440px] space-y-4">
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          onClick={() => router.push(`/monthly-test/${testId}`)}
+          className={`${toolbarButtonClass()} mt-2.5 w-10 px-0`}
+          aria-label="뒤로"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <PageHeader
+          className="min-w-0 flex-1"
+          title={test?.test_name || '월말테스트'}
+          description={`${classFilter === 'advance' ? '선행반' : '전체'} 순위 · ${rankedParticipants.length}명`}
+        />
+      </div>
+
+      <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
+
+      {/* 필터 */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl bg-card p-4 sm:p-5">
+        {/* 성별 필터 */}
+        <div className="flex gap-2">
+          {(['all', 'M', 'F'] as const).map(g => (
+            <button
+              key={g}
+              type="button"
+              aria-pressed={genderFilter === g}
+              className={chipClass(genderFilter === g, 'card')}
+              onClick={() => setGenderFilter(g)}
+            >
+              {g === 'all' ? '전체' : GENDER_LABELS[g]}
+            </button>
+          ))}
         </div>
 
-        {branches.length > 0 ? (
-          <div className="px-6 pb-3">
-            <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
-          </div>
-        ) : null}
-
-        {/* 필터 */}
-        <div className="px-6 pb-3 flex flex-wrap gap-4 items-center">
-          {/* 성별 필터 */}
-          <div className="flex gap-2">
-            {(['all', 'M', 'F'] as const).map(g => (
-              <Button
-                key={g}
-                variant={genderFilter === g ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => setGenderFilter(g)}
-              >
-                {g === 'all' ? '전체' : GENDER_LABELS[g]}
-              </Button>
-            ))}
-          </div>
-
-          {/* 반 필터 */}
-          <div className="flex gap-2">
-            {(['all', 'advance'] as const).map(c => (
-              <Button
-                key={c}
-                variant={classFilter === c ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => setClassFilter(c)}
-              >
-                {c === 'all' ? '전체 학년' : '선행반 (중1~고2)'}
-              </Button>
-            ))}
-          </div>
-
-          {/* 종목 탭 */}
-          <div className="flex gap-2 overflow-x-auto">
-            <Button
-              variant={selectedTypeId === 'total' ? 'primary' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedTypeId('total')}
+        {/* 반 필터 */}
+        <div className="flex gap-2">
+          {(['all', 'advance'] as const).map(c => (
+            <button
+              key={c}
+              type="button"
+              aria-pressed={classFilter === c}
+              className={chipClass(classFilter === c, 'card')}
+              onClick={() => setClassFilter(c)}
             >
-              종합
-            </Button>
-            {recordTypes.map(type => (
-              <Button
-                key={type.record_type_id}
-                variant={selectedTypeId === type.record_type_id ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedTypeId(type.record_type_id)}
-              >
-                {type.short_name || type.name}
-              </Button>
-            ))}
-          </div>
+              {c === 'all' ? '전체 학년' : '선행반 (중1~고2)'}
+            </button>
+          ))}
+        </div>
+
+        {/* 종목 탭 */}
+        <div className="flex max-w-full gap-2 overflow-x-auto">
+          <button
+            type="button"
+            aria-pressed={selectedTypeId === 'total'}
+            className={chipClass(selectedTypeId === 'total', 'card')}
+            onClick={() => setSelectedTypeId('total')}
+          >
+            종합
+          </button>
+          {recordTypes.map(type => (
+            <button
+              key={type.record_type_id}
+              type="button"
+              aria-pressed={selectedTypeId === type.record_type_id}
+              className={chipClass(selectedTypeId === type.record_type_id, 'card')}
+              onClick={() => setSelectedTypeId(type.record_type_id)}
+            >
+              {type.short_name || type.name}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* 순위 테이블 */}
-      <div className="px-6 mt-4">
+      <div>
         <Card className="overflow-hidden">
           {/* 테이블 헤더 */}
-          <div className="bg-muted px-4 py-3 grid grid-cols-12 gap-2 text-sm font-medium text-secondary-foreground border-b">
+          <div className="grid grid-cols-12 gap-2 border-b border-border/60 px-4 py-3 text-[13px] font-semibold text-muted-foreground">
             <div className="col-span-1 text-center">순위</div>
             <div className="col-span-3">이름</div>
             <div className="col-span-1 text-center">성별</div>
@@ -280,7 +276,7 @@ export default function RankingsPage({
           </div>
 
           {/* 테이블 바디 */}
-          <div className="divide-y">
+          <div className="divide-y divide-border/60">
             {rankedParticipants.length === 0 ? (
               <div className="px-4 py-8 text-center text-muted-foreground">
                 참가자가 없습니다
@@ -289,7 +285,7 @@ export default function RankingsPage({
               rankedParticipants.map((p) => (
                 <div
                   key={p.student_id || p.test_applicant_id}
-                  className={`px-4 py-3 grid grid-cols-12 gap-2 items-center text-sm ${
+                  className={`px-4 py-3.5 grid grid-cols-12 gap-2 items-center text-sm ${
                     (p as any).rank <= 3 ? 'bg-warning-soft' : ''
                   }`}
                 >

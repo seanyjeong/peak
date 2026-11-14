@@ -10,12 +10,12 @@ import {
   formatSessionDate,
   getMonthlyErrorMessage,
   MonthlyTest,
-  STATUS_CLASSES,
   STATUS_LABELS,
   TestStatus,
   TimeSlot,
   TIME_SLOT_LABELS,
 } from './monthly-detail-model';
+import { PageHeader, StatTile, chipClass, toolbarButtonClass } from '@/components/ui/page';
 
 export default function MonthlyTestDetailPage({ params }: { params: Promise<{ testId: string }> }) {
   const { testId } = use(params);
@@ -202,7 +202,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       <div className="flex min-h-[60vh] items-center justify-center px-6">
         <div className="rounded-2xl bg-card p-6 text-center">
           <p className="text-sm font-semibold text-secondary-foreground">월말테스트를 찾지 못했습니다.</p>
-          <button type="button" onClick={() => router.push('/monthly-test')} className="mt-4 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background">
+          <button type="button" onClick={() => router.push('/monthly-test')} className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
             목록으로 이동
           </button>
         </div>
@@ -211,58 +211,56 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
   }
 
   return (
-    <main className="max-w-[1440px] space-y-5 px-6 py-6 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <button type="button" onClick={() => router.push('/monthly-test')} className="rounded-lg border border-border bg-card p-2 text-secondary-foreground hover:bg-muted">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <p className="text-sm font-bold text-primary">MONTHLY TEST</p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{test.test_name}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{test.test_month} · {test.record_types.length}개 종목 · {test.sessions.length}개 세션</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => router.push(`/monthly-test/${testId}/rankings`)} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
-            <FileBarChart className="h-4 w-4" />
-            전체 순위
-          </button>
-          <button type="button" onClick={handleExportExcel} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
-            <Download className="h-4 w-4" />
-            엑셀 저장
-          </button>
-          {test.status === 'draft' && (
-            <button type="button" onClick={openSettingsPanel} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
-              <Edit3 className="h-4 w-4" />
-              테스트 설정
-            </button>
+    <div className="mx-auto max-w-[1440px] space-y-4">
+      <div className="flex items-start gap-2">
+        <button type="button" onClick={() => router.push('/monthly-test')} className={`${toolbarButtonClass()} mt-2.5 w-10 px-0`} aria-label="뒤로">
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <PageHeader
+          className="min-w-0 flex-1"
+          title={test.test_name}
+          description={test.test_month}
+          actions={(
+            <>
+              <button type="button" onClick={() => router.push(`/monthly-test/${testId}/rankings`)} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-card px-3.5 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-card/70 hover:text-foreground disabled:opacity-50">
+                <FileBarChart className="h-4 w-4" />
+                전체 순위
+              </button>
+              <button type="button" onClick={handleExportExcel} className={toolbarButtonClass()}>
+                <Download className="h-4 w-4" />
+                엑셀 저장
+              </button>
+              {test.status === 'draft' && (
+                <button type="button" onClick={openSettingsPanel} className={toolbarButtonClass()}>
+                  <Edit3 className="h-4 w-4" />
+                  테스트 설정
+                </button>
+              )}
+              <button type="button" onClick={() => setShowSessionForm((prev) => !prev)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                <Plus className="h-4 w-4" />
+                세션 추가
+              </button>
+            </>
           )}
-          <button type="button" onClick={() => setShowSessionForm((prev) => !prev)} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background hover:bg-foreground/90">
-            <Plus className="h-4 w-4" />
-            세션 추가
-          </button>
-        </div>
-      </header>
+        />
+      </div>
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <Metric label="상태" value={STATUS_LABELS[test.status]} className={STATUS_CLASSES[test.status]} />
-        <Metric label="세션" value={`${test.sessions.length}개`} />
-        <Metric label="참가자" value={`${test.sessions.reduce((sum, session) => sum + session.participant_count, 0)}명`} />
-        <Metric label="편성 조" value={`${test.sessions.reduce((sum, session) => sum + session.group_count, 0)}개`} />
+      <section className="grid grid-cols-3 gap-3">
+        <StatTile label="세션" value={`${test.sessions.length}개`} />
+        <StatTile label="참가자" value={`${test.sessions.reduce((sum, session) => sum + session.participant_count, 0)}명`} />
+        <StatTile label="편성 조" value={`${test.sessions.reduce((sum, session) => sum + session.group_count, 0)}개`} />
       </section>
 
-      <section className="rounded-2xl bg-card p-4">
+      <section className="rounded-2xl bg-card p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-bold text-muted-foreground">상태 변경</span>
+          <span className="mr-1 text-sm font-semibold text-muted-foreground">상태</span>
           {(['draft', 'active', 'completed'] as TestStatus[]).map((status) => (
             <button
               key={status}
               type="button"
               onClick={() => handleStatusChange(status)}
-              className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                test.status === status ? 'bg-foreground text-background' : 'bg-muted text-secondary-foreground hover:bg-border'
-              }`}
+              aria-pressed={test.status === status}
+              className={chipClass(test.status === status, 'card')}
             >
               {STATUS_LABELS[status]}
             </button>
@@ -270,7 +268,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           {test.record_types.map((type) => (
-            <span key={type.record_type_id} className="rounded-lg bg-primary-soft px-3 py-1.5 text-sm font-bold text-primary">
+            <span key={type.record_type_id} className="rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold text-primary">
               {type.name} · {type.unit}
             </span>
           ))}
@@ -283,16 +281,16 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
             type="date"
             value={newSessionDate}
             onChange={(event) => setNewSessionDate(event.target.value)}
-            className="h-11 rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-foreground"
+            className="h-11 rounded-xl border border-transparent bg-muted px-3 text-sm outline-none focus:border-primary"
           />
           <select
             value={newSessionSlot}
             onChange={(event) => setNewSessionSlot(event.target.value as TimeSlot)}
-            className="h-11 rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-foreground"
+            className="h-11 rounded-xl border border-transparent bg-muted px-3 text-sm outline-none focus:border-primary"
           >
             {Object.entries(TIME_SLOT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
-          <button type="button" onClick={handleAddSession} disabled={addingSession} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-sm font-bold text-background disabled:opacity-50">
+          <button type="button" onClick={handleAddSession} disabled={addingSession} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50">
             <CalendarPlus className="h-4 w-4" />
             {addingSession ? '추가 중' : '추가'}
           </button>
@@ -304,7 +302,7 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
           <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
             <label className="text-sm font-bold text-secondary-foreground">
               테스트 이름
-              <input value={editName} onChange={(event) => setEditName(event.target.value)} className="mt-1 h-11 w-full rounded-lg border border-border px-3 text-sm outline-none focus:border-foreground" />
+              <input value={editName} onChange={(event) => setEditName(event.target.value)} className="mt-1 h-11 w-full rounded-xl border border-transparent px-3 text-sm outline-none focus:border-primary bg-muted" />
             </label>
             <div>
               <p className="text-sm font-bold text-secondary-foreground">측정 종목</p>
@@ -316,7 +314,8 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
                       key={type.id}
                       type="button"
                       onClick={() => toggleEditType(type.id)}
-                      className={`rounded-lg border px-3 py-2 text-sm font-bold ${selected ? 'border-foreground bg-foreground text-background' : 'border-border bg-card text-secondary-foreground'}`}
+                      aria-pressed={selected}
+                      className={chipClass(selected, 'card')}
                     >
                       {type.short_name || type.name}
                     </button>
@@ -340,7 +339,8 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
                         key={key}
                         type="button"
                         onClick={() => toggleConflict(left.id, right.id)}
-                        className={`rounded-lg border px-3 py-2 text-left text-sm font-bold transition ${active ? 'border-destructive/30 bg-destructive-soft text-destructive' : 'border-border bg-card text-secondary-foreground hover:bg-muted'}`}
+                        aria-pressed={active}
+                        className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${active ? 'bg-destructive-soft text-destructive' : 'bg-muted text-secondary-foreground hover:bg-border'}`}
                       >
                         {left.short_name || left.name} / {right.short_name || right.name}
                       </button>
@@ -352,10 +352,10 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
           )}
 
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setShowSettingsPanel(false)} className="rounded-lg border border-border px-4 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
+            <button type="button" onClick={() => setShowSettingsPanel(false)} className="h-10 rounded-xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground hover:bg-secondary/70">
               취소
             </button>
-            <button type="button" onClick={handleSaveEdit} disabled={saving} className="rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background disabled:opacity-50">
+            <button type="button" onClick={handleSaveEdit} disabled={saving} className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50">
               {saving ? '저장 중' : '저장'}
             </button>
           </div>
@@ -363,13 +363,13 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
       )}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-bold text-foreground">세션 목록</h2>
+        <h2 className="px-1 text-[17px] font-bold tracking-tight text-foreground">세션 목록</h2>
         {test.sessions.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center text-sm font-semibold text-muted-foreground">
+          <div className="rounded-2xl bg-card p-10 text-center text-sm font-semibold text-muted-foreground">
             등록된 세션이 없습니다.
           </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-3 lg:grid-cols-3">
             {test.sessions.map((session) => (
               <article key={session.id} className="rounded-2xl bg-card p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -382,14 +382,14 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
                   </button>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                  <span className="rounded-lg bg-muted px-3 py-2 font-semibold text-secondary-foreground"><Users className="mr-1 inline h-4 w-4" /> {session.participant_count}명</span>
-                  <span className="rounded-lg bg-muted px-3 py-2 font-semibold text-secondary-foreground">조 {session.group_count}개</span>
+                  <span className="rounded-xl bg-muted px-3 py-2 font-semibold text-secondary-foreground"><Users className="mr-1 inline h-4 w-4" /> {session.participant_count}명</span>
+                  <span className="rounded-xl bg-muted px-3 py-2 font-semibold text-secondary-foreground">조 {session.group_count}개</span>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => router.push(`/monthly-test/${testId}/${session.id}`)} className="rounded-lg border border-border px-3 py-2 text-sm font-bold text-secondary-foreground hover:bg-muted">
+                  <button type="button" onClick={() => router.push(`/monthly-test/${testId}/${session.id}`)} className="h-10 rounded-xl bg-secondary px-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary/70">
                     조 편성
                   </button>
-                  <button type="button" onClick={() => router.push(`/monthly-test/${testId}/${session.id}/records`)} className="rounded-lg bg-foreground px-3 py-2 text-sm font-bold text-background hover:bg-foreground/90">
+                  <button type="button" onClick={() => router.push(`/monthly-test/${testId}/${session.id}/records`)} className="h-10 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                     기록 측정
                   </button>
                 </div>
@@ -398,15 +398,6 @@ export default function MonthlyTestDetailPage({ params }: { params: Promise<{ te
           </div>
         )}
       </section>
-    </main>
-  );
-}
-
-function Metric({ className = 'bg-muted text-secondary-foreground', label, value }: { className?: string; label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-card p-5">
-      <p className="text-sm font-bold text-muted-foreground">{label}</p>
-      <span className={`mt-3 inline-flex rounded-lg px-3 py-1 text-2xl font-black ${className}`}>{value}</span>
     </div>
   );
 }

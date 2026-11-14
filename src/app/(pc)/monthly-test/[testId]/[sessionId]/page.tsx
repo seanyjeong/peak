@@ -29,6 +29,7 @@ import {
   Supervisor,
 } from './session-group-model';
 import { ScheduleTable } from './session-schedule-ui';
+import { PageHeader, StatTile, toolbarButtonClass } from '@/components/ui/page';
 
 export default function SessionGroupPage({ params }: { params: Promise<{ testId: string; sessionId: string }> }) {
   const { sessionId, testId } = use(params);
@@ -217,21 +218,16 @@ export default function SessionGroupPage({ params }: { params: Promise<{ testId:
   }
 
   return (
-    <main className="flex h-[calc(100vh-56px)] flex-col gap-4 px-6 py-5 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <button type="button" onClick={() => router.push(`/monthly-test/${testId}`)} className="rounded-lg border border-border bg-card p-2 text-secondary-foreground hover:bg-muted">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <p className="text-sm font-bold text-primary">SESSION BOARD</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">{session?.test_name || '월말테스트 세션'}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{session ? formatSessionDate(session.test_date) : ''}</p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {activeTab === 'grouping' ? (
+    <div className="mx-auto flex h-[calc(100dvh-140px)] min-h-[640px] max-w-[1600px] flex-col gap-4">
+      <div className="flex items-start gap-2">
+        <button type="button" onClick={() => router.push(`/monthly-test/${testId}`)} className={`${toolbarButtonClass()} mt-2.5 w-10 px-0`} aria-label="뒤로">
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <PageHeader
+          className="min-w-0 flex-1"
+          title={session?.test_name || '월말테스트 세션'}
+          description={session ? formatSessionDate(session.test_date) : undefined}
+          actions={activeTab === 'grouping' ? (
             <>
               <ActionButton disabled={syncing} icon={<RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />} label={syncing ? '동기화 중' : '재원생 동기화'} onClick={handleSync} />
               {groups.length > 0 && waitingParticipants.length > 0 && <ActionButton icon={<Shuffle className="h-4 w-4" />} label="균일 배치" onClick={handleAutoAssignAll} />}
@@ -240,17 +236,15 @@ export default function SessionGroupPage({ params }: { params: Promise<{ testId:
           ) : (
             <ActionButton disabled={generatingSchedule || groups.length === 0} icon={<RefreshCw className={`h-4 w-4 ${generatingSchedule ? 'animate-spin' : ''}`} />} label={generatingSchedule ? '생성 중' : '순서표 생성'} onClick={handleGenerateSchedule} primary />
           )}
-        </div>
-      </header>
+        />
+      </div>
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3">
         <Metric label="편성 조" value={`${groups.length}개`} />
         <Metric label="배치 학생" value={`${groups.reduce((sum, group) => sum + group.participants.length, 0)}명`} />
-        <Metric label="미배치 학생" value={`${waitingParticipants.length}명`} />
-        <Metric label="대기 감독관" value={`${waitingInstructors.length}명`} />
       </section>
 
-      <nav className="inline-grid w-fit grid-cols-2 rounded-2xl bg-card p-1">
+      <nav className="inline-grid w-fit grid-cols-2 gap-1 rounded-xl bg-card p-1">
         <TabButton active={activeTab === 'grouping'} label="조 편성" onClick={() => setActiveTab('grouping')} />
         <TabButton active={activeTab === 'schedule'} label="순서표" onClick={() => setActiveTab('schedule')} />
       </nav>
@@ -284,7 +278,7 @@ export default function SessionGroupPage({ params }: { params: Promise<{ testId:
       )}
 
       <AddParticipantModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} sessionId={sessionId} testMonth={session?.test_month || ''} onAdded={fetchData} />
-    </main>
+    </div>
   );
 }
 
@@ -294,9 +288,9 @@ function ActionButton({ disabled, icon, label, onClick, primary = false }: { dis
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition disabled:opacity-50 ${
-        primary ? 'bg-foreground text-background hover:bg-foreground/90' : 'border border-border bg-card text-secondary-foreground hover:bg-muted'
-      }`}
+      className={primary
+        ? 'inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50'
+        : toolbarButtonClass()}
     >
       {icon}
       {label}
@@ -306,19 +300,13 @@ function ActionButton({ disabled, icon, label, onClick, primary = false }: { dis
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-card p-4">
-      <div className="flex items-center justify-between text-muted-foreground">
-        <span className="text-sm font-bold">{label}</span>
-        <Users className="h-4 w-4" />
-      </div>
-      <p className="mt-2 text-2xl font-black text-foreground">{value}</p>
-    </div>
+    <StatTile icon={Users} label={label} value={value} />
   );
 }
 
 function TabButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className={`h-10 rounded-md px-5 text-sm font-bold transition ${active ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>
+    <button type="button" onClick={onClick} aria-pressed={active} className={`h-9 rounded-lg px-5 text-sm font-semibold transition ${active ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>
       {label}
     </button>
   );
@@ -326,9 +314,9 @@ function TabButton({ active, label, onClick }: { active: boolean; label: string;
 
 function EmptyState({ actionLabel, message, onAction }: { actionLabel: string; message: string; onAction: () => void }) {
   return (
-    <div className="flex h-full min-h-80 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card text-sm font-semibold text-muted-foreground">
+    <div className="flex h-full min-h-80 flex-col items-center justify-center rounded-2xl bg-card text-sm font-semibold text-muted-foreground">
       <p>{message}</p>
-      <button type="button" onClick={onAction} className="mt-4 rounded-lg bg-foreground px-4 py-2 font-bold text-background">{actionLabel}</button>
+      <button type="button" onClick={onAction} className="mt-4 h-10 rounded-xl bg-primary px-4 font-semibold text-primary-foreground">{actionLabel}</button>
     </div>
   );
 }
