@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { chipClass, decorTone } from '@/components/ui/page';
 import {
   AlertCircle,
   Check,
@@ -38,9 +39,9 @@ const CONDITION_OPTIONS = [
 
 export function EmptyState({ message, subMessage }: { message: string; subMessage?: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+    <div className="rounded-2xl bg-card p-10 text-center">
       <AlertCircle className="mx-auto size-10 text-muted-foreground/60" />
-      <p className="mt-3 text-sm font-bold text-secondary-foreground">{message}</p>
+      <p className="mt-3 text-[15px] font-semibold text-foreground">{message}</p>
       {subMessage && <p className="mt-1 text-sm text-muted-foreground">{subMessage}</p>}
     </div>
   );
@@ -56,17 +57,14 @@ export function SlotTabs({
   onSelect: (slot: TimeSlot) => void;
 }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-3">
+    <div className="flex flex-wrap gap-2">
       {availableSlots.map((slot) => (
         <button
           key={slot}
           type="button"
+          aria-pressed={activeSlot === slot}
           onClick={() => onSelect(slot)}
-          className={`h-12 rounded-lg border px-4 text-left text-sm font-black transition ${
-            activeSlot === slot
-              ? 'border-foreground bg-foreground text-background'
-              : 'border-border bg-card text-secondary-foreground hover:bg-muted'
-          }`}
+          className={chipClass(activeSlot === slot, 'card')}
         >
           {SLOT_LABELS[slot]}
         </button>
@@ -125,17 +123,16 @@ export function ChecklistPanel({
 
   return (
     <section className="rounded-2xl bg-card">
-      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+      <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-normal text-success">CHECKLIST</p>
-          <h2 className="mt-1 text-xl font-black text-foreground">{currentPlan.instructor_name} 체크리스트</h2>
+          <h2 className="text-[17px] font-bold tracking-tight text-foreground">{currentPlan.instructor_name} 체크리스트</h2>
         </div>
-        <span className="rounded-lg bg-muted px-3 py-1 text-sm font-bold text-secondary-foreground">
+        <span className="rounded-full bg-muted px-2.5 py-1 text-sm font-semibold tabular-nums text-secondary-foreground">
           {currentPlan.exercises.length + currentPlan.extra_exercises.length}개
         </span>
       </div>
 
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border/60">
         <ConditionRow
           checked={isConditionChecked(currentPlan)}
           checkedAt={currentPlan.conditions_checked_at}
@@ -208,12 +205,12 @@ function ConditionRow({
         {checked && checkedAt && <span className="text-xs font-bold text-success">{formatTime(checkedAt)}</span>}
       </button>
       <div className="mt-3 grid gap-2 pl-9 sm:grid-cols-2" onClick={(event) => event.stopPropagation()}>
-        <label className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm">
+        <label className="flex h-10 items-center gap-2 rounded-xl bg-muted px-3 text-sm">
           <Thermometer className="size-4 text-primary" />
           <input type="number" step="0.1" value={temperature} onChange={(event) => onTemperatureChange(event.target.value)} onBlur={onSaveConditions} className="w-full bg-transparent outline-none" placeholder="온도" />
           <span className="text-muted-foreground">°C</span>
         </label>
-        <label className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm">
+        <label className="flex h-10 items-center gap-2 rounded-xl bg-muted px-3 text-sm">
           <Droplets className="size-4 text-primary" />
           <input type="number" value={humidity} onChange={(event) => onHumidityChange(event.target.value)} onBlur={onSaveConditions} className="w-full bg-transparent outline-none" placeholder="습도" />
           <span className="text-muted-foreground">%</span>
@@ -290,7 +287,7 @@ function AddExtraExerciseRow({
   if (!show) {
     return (
       <div className="p-4">
-        <button type="button" onClick={onShow} className="flex h-10 items-center gap-2 rounded-lg border border-primary/30 bg-primary-soft px-4 text-sm font-bold text-primary">
+        <button type="button" onClick={onShow} className="flex h-10 items-center gap-2 rounded-xl bg-primary-soft px-4 text-sm font-semibold text-primary hover:bg-primary-soft/70">
           <Plus className="size-4" />
           운동 추가
         </button>
@@ -301,12 +298,12 @@ function AddExtraExerciseRow({
   return (
     <div className="space-y-2 p-4">
       <div className="flex gap-2">
-        <input value={name} onChange={(event) => onNameChange(event.target.value)} className="h-10 flex-1 rounded-lg border border-border px-3 text-sm outline-none focus:border-foreground" placeholder="운동 이름" autoFocus />
+        <input value={name} onChange={(event) => onNameChange(event.target.value)} className="h-10 flex-1 rounded-xl border border-transparent bg-muted px-3 text-sm outline-none focus:border-primary" placeholder="운동 이름" autoFocus />
         <button type="button" onClick={onClose} className="rounded-lg p-2 text-muted-foreground hover:bg-muted"><X className="size-4" /></button>
       </div>
       <div className="flex gap-2">
-        <input value={note} onChange={(event) => onNoteChange(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && onAdd()} className="h-10 flex-1 rounded-lg border border-border px-3 text-sm outline-none focus:border-foreground" placeholder="메모" />
-        <button type="button" onClick={onAdd} className="h-10 rounded-lg bg-primary px-4 text-sm font-bold text-white">추가</button>
+        <input value={note} onChange={(event) => onNoteChange(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && onAdd()} className="h-10 flex-1 rounded-xl border border-transparent bg-muted px-3 text-sm outline-none focus:border-primary" placeholder="메모" />
+        <button type="button" onClick={onAdd} className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground">추가</button>
       </div>
     </div>
   );
@@ -325,14 +322,14 @@ export function StudentConditionPanel({
 }) {
   return (
     <section className="rounded-2xl bg-card">
-      <div className="flex items-center justify-between border-b border-border px-5 py-4">
-        <h2 className="flex items-center gap-2 text-xl font-black text-foreground">
-          <User className="size-5" />
+      <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
+        <h2 className="flex items-center gap-2 text-[17px] font-bold tracking-tight text-foreground">
+          <User className="size-5 text-muted-foreground" />
           학생 컨디션
         </h2>
-        <span className="rounded-lg bg-muted px-3 py-1 text-sm font-bold text-secondary-foreground">{students.length}명</span>
+        <span className="rounded-full bg-muted px-2.5 py-1 text-sm font-semibold tabular-nums text-secondary-foreground">{students.length}명</span>
       </div>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border/60">
         {students.map((student) => (
           <StudentConditionRow
             key={student.id}
@@ -363,12 +360,12 @@ function StudentConditionRow({
   return (
     <div className={`p-4 ${isAbsent ? 'bg-destructive-soft/70' : ''}`}>
       <div className="mb-3 flex items-center gap-3">
-        <span className={`flex size-9 items-center justify-center rounded-lg ${student.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-100 text-pink-700'}`}>
+        <span className={`flex size-9 items-center justify-center rounded-full ${student.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink}`}>
           <User className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className={`font-black ${isAbsent ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{student.student_name}</span>
+            <span className={`text-[15px] font-bold ${isAbsent ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{student.student_name}</span>
             {isAbsent && <span className="rounded-md bg-destructive-soft px-2 py-0.5 text-xs font-bold text-destructive">결석</span>}
             <Link href={`/students/${student.student_id}`} className="rounded-md p-1 text-primary hover:bg-primary-soft" title="학생 보기">
               <ExternalLink className="size-3.5" />
@@ -390,8 +387,9 @@ function StudentConditionRow({
                   key={option.score}
                   type="button"
                   onClick={() => onSaveCondition(student.student_id, selected ? null : option.score)}
-                  className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg border text-xs font-bold transition ${
-                    selected ? option.className : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                  aria-pressed={selected}
+                  className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border text-xs font-semibold transition ${
+                    selected ? option.className : 'border-transparent bg-muted text-muted-foreground hover:bg-border'
                   }`}
                 >
                   <Icon className="size-4" />
@@ -403,7 +401,7 @@ function StudentConditionRow({
           <input
             defaultValue={log?.notes || ''}
             onBlur={(event) => onSaveNotes(student.student_id, event.target.value)}
-            className="mt-3 h-10 w-full rounded-lg border border-border px-3 text-sm outline-none focus:border-foreground"
+            className="mt-3 h-11 w-full rounded-xl border border-transparent bg-muted px-3 text-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
             placeholder="메모"
           />
         </>

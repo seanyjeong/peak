@@ -6,6 +6,7 @@ import apiClient from '@/lib/api/client';
 import { authAPI, User as AuthUser } from '@/lib/api/auth';
 import { useToast } from '@/hooks/useToast';
 import { BranchTabs, type Branch } from '@/components/BranchTabs';
+import { PageHeader, toolbarButtonClass } from '@/components/ui/page';
 import {
   ExistingLog,
   Exercise,
@@ -242,29 +243,28 @@ export default function TrainingPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-normal text-success">TRAINING LOG</p>
-          <h1 className="mt-1 text-3xl font-black tracking-normal text-foreground">수업 기록</h1>
-          <p className="mt-2 text-sm font-semibold text-muted-foreground">{formatKoreanDate(selectedDate)}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, -1))} className="rounded-lg border border-border bg-card p-2">
-            <ChevronLeft className="size-4" />
-          </button>
-          <label className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-secondary-foreground">
-            <Calendar className="size-4 text-muted-foreground" />
-            <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="bg-transparent outline-none" />
-          </label>
-          <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, 1))} className="rounded-lg border border-border bg-card p-2">
-            <ChevronRight className="size-4" />
-          </button>
-          <button type="button" onClick={fetchData} disabled={loading} className="rounded-lg border border-border bg-card p-2 text-secondary-foreground disabled:opacity-50">
-            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </header>
+    <div className="mx-auto max-w-[1500px] space-y-4">
+      <PageHeader
+        title="수업 기록"
+        description={formatKoreanDate(selectedDate)}
+        actions={(
+          <>
+            <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, -1))} className={`${toolbarButtonClass()} w-10 px-0`} aria-label="전날">
+              <ChevronLeft className="size-4" />
+            </button>
+            <label className={toolbarButtonClass()}>
+              <Calendar className="size-4 text-muted-foreground" />
+              <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="bg-transparent outline-none" />
+            </label>
+            <button type="button" onClick={() => setSelectedDate(shiftIsoDate(selectedDate, 1))} className={`${toolbarButtonClass()} w-10 px-0`} aria-label="다음날">
+              <ChevronRight className="size-4" />
+            </button>
+            <button type="button" onClick={fetchData} disabled={loading} className={`${toolbarButtonClass()} w-10 px-0`} aria-label="새로고침">
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </>
+        )}
+      />
 
       <BranchTabs
         branches={branches}
@@ -275,29 +275,28 @@ export default function TrainingPage() {
         }}
       />
 
-      {loading && <div className="rounded-lg border border-border bg-card p-12 text-center text-sm font-semibold text-muted-foreground">불러오는 중입니다.</div>}
+      {loading && <div className="rounded-2xl bg-card p-12 text-center text-sm font-semibold text-muted-foreground">불러오는 중입니다.</div>}
       {!loading && availableSlots.length === 0 && (
         <EmptyState message="해당 날짜에 배정된 학생이 없습니다." subMessage="반 배치에서 학생을 먼저 배정해주세요." />
       )}
       {!loading && availableSlots.length > 0 && (
         <>
-          <SlotTabs
-            activeSlot={selectedSlot}
-            availableSlots={availableSlots}
-            onSelect={(slot) => {
-              setSelectedSlot(slot);
-              if (isAdmin) setSelectedInstructorId(null);
-            }}
-          />
-
-          {isAdmin && selectedSlot && currentInstructors.length > 0 && (
-            <section className="rounded-2xl bg-card p-4">
-              <label className="block text-sm font-bold text-secondary-foreground">
-                강사 선택
+          <section className="flex flex-wrap items-center gap-3 rounded-2xl bg-card p-4 sm:p-5">
+            <SlotTabs
+              activeSlot={selectedSlot}
+              availableSlots={availableSlots}
+              onSelect={(slot) => {
+                setSelectedSlot(slot);
+                if (isAdmin) setSelectedInstructorId(null);
+              }}
+            />
+            {isAdmin && selectedSlot && currentInstructors.length > 0 && (
+              <label className="flex w-full items-center gap-2 text-sm font-semibold text-secondary-foreground sm:ml-auto sm:w-auto">
+                강사
                 <select
                   value={selectedInstructorId || ''}
                   onChange={(event) => setSelectedInstructorId(event.target.value ? Number(event.target.value) : null)}
-                  className="mt-2 h-11 w-full rounded-lg border border-border bg-card px-3 text-sm font-semibold outline-none focus:border-foreground"
+                  className="h-10 min-w-0 flex-1 rounded-xl border border-transparent bg-muted px-3 text-sm font-semibold outline-none focus:border-primary sm:w-48 sm:flex-none"
                 >
                   <option value="">전체 보기</option>
                   {currentInstructors.map((instructor) => (
@@ -305,15 +304,15 @@ export default function TrainingPage() {
                   ))}
                 </select>
               </label>
-            </section>
-          )}
+            )}
+          </section>
 
           {!isAdmin && !selectedInstructorId ? (
             <EmptyState message="해당 시간대에 배정된 반이 없습니다." subMessage="반 배치에서 담당 반을 확인해주세요." />
           ) : students.length === 0 ? (
             <EmptyState message="배정된 학생이 없습니다." subMessage="반 배치에서 학생을 먼저 배정해주세요." />
           ) : (
-            <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+            <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
               <ChecklistPanel
                 currentPlan={currentPlan}
                 exercises={exercises}
