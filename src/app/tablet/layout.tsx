@@ -1,9 +1,6 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { authAPI, type User } from '@/lib/api/auth';
 import {
@@ -11,30 +8,12 @@ import {
   getFallbackFeaturePermissions,
   getMyFeaturePermissions,
 } from '@/lib/api/permissions';
-import {
-  LayoutDashboard,
-  Users,
-  ClipboardList,
-  Activity,
-  Medal,
-  UserCheck,
-  ListChecks,
-  Settings,
-  Calendar,
-  LogOut,
-  Menu,
-  X,
-  Dumbbell,
-  Trophy,
-  TableProperties,
-  Sun,
-  Moon,
-  Layers,
-  BarChart3,
-  type LucideIcon
-} from 'lucide-react';
-import { ThemeProvider, useTheme } from '@/components/theme-provider';
-import { SlideUpSheet } from '@/components/animations';
+import { cn } from '@/lib/utils/cn';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Sidebar } from '@/components/layout/sidebar';
+import { TopBar } from '@/components/layout/topbar';
+import { BottomNav } from '@/components/layout/bottom-nav';
+import { tabletTabs } from '@/components/layout/nav-config';
 
 import packageJson from '../../../package.json';
 const APP_VERSION = "v" + packageJson.version;
@@ -47,63 +26,22 @@ const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false
 const OrientationContext = createContext<'portrait' | 'landscape'>('portrait');
 export const useOrientation = () => useContext(OrientationContext);
 
-// Navigation items
-type NavigationPermission = 'analyticsReport' | 'measurementSettingsManage';
-
-interface NavigationItem {
-  name: string;
-  href: string;
-  icon: LucideIcon;
-  permission?: NavigationPermission;
-}
-
-const navigation: NavigationItem[] = [
-  { name: '대시보드', href: '/tablet/dashboard', icon: LayoutDashboard },
-  { name: '출근 체크', href: '/tablet/attendance', icon: UserCheck },
-  { name: '학생 출석', href: '/tablet/student-attendance', icon: ListChecks },
-  { name: '반 배치', href: '/tablet/assignments', icon: Users },
-  { name: '반 프리셋', href: '/tablet/presets', icon: Layers },
-  { name: '수업 계획', href: '/tablet/plans', icon: ClipboardList },
-  { name: '수업 기록', href: '/tablet/training', icon: Activity },
-  { name: '기록 측정', href: '/tablet/records', icon: Medal },
-  { name: '월말테스트', href: '/tablet/monthly-test', icon: Trophy },
-  { name: '학생 관리', href: '/tablet/students', icon: Calendar },
-  { name: '배점표', href: '/tablet/score-table', icon: TableProperties, permission: 'measurementSettingsManage' },
-  { name: '분석 리포트', href: '/tablet/analytics', icon: BarChart3, permission: 'analyticsReport' },
-  { name: '실기측정설정', href: '/tablet/settings', icon: Settings, permission: 'measurementSettingsManage' },
-];
-
-// Bottom tab items (세로 모드용 - 5개)
-const bottomTabs = [
-  { name: '대시보드', href: '/tablet/dashboard', icon: LayoutDashboard },
-  { name: '반 배치', href: '/tablet/assignments', icon: Users },
-  { name: '반 프리셋', href: '/tablet/presets', icon: Layers },
-  { name: '수업 기록', href: '/tablet/training', icon: Activity },
-  { name: '기록 측정', href: '/tablet/records', icon: Medal },
-  { name: '더보기', href: '#more', icon: Menu },
-];
-
-// 역할 표시명 매핑
-const getRoleDisplayName = (role?: string, position?: string | null): string => {
-  if (position) return position;
-  switch (role) {
-    case 'owner': return '원장';
-    case 'admin': return '관리자';
-    case 'staff': return '강사';
-    default: return '강사';
-  }
-};
+const SIDEBAR_COLLAPSED_KEY = 'peak_tablet_sidebar_collapsed';
 
 function TabletLayoutContent({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [permissions, setPermissions] = useState<FeaturePermissions | null>(null);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showAlertPopup, setShowAlertPopup] = useState(false);
-  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true');
+    } catch {
+      // 저장소를 못 쓰면 펼친 채로 둔다.
+    }
     const currentUser = authAPI.getCurrentUser();
     if (!currentUser) {
       window.location.href = '/login';
@@ -137,229 +75,59 @@ function TabletLayoutContent({ children }: { children: React.ReactNode }) {
     authAPI.logout();
   };
 
-  const fallbackPermissions = getFallbackFeaturePermissions(user);
-  const canShowNavigationItem = (item: NavigationItem) => {
-    if (!item.permission) return true;
-    return permissions?.[item.permission] ?? fallbackPermissions[item.permission];
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+    } catch {
+      // 저장소를 못 쓰면 이번 화면에서만 바뀐다.
+    }
   };
 
-  // 가로 모드 레이아웃
-  if (orientation === 'landscape') {
-    return (
-      <OrientationContext.Provider value={orientation}>
-        <div className="min-h-screen flex bg-muted">
-          {/* 인앱 알림 팝업 */}
-          {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
+  const fallbackPermissions = getFallbackFeaturePermissions(user);
+  const landscape = orientation === 'landscape';
 
-          {/* 축소형 사이드바 */}
-          <aside className="w-20 bg-card text-foreground flex flex-col fixed h-full z-20 border-r border-border/60">
-            {/* 로고 */}
-            <div className="h-16 flex items-center justify-center border-b border-border/60">
-              <Image
-                src="/peak-512x512.png"
-                alt="P-EAK"
-                width={48}
-                height={48}
-                className="rounded-lg"
-              />
-            </div>
-
-            {/* 네비게이션 */}
-            <nav className="flex-1 py-4 overflow-y-auto">
-              <div className="space-y-1 px-2">
-                {navigation
-                  .filter(canShowNavigationItem)
-                  .map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={`flex flex-col items-center py-3 px-1 rounded-lg transition-smooth touch-target ${
-                          isActive
-                            ? 'bg-primary-soft text-primary'
-                            : 'text-secondary-foreground hover:bg-muted hover:text-foreground'
-                        }`}
-                        title={item.name}
-                      >
-                        <item.icon size={22} />
-                        <span className="text-[10px] mt-1 text-center leading-tight">{item.name}</span>
-                      </Link>
-                    );
-                  })}
-              </div>
-            </nav>
-
-            {/* 사용자 & 로그아웃 */}
-            <div className="border-t border-border/60 p-2">
-              <button
-                onClick={handleLogout}
-                className="flex flex-col items-center py-2 px-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth w-full touch-target"
-                title="로그아웃"
-              >
-                <LogOut size={20} />
-                <span className="text-[10px] mt-1">로그아웃</span>
-              </button>
-              <p className="text-[8px] text-muted-foreground text-center mt-2">{APP_VERSION} · {APP_UPDATED}</p>
-            </div>
-          </aside>
-
-          {/* 메인 콘텐츠 */}
-          <main className="flex-1 ml-20">
-            {/* 헤더 */}
-            <header className="h-14 bg-card border-b border-border flex items-center justify-between px-6 sticky top-0 z-10 backdrop-blur-md bg-opacity-90">
-              <h1 className="text-lg font-bold text-foreground">
-                {navigation.find(n => pathname.startsWith(n.href))?.name || 'P-EAK'}
-              </h1>
-              <div className="flex items-center gap-3">
-                {/* 다크모드 토글 */}
-                <button
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="p-2 rounded-lg hover:bg-muted transition-all text-secondary-foreground"
-                  title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-                >
-                  {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                </button>
-                {user && (
-                  <>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-foreground">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{getRoleDisplayName(user.role, user.position)}</p>
-                    </div>
-                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">
-                      {user.name.charAt(0)}
-                    </div>
-                  </>
-                )}
-              </div>
-            </header>
-
-            {/* 페이지 콘텐츠 */}
-            <div className="p-6 min-h-[calc(100vh-56px)]">
-              {children}
-            </div>
-          </main>
-        </div>
-      </OrientationContext.Provider>
-    );
-  }
-
-  // 세로 모드 레이아웃
+  // 가로: 흰 판 사이드바 / 세로: 아래 탭 + 전체 메뉴
   return (
     <OrientationContext.Provider value={orientation}>
-      <div className="min-h-screen flex flex-col bg-muted">
+      <div className="min-h-screen bg-background text-foreground">
         {/* 인앱 알림 팝업 */}
         {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
 
-        {/* 헤더 */}
-        <header className="h-16 bg-card flex items-center justify-between px-4 sticky top-0 z-20 border-b border-border/60">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/peak-512x512.png"
-              alt="P-EAK"
-              width={40}
-              height={40}
-              className="rounded-lg"
-            />
-            <div>
-              <h1 className="text-foreground font-bold">P-EAK</h1>
-              <p className="text-[10px] text-muted-foreground">{APP_VERSION} · {APP_UPDATED}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* 다크모드 토글 */}
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg hover:bg-muted transition-smooth text-muted-foreground"
-              title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-            >
-              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            {user && (
-              <>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-foreground">{user.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{getRoleDisplayName(user.role, user.position)}</p>
-                </div>
-                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">
-                  {user.name.charAt(0)}
-                </div>
-              </>
-            )}
-          </div>
-        </header>
+        {landscape && (
+          <Sidebar
+            collapsed={collapsed}
+            onToggle={toggleCollapsed}
+            prefix="/tablet"
+            permissions={permissions}
+            fallbackPermissions={fallbackPermissions}
+            tablet
+            responsive={false}
+            version={`${APP_VERSION} · ${APP_UPDATED}`}
+          />
+        )}
 
-        {/* 메인 콘텐츠 */}
-        <main className="flex-1 p-4 pb-24 overflow-y-auto">
-          {children}
-        </main>
+        <div className={cn('min-w-0 transition-[margin] duration-300 ease-in-out', landscape && (collapsed ? 'ml-[76px]' : 'ml-[248px]'))}>
+          <TopBar user={user} onLogout={handleLogout} logoHref="/tablet/dashboard" logo={landscape ? 'never' : 'always'} />
+          <main className={cn('mx-auto w-full max-w-[1440px] px-4 pt-2 md:px-6', landscape ? 'pb-10' : 'pb-[calc(env(safe-area-inset-bottom)+84px)]')}>
+            {children}
+          </main>
+        </div>
 
-        {/* 하단 탭 바 */}
-        <nav className="fixed bottom-0 left-0 right-0 h-20 bg-card border-t border-border flex items-center justify-around px-2 z-20 safe-area-pb backdrop-blur-md bg-opacity-95">
-          {bottomTabs.map((tab) => {
-            if (tab.href === '#more') {
-              return (
-                <button
-                  key={tab.name}
-                  onClick={() => setShowMoreMenu(true)}
-                  className="flex flex-col items-center justify-center py-2 px-3 min-w-[64px] text-muted-foreground touch-target"
-                >
-                  <tab.icon size={24} />
-                  <span className="text-xs mt-1">{tab.name}</span>
-                </button>
-              );
-            }
-            const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
-            return (
-              <Link
-                key={tab.name}
-                href={tab.href}
-                className={`flex flex-col items-center justify-center py-2 px-3 min-w-[64px] touch-target transition-all ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                }`}
-              >
-                <tab.icon size={24} />
-                <span className="text-xs mt-1">{tab.name}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* 더보기 메뉴 - SlideUpSheet */}
-        <SlideUpSheet isOpen={showMoreMenu} onClose={() => setShowMoreMenu(false)} title="메뉴">
-          <div className="grid grid-cols-4 gap-3">
-              {navigation
-              .filter(canShowNavigationItem)
-              .map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setShowMoreMenu(false)}
-                    className={`flex flex-col items-center p-4 rounded-xl transition-all touch-target ${
-                      isActive
-                        ? 'bg-primary-soft text-primary'
-                        : 'bg-muted text-secondary-foreground hover:bg-border'
-                    }`}
-                  >
-                    <item.icon size={28} strokeWidth={isActive ? 2.5 : 2} />
-                    <span className="text-xs mt-2 text-center font-medium">{item.name}</span>
-                  </Link>
-                );
-              })}
-            <button
-              onClick={() => {
-                setShowMoreMenu(false);
-                handleLogout();
-              }}
-              className="flex flex-col items-center p-4 rounded-xl bg-destructive/10 text-destructive transition-smooth touch-target hover:bg-destructive/20"
-            >
-              <LogOut size={28} strokeWidth={2} />
-              <span className="text-xs mt-2 font-medium">로그아웃</span>
-            </button>
-          </div>
-        </SlideUpSheet>
+        {!landscape && (
+          <BottomNav
+            tabs={tabletTabs}
+            menuOpen={menuOpen}
+            onMenuOpenChange={setMenuOpen}
+            prefix="/tablet"
+            permissions={permissions}
+            fallbackPermissions={fallbackPermissions}
+            tablet
+            responsive={false}
+            onLogout={handleLogout}
+          />
+        )}
       </div>
     </OrientationContext.Provider>
   );

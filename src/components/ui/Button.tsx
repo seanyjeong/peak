@@ -14,7 +14,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles = {
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-  secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/70 hover:text-foreground',
+  secondary: 'bg-primary-soft text-primary hover:bg-primary-soft/70',
   danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
   ghost: 'bg-transparent text-secondary-foreground hover:bg-muted hover:text-foreground',
   outline: 'bg-secondary text-secondary-foreground hover:bg-secondary/70 hover:text-foreground',

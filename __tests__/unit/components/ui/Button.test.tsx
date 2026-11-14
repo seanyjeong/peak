@@ -29,7 +29,7 @@ describe('Button', () => {
 
     it('should apply secondary variant styles', () => {
       render(<Button variant="secondary">Secondary</Button>);
-      expect(screen.getByRole('button')).toHaveClass('bg-secondary');
+      expect(screen.getByRole('button')).toHaveClass('bg-primary-soft');
     });
 
     it('should apply danger variant styles', () => {

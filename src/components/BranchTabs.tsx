@@ -1,5 +1,7 @@
 'use client';
 
+import { chipClass } from '@/components/ui/page';
+
 // P-ACA 지점 고르기. 지점이 없는 학원은 아무것도 그리지 않는다. null = 전체.
 export interface Branch {
   id: number;
@@ -25,11 +27,7 @@ export function BranchTabs({
           type="button"
           aria-pressed={value === branch.id}
           onClick={() => onChange(branch.id)}
-          className={`inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium transition ${
-            value === branch.id
-              ? 'border-primary bg-primary-soft text-primary shadow-sm'
-              : 'border-border bg-card text-secondary-foreground hover:bg-muted'
-          }`}
+          className={chipClass(value === branch.id)}
         >
           {branch.name}
         </button>

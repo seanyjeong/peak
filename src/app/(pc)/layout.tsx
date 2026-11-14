@@ -1,8 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 import packageJson from '../../../package.json';
@@ -14,78 +11,25 @@ import {
   getFallbackFeaturePermissions,
   getMyFeaturePermissions,
 } from '@/lib/api/permissions';
-import {
-  LayoutDashboard,
-  Users,
-  ClipboardList,
-  Calendar,
-  Activity,
-  Medal,
-  LogOut,
-  ChevronLeft,
-  UserCheck,
-  ListChecks,
-  Layers,
-  Settings,
-  Trophy,
-  BarChart3,
-  Sun,
-  Moon,
-  type LucideIcon
-} from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { ThemeProvider, useTheme } from '@/components/theme-provider';
+import { cn } from '@/lib/utils/cn';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Sidebar } from '@/components/layout/sidebar';
+import { TopBar } from '@/components/layout/topbar';
+import { BottomNav } from '@/components/layout/bottom-nav';
+import { phoneTabs } from '@/components/layout/nav-config';
 
 // 동적 임포트로 AlertPopup 로드 (서버 사이드 렌더링 방지)
 const AlertPopup = dynamic(() => import('@/components/AlertPopup'), { ssr: false });
 
-type NavigationPermission = 'analyticsReport' | 'measurementSettingsManage';
-
-interface NavigationItem {
-  name: string;
-  href: string;
-  icon: LucideIcon;
-  permission?: NavigationPermission;
-}
-
-const navigation: NavigationItem[] = [
-  { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
-  { name: '출근 체크', href: '/attendance', icon: UserCheck },
-  { name: '학생 출석', href: '/student-attendance', icon: ListChecks },
-  { name: '반 배치', href: '/assignments', icon: Users },
-  { name: '반 프리셋', href: '/presets', icon: Layers },
-  { name: '수업 계획', href: '/plans', icon: ClipboardList },
-  { name: '수업 기록', href: '/training', icon: Activity },
-  { name: '기록 측정', href: '/records', icon: Medal },
-  { name: '월말테스트', href: '/monthly-test', icon: Trophy },
-  { name: '학생 관리', href: '/students', icon: Calendar },
-  { name: '분석 리포트', href: '/analytics', icon: BarChart3, permission: 'analyticsReport' },
-  { name: '실기 측정 설정', href: '/settings', icon: Settings, permission: 'measurementSettingsManage' },
-];
-
-// 역할 표시명 매핑
-const getRoleDisplayName = (role?: string, position?: string | null): string => {
-  // position이 있으면 그대로 반환
-  if (position) {
-    return position;
-  }
-
-  // role 매핑
-  switch (role) {
-    case 'owner': return '원장';
-    case 'admin': return '관리자';
-    case 'staff': return '강사';
-    default: return '강사';
-  }
-};
+const SIDEBAR_COLLAPSED_KEY = 'peak_sidebar_collapsed';
 
 function PCLayoutContent({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [permissions, setPermissions] = useState<FeaturePermissions | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showAlertPopup, setShowAlertPopup] = useState(false);
-  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     // 태블릿 감지 (클라이언트 사이드 fallback)
@@ -112,6 +56,12 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
 
     if (checkTablet()) return;
 
+    try {
+      setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true');
+    } catch {
+      // 저장소를 못 쓰면 펼친 채로 둔다.
+    }
+
     const currentUser = authAPI.getCurrentUser();
     if (!currentUser) {
       window.location.href = '/login';
@@ -132,137 +82,46 @@ function PCLayoutContent({ children }: { children: React.ReactNode }) {
     authAPI.logout();
   };
 
-  const canShowNavigationItem = (item: NavigationItem) => {
-    if (!item.permission) return true;
-    const fallback = getFallbackFeaturePermissions(user);
-    return permissions?.[item.permission] ?? fallback[item.permission];
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+    } catch {
+      // 저장소를 못 쓰면 이번 화면에서만 바뀐다.
+    }
   };
 
+  const fallbackPermissions = getFallbackFeaturePermissions(user);
+
   return (
-    <div className="min-h-screen flex bg-muted text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       {/* 인앱 알림 팝업 */}
       {showAlertPopup && <AlertPopup onClose={() => setShowAlertPopup(false)} />}
 
-      {/* Sidebar */}
-      <aside
-        className={`${sidebarOpen ? 'w-56' : 'w-20'} fixed z-10 flex h-full flex-col border-r border-border/60 bg-card text-foreground transition-all duration-200`}
-      >
-        {/* Logo */}
-        <div className={`h-16 flex items-center border-b border-border/60 ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'}`}>
-          {sidebarOpen ? (
-            <>
-              <div className="flex items-center gap-3">
-                <Image
-                  src="/peak-512x512.png"
-                  alt="P-EAK"
-                  width={40}
-                  height={40}
-                  className="rounded-lg flex-shrink-0"
-                />
-                <div>
-                  <h1 className="text-lg font-semibold tracking-wide">P-EAK</h1>
-                  <p className="text-[11px] text-muted-foreground -mt-0.5">Training Console</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              >
-                <ChevronLeft size={18} />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="rounded-md p-1 transition hover:bg-muted"
-            >
-              <Image
-                src="/peak-512x512.png"
-                alt="P-EAK"
-                width={44}
-                height={44}
-                className="rounded-lg"
-              />
-            </button>
-          )}
-        </div>
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={toggleCollapsed}
+        permissions={permissions}
+        fallbackPermissions={fallbackPermissions}
+        version={`${APP_VERSION} · ${APP_UPDATED}`}
+      />
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
-          <div className={`space-y-1 ${sidebarOpen ? 'px-3' : 'px-1'}`}>
-            {navigation
-              .filter(canShowNavigationItem)
-              .map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex rounded-md border transition ${
-                    sidebarOpen
-                      ? `items-center gap-3 px-3 py-2.5 ${isActive ? 'border-transparent bg-primary-soft font-semibold text-primary' : 'border-transparent text-secondary-foreground hover:bg-muted hover:text-foreground'}`
-                      : `flex-col items-center px-1 py-2 ${isActive ? 'border-transparent bg-primary-soft font-semibold text-primary' : 'border-transparent text-secondary-foreground hover:bg-muted hover:text-foreground'}`
-                  }`}
-                >
-                  <item.icon size={20} />
-                  {sidebarOpen ? (
-                    <span className="font-medium">{item.name}</span>
-                  ) : (
-                    <span className="text-[10px] mt-1 text-center leading-tight">{item.name}</span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* User Section */}
-        <div className={`border-t border-border/60 ${sidebarOpen ? 'p-4' : 'p-2'}`}>
-          {sidebarOpen && user && (
-            <div className="mb-3 px-3">
-              <p className="text-sm font-medium text-foreground">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{getRoleDisplayName(user.role, user.position)}</p>
-            </div>
-          )}
-          <button
-            onClick={handleLogout}
-            className={`flex w-full rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground ${
-              sidebarOpen ? 'items-center gap-3 px-3 py-2' : 'flex-col items-center py-2'
-            }`}
-          >
-            <LogOut size={18} />
-            {sidebarOpen ? (
-              <span className="text-sm">로그아웃</span>
-            ) : (
-              <span className="text-[10px] mt-1">로그아웃</span>
-            )}
-          </button>
-          {sidebarOpen && (
-            <p className="mt-3 text-center text-[10px] text-muted-foreground">{APP_VERSION} · {APP_UPDATED}</p>
-          )}
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className={`min-w-0 flex-1 ${sidebarOpen ? 'ml-56' : 'ml-20'} transition-all duration-200`}>
-        {/* 헤더 */}
-        <div className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-muted/95 px-6">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">P-EAK</p>
-            <p className="text-sm font-medium text-secondary-foreground">실기 훈련 운영</p>
-          </div>
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="rounded-md border border-border bg-card p-2.5 text-secondary-foreground transition hover:bg-muted hover:text-foreground"
-            title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-          >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-        </div>
-        <div className="min-h-[calc(100vh-56px)] p-6">
+      <div className={cn('min-w-0 transition-[margin] duration-300 ease-in-out', collapsed ? 'md:ml-[76px]' : 'md:ml-[248px]')}>
+        <TopBar user={user} onLogout={handleLogout} logoHref="/dashboard" />
+        <main className="mx-auto w-full max-w-[1440px] px-4 pb-[calc(env(safe-area-inset-bottom)+84px)] pt-2 md:px-8 md:pb-10">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
+
+      <BottomNav
+        tabs={phoneTabs}
+        menuOpen={menuOpen}
+        onMenuOpenChange={setMenuOpen}
+        permissions={permissions}
+        fallbackPermissions={fallbackPermissions}
+        onLogout={handleLogout}
+      />
     </div>
   );
 }

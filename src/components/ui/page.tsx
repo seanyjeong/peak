@@ -148,10 +148,29 @@ export function EmptyState({ icon: Icon, title, description, action, className }
   );
 }
 
-/** 칩 하나(전체/지점/상태 고르기 등). 고른 칩은 진한 바탕. */
-export function chipClass(active: boolean) {
+/** 칩 하나(전체/지점/상태 고르기 등). 고른 칩은 진한 바탕. 흰 카드 안에서는 surface="card". */
+export function chipClass(active: boolean, surface: 'page' | 'card' = 'page') {
   return cn(
     'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors',
-    active ? 'bg-foreground text-background' : 'bg-card text-secondary-foreground hover:bg-muted hover:text-foreground'
+    active
+      ? 'bg-foreground text-background'
+      : surface === 'card'
+        ? 'bg-muted text-secondary-foreground hover:bg-border hover:text-foreground'
+        : 'bg-card text-secondary-foreground hover:bg-muted hover:text-foreground'
   );
 }
+
+/** 회색 바탕 위 흰 도구 버튼(날짜·새로고침·초기화 등). 주 동작은 Button(primary)을 쓴다. */
+export function toolbarButtonClass(tone: 'default' | 'primary' | 'danger' = 'default') {
+  return cn(
+    'inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-card px-3.5 text-sm font-semibold transition-colors hover:bg-card/70 disabled:opacity-50',
+    tone === 'primary' ? 'text-primary' : tone === 'danger' ? 'text-destructive' : 'text-secondary-foreground hover:text-foreground'
+  );
+}
+
+/** 장식색(성별·체험·시간대). 옅은 바탕 + 진한 글자라 다크 모드에서도 읽힌다. */
+export const decorTone = {
+  pink: 'bg-pink-500/15 text-pink-600',
+  violet: 'bg-violet-500/15 text-violet-600',
+  purple: 'bg-purple-500/15 text-purple-600',
+} as const;

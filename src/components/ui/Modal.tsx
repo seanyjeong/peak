@@ -133,7 +133,7 @@ export function ModalFooter({
   return (
     <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
       {onCancel && (
-        <Button variant="secondary" onClick={onCancel} disabled={loading}>
+        <Button variant="outline" onClick={onCancel} disabled={loading}>
           {cancelText}
         </Button>
       )}
