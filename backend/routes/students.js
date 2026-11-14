@@ -14,6 +14,7 @@ const fs = require('fs');
 const os = require('os');
 const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
+const { CANONICAL_ORDER } = require('../utils/peak-settings');
 const { getPacaBranches } = require('../services/assignmentBranchService');
 const { getKstDateString } = require('../utils/kst-date');
 const pacaPool = require('../config/paca-database');
@@ -638,7 +639,7 @@ router.get('/:id/export-pdf', verifyToken, async (req, res) => {
 
         // 1. 학원명
         const [settings] = await db.query(
-            'SELECT academy_name FROM peak_settings WHERE academy_id = ?',
+            `SELECT academy_name FROM peak_settings WHERE academy_id = ? ${CANONICAL_ORDER} LIMIT 1`,
             [academyId]
         );
         const academyName = settings[0]?.academy_name || '체대입시 학원';

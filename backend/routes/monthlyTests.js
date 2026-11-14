@@ -5,6 +5,7 @@ const pacaPool = require('../config/paca-database');
 const { decrypt } = require('../utils/encryption');
 const { decryptStudentFields } = require('../utils/paca-student');
 const { verifyToken } = require('../middleware/auth');
+const { CANONICAL_ORDER, saveBoardSlug } = require('../utils/peak-settings');
 const { getPacaBranches } = require('../services/assignmentBranchService');
 const ExcelJS = require('exceljs');
 
@@ -55,6 +56,8 @@ router.get('/:id', verifyToken, async (req, res) => {
     `, [academyId]);
     const [peakSettings] = await pool.query(`
       SELECT slug, academy_name FROM peak_settings WHERE academy_id = ?
+      ${CANONICAL_ORDER}
+      LIMIT 1
     `, [academyId]);
 
     const academy = {
@@ -278,12 +281,8 @@ router.put('/academy/slug', verifyToken, async (req, res) => {
     );
     const academyName = academyInfo[0]?.name || '학원';
 
-    // peak_settings에 UPSERT
-    await pool.query(`
-      INSERT INTO peak_settings (academy_id, slug, academy_name)
-      VALUES (?, ?, ?)
-      ON DUPLICATE KEY UPDATE slug = VALUES(slug)
-    `, [academyId, slug, academyName]);
+    // 학원 대표 행의 주소를 고쳐 쓴다(같은 학원 행이 새로 늘지 않게). 학원명은 새로 만들 때만 넣는다
+    await saveBoardSlug(pool, { academyId, slug, academyName: null, fallbackName: academyName });
 
     res.json({ success: true, message: '슬러그가 업데이트되었습니다.', slug });
   } catch (error) {

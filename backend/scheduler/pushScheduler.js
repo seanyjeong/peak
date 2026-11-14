@@ -20,9 +20,10 @@ const { createNotification, createNotificationForAllInstructors } = require('../
  */
 async function getActiveAcademies() {
     const [academies] = await pool.query(`
-        SELECT academy_id AS id, academy_name AS name
+        SELECT academy_id AS id, MAX(academy_name) AS name
         FROM peak_settings
         WHERE academy_id IS NOT NULL
+        GROUP BY academy_id
     `);
     return academies;
 }

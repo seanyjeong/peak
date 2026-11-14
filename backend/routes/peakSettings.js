@@ -10,6 +10,7 @@ const { requireFeaturePermission } = require('../utils/feature-permissions');
 const {
   findPeakSettingsByAcademy,
   isMissingBoardPinColumn,
+  saveBoardSlug,
   serializePeakSettings,
 } = require('../utils/peak-settings');
 
@@ -104,12 +105,8 @@ router.post('/', requireMeasurementSettings, async (req, res) => {
       });
     }
 
-    // UPSERT
-    await pool.query(`
-      INSERT INTO peak_settings (academy_id, slug, academy_name)
-      VALUES (?, ?, ?)
-      ON DUPLICATE KEY UPDATE slug = VALUES(slug), academy_name = VALUES(academy_name)
-    `, [academyId, validation.slug, academy_name]);
+    // 학원 대표 행을 고쳐 쓴다(같은 학원 행이 새로 늘지 않게)
+    await saveBoardSlug(pool, { academyId, slug: validation.slug, academyName: academy_name });
 
     res.json({
       success: true,
@@ -135,7 +132,8 @@ router.patch('/board-pin', requireMeasurementSettings, async (req, res) => {
 
     if (req.body?.clear_board_pin) {
       await pool.query(
-        'UPDATE peak_settings SET board_pin_hash = NULL, board_pin_updated_at = NOW() WHERE academy_id = ?',
+        // updated_at 은 그대로 둬서 대표 행 순서(최근 저장 순)가 PIN 변경으로 흐트러지지 않게 한다
+        'UPDATE peak_settings SET board_pin_hash = NULL, board_pin_updated_at = NOW(), updated_at = updated_at WHERE academy_id = ?',
         [academyId]
       );
       return res.json({
@@ -152,7 +150,7 @@ router.patch('/board-pin', requireMeasurementSettings, async (req, res) => {
 
     const boardPinHash = await hashBoardPin(validation.pin);
     await pool.query(
-      'UPDATE peak_settings SET board_pin_hash = ?, board_pin_updated_at = NOW() WHERE academy_id = ?',
+      'UPDATE peak_settings SET board_pin_hash = ?, board_pin_updated_at = NOW(), updated_at = updated_at WHERE academy_id = ?',
       [boardPinHash, academyId]
     );
 
