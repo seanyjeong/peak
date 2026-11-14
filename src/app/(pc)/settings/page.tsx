@@ -136,6 +136,9 @@ export default function SettingsPage() {
       min_value: toNullableNumber(typeForm.min_value),
       max_value: toNullableNumber(typeForm.max_value),
     };
+    if (payload.min_value != null && payload.max_value != null && payload.min_value > payload.max_value) {
+      return toast.error('최소값은 최대값보다 클 수 없습니다.');
+    }
 
     try {
       if (editingType) {

@@ -20,6 +20,10 @@ const generateShortName = (name) => {
     return null;
 };
 
+// 최소값이 최대값보다 크면 어떤 기록도 저장할 수 없다
+const isReversedRange = (minValue, maxValue) =>
+    minValue != null && maxValue != null && Number(minValue) > Number(maxValue);
+
 // GET /peak/record-types - 종목 목록
 router.get('/', verifyToken, async (req, res) => {
     try {
@@ -50,6 +54,9 @@ router.post('/', verifyToken, requireMeasurementSettings, async (req, res) => {
         if (!name || !unit) {
             return res.status(400).json({ error: '종목명과 단위는 필수입니다.' });
         }
+        if (isReversedRange(min_value, max_value)) {
+            return res.status(400).json({ error: '최소값은 최대값보다 클 수 없습니다.' });
+        }
 
         // 줄임말이 없으면 자동 생성
         const finalShortName = short_name || generateShortName(name);
@@ -76,6 +83,10 @@ router.put('/:id', verifyToken, requireMeasurementSettings, async (req, res) => 
     try {
         const academyId = req.user.academyId;
         const { name, short_name, unit, direction, is_active, display_order, min_value, max_value } = req.body;
+
+        if (isReversedRange(min_value, max_value)) {
+            return res.status(400).json({ error: '최소값은 최대값보다 클 수 없습니다.' });
+        }
 
         // 줄임말이 없고 이름이 바뀌면 자동 생성
         let finalShortName = short_name;
