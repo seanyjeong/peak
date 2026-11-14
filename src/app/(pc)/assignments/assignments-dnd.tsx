@@ -2,17 +2,18 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { Crown, ExternalLink, Plus, Star, Users } from 'lucide-react';
+import { decorTone } from '@/components/ui/page';
 import type { ClassData, Instructor, Student } from './assignments-model';
 
 export function CompactStudentCard({ student, isDragging }: { student: Student; isDragging?: boolean }) {
-  const genderColor = student.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-100 text-pink-700';
+  const genderColor = student.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink;
   const isAbsent = student.attendance_status === 'absent';
 
   return (
     <div
-      className={`cursor-grab rounded-md border border-border bg-card px-2 py-1.5 shadow-sm transition active:cursor-grabbing ${
-        isDragging ? 'scale-105 border-primary opacity-50 shadow-lg' : ''
-      } ${isAbsent ? 'border-destructive/30 bg-destructive-soft opacity-60' : 'hover:border-border'}`}
+      className={`cursor-grab rounded-lg bg-card px-2 py-1.5 transition active:cursor-grabbing ${
+        isDragging ? 'scale-105 opacity-50 shadow-lg ring-2 ring-primary' : ''
+      } ${isAbsent ? 'bg-destructive-soft opacity-60' : ''}`}
     >
       <div className="flex items-center gap-1.5">
         <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${genderColor}`}>
@@ -33,17 +34,17 @@ export function CompactStudentCard({ student, isDragging }: { student: Student; 
           <ExternalLink size={10} className="text-primary" />
         </Link>
         {student.paca_class_name ? (
-          <span className="max-w-[64px] truncate rounded bg-muted px-1 py-0.5 text-[9px] font-medium text-secondary-foreground">
+          <span className="max-w-[64px] truncate rounded bg-muted px-1 py-0.5 text-[10px] font-medium text-secondary-foreground">
             {student.paca_class_name}
           </span>
         ) : null}
         {student.status === 'trial' ? (
-          <span className="rounded bg-purple-100 px-1 py-0.5 text-[9px] font-medium text-purple-700">
+          <span className={`rounded px-1 py-0.5 text-[10px] font-medium ${decorTone.purple}`}>
             {student.trial_total - student.trial_remaining}/{student.trial_total}
           </span>
         ) : null}
         {isAbsent ? (
-          <span className="rounded bg-destructive-soft px-1 py-0.5 text-[9px] font-medium text-destructive">결석</span>
+          <span className="rounded bg-destructive-soft px-1 py-0.5 text-[10px] font-medium text-destructive">결석</span>
         ) : null}
       </div>
       {isAbsent && student.absence_reason ? (
@@ -63,7 +64,7 @@ export function DraggableStudent({ student }: { student: Student }) {
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
 
   return (
-    <div ref={setNodeRef} style={style} className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" {...attributes} {...listeners}>
       <CompactStudentCard student={student} isDragging={isDragging} />
     </div>
   );
@@ -80,10 +81,10 @@ export function InstructorChip({
 }) {
   return (
     <div
-      className={`flex cursor-grab items-center gap-1 rounded-full border px-2 py-1 transition active:cursor-grabbing ${
+      className={`flex cursor-grab items-center gap-1 rounded-full px-2.5 py-1 transition active:cursor-grabbing ${
         isDragging
-          ? 'scale-105 border-primary bg-primary/20 shadow-lg'
-          : 'border-primary/30 bg-primary-soft hover:bg-primary-soft'
+          ? 'scale-105 bg-primary/20 shadow-lg ring-2 ring-primary'
+          : 'bg-primary-soft'
       }`}
     >
       {showMain && instructor.isMain ? <Star size={12} className="fill-primary text-primary" /> : null}
@@ -118,8 +119,8 @@ export function WaitingArea({
   const { setNodeRef: setInstructorRef, isOver: isOverInstructors } = useDroppable({ id: 'waiting-instructors' });
 
   return (
-    <div className="mb-5 rounded-2xl bg-card">
-      <div className="grid gap-4 p-4 lg:grid-cols-2">
+    <div className="mb-4">
+      <div className="grid gap-3 lg:grid-cols-2">
         <WaitingPanel
           refCallback={setStudentRef}
           isOver={isOverStudents}
@@ -160,21 +161,18 @@ function WaitingPanel({
   tone: 'blue' | 'orange';
   children: ReactNode;
 }) {
-  const overClass = tone === 'blue'
-    ? 'ring-2 ring-primary bg-primary-soft'
-    : 'ring-2 ring-primary bg-primary-soft';
-
   return (
     <div
       ref={refCallback}
-      className={`min-h-[92px] rounded-md border border-border bg-muted p-3 transition ${
-        isOver ? overClass : ''
+      data-tone={tone}
+      className={`min-h-[92px] rounded-xl p-3 transition ${
+        isOver ? 'bg-primary-soft ring-2 ring-primary' : 'bg-muted'
       }`}
     >
       <div className="mb-2 flex items-center gap-2 text-secondary-foreground">
         <Users size={16} />
-        <span className="text-sm font-medium">{title}</span>
-        <span className="rounded bg-card px-1.5 py-0.5 text-xs">{count}</span>
+        <span className="text-sm font-semibold">{title}</span>
+        <span className="text-sm font-semibold tabular-nums text-muted-foreground">{count}</span>
       </div>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
@@ -192,16 +190,16 @@ export function ClassColumn({ classData }: { classData: ClassData }) {
   const className = mainInstructor ? `${mainInstructor.name}반` : `${classData.class_num}반`;
 
   return (
-    <div className="flex w-56 flex-col overflow-hidden rounded-2xl bg-card">
-      <div className="bg-primary px-3 py-2 text-white">
+    <div className="flex w-full flex-col overflow-hidden rounded-xl bg-muted sm:w-56">
+      <div className="px-3 pb-1 pt-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate font-semibold">{className}</span>
-          <span className="shrink-0 rounded bg-card/20 px-1.5 py-0.5 text-xs">{classData.students.length}명</span>
+          <span className="truncate text-[15px] font-bold text-foreground">{className}</span>
+          <span className="shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold tabular-nums text-primary">{classData.students.length}명</span>
         </div>
       </div>
       <div
         ref={setInstructorRef}
-        className={`min-h-[44px] border-b border-border bg-primary-soft p-2 transition ${
+        className={`mx-2 min-h-[40px] rounded-lg p-1.5 transition ${
           isOverInstructors ? 'bg-primary-soft ring-2 ring-inset ring-primary' : ''
         }`}
       >
@@ -214,7 +212,7 @@ export function ClassColumn({ classData }: { classData: ClassData }) {
       </div>
       <div
         ref={setStudentRef}
-        className={`min-h-[140px] flex-1 overflow-y-auto p-2 transition ${
+        className={`m-2 mt-1 min-h-[140px] flex-1 overflow-y-auto rounded-lg p-1 transition ${
           isOverStudents ? 'bg-primary-soft ring-2 ring-inset ring-primary' : ''
         }`}
       >
@@ -235,10 +233,10 @@ export function NewClassZone() {
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[220px] w-56 flex-col items-center justify-center rounded-md border-2 border-dashed transition ${
+      className={`flex min-h-[220px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed transition sm:w-56 ${
         isOver
           ? 'border-primary bg-primary-soft'
-          : 'border-border bg-card hover:border-muted-foreground/40'
+          : 'border-border hover:border-muted-foreground/40'
       }`}
     >
       <Plus size={30} className={isOver ? 'text-primary' : 'text-muted-foreground'} />

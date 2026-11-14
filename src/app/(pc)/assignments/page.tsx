@@ -16,6 +16,7 @@ import {
 import { Calendar, ChevronDown, Layers, RefreshCw, RotateCcw } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { BranchTabs } from '@/components/BranchTabs';
+import { PageHeader, StatTile, chipClass, toolbarButtonClass } from '@/components/ui/page';
 import { useSocket } from '@/hooks/useSocket';
 import { useToast } from '@/hooks/useToast';
 import {
@@ -267,63 +268,62 @@ export default function AssignmentsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1540px] space-y-6" data-testid="assignments-page">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Class Assignment</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-foreground">반 배치</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{formatDateKorean(selectedDate)}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm text-secondary-foreground">
-            <Calendar size={16} className="text-muted-foreground" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(event) => setSelectedDate(event.target.value)}
-              className="border-none bg-transparent text-sm focus:ring-0"
+    <div className="mx-auto max-w-[1540px] space-y-4" data-testid="assignments-page">
+      <PageHeader
+        title="반 배치"
+        description={formatDateKorean(selectedDate)}
+        actions={(
+          <>
+            <label className={toolbarButtonClass()}>
+              <Calendar size={16} className="text-muted-foreground" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(event) => setSelectedDate(event.target.value)}
+                className="border-none bg-transparent p-0 text-sm focus:ring-0"
+              />
+            </label>
+            <PresetMenu
+              presets={presets.filter((preset) => (preset.branch_id ?? null) === branchId)}
+              disabled={loading || applyingPreset}
+              open={showPresetMenu}
+              menuRef={presetMenuRef}
+              onToggle={() => setShowPresetMenu((open) => !open)}
+              onSelect={(preset) => {
+                setShowPresetMenu(false);
+                setShowPresetConfirm({ id: preset.id, name: preset.name });
+              }}
             />
-          </label>
-          <PresetMenu
-            presets={presets.filter((preset) => (preset.branch_id ?? null) === branchId)}
-            disabled={loading || applyingPreset}
-            open={showPresetMenu}
-            menuRef={presetMenuRef}
-            onToggle={() => setShowPresetMenu((open) => !open)}
-            onSelect={(preset) => {
-              setShowPresetMenu(false);
-              setShowPresetConfirm({ id: preset.id, name: preset.name });
-            }}
-          />
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            disabled={loading || resetting}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-destructive/30 bg-card px-3 text-sm font-medium text-destructive transition hover:bg-destructive-soft disabled:opacity-50"
-          >
-            <RotateCcw size={16} />
-            초기화
-          </button>
-          <button
-            onClick={() => loadAssignments()}
-            disabled={loading}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium text-secondary-foreground transition hover:bg-muted disabled:opacity-60"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            새로고침
-          </button>
-          <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-success' : 'bg-destructive'}`} title={isConnected ? '실시간 연결됨' : '연결 끊김'} />
-        </div>
-      </header>
-
-      <section className="grid gap-3 md:grid-cols-4" aria-label="반 배치 요약">
-        <Metric label="배정" value={`${assignedStudents}/${totalStudents}`} detail={syncing ? '동기화 중' : '현재 시간대'} />
-        <Metric label="대기 학생" value={`${waitingStudents}명`} detail="배치 필요" />
-        <Metric label="운영 반" value={`${currentSlotData.classes.length}개`} detail="강사 기준" />
-        <Metric label="강사" value={`${instructorCount}명`} detail={isConnected ? '실시간 연결' : '수동 새로고침'} />
-      </section>
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              disabled={loading || resetting}
+              className={toolbarButtonClass('danger')}
+            >
+              <RotateCcw size={16} />
+              초기화
+            </button>
+            <button
+              onClick={() => loadAssignments()}
+              disabled={loading}
+              className={toolbarButtonClass()}
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              새로고침
+            </button>
+            <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-success' : 'bg-destructive'}`} title={isConnected ? '실시간 연결됨' : '연결 끊김'} />
+          </>
+        )}
+      />
 
       <BranchTabs branches={branches} value={branchId} onChange={setBranchId} />
 
+      <section className="grid grid-cols-3 gap-3" aria-label="반 배치 요약">
+        <StatTile label="배정" value={`${assignedStudents}/${totalStudents}`} note={syncing ? '동기화 중' : '현재 시간대'} />
+        <StatTile label="운영 반" value={`${currentSlotData.classes.length}개`} note="강사 기준" />
+        <StatTile label="강사" value={`${instructorCount}명`} note={isConnected ? '실시간 연결' : '수동 새로고침'} />
+      </section>
+
+      <section className="space-y-4 rounded-2xl bg-card p-4 sm:p-5">
       <div className="flex flex-wrap gap-2">
         {SLOT_ORDER.map((slot) => {
           const info = TIME_SLOT_INFO[slot];
@@ -333,26 +333,23 @@ export default function AssignmentsPage() {
             <button
               key={slot}
               onClick={() => setActiveSlot(slot)}
-              className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium transition ${
-                isActive
-                  ? 'border-primary bg-primary-soft text-primary shadow-sm'
-                  : 'border-border bg-card text-secondary-foreground hover:bg-muted'
-              }`}
+              aria-pressed={isActive}
+              className={chipClass(isActive, 'card')}
             >
               {info.label}
-              <span className="rounded bg-card px-2 py-0.5 text-xs text-secondary-foreground">{count}명</span>
+              <span className="tabular-nums opacity-70">{count}명</span>
             </button>
           );
         })}
       </div>
 
       {loading ? (
-        <div className="flex min-h-[420px] items-center justify-center rounded-2xl bg-card text-sm text-muted-foreground">
+        <div className="flex min-h-[420px] items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">
           <RefreshCw size={18} className="mr-2 animate-spin text-primary" />
           반 배치 데이터를 불러오는 중입니다.
         </div>
       ) : totalStudents === 0 && currentSlotData.waitingInstructors.length === 0 ? (
-        <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl bg-card text-muted-foreground">
+        <div className="flex min-h-[420px] flex-col items-center justify-center rounded-xl bg-muted text-muted-foreground">
           <p className="font-medium">{TIME_SLOT_INFO[activeSlot].label} 수업 데이터가 없습니다.</p>
           <p className="mt-1 text-sm">날짜 또는 P-ACA 출석 동기화를 확인하세요.</p>
         </div>
@@ -363,7 +360,7 @@ export default function AssignmentsPage() {
               waitingStudents={currentSlotData.waitingStudents}
               waitingInstructors={currentSlotData.waitingInstructors}
             />
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-3">
               {currentSlotData.classes.map((classData) => (
                 <ClassColumn key={classData.class_num} classData={classData} />
               ))}
@@ -378,6 +375,7 @@ export default function AssignmentsPage() {
       )}
 
       <AssignmentLegend />
+      </section>
 
       {showResetConfirm ? (
         <ResetConfirmModal
@@ -399,16 +397,6 @@ export default function AssignmentsPage() {
         />
       ) : null}
     </div>
-  );
-}
-
-function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <article className="rounded-2xl bg-card p-4">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
-    </article>
   );
 }
 
@@ -434,19 +422,19 @@ function PresetMenu({
       <button
         onClick={onToggle}
         disabled={disabled}
-        className="inline-flex h-10 items-center gap-2 rounded-md border border-primary/30 bg-card px-3 text-sm font-medium text-primary transition hover:bg-primary-soft disabled:opacity-50"
+        className={toolbarButtonClass('primary')}
       >
         <Layers size={16} />
         프리셋
         <ChevronDown size={14} />
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-md border border-border bg-card py-1 shadow-lg">
+        <div className="absolute right-0 top-full z-30 mt-2 w-52 rounded-2xl bg-popover p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
           {presets.map((preset) => (
             <button
               key={preset.id}
               onClick={() => onSelect(preset)}
-              className="w-full px-4 py-2.5 text-left text-sm transition hover:bg-muted"
+              className="w-full rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-muted"
             >
               <span className="text-foreground">{preset.name}</span>
               <span className="ml-2 text-xs text-muted-foreground">{preset.type === 'homeroom' ? '담임' : '그룹'}</span>
