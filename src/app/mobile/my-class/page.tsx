@@ -101,7 +101,7 @@ export default function MyClassPage() {
       {/* Date + Refresh */}
       <div className="flex items-center justify-between mb-3">
         <p className="text-lg font-bold text-foreground">{today}</p>
-        <button onClick={fetchData} disabled={loading} className="p-2 rounded-lg bg-card border border-border">
+        <button onClick={fetchData} disabled={loading} className="flex h-10 w-10 items-center justify-center rounded-xl bg-card" aria-label="새로고침">
           <RefreshCw size={16} className={loading ? 'animate-spin text-muted-foreground' : 'text-muted-foreground'} />
         </button>
       </div>
@@ -124,7 +124,7 @@ export default function MyClassPage() {
               onClick={() => hasData && setActiveSlot(key)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition ${
                 isActive
-                  ? 'bg-primary text-white shadow-sm'
+                  ? 'bg-primary text-primary-foreground '
                   : hasData
                     ? 'bg-card text-secondary-foreground'
                     : 'bg-muted text-muted-foreground/60'
@@ -161,22 +161,22 @@ export default function MyClassPage() {
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-3 gap-2 mb-3">
-            <div className="bg-success-soft rounded-xl p-3 text-center">
+            <div className="bg-success-soft rounded-2xl p-3 text-center">
               <p className="text-2xl font-bold text-success">{current.stats.present}</p>
               <p className="text-[11px] text-success/70">출석</p>
             </div>
-            <div className="bg-destructive-soft rounded-xl p-3 text-center">
+            <div className="bg-destructive-soft rounded-2xl p-3 text-center">
               <p className="text-2xl font-bold text-destructive">{current.stats.absent}</p>
               <p className="text-[11px] text-destructive/70">결석</p>
             </div>
-            <div className="bg-warning-soft rounded-xl p-3 text-center">
+            <div className="bg-warning-soft rounded-2xl p-3 text-center">
               <p className="text-2xl font-bold text-warning">{current.stats.late}</p>
               <p className="text-[11px] text-warning/70">지각</p>
             </div>
           </div>
 
           {/* Student List */}
-          <div className="bg-card rounded-2xl shadow-sm overflow-hidden mb-3">
+          <div className="bg-card rounded-2xl overflow-hidden mb-3">
             <div className="px-4 py-3 border-b border-border flex items-center gap-2">
               <Users size={16} className="text-muted-foreground" />
               <h2 className="font-semibold text-foreground text-sm">학생 ({current.students.length}명)</h2>
@@ -184,7 +184,7 @@ export default function MyClassPage() {
             {current.students.length === 0 ? (
               <p className="p-6 text-center text-muted-foreground text-sm">배정된 학생이 없습니다</p>
             ) : (
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-border/60">
                 {current.students.map(s => {
                   const att = s.attendance_status ? ATT_BADGE[s.attendance_status] : null;
                   return (
@@ -221,7 +221,7 @@ export default function MyClassPage() {
 
           {/* Today's Plan */}
           {current.plan.length > 0 && (
-            <div className="bg-card rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-card rounded-2xl overflow-hidden">
               <div className="px-4 py-3 border-b border-border flex items-center gap-2">
                 <Dumbbell size={16} className="text-muted-foreground" />
                 <h2 className="font-semibold text-foreground text-sm">오늘 수업 계획</h2>

@@ -81,33 +81,32 @@ export default function StatsPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h1 className="text-lg font-bold text-foreground">통계</h1>
-        <button onClick={fetchStats} disabled={loading} className="p-2 rounded-lg bg-card border border-border">
+      <div className="mb-3 flex items-center gap-2">
+        <div className="flex flex-1 gap-1 rounded-xl bg-card p-1">
+          {([
+            { key: 'week' as Period, label: '이번 주', icon: CalendarDays },
+            { key: 'month' as Period, label: '이번 달', icon: CalendarRange },
+          ]).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setPeriod(key)}
+              aria-pressed={period === key}
+              className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-sm font-semibold transition ${
+                period === key
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground'
+              }`}
+            >
+              <Icon size={15} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+        <button onClick={fetchStats} disabled={loading} className="flex h-10 w-10 items-center justify-center rounded-xl bg-card" aria-label="새로고침">
           <RefreshCw size={16} className={loading ? 'animate-spin text-muted-foreground' : 'text-muted-foreground'} />
         </button>
       </div>
 
-      {/* Period Toggle */}
-      <div className="flex gap-1.5 mb-4 bg-muted rounded-xl p-1">
-        {([
-          { key: 'week' as Period, label: '이번 주', icon: CalendarDays },
-          { key: 'month' as Period, label: '이번 달', icon: CalendarRange },
-        ]).map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setPeriod(key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition ${
-              period === key
-                ? 'bg-card text-primary shadow-sm'
-                : 'text-muted-foreground'
-            }`}
-          >
-            <Icon size={15} />
-            <span>{label}</span>
-          </button>
-        ))}
-      </div>
 
       {loading ? (
         <div className="py-20 text-center text-muted-foreground">
@@ -121,7 +120,7 @@ export default function StatsPage() {
       ) : (
         <>
           {/* Attendance Rate - Big Number */}
-          <div className="bg-card rounded-2xl shadow-sm p-5 mb-3">
+          <div className="bg-card rounded-2xl p-5 mb-3">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp size={16} className="text-primary" />
               <h2 className="font-semibold text-foreground text-sm">출석률</h2>
@@ -148,7 +147,7 @@ export default function StatsPage() {
 
           {/* Daily Attendance Chart */}
           {data.dailyRates.length > 0 && (
-            <div className="bg-card rounded-2xl shadow-sm p-4 mb-3">
+            <div className="bg-card rounded-2xl p-4 mb-3">
               <div className="flex items-center gap-2 mb-3">
                 <Users size={16} className="text-muted-foreground" />
                 <h2 className="font-semibold text-foreground text-sm">일별 출석률</h2>
@@ -179,7 +178,7 @@ export default function StatsPage() {
           )}
 
           {/* Record Activity */}
-          <div className="bg-card rounded-2xl shadow-sm overflow-hidden mb-3">
+          <div className="bg-card rounded-2xl overflow-hidden mb-3">
             <div className="px-4 py-3 border-b border-border flex items-center gap-2">
               <Medal size={16} className="text-muted-foreground" />
               <h2 className="font-semibold text-foreground text-sm">기록 측정 활동</h2>
@@ -187,7 +186,7 @@ export default function StatsPage() {
             {data.recentRecords.length === 0 ? (
               <p className="p-6 text-center text-muted-foreground text-sm">기간 내 기록 측정이 없습니다</p>
             ) : (
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-border/60">
                 {data.recentRecords.map((r, i) => (
                   <div key={i} className="flex items-center justify-between px-4 py-3">
                     <div>
@@ -205,7 +204,7 @@ export default function StatsPage() {
           </div>
 
           {/* Plan Completion */}
-          <div className="bg-card rounded-2xl shadow-sm p-4">
+          <div className="bg-card rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-3">
               <ClipboardCheck size={16} className="text-muted-foreground" />
               <h2 className="font-semibold text-foreground text-sm">수업 계획 진행률</h2>

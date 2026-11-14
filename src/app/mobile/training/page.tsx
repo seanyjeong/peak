@@ -263,7 +263,7 @@ export default function MobileTrainingPage() {
             onClick={() => setSelectedTimeSlot(key)}
             className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl font-medium text-sm transition ${
               selectedTimeSlot === key
-                ? 'bg-primary text-white shadow-md'
+                ? 'bg-primary text-primary-foreground '
                 : 'bg-card text-secondary-foreground'
             }`}
           >
@@ -374,7 +374,7 @@ export default function MobileTrainingPage() {
                           saveLog(student, { notes: e.target.value });
                         }
                       }}
-                      className="w-full h-10 pl-10 pr-8 text-sm bg-muted rounded-lg border border-border text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                      className="w-full h-10 pl-10 pr-8 text-sm bg-muted rounded-xl border border-transparent text-foreground focus:border-primary outline-none"
                     />
                     {isSavingNotes && (
                       <Check size={14} className="absolute right-3 top-3 text-success" />
@@ -428,7 +428,7 @@ export default function MobileTrainingPage() {
           </div>
 
           {/* 계획된 운동 */}
-          <div className="bg-card rounded-2xl divide-y divide-border">
+          <div className="bg-card rounded-2xl divide-y divide-border/60">
             <div className="px-4 py-3">
               <h3 className="font-medium text-foreground">계획된 운동</h3>
             </div>

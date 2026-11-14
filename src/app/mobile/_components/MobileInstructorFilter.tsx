@@ -27,7 +27,7 @@ export function MobileInstructorFilter({
         aria-label="강사별 보기"
         value={selectedInstructorId ?? ''}
         onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
-        className="h-11 w-full rounded-lg border border-border bg-muted px-3 text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+        className="h-11 w-full rounded-xl border border-transparent bg-muted px-3 text-sm font-medium text-foreground outline-none focus:border-primary"
       >
         <option value="">전체 보기</option>
         {options.map((option) => (

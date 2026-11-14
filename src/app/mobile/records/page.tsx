@@ -276,7 +276,7 @@ export default function MobileRecordsPage() {
             onClick={() => setSelectedTimeSlot(key)}
             className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl font-medium text-sm transition ${
               selectedTimeSlot === key
-                ? 'bg-primary text-white shadow-md'
+                ? 'bg-primary text-primary-foreground '
                 : 'bg-card text-secondary-foreground'
             }`}
           >
@@ -391,7 +391,7 @@ export default function MobileRecordsPage() {
                               placeholder="기록"
                               defaultValue={record?.value ?? ''}
                               onBlur={(e) => saveRecord(student.id, type.id, e.target.value)}
-                              className="w-full h-10 px-3 text-sm border border-border rounded-lg bg-card text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                              className="w-full h-10 px-3 text-sm border border-transparent rounded-xl bg-muted text-foreground focus:border-primary outline-none"
                             />
                             {isSaving && (
                               <Check size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-success" />
@@ -422,7 +422,7 @@ export default function MobileRecordsPage() {
                 onClick={() => setSelectedType(type.id)}
                 className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition ${
                   selectedType === type.id
-                    ? 'bg-primary text-white'
+                    ? 'bg-primary text-primary-foreground'
                     : 'bg-card text-secondary-foreground border border-border'
                 }`}
               >
@@ -431,7 +431,7 @@ export default function MobileRecordsPage() {
             ))}
           </div>
 
-          <div className="bg-card rounded-2xl divide-y divide-border">
+          <div className="bg-card rounded-2xl divide-y divide-border/60">
             {students.map((student) => {
               if (!selectedType) return null;
               const key = `${student.id}-${selectedType}`;
@@ -463,7 +463,7 @@ export default function MobileRecordsPage() {
                       placeholder="기록"
                       defaultValue={record?.value ?? ''}
                       onBlur={(e) => saveRecord(student.id, selectedType, e.target.value)}
-                      className="w-20 h-10 px-2 text-sm text-right border border-border rounded-lg bg-card text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                      className="w-20 h-10 px-2 text-sm text-right border border-transparent rounded-xl bg-muted text-foreground focus:border-primary outline-none"
                     />
                     {isSaving && (
                       <Check size={14} className="text-success" />

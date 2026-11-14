@@ -240,7 +240,7 @@ export default function MobilePlansPage() {
   return (
     <div className="space-y-3">
       {/* 날짜 네비게이션 */}
-      <div className="flex items-center justify-between bg-card rounded-xl p-3 shadow-sm">
+      <div className="flex items-center justify-between bg-card rounded-2xl p-3">
         <button
           onClick={() => changeDate(-1)}
           className="p-2 hover:bg-muted rounded-lg"
@@ -267,8 +267,8 @@ export default function MobilePlansPage() {
             onClick={() => setSelectedTimeSlot(key)}
             className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-xl font-medium text-sm transition ${
               selectedTimeSlot === key
-                ? 'bg-primary text-white shadow-md'
-                : 'bg-card text-secondary-foreground shadow-sm'
+                ? 'bg-primary text-primary-foreground '
+                : 'bg-card text-secondary-foreground '
             }`}
           >
             <Icon size={16} />
@@ -286,18 +286,18 @@ export default function MobilePlansPage() {
           {/* 계획 리스트 */}
           <div className="space-y-2">
             {plans.length === 0 ? (
-              <div className="bg-card rounded-xl p-8 text-center shadow-sm">
+              <div className="bg-card rounded-2xl p-8 text-center">
                 <p className="text-muted-foreground text-sm">등록된 계획이 없습니다</p>
               </div>
             ) : (
               plans.map((plan) => (
-                <div key={plan.id} className="bg-card rounded-xl p-4 shadow-sm">
+                <div key={plan.id} className="bg-card rounded-2xl p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{plan.instructor_name}</p>
                       {plan.tags && plan.tags.length > 0 && (
                         <p className="text-xs text-primary mt-1">
-                          {plan.tags.map(tagId => tags.find(t => t.tag_id === tagId)?.label || tagId).join(', ')}
+                          {plan.tags.map(tagId => tags.find(t => t.tag_id === tagId)?.label || tagId).join(',')}
                         </p>
                       )}
                       {plan.exercises && plan.exercises.length > 0 && (
@@ -305,7 +305,7 @@ export default function MobilePlansPage() {
                           {plan.exercises.map(e => {
                             const exId = e.exercise_id || e.id;
                             return e.name || exercises.find(ex => ex.id === exId)?.name || `운동 #${exId}`;
-                          }).join(', ')}
+                          }).join(',')}
                         </p>
                       )}
                       {plan.description && (
@@ -335,7 +335,7 @@ export default function MobilePlansPage() {
           {/* 추가 버튼 */}
           <button
             onClick={() => openForm()}
-            className="w-full py-3 bg-primary text-white rounded-xl font-medium flex items-center justify-center gap-2 shadow-md"
+            className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-medium flex items-center justify-center gap-2"
           >
             <Plus size={18} />
             <span>계획 추가</span>
@@ -427,7 +427,7 @@ export default function MobilePlansPage() {
                       value={exerciseSearch}
                       onChange={(e) => setExerciseSearch(e.target.value)}
                       placeholder="운동 검색..."
-                      className="w-full pl-9 pr-8 py-2.5 border border-border rounded-xl text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                      className="w-full pl-9 pr-8 py-2.5 border border-transparent rounded-xl text-sm bg-muted focus:border-primary outline-none"
                     />
                     {exerciseSearch && (
                       <button onClick={() => setExerciseSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-secondary-foreground">
@@ -468,7 +468,7 @@ export default function MobilePlansPage() {
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="추가 메모..."
                   rows={3}
-                  className="w-full p-3 border border-border rounded-xl text-sm resize-none focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full p-3 border border-transparent rounded-xl text-sm resize-none focus:border-primary outline-none bg-muted"
                 />
               </div>
 
@@ -476,7 +476,7 @@ export default function MobilePlansPage() {
               <button
                 onClick={savePlan}
                 disabled={saving}
-                className="w-full py-3 bg-primary text-white rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {saving ? (
                   <RefreshCw size={18} className="animate-spin" />
