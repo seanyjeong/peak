@@ -210,7 +210,7 @@ function buildSyncPlan(pacaStudents, existingMap, peakStudentMap, targetDate) {
 function convertGender(gender) {
     if (gender === 'male' || gender === 'M') return 'M';
     if (gender === 'female' || gender === 'F') return 'F';
-    return 'M';
+    return null; // 성별이 비어 있으면 남자로 채우지 않는다
 }
 
 async function insertStudents(studentsToInsert, academyId, peakStudentMap) {

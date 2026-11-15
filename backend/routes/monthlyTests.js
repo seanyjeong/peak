@@ -508,7 +508,7 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
       applicants.forEach(a => {
         applicantMap[a.id] = {
           name: decrypt(a.name),
-          gender: a.gender === 'male' ? 'M' : 'F',
+          gender: a.gender === 'male' ? 'M' : a.gender === 'female' ? 'F' : null,
           school: a.school,
           grade: a.grade
         };
@@ -599,6 +599,7 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
     const calculateScore = (value, gender, recordTypeId) => {
       const ranges = scoreRangesMap[recordTypeId];
       if (!ranges || ranges.length === 0 || value === null || value === undefined) return null;
+      if (gender !== 'M' && gender !== 'F') return null; // 성별이 없으면 배점하지 않는다
       if (value === 0) return minScoreMap[recordTypeId] || 0; // 파울(0)은 해당 종목의 기본점수
 
       const genderKey = gender === 'M' ? 'male' : 'female';
@@ -661,7 +662,8 @@ router.get('/:testId/all-records', verifyToken, async (req, res) => {
         ...info,
         records,
         scores,
-        total_score: totalScore,
+        // 성별이 없으면 점수가 없으므로 총점도 미산정(null)
+        total_score: info.gender === 'M' || info.gender === 'F' ? totalScore : null,
         scored_count: scoredCount
       };
     }).filter(Boolean);
@@ -799,7 +801,7 @@ router.get('/:id/export', verifyToken, async (req, res) => {
       applicants.forEach(a => {
         applicantMap[a.id] = {
           name: decrypt(a.name),
-          gender: a.gender === 'male' ? 'M' : 'F',
+          gender: a.gender === 'male' ? 'M' : a.gender === 'female' ? 'F' : null,
           school: a.school,
           grade: a.grade
         };
@@ -898,7 +900,7 @@ router.get('/:id/export', verifyToken, async (req, res) => {
 
       const rowData = [
         info.name || '',
-        info.gender === 'M' ? '남' : '여',
+        info.gender === 'M' ? '남' : info.gender === 'F' ? '여' : '성별?',
         info.school || '',
         info.grade || '',
         typeLabel[p.participant_type] || p.participant_type,
@@ -917,8 +919,8 @@ router.get('/:id/export', verifyToken, async (req, res) => {
         };
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-        // 성별 색상
-        if (colNumber === 2) {
+        // 성별 색상 (성별이 없으면 색 없이)
+        if (colNumber === 2 && (info.gender === 'M' || info.gender === 'F')) {
           cell.fill = {
             type: 'pattern',
             pattern: 'solid',

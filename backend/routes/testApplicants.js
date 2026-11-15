@@ -37,7 +37,7 @@ router.get('/', verifyToken, async (req, res) => {
       ...a,
       name: decrypt(a.name),
       phone: a.phone ? decrypt(a.phone) : null,
-      gender: a.gender === 'male' ? 'M' : 'F'
+      gender: a.gender === 'male' ? 'M' : a.gender === 'female' ? 'F' : null
     }));
 
     res.json({ success: true, applicants: decrypted });
@@ -225,7 +225,7 @@ router.post('/:id/convert', verifyToken, async (req, res) => {
       academyId,
       pacaStudentId,
       decrypt(applicant.name),
-      applicant.gender === 'male' ? 'M' : 'F',
+      applicant.gender === 'male' ? 'M' : applicant.gender === 'female' ? 'F' : null,
       applicant.phone ? decrypt(applicant.phone) : null,
       applicant.school,
       applicant.grade

@@ -140,8 +140,8 @@ router.post('/sync', verifyToken, async (req, res) => {
                 console.error('Phone decryption error:', e);
             }
 
-            // gender 변환 (male/female -> M/F)
-            const gender = student.gender === 'male' ? 'M' : 'F';
+            // gender 변환 (male/female -> M/F, 성별이 비어 있으면 그대로 비운다)
+            const gender = student.gender === 'male' ? 'M' : student.gender === 'female' ? 'F' : null;
 
             // status 변환
             let status = 'active';
@@ -530,9 +530,9 @@ router.get('/:id/stats', verifyToken, async (req, res) => {
 
             latests[rt.id] = { value: parseFloat(typeRecords[0].value), date: typeRecords[0].measured_at };
 
-            // 점수 계산
+            // 점수 계산 (성별이 없으면 남/여 어느 표로도 배점하지 않는다)
             const scoreTable = scoreTablesByType[rt.id];
-            if (scoreTable) {
+            if (scoreTable && (student.gender === 'M' || student.gender === 'F')) {
                 const latestValue = parseFloat(typeRecords[0].value);
                 const ranges = scoreTable.ranges;
                 let foundScore = null;
@@ -693,6 +693,7 @@ router.get('/:id/export-pdf', verifyToken, async (req, res) => {
         function calcScore(value, typeId, gender) {
             const table = scoreTablesByType[typeId];
             if (!table) return null;
+            if (gender !== 'M' && gender !== 'F') return null; // 성별이 없으면 배점하지 않는다
             const ranges = table.ranges;
             const rt = recordTypes.find(r => r.id === typeId);
             const isLowerBetter = rt?.direction === 'lower';

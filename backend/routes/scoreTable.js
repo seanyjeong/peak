@@ -348,6 +348,11 @@ router.post('/calculate', verifyToken, async (req, res) => {
             return res.json({ success: true, score: null, message: '배점표 없음' });
         }
 
+        // 성별이 없으면 남/여 어느 표로도 배점하지 않는다
+        if (gender !== 'M' && gender !== 'F') {
+            return res.json({ success: true, score: null, message: '성별 입력 필요' });
+        }
+
         const column = gender === 'M' ? 'male' : 'female';
 
         const [ranges] = await db.query(`

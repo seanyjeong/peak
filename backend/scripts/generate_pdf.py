@@ -28,7 +28,7 @@ def generate_html(data: dict) -> str:
     grade = stats.get("grade", "F")
     grade_color = GRADE_COLORS.get(grade, "#6b7280")
     trend_label = TREND_LABELS.get(stats.get("overallTrend", "stable"), "→ 유지")
-    gender_label = "남" if student.get("gender") == "M" else "여"
+    gender_label = "남" if student.get("gender") == "M" else "여" if student.get("gender") == "F" else "성별 입력 필요"
 
     # Build types with data
     types_with_data = []

@@ -118,7 +118,7 @@ router.get('/:sessionId/groups', verifyToken, verifySessionOwnership, async (req
           studentsToCreate.push([
             ps.id,
             decrypt(ps.name),
-            ps.gender === 'male' ? 'M' : 'F',
+            ps.gender === 'male' ? 'M' : ps.gender === 'female' ? 'F' : null,
             ps.school,
             ps.grade
           ]);
@@ -255,7 +255,7 @@ router.get('/:sessionId/groups', verifyToken, verifySessionOwnership, async (req
       applicants.forEach(a => {
         applicantMap[a.id] = {
           name: decrypt(a.name),
-          gender: a.gender === 'male' ? 'M' : 'F',
+          gender: a.gender === 'male' ? 'M' : a.gender === 'female' ? 'F' : null,
           school: a.school,
           grade: a.grade
         };
@@ -571,7 +571,7 @@ router.post('/:sessionId/participants/sync', verifyToken, verifySessionOwnership
         studentsToCreate.push([
           ps.id,
           decrypt(ps.name),
-          ps.gender === 'male' ? 'M' : 'F',
+          ps.gender === 'male' ? 'M' : ps.gender === 'female' ? 'F' : null,
           ps.school,
           ps.grade
         ]);
@@ -666,7 +666,7 @@ router.get('/:sessionId/available-students', verifyToken, verifySessionOwnership
       const students = applicants.map(a => ({
         id: a.id,  // test_applicant_id
         name: decrypt(a.name),
-        gender: a.gender === 'male' ? 'M' : 'F',
+        gender: a.gender === 'male' ? 'M' : a.gender === 'female' ? 'F' : null,
         school: a.school,
         grade: a.grade,
         isTestApplicant: true  // 테스트신규임을 표시
@@ -711,7 +711,7 @@ router.get('/:sessionId/available-students', verifyToken, verifySessionOwnership
     const students = pacaStudents.map(s => ({
       id: s.id,  // P-ACA student id
       name: decrypt(s.name),
-      gender: s.gender === 'male' ? 'M' : 'F',
+      gender: s.gender === 'male' ? 'M' : s.gender === 'female' ? 'F' : null,
       school: s.school,
       grade: s.grade,
       isPaca: true  // P-ACA 학생임을 표시
@@ -758,7 +758,7 @@ router.post('/:sessionId/participants', verifyToken, verifySessionOwnership, asy
         const [insertResult] = await pool.query(`
           INSERT INTO students (academy_id, paca_student_id, name, gender, school, grade, status, is_trial)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [academyId, paca_student_id, decrypt(ps.name), ps.gender === 'male' ? 'M' : 'F', ps.school, ps.grade, peakStatus, isTrial ? 1 : 0]);
+        `, [academyId, paca_student_id, decrypt(ps.name), ps.gender === 'male' ? 'M' : ps.gender === 'female' ? 'F' : null, ps.school, ps.grade, peakStatus, isTrial ? 1 : 0]);
 
         student_id = insertResult.insertId;
       }
@@ -890,7 +890,7 @@ router.get('/:sessionId/records', verifyToken, verifySessionOwnership, async (re
       applicants.forEach(a => {
         applicantMap[a.id] = {
           name: decrypt(a.name),
-          gender: a.gender === 'male' ? 'M' : 'F',
+          gender: a.gender === 'male' ? 'M' : a.gender === 'female' ? 'F' : null,
           school: a.school,
           grade: a.grade
         };

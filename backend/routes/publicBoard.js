@@ -21,6 +21,7 @@ const {
 const calculateScore = (value, scoreRanges, gender, minScore = 0) => {
   if (!scoreRanges || scoreRanges.length === 0) return 0;
   if (value === null || value === undefined) return 0;
+  if (gender !== 'M' && gender !== 'F') return null; // 성별이 없으면 배점하지 않는다
   if (value === 0) return minScore; // 파울(0)은 해당 종목의 기본점수
 
   const genderKey = gender === 'M' ? 'male' : 'female';
@@ -226,7 +227,7 @@ router.get('/:slug', async (req, res) => {
       applicants.forEach(a => {
         applicantMap[a.id] = {
           name: decrypt(a.name),
-          gender: a.gender === 'male' ? 'M' : 'F',
+          gender: a.gender === 'male' ? 'M' : a.gender === 'female' ? 'F' : null,
           school: a.school,
           grade: a.grade
         };
@@ -291,7 +292,7 @@ router.get('/:slug', async (req, res) => {
             minScoreMap[rt.record_type_id] || 0
           );
           eventScores[rt.record_type_id] = { value: parseFloat(value), score };
-          totalScore += score;
+          if (score !== null) totalScore += score;
         }
       });
 

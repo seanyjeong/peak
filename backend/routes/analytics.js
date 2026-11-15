@@ -151,6 +151,8 @@ router.get('/report', requireFeaturePermission('analyticsReport'), async (req, r
                     maleCount: 0, femaleCount: 0
                 };
             }
+            // 성별이 없는 학생 묶음은 남/여 평균 어디에도 넣지 않는다
+            if (row.gender !== 'M' && row.gender !== 'F') return;
             const g = row.gender === 'M' ? 'male' : 'female';
             avgMap[row.record_type_id][`${g}Avg`] = parseFloat(row.avg_value);
             avgMap[row.record_type_id][`${g}Count`] = row.student_count;
