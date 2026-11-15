@@ -6,6 +6,11 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
+const { registerExerciseDeletion } = require('./exerciseDeletion');
+const { registerExerciseBridgeUpdate } = require('./exerciseBridgeUpdate');
+
+registerExerciseBridgeUpdate(router, { db, verifyToken });
+registerExerciseDeletion(router, { db, verifyToken });
 
 // GET /peak/exercises - 운동 목록 (자기 학원 + 시스템 운동, 태그 필터 가능)
 router.get('/', verifyToken, async (req, res) => {
@@ -104,18 +109,6 @@ router.put('/:id', verifyToken, async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('Update exercise error:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
-// DELETE /peak/exercises/:id - 운동 삭제
-router.delete('/:id', verifyToken, async (req, res) => {
-    try {
-        const academyId = req.user.academyId;
-        await db.query('DELETE FROM exercises WHERE id = ? AND academy_id = ?', [req.params.id, academyId]);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Delete exercise error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });

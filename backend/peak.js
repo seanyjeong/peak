@@ -148,6 +148,7 @@ app.get('/health', (req, res) => {
 const { verifyToken } = require('./middleware/auth');
 
 // 인증 라우트 (P-ACA 연동)
+app.use('/peak/integrations/max-engine/full', require('./routes/maxEngine'));
 app.use('/peak/auth', require('./routes/auth'));
 
 // 보호된 라우트들
@@ -186,6 +187,7 @@ app.use('/peak/notifications', verifyToken, require('./routes/notifications'));
 // Error Handler
 // ==========================================
 
+app.use(require('./middleware/maxEnginePrivacy').errorHandler);
 app.use((err, req, res, next) => {
     void next;
     logger.error('Unhandled error', {

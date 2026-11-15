@@ -6,6 +6,7 @@
 const jwt = require('jsonwebtoken');
 const mysql = require('mysql2/promise');
 const { decrypt } = require('../utils/encryption');
+const { continueWithExpectedAcademy } = require('./expectedAcademy');
 require('dotenv').config({ path: __dirname + '/../.env' });
 
 // 필수 환경변수 검증
@@ -89,7 +90,7 @@ const verifyToken = async (req, res, next) => {
             instructorId: user.instructor_id
         };
 
-        next();
+        return continueWithExpectedAcademy(req, res, next);
     } catch (error) {
         if (error.name === 'TokenExpiredError') {
             return res.status(401).json({ error: 'Unauthorized', message: 'Token expired' });
