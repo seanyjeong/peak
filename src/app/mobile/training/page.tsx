@@ -105,7 +105,7 @@ export default function MobileTrainingPage() {
           training_log_id: existingLog?.id,
           trainer_id: nextInstructorId ?? classTrainerId ?? currentUser?.instructorId ?? null,
           name: s.student_name,
-          gender: (s.gender === 'M' || s.gender === 'male' ? 'male' : 'female') as 'male' | 'female',
+          gender: (s.gender === 'M' || s.gender === 'male' ? 'male' : s.gender === 'F' || s.gender === 'female' ? 'female' : null) as 'male' | 'female' | null,
           condition_score: existingLog?.condition_score,
           notes: existingLog?.notes,
           is_trial: s.is_trial,
@@ -327,7 +327,7 @@ export default function MobileTrainingPage() {
                   {/* 학생 이름 */}
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                      student.gender === 'male' ? 'bg-primary' : 'bg-pink-500'
+                      student.gender === 'male' ? 'bg-primary' : student.gender === 'female' ? 'bg-pink-500' : 'bg-muted-foreground/40'
                     }`}>
                       {student.name.charAt(0)}
                     </div>

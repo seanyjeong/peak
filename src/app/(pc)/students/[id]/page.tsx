@@ -95,9 +95,11 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
       totalScore += stats.scores[typeId] || 0;
     });
     const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
-    const grade = recordedCount === 0 ? '-' : percentage >= 90 ? 'A' : percentage >= 80 ? 'B' : percentage >= 70 ? 'C' : percentage >= 60 ? 'D' : 'F';
+    // 성별이 없으면 점수가 없으므로 등급도 매기지 않는다
+    const genderMissing = student?.gender !== 'M' && student?.gender !== 'F';
+    const grade = recordedCount === 0 || genderMissing ? '-' : percentage >= 90 ? 'A' : percentage >= 80 ? 'B' : percentage >= 70 ? 'C' : percentage >= 60 ? 'D' : 'F';
     return { totalScore, maxScore, percentage, recordedCount, grade };
-  }, [scoreTables, selectedTypes, stats]);
+  }, [scoreTables, selectedTypes, stats, student]);
 
   const trendChartData = useMemo(() => {
     if (!selectedChartType) return [];
@@ -171,8 +173,9 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
       setRecordHistory(historyRes.data.records || []);
       setRecordTypes(loadedTypes);
       setScoreTables(tableMap);
-      setAcademyAverages(loadedStudent.gender === 'M' ? academyRes.data.maleAverages || {} : academyRes.data.femaleAverages || {});
-      setAcademyScoreAverages(loadedStudent.gender === 'M' ? academyRes.data.maleScoreAverages || {} : academyRes.data.femaleScoreAverages || {});
+      // 성별이 없으면 견줄 남/여 학원 평균이 없다
+      setAcademyAverages(loadedStudent.gender === 'M' ? academyRes.data.maleAverages || {} : loadedStudent.gender === 'F' ? academyRes.data.femaleAverages || {} : {});
+      setAcademyScoreAverages(loadedStudent.gender === 'M' ? academyRes.data.maleScoreAverages || {} : loadedStudent.gender === 'F' ? academyRes.data.femaleScoreAverages || {} : {});
 
       const initialTypes = loadedTypes.filter((type: RecordType) => loadedStats.latests?.[type.id] !== undefined);
       setSelectedTypes(initialTypes.slice(0, 6).map((type: RecordType) => type.id));
@@ -238,6 +241,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
   }
 
   const chartType = recordTypes.find((type) => type.id === selectedChartType);
+  const genderMissing = student.gender !== 'M' && student.gender !== 'F';
   const visibleRecords = showAllRecords ? recordHistory : recordHistory.slice(0, 5);
 
   return (
@@ -249,7 +253,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
         <PageHeader
           className="min-w-0 flex-1"
           title={student.name}
-          description={`${student.gender === 'M' ? '남' : '여'} · ${student.school || '-'} · ${student.grade || '-'} · ${trendLabel(stats.overallTrend)} 추세`}
+          description={`${student.gender === 'M' ? '남' : student.gender === 'F' ? '여' : '성별 입력 필요'} · ${student.school || '-'} · ${student.grade || '-'} · ${trendLabel(stats.overallTrend)} 추세`}
           actions={(
             <>
               <button type="button" onClick={() => router.push('/records')} className={toolbarButtonClass()}>
@@ -270,7 +274,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
       </div>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile icon={Target} tone="primary" label="선택 종목 점수" value={`${selectedSummary.totalScore}`} note={`/ ${selectedSummary.maxScore}점 · ${selectedSummary.percentage}%`} />
+        <StatTile icon={Target} tone="primary" label="선택 종목 점수" value={genderMissing ? '-' : `${selectedSummary.totalScore}`} note={genderMissing ? '성별 입력 필요' : `/ ${selectedSummary.maxScore}점 · ${selectedSummary.percentage}%`} />
         <StatTile icon={Medal} label="등급" value={<BadgeValue value={selectedSummary.grade} className={gradeClass(selectedSummary.grade)} />} note={`${selectedSummary.recordedCount}개 종목 반영`} />
         <StatTile icon={Activity} label="전체 추세" value={<BadgeValue value={trendLabel(stats.overallTrend)} className={trendClass(stats.overallTrend)} />} note={`${stats.recordCount}개 기록`} />
         <StatTile icon={User} label="기록 종목" value={`${stats.typesWithRecords}`} note={`${recordHistory.length}회 측정`} />
@@ -314,7 +318,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
                     </div>
                     <div className="text-right">
                       <p className="font-mono font-bold text-foreground">{formatRecordValue(latest?.value, type.unit)}</p>
-                      <p className="text-xs font-bold text-primary">{score ?? '-'}점</p>
+                      <p className="text-xs font-bold text-primary">{genderMissing ? '성별 입력 필요' : `${score ?? '-'}점`}</p>
                     </div>
                   </div>
                 );

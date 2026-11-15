@@ -14,7 +14,7 @@ export interface UseRecordInputOptions {
   measuredAt: string;
   slots: Record<string, SlotData>;
   recordTypes: RecordType[];
-  calculateScore: (value: number, gender: 'M' | 'F', recordTypeId: number) => number | null;
+  calculateScore: (value: number, gender: 'M' | 'F' | null, recordTypeId: number) => number | null;
 }
 
 export interface UseRecordInputReturn {
@@ -23,7 +23,7 @@ export interface UseRecordInputReturn {
   savedStudents: Set<number>;
   saving: boolean;
 
-  handleInputChange: (studentId: number, recordTypeId: number, value: string, gender: 'M' | 'F') => void;
+  handleInputChange: (studentId: number, recordTypeId: number, value: string, gender: 'M' | 'F' | null) => void;
   handleInputBlur: (studentId: number, recordTypeId: number) => Promise<void>;
   toggleStudent: (studentId: number) => void;
   expandAll: (studentIds: number[]) => void;
@@ -87,7 +87,7 @@ export function useRecordInput(options: UseRecordInputOptions): UseRecordInputRe
     studentId: number,
     recordTypeId: number,
     value: string,
-    gender: 'M' | 'F'
+    gender: 'M' | 'F' | null
   ) => {
     const numValue = parseFloat(value);
     const score = !isNaN(numValue) ? calculateScore(numValue, gender, recordTypeId) : null;

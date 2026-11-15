@@ -4,7 +4,7 @@ export interface Student {
   id: number;
   student_id: number;
   student_name: string;
-  gender: 'M' | 'F';
+  gender: 'M' | 'F' | null;
   status: string;
   attendance_status?: 'scheduled' | 'present' | 'absent' | 'late' | 'early_leave';
   absence_reason?: string | null;

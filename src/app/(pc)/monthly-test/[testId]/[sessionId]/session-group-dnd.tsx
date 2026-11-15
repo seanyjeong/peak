@@ -25,8 +25,8 @@ export function DraggableParticipant({ participant }: { participant: Participant
       className="mb-2 cursor-grab touch-none rounded-xl bg-muted p-3 active:cursor-grabbing"
     >
       <div className="flex items-center gap-2">
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${participant.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink}`}>
-          {participant.gender === 'M' ? '남' : '여'}
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${participant.gender === 'M' ? 'bg-primary-soft text-primary' : participant.gender === 'F' ? decorTone.pink : 'bg-muted text-muted-foreground'}`} title={participant.gender === 'M' || participant.gender === 'F' ? undefined : '성별 입력 필요'}>
+          {participant.gender === 'M' ? '남' : participant.gender === 'F' ? '여' : '?'}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1">

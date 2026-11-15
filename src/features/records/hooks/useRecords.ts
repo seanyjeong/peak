@@ -58,7 +58,7 @@ export interface UseRecordsReturn {
   setBranchId: (branchId: number | null) => void;
 
   // 점수 계산
-  calculateScore: (value: number, gender: 'M' | 'F', recordTypeId: number) => number | null;
+  calculateScore: (value: number, gender: 'M' | 'F' | null, recordTypeId: number) => number | null;
   getDecimalPlaces: (recordTypeId: number) => number;
 }
 
@@ -213,10 +213,11 @@ export function useRecords(options: UseRecordsOptions = {}): UseRecordsReturn {
 
   const myStudents = getMyStudents();
 
-  // 점수 계산 (value=0 파울은 min_score 기본점수 적용)
-  const calculateScore = useCallback((value: number, gender: 'M' | 'F', recordTypeId: number): number | null => {
+  // 점수 계산 (value=0 파울은 min_score 기본점수 적용, 성별이 없으면 배점하지 않음)
+  const calculateScore = useCallback((value: number, gender: 'M' | 'F' | null, recordTypeId: number): number | null => {
     const tableData = scoreTablesCache[recordTypeId];
     if (!tableData?.scoreTable || tableData.ranges.length === 0) return null;
+    if (gender !== 'M' && gender !== 'F') return null;
     if (value === 0) return tableData.scoreTable.min_score || 0; // 파울(0)은 기본점수
     for (const range of tableData.ranges) {
       const min = gender === 'M' ? range.male_min : range.female_min;

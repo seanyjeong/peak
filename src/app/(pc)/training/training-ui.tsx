@@ -360,7 +360,7 @@ function StudentConditionRow({
   return (
     <div className={`p-4 ${isAbsent ? 'bg-destructive-soft/70' : ''}`}>
       <div className="mb-3 flex items-center gap-3">
-        <span className={`flex size-9 items-center justify-center rounded-full ${student.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink}`}>
+        <span className={`flex size-9 items-center justify-center rounded-full ${student.gender === 'M' ? 'bg-primary-soft text-primary' : student.gender === 'F' ? decorTone.pink : 'bg-muted text-muted-foreground'}`}>
           <User className="size-4" />
         </span>
         <div className="min-w-0 flex-1">

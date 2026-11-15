@@ -11,7 +11,7 @@ type AddTab = 'rest' | 'trial' | 'pending' | 'test_new';
 interface Candidate {
   id: number;
   name: string;
-  gender: 'M' | 'F';
+  gender: 'M' | 'F' | null;
   school?: string;
   grade?: string;
 }
@@ -197,8 +197,8 @@ export function AddParticipantModal({
             {currentList.map((item) => (
               <label key={item.id} className={`flex cursor-pointer items-center gap-3 rounded-lg p-2 transition ${selected.has(item.id) ? 'bg-primary-soft' : 'hover:bg-muted'}`}>
                 <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggleSelect(item.id)} className="h-4 w-4" />
-                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${item.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-destructive-soft text-destructive'}`}>
-                  {item.gender === 'M' ? '남' : '여'}
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${item.gender === 'M' ? 'bg-primary-soft text-primary' : item.gender === 'F' ? 'bg-destructive-soft text-destructive' : 'bg-muted text-muted-foreground'}`} title={item.gender === 'M' || item.gender === 'F' ? undefined : '성별 입력 필요'}>
+                  {item.gender === 'M' ? '남' : item.gender === 'F' ? '여' : '?'}
                 </span>
                 <span className="flex-1 font-bold text-foreground">{item.name}</span>
                 <span className="text-sm text-muted-foreground">{item.school || ''} {item.grade || ''}</span>

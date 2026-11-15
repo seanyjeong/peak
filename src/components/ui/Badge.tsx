@@ -48,10 +48,10 @@ export function Badge({
 }
 
 // Gender Badge convenience component
-export function GenderBadge({ gender }: { gender: 'M' | 'F' }) {
+export function GenderBadge({ gender }: { gender: 'M' | 'F' | null }) {
   return (
-    <Badge variant={gender === 'M' ? 'blue' : 'pink'} size="sm">
-      {gender === 'M' ? '남' : '여'}
+    <Badge variant={gender === 'M' ? 'blue' : gender === 'F' ? 'pink' : 'default'} size="sm">
+      {gender === 'M' ? '남' : gender === 'F' ? '여' : '성별?'}
     </Badge>
   );
 }

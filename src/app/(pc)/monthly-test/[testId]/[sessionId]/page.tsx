@@ -321,7 +321,7 @@ function EmptyState({ actionLabel, message, onAction }: { actionLabel: string; m
   );
 }
 
-function OverlayLabel({ gender, label }: { gender?: 'M' | 'F'; label: string }) {
+function OverlayLabel({ gender, label }: { gender?: 'M' | 'F' | null; label: string }) {
   return (
     <div className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-lg">
       {gender ? `${gender === 'M' ? '남' : '여'} · ${label}` : label}

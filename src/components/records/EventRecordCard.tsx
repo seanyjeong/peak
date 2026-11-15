@@ -38,9 +38,9 @@ export function EventRecordCard({
         </span>
       ) : (
         <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-bold ${
-          student.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink
+          student.gender === 'M' ? 'bg-primary-soft text-primary' : student.gender === 'F' ? decorTone.pink : 'bg-muted text-muted-foreground'
         }`}>
-          {student.gender === 'M' ? '남' : '여'}
+          {student.gender === 'M' ? '남' : student.gender === 'F' ? '여' : '성별?'}
         </span>
       )}
       <span className={`min-w-0 flex-1 truncate text-[15px] font-bold ${isAbsent ? 'text-muted-foreground line-through' : 'text-foreground'}`}>

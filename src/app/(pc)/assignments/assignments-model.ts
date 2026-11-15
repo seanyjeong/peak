@@ -4,7 +4,7 @@ export interface Student {
   id: number;
   student_id: number;
   student_name: string;
-  gender: 'M' | 'F';
+  gender: 'M' | 'F' | null;
   school: string | null;
   grade: string | null;
   paca_class_name?: string | null; // P-ACA 반 이름(지점을 쓰는 학원만)

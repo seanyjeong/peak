@@ -24,7 +24,7 @@ export interface StudentStats {
 export interface Student {
   id: number;
   name: string;
-  gender: 'M' | 'F';
+  gender: 'M' | 'F' | null;
   school: string;
   grade: string;
   phone?: string;
@@ -131,6 +131,7 @@ export function getRecordPercentage({
   const type = recordTypes.find((item) => item.id === typeId);
   const scoreTable = scoreTables[typeId];
   if (!type || !scoreTable || !student) return 0;
+  if (student.gender !== 'M' && student.gender !== 'F') return 0; // 성별이 없으면 비교할 표가 없다
   const perfectValue = student.gender === 'M' ? scoreTable.male_perfect : scoreTable.female_perfect;
   if (!perfectValue) return 0;
 

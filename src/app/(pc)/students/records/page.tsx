@@ -236,7 +236,9 @@ export default function AllStudentRecordsPage() {
                           <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${student.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink}`}>
                             {student.gender === 'M' ? '남' : '여'}
                           </span>
-                        ) : null}
+                        ) : (
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">성별?</span>
+                        )}
                         <Link href={`/students/${student.id}`} className="truncate font-bold text-foreground hover:text-primary">
                           {student.name}
                         </Link>

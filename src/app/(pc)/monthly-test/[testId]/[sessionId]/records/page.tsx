@@ -32,7 +32,7 @@ interface Participant {
   student_id?: number;
   test_applicant_id?: number;
   name: string;
-  gender: 'M' | 'F';
+  gender: 'M' | 'F' | null;
   school?: string;
   grade?: string;
   participant_type: string;
@@ -363,7 +363,9 @@ export default function SessionRecordsPage({
                 const saveKey = `${key}-${selectedType.record_type_id}`;
                 const value = inputs[key]?.[selectedType.record_type_id] || '';
                 const numValue = parseFloat(value);
-                const score = !isNaN(numValue)
+                // 성별이 없으면 남/여 어느 표로도 배점하지 않는다
+                const hasGender = p.gender === 'M' || p.gender === 'F';
+                const score = !isNaN(numValue) && (p.gender === 'M' || p.gender === 'F')
                   ? calculateScore(numValue, scoreRanges[selectedType.record_type_id] || [], p.gender, minScores[selectedType.record_type_id] || 0)
                   : 0;
                 const isSaving = savingMap[saveKey];
@@ -374,9 +376,9 @@ export default function SessionRecordsPage({
                     <td className="px-4 py-3 font-medium">{p.name}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs ${
-                        p.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-500/15 text-pink-600'
-                      }`}>
-                        {p.gender === 'M' ? '남' : '여'}
+                        p.gender === 'M' ? 'bg-primary-soft text-primary' : p.gender === 'F' ? 'bg-pink-500/15 text-pink-600' : 'bg-muted text-muted-foreground'
+                      }`} title={hasGender ? undefined : '성별 입력 필요'}>
+                        {p.gender === 'M' ? '남' : p.gender === 'F' ? '여' : '?'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -395,7 +397,10 @@ export default function SessionRecordsPage({
                       />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {value && !isNaN(numValue) && (
+                      {value && !isNaN(numValue) && !hasGender && (
+                        <span className="text-xs text-muted-foreground">성별?</span>
+                      )}
+                      {value && !isNaN(numValue) && hasGender && (
                         <span className={`font-bold text-lg ${
                           score >= 80 ? 'text-success' :
                           score >= 60 ? 'text-primary' :

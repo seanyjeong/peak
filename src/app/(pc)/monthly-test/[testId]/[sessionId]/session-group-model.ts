@@ -5,7 +5,7 @@ export interface Participant {
   student_id?: number;
   test_applicant_id?: number;
   name: string;
-  gender: 'M' | 'F';
+  gender: 'M' | 'F' | null;
   school?: string;
   grade?: string;
   participant_type: 'enrolled' | 'rest' | 'trial' | 'test_new';

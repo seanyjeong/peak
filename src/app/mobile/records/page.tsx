@@ -31,7 +31,7 @@ interface Student {
   id: number;
   assignment_id: number;
   name: string;
-  gender: 'male' | 'female';
+  gender: 'male' | 'female' | null;
   school?: string;
   grade?: string;
   is_trial?: boolean;
@@ -131,7 +131,7 @@ export default function MobileRecordsPage() {
             id: s.student_id,
             assignment_id: s.id,
             name: s.student_name,
-            gender: s.gender === 'M' || s.gender === 'male' ? 'male' : 'female',
+            gender: s.gender === 'M' || s.gender === 'male' ? 'male' : s.gender === 'F' || s.gender === 'female' ? 'female' : null,
             is_trial: s.is_trial,
             trial_total: s.trial_total,
             trial_remaining: s.trial_remaining,
@@ -347,7 +347,7 @@ export default function MobileRecordsPage() {
                 >
                   <div className="flex items-center gap-2">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                      student.gender === 'male' ? 'bg-primary' : 'bg-pink-500'
+                      student.gender === 'male' ? 'bg-primary' : student.gender === 'female' ? 'bg-pink-500' : 'bg-muted-foreground/40'
                     }`}>
                       {student.name.charAt(0)}
                     </div>
@@ -361,7 +361,7 @@ export default function MobileRecordsPage() {
                         )}
                       </div>
                       <p className="text-[10px] text-muted-foreground">
-                        {student.gender === 'male' ? '남' : '여'}
+                        {student.gender === 'male' ? '남' : student.gender === 'female' ? '여' : '성별 입력 필요'}
                       </p>
                     </div>
                   </div>
@@ -442,7 +442,7 @@ export default function MobileRecordsPage() {
               return (
                 <div key={student.id} className="flex items-center gap-2 p-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${
-                    student.gender === 'male' ? 'bg-primary' : 'bg-pink-500'
+                    student.gender === 'male' ? 'bg-primary' : student.gender === 'female' ? 'bg-pink-500' : 'bg-muted-foreground/40'
                   }`}>
                     {student.name.charAt(0)}
                   </div>

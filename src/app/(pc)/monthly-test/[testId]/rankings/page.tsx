@@ -24,14 +24,14 @@ interface Participant {
   student_id?: number;
   test_applicant_id?: number;
   name: string;
-  gender: 'M' | 'F';
+  gender: 'M' | 'F' | null;
   school?: string;
   grade?: string;
   branch_id?: number | null; // P-ACA 지점(지점을 쓰는 학원만)
   participant_type: string;
   records: Record<number, number>;
   scores: Record<number, number | null>;
-  total_score: number;
+  total_score: number | null; // 성별이 없으면 미산정(null)
   scored_count: number;
 }
 
@@ -110,8 +110,8 @@ export default function RankingsPage({
     // 정렬
     let sorted: Participant[];
     if (selectedTypeId === 'total') {
-      // 종합 순위: 총점 내림차순
-      sorted = [...filtered].sort((a, b) => b.total_score - a.total_score);
+      // 종합 순위: 총점 내림차순 (총점 미산정은 최하위)
+      sorted = [...filtered].sort((a, b) => (b.total_score ?? -Infinity) - (a.total_score ?? -Infinity));
     } else {
       // 종목별 순위
       const type = recordTypes.find(t => t.record_type_id === selectedTypeId);
@@ -134,7 +134,7 @@ export default function RankingsPage({
     return sorted.map((p, idx) => {
       let currentValue: number;
       if (selectedTypeId === 'total') {
-        currentValue = p.total_score;
+        currentValue = p.total_score ?? -Infinity;
       } else {
         currentValue = p.records[selectedTypeId] ?? 0;
       }
@@ -282,16 +282,19 @@ export default function RankingsPage({
                 참가자가 없습니다
               </div>
             ) : (
-              rankedParticipants.map((p) => (
+              rankedParticipants.map((p) => {
+                // 종합 순위에서 총점 미산정(성별 없음)은 순위를 매기지 않는다
+                const unranked = selectedTypeId === 'total' && p.total_score === null;
+                return (
                 <div
                   key={p.student_id || p.test_applicant_id}
                   className={`px-4 py-3.5 grid grid-cols-12 gap-2 items-center text-sm ${
-                    (p as any).rank <= 3 ? 'bg-warning-soft' : ''
+                    !unranked && (p as any).rank <= 3 ? 'bg-warning-soft' : ''
                   }`}
                 >
                   {/* 순위 */}
                   <div className="col-span-1 flex justify-center">
-                    {getRankIcon((p as any).rank)}
+                    {unranked ? <span className="w-5 text-center text-muted-foreground">-</span> : getRankIcon((p as any).rank)}
                   </div>
 
                   {/* 이름 */}
@@ -305,9 +308,9 @@ export default function RankingsPage({
                   {/* 성별 */}
                   <div className="col-span-1 text-center">
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                      p.gender === 'M' ? 'bg-primary-soft text-primary' : 'bg-pink-500/15 text-pink-600'
+                      p.gender === 'M' ? 'bg-primary-soft text-primary' : p.gender === 'F' ? 'bg-pink-500/15 text-pink-600' : 'bg-muted text-muted-foreground'
                     }`}>
-                      {GENDER_LABELS[p.gender]}
+                      {p.gender === 'M' || p.gender === 'F' ? GENDER_LABELS[p.gender] : '성별?'}
                     </span>
                   </div>
 
@@ -333,10 +336,16 @@ export default function RankingsPage({
 
                       {/* 총점 */}
                       <div className="col-span-2 text-center">
-                        <span className="font-bold text-lg text-primary">
-                          {p.total_score}
-                        </span>
-                        <span className="text-xs text-muted-foreground ml-1">점</span>
+                        {p.total_score === null ? (
+                          <span className="text-xs text-muted-foreground">성별 입력 필요</span>
+                        ) : (
+                          <>
+                            <span className="font-bold text-lg text-primary">
+                              {p.total_score}
+                            </span>
+                            <span className="text-xs text-muted-foreground ml-1">점</span>
+                          </>
+                        )}
                       </div>
                     </>
                   ) : (
@@ -361,7 +370,8 @@ export default function RankingsPage({
                     </>
                   )}
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </Card>

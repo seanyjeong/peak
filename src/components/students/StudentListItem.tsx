@@ -38,7 +38,7 @@ export function StudentListItem({ student, isSelected, onSelect }: StudentListIt
             </Link>
           </div>
           <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
-            {student.gender === 'M' ? '남' : student.gender === 'F' ? '여' : ''}
+            {student.gender === 'M' ? '남' : student.gender === 'F' ? '여' : '성별 입력 필요'}
             {student.school && ` · ${student.school}`}
             {student.grade && ` ${student.grade}`}
             {student.branch_name && ` · ${student.branch_name}${student.class_name ? ` ${student.class_name}` : ''}`}

@@ -6,7 +6,7 @@ import { decorTone } from '@/components/ui/page';
 import type { ClassData, Instructor, Student } from './assignments-model';
 
 export function CompactStudentCard({ student, isDragging }: { student: Student; isDragging?: boolean }) {
-  const genderColor = student.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink;
+  const genderColor = student.gender === 'M' ? 'bg-primary-soft text-primary' : student.gender === 'F' ? decorTone.pink : 'bg-muted text-muted-foreground';
   const isAbsent = student.attendance_status === 'absent';
 
   return (
@@ -17,7 +17,7 @@ export function CompactStudentCard({ student, isDragging }: { student: Student; 
     >
       <div className="flex items-center gap-1.5">
         <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${genderColor}`}>
-          {student.gender === 'M' ? '남' : '여'}
+          {student.gender === 'M' ? '남' : student.gender === 'F' ? '여' : '성별?'}
         </span>
         <span className={`max-w-[86px] truncate text-sm font-medium ${
           isAbsent ? 'text-muted-foreground line-through' : 'text-foreground'

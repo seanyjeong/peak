@@ -96,9 +96,10 @@ export default function StudentsPage() {
     }
   };
 
-  const calculateScore = (value: number, gender: 'M' | 'F', recordTypeId: number): number | null => {
+  const calculateScore = (value: number, gender: 'M' | 'F' | null, recordTypeId: number): number | null => {
     const tableData = scoreTables[recordTypeId];
     if (!tableData?.scoreTable || tableData.ranges.length === 0) return null;
+    if (gender !== 'M' && gender !== 'F') return null; // 성별이 없으면 배점하지 않는다
     if (value === 0) return tableData.scoreTable.min_score || 0; // 파울(0)은 기본점수
     for (const range of tableData.ranges) {
       const min = gender === 'M' ? range.male_min : range.female_min;
@@ -324,7 +325,7 @@ export default function StudentsPage() {
                   <X size={20} />
                 </button>
                 <div className="flex items-center gap-4">
-                  <div className={`flex size-14 items-center justify-center rounded-full ${selectedStudent.gender === 'M' ? 'bg-primary-soft text-primary' : decorTone.pink}`}>
+                  <div className={`flex size-14 items-center justify-center rounded-full ${selectedStudent.gender === 'M' ? 'bg-primary-soft text-primary' : selectedStudent.gender === 'F' ? decorTone.pink : 'bg-muted text-muted-foreground'}`}>
                     <User size={28} />
                   </div>
                   <div>
@@ -335,7 +336,7 @@ export default function StudentsPage() {
                       </Link>
                     </div>
                     <p className="text-muted-foreground mt-1 text-sm">
-                      {selectedStudent.gender === 'M' ? '남' : '여'}
+                      {selectedStudent.gender === 'M' ? '남' : selectedStudent.gender === 'F' ? '여' : '성별 입력 필요'}
                       {selectedStudent.join_date && ` · ${new Date(selectedStudent.join_date).toLocaleDateString('ko-KR')} 등록`}
                     </p>
                   </div>

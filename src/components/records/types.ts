@@ -12,7 +12,7 @@ export interface Student {
   id: number;
   student_id: number;
   student_name: string;
-  gender: 'M' | 'F';
+  gender: 'M' | 'F' | null;
   attendance_status?: string;
 }
 
