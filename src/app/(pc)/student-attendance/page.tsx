@@ -8,6 +8,7 @@ import { PageHeader, toolbarButtonClass } from '@/components/ui/page';
 import { useSocket } from '@/hooks/useSocket';
 import { useToast } from '@/hooks/useToast';
 import {
+  DEFAULT_TIME_SLOTS,
   EMPTY_SLOTS,
   EMPTY_STATS,
   SLOT_ORDER,
@@ -26,6 +27,7 @@ import {
   type Stats,
   type StudentAttendanceResponse,
   type TimeSlot,
+  type TimeSlotTimes,
 } from './student-attendance-model';
 import { EmptyState, SlotButton, StudentRow, SummaryCard } from './student-attendance-ui';
 
@@ -37,6 +39,7 @@ export default function StudentAttendancePage() {
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
+  const [timeSlots, setTimeSlots] = useState<TimeSlotTimes>(DEFAULT_TIME_SLOTS);
   const [updating, setUpdating] = useState<number | 'batch' | null>(null);
   // P-ACA 지점별로 본다. null = 전체
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -58,7 +61,14 @@ export default function StudentAttendancePage() {
       setLoading(true);
       const dateStr = getLocalDateString();
       const branchQuery = branchId ? `&branch_id=${branchId}` : '';
-      const res = await apiClient.get<StudentAttendanceResponse>(`/attendance/students?date=${dateStr}${branchQuery}`);
+      const [res, assignmentsRes] = await Promise.all([
+        apiClient.get<StudentAttendanceResponse>(`/attendance/students?date=${dateStr}${branchQuery}`),
+        // 시간대 시각은 대시보드처럼 반 배치 응답의 timeSlots(P-ACA 학원 설정). 못 받으면 기본 시각 그대로.
+        apiClient.get<{ timeSlots?: TimeSlotTimes }>(`/assignments?date=${dateStr}`).catch(() => null),
+      ]);
+      if (assignmentsRes?.data.timeSlots) {
+        setTimeSlots(assignmentsRes.data.timeSlots);
+      }
       const nextSlots = normalizeSlots(res.data.slots);
       setBranches(res.data.branches || []);
 
@@ -193,6 +203,7 @@ export default function StudentAttendancePage() {
               <SlotButton
                 key={slot}
                 slot={slot}
+                time={timeSlots[slot]}
                 active={activeSlot === slot}
                 count={slotsData[slot].length}
                 present={countStatus(slotsData[slot], 'present')}
@@ -209,7 +220,7 @@ export default function StudentAttendancePage() {
                 {TIME_SLOT_INFO[activeSlot].label} 학생
               </h2>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {TIME_SLOT_INFO[activeSlot].time} · {currentStudents.length}명 배정
+                {timeSlots[activeSlot]} · {currentStudents.length}명 배정
               </p>
             </div>
             <button

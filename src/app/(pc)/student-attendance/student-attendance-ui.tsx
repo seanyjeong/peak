@@ -29,12 +29,14 @@ export function SummaryCard({
 
 export function SlotButton({
   slot,
+  time,
   active,
   count,
   present,
   onClick,
 }: {
   slot: TimeSlot;
+  time: string;
   active: boolean;
   count: number;
   present: number;
@@ -58,7 +60,7 @@ export function SlotButton({
       </span>
       <span className="min-w-0">
         <span className="block text-[15px] font-semibold">{info.label}</span>
-        <span className="mt-0.5 block text-xs text-muted-foreground">{info.time}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">{time}</span>
       </span>
       <span className="text-sm font-bold tabular-nums text-foreground">
         {present}/{count}

@@ -47,10 +47,19 @@ export const EMPTY_STATS: Stats = { total: 0, present: 0, absent: 0, late: 0, ex
 export const SLOT_ORDER: TimeSlot[] = ['morning', 'afternoon', 'evening'];
 export const STATUS_ORDER: AttendanceStatus[] = ['present', 'absent', 'late', 'excused'];
 
-export const TIME_SLOT_INFO: Record<TimeSlot, { label: string; time: string; icon: ComponentType<{ size?: number }> }> = {
-  morning: { label: '오전반', time: '09:00-12:00', icon: Sunrise },
-  afternoon: { label: '오후반', time: '13:00-17:00', icon: Sun },
-  evening: { label: '저녁반', time: '18:00-21:00', icon: Moon },
+export const TIME_SLOT_INFO: Record<TimeSlot, { label: string; icon: ComponentType<{ size?: number }> }> = {
+  morning: { label: '오전반', icon: Sunrise },
+  afternoon: { label: '오후반', icon: Sun },
+  evening: { label: '저녁반', icon: Moon },
+};
+
+export type TimeSlotTimes = Record<TimeSlot, string>;
+
+// 시간대 시각은 P-ACA 학원 설정(반 배치 응답의 timeSlots)을 쓴다. 못 받았을 때만 이 기본값.
+export const DEFAULT_TIME_SLOTS: TimeSlotTimes = {
+  morning: '09:00-12:00',
+  afternoon: '13:00-17:00',
+  evening: '18:00-21:00',
 };
 
 export const STATUS_CONFIG: Record<AttendanceStatus, { label: string; icon: ComponentType<{ size?: number }>; className: string }> = {

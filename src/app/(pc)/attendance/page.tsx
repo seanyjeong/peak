@@ -49,10 +49,19 @@ interface AttendanceResponse {
 const EMPTY_SLOTS: SlotsData = { morning: [], afternoon: [], evening: [] };
 const EMPTY_STATS: Stats = { total: 0, checkedIn: 0, uniqueInstructors: 0 };
 
-const TIME_SLOT_INFO: Record<TimeSlot, { label: string; time: string; icon: ComponentType<{ size?: number }> }> = {
-  morning: { label: '오전반', time: '09:00-12:00', icon: Sunrise },
-  afternoon: { label: '오후반', time: '13:00-17:00', icon: Sun },
-  evening: { label: '저녁반', time: '18:00-21:00', icon: Moon },
+const TIME_SLOT_INFO: Record<TimeSlot, { label: string; icon: ComponentType<{ size?: number }> }> = {
+  morning: { label: '오전반', icon: Sunrise },
+  afternoon: { label: '오후반', icon: Sun },
+  evening: { label: '저녁반', icon: Moon },
+};
+
+type TimeSlotTimes = Record<TimeSlot, string>;
+
+// 시간대 시각은 P-ACA 학원 설정(반 배치 응답의 timeSlots)을 쓴다. 못 받았을 때만 이 기본값.
+const DEFAULT_TIME_SLOTS: TimeSlotTimes = {
+  morning: '09:00-12:00',
+  afternoon: '13:00-17:00',
+  evening: '18:00-21:00',
 };
 
 const STATUS_INFO: Record<AttendanceStatus, { label: string; className: string }> = {
@@ -83,6 +92,7 @@ export default function AttendancePage() {
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('evening');
+  const [timeSlots, setTimeSlots] = useState<TimeSlotTimes>(DEFAULT_TIME_SLOTS);
 
   const today = useMemo(() => new Date().toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -99,7 +109,14 @@ export default function AttendancePage() {
     try {
       setLoading(true);
       const dateStr = getLocalDateString();
-      const res = await apiClient.get<AttendanceResponse>(`/attendance?date=${dateStr}`);
+      const [res, assignmentsRes] = await Promise.all([
+        apiClient.get<AttendanceResponse>(`/attendance?date=${dateStr}`),
+        // 시간대 시각은 대시보드처럼 반 배치 응답의 timeSlots(P-ACA 학원 설정). 못 받으면 기본 시각 그대로.
+        apiClient.get<{ timeSlots?: TimeSlotTimes }>(`/assignments?date=${dateStr}`).catch(() => null),
+      ]);
+      if (assignmentsRes?.data.timeSlots) {
+        setTimeSlots(assignmentsRes.data.timeSlots);
+      }
       const nextSlots = normalizeSlots(res.data.slots);
 
       setSlotsData(nextSlots);
@@ -155,6 +172,7 @@ export default function AttendancePage() {
               <SlotButton
                 key={slot}
                 slot={slot}
+                time={timeSlots[slot]}
                 active={activeSlot === slot}
                 count={slotsData[slot].length}
                 checkedIn={getSlotCheckedIn(slotsData[slot])}
@@ -170,7 +188,7 @@ export default function AttendancePage() {
               {TIME_SLOT_INFO[activeSlot].label} 강사
             </h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {TIME_SLOT_INFO[activeSlot].time} · {currentInstructors.length}명 배정
+              {timeSlots[activeSlot]} · {currentInstructors.length}명 배정
             </p>
           </div>
 
@@ -200,12 +218,14 @@ export default function AttendancePage() {
 
 function SlotButton({
   slot,
+  time,
   active,
   count,
   checkedIn,
   onClick,
 }: {
   slot: TimeSlot;
+  time: string;
   active: boolean;
   count: number;
   checkedIn: number;
@@ -229,7 +249,7 @@ function SlotButton({
       </span>
       <span className="min-w-0">
         <span className="block text-[15px] font-semibold">{info.label}</span>
-        <span className="mt-0.5 block text-xs text-muted-foreground">{info.time}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">{time}</span>
       </span>
       <span className="text-sm font-bold tabular-nums text-foreground">
         {checkedIn}/{count}
