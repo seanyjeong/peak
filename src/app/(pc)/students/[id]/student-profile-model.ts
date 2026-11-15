@@ -48,6 +48,7 @@ export interface ScoreTable {
   male_perfect: number;
   female_perfect: number;
   max_score: number;
+  decimal_places?: number;
 }
 
 export function displayTypeName(type: RecordType | undefined): string {
@@ -70,6 +71,26 @@ export function formatRecordValue(value: number | undefined, unit = ''): string 
     ? String(rounded)
     : rounded.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
   return `${text}${unit}`;
+}
+
+/**
+ * 기록 추이 그래프의 세로축. 소수 자리는 학생 목록 기록 차트(RecordChart)처럼
+ * 배점표 소수 자리와 기록에 실제로 쓰인 소수 자리 중 큰 쪽이다.
+ * 범위 끝을 그 자리로 맞춰, 1.12 - 1 = 0.12000000000000011 같은 오차가 눈금에 남지 않게 한다.
+ */
+export function getTrendAxis(values: number[], scoreTableDecimals = 0): { domain: [number, number]; decimalPlaces: number } {
+  if (values.length === 0) return { domain: [0, 100], decimalPlaces: 0 };
+  const recordDecimals = Math.max(...values.map((value) => {
+    const text = value.toString();
+    const dot = text.indexOf('.');
+    return dot === -1 ? 0 : text.length - dot - 1;
+  }));
+  const decimalPlaces = Math.max(scoreTableDecimals, recordDecimals);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const padding = Math.max((max - min) * 0.2, 1);
+  const fit = (value: number) => Number(value.toFixed(decimalPlaces));
+  return { domain: [fit(Math.max(0, min - padding)), fit(max + padding)], decimalPlaces };
 }
 
 export function trendLabel(trend: string): string {

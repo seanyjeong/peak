@@ -41,6 +41,7 @@ import {
   getLocalDateString,
   getProfileErrorMessage,
   getRecordPercentage,
+  getTrendAxis,
   gradeClass,
   RecordHistory,
   RecordType,
@@ -117,14 +118,10 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
     return points.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   }, [recordHistory, selectedChartType]);
 
-  const trendDomain = useMemo(() => {
-    if (trendChartData.length === 0) return [0, 100] as [number, number];
-    const values = trendChartData.map((item) => item.value);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const padding = Math.max((max - min) * 0.2, 1);
-    return [Math.max(0, min - padding), max + padding] as [number, number];
-  }, [trendChartData]);
+  const trendAxis = useMemo(() => getTrendAxis(
+    trendChartData.map((item) => item.value),
+    selectedChartType ? scoreTables[selectedChartType]?.decimal_places : undefined,
+  ), [scoreTables, selectedChartType, trendChartData]);
 
   const comparisonData = useMemo(() => {
     if (!stats || !student) return [];
@@ -349,7 +346,13 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
                 <LineChart data={trendChartData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                   <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 12 }} />
-                  <YAxis domain={trendDomain} reversed={chartType?.direction === 'lower'} tick={{ fill: '#64748b', fontSize: 12 }} />
+                  <YAxis
+                    domain={trendAxis.domain}
+                    reversed={chartType?.direction === 'lower'}
+                    allowDecimals={trendAxis.decimalPlaces > 0}
+                    tickFormatter={(value: number) => value.toFixed(trendAxis.decimalPlaces)}
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                  />
                   <Tooltip formatter={(value) => [`${value}${chartType?.unit || ''}`, '기록']} />
                   <Line type="monotone" dataKey="value" stroke="#3182F6" strokeWidth={3} dot={{ fill: '#3182F6', r: 4 }} />
                 </LineChart>
