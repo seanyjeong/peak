@@ -1,5 +1,6 @@
 class ExerciseDeletionError extends Error {
-    constructor(status, code) { super(code); this.status = status; }
+    // usedIn: exercise_in_use 일 때 어디서 쓰는지('pack' | 'plan') — 안내 문구를 고른다.
+    constructor(status, code, usedIn) { super(code); this.status = status; this.usedIn = usedIn; }
 }
 
 class ExerciseDeletionService {
@@ -18,7 +19,8 @@ class ExerciseDeletionService {
         }
         const state = await this.repository.removeUnused(checkedId(academyId), checkedId(exerciseId), expectedHash);
         if (state === 'not_found') throw new ExerciseDeletionError(404, 'exercise_not_found');
-        if (state === 'in_use') throw new ExerciseDeletionError(409, 'exercise_in_use');
+        if (state === 'in_use') throw new ExerciseDeletionError(409, 'exercise_in_use', 'pack');
+        if (state === 'in_plan') throw new ExerciseDeletionError(409, 'exercise_in_use', 'plan');
         if (state === 'changed') throw new ExerciseDeletionError(409, 'before_snapshot_changed');
         if (state !== 'deleted') throw new Error('exercise_delete_failed');
     }

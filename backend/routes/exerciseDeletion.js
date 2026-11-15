@@ -15,10 +15,15 @@ function registerExerciseDeletion(router, { db, verifyToken }) {
     });
 }
 
+const IN_USE_MESSAGES = {
+    pack: '운동 팩에서 사용 중입니다. 팩에서 운동을 먼저 제외해 주세요.',
+    plan: '수업 계획에서 사용 중입니다. 계획에서 운동을 먼저 제외해 주세요.',
+};
+
 function respondError(res, error) {
     if (error instanceof ExerciseDeletionError) {
         return res.status(error.status).json({ error: error.message,
-            ...(error.message === 'exercise_in_use' ? { message: '운동 팩에서 사용 중입니다. 팩에서 운동을 먼저 제외해 주세요.' } : {}) });
+            ...(error.message === 'exercise_in_use' ? { message: IN_USE_MESSAGES[error.usedIn] } : {}) });
     }
     return res.status(500).json({ error: 'exercise_delete_failed' });
 }

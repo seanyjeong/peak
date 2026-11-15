@@ -8,8 +8,10 @@
 오래된 원본은 409 `before_snapshot_changed`로 거절하며 자료를 변경하지 않는다.
 헤더 없는 기존 화면 수정은 기존 경로를 유지한다.
 
-운동 삭제는 모든 팩 참조를 검사한다. 사용 중이면 409 `exercise_in_use`를 반환하므로
-팩에서 운동을 먼저 제외해야 한다. 타 학원 팩의 잘못된 참조도 함께 지워지지 않도록 막는다.
+운동 삭제는 모든 팩 참조와 수업 계획(`daily_plans.exercises` JSON) 참조를 검사한다. 사용 중이면
+409 `exercise_in_use`를 반환하므로 팩·계획에서 운동을 먼저 제외해야 한다. 안내 문구(`message`)는
+팩·계획 중 어디서 쓰는지에 따라 다르다. `GET /peak/exercises/:id/usage`는 `packReferences`와
+`planReferences`를 준다. 타 학원 팩의 잘못된 참조도 함께 지워지지 않도록 막는다.
 기존 수업 계획의 운동 JSON은 변경하지 않는다.
 
 확인: `node --test scripts/tests/exercise-deletion.test.cjs`; 실제 MySQL·원본 HTTP 통합 검증은

@@ -2,7 +2,7 @@ export function getExerciseErrorMessage(error: unknown, fallback: string): strin
   if (typeof error !== 'object' || error === null) return fallback;
 
   const maybeError = error as {
-    response?: { status?: number };
+    response?: { status?: number; data?: { message?: string } };
     code?: string;
   };
 
@@ -22,5 +22,6 @@ export function getExerciseErrorMessage(error: unknown, fallback: string): strin
     return '운동 정보를 저장하는 중 문제가 생겼습니다. 잠시 후 다시 시도해주세요.';
   }
 
-  return fallback;
+  // 팩·수업 계획에서 사용 중이라 지우지 못한 경우 등, 서버가 준 안내를 그대로 보인다.
+  return maybeError.response?.data?.message || fallback;
 }

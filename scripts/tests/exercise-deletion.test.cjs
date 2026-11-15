@@ -5,7 +5,7 @@ const { ExerciseDeletionService } = require('../../backend/services/exerciseDele
 const { ExerciseDeletionRepository } = require('../../backend/repositories/exerciseDeletionRepository');
 const { registerExerciseDeletion } = require('../../backend/routes/exerciseDeletion');
 
-function fixture({ references = [], failDelete = false } = {}) {
+function fixture({ references = [], plans = [], failDelete = false } = {}) {
     const row = { id: 12, academy_id: 5 }, calls = [];
     let deleted = false, committed = false;
     const connection = {
@@ -16,6 +16,10 @@ function fixture({ references = [], failDelete = false } = {}) {
         async query(sql, params) {
             calls.push(sql);
             if (sql.startsWith('SELECT') && sql.includes('FROM exercises WHERE id = ?')) return [[...(!deleted && params[0] === row.id && params[1] === row.academy_id ? [row] : [])]];
+            if (sql.includes('FROM daily_plans')) {
+                assert.deepEqual(params, [12, '12', 12, '12']);
+                return sql.includes('COUNT(*)') ? [[{ count: plans.length }]] : [plans];
+            }
             if (sql.includes('COUNT(*)')) return [[{ count: references.length }]];
             if (sql.includes('SELECT id FROM exercise_pack_items')) return [references];
             if (sql.startsWith('DELETE FROM exercises')) {
@@ -55,6 +59,15 @@ test('existing pack references prevent cascade deletion, including foreign pack 
     assert.deepEqual(f.calls.slice(-2), ['rollback', 'release']);
 });
 
+test('lesson plan references prevent deletion like pack references (QA Q02)', async () => {
+    const f = fixture({ plans: [{ id: 757 }] });
+    const service = new ExerciseDeletionService(new ExerciseDeletionRepository(f.db));
+    await assert.rejects(service.remove(5, 12), { status: 409, message: 'exercise_in_use', usedIn: 'plan' });
+    assert.equal(f.calls.some((sql) => sql.startsWith('DELETE')), false);
+    assert.deepEqual(f.state(), { deleted: false, committed: false });
+    assert.deepEqual(f.calls.slice(-2), ['rollback', 'release']);
+});
+
 test('foreign and nonexistent exercises never reach deletion', async () => {
     for (const [academy, id] of [[7, 12], [5, 13]]) {
         const f = fixture();
@@ -84,9 +97,27 @@ test('real Express routes require authentication and expose only the dependency 
     const url = `http://127.0.0.1:${server.address().port}/peak/exercises/12`;
     assert.equal((await fetch(`${url}/usage`)).status, 401);
     const headers = { authorization: 'Bearer fixture' };
-    assert.deepEqual(await (await fetch(`${url}/usage`, { headers })).json(), { success: true, packReferences: 1 });
+    assert.deepEqual(await (await fetch(`${url}/usage`, { headers })).json(), { success: true, packReferences: 1, planReferences: 0 });
     const deleted = await fetch(url, { headers, method: 'DELETE' });
     assert.equal(deleted.status, 409);
     assert.equal((await deleted.json()).error, 'exercise_in_use');
+    assert.equal(f.state().deleted, false);
+});
+
+test('real Express routes refuse an exercise used in a lesson plan with the same response shape', async (t) => {
+    const f = fixture({ plans: [{ id: 757 }, { id: 758 }] });
+    const app = express(), router = express.Router();
+    registerExerciseDeletion(router, { db: f.db, verifyToken(req, _res, next) { req.user = { academyId: 5 }; next(); } });
+    app.use('/peak/exercises', router);
+    const server = await new Promise((resolve) => { const value = app.listen(0, '127.0.0.1', () => resolve(value)); });
+    t.after(() => new Promise((resolve) => { server.closeAllConnections(); server.close(resolve); }));
+    const url = `http://127.0.0.1:${server.address().port}/peak/exercises/12`;
+    assert.deepEqual(await (await fetch(`${url}/usage`)).json(), { success: true, packReferences: 0, planReferences: 2 });
+    const deleted = await fetch(url, { method: 'DELETE' });
+    assert.equal(deleted.status, 409);
+    assert.deepEqual(await deleted.json(), {
+        error: 'exercise_in_use',
+        message: '수업 계획에서 사용 중입니다. 계획에서 운동을 먼저 제외해 주세요.',
+    });
     assert.equal(f.state().deleted, false);
 });
