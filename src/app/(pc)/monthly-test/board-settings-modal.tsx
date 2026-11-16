@@ -2,6 +2,8 @@
 
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
+import { BOARD_THEMES } from '@/app/board/[slug]/board-model';
+import { BoardThemePreview } from '@/app/board/[slug]/board-ui';
 
 export type SlugCheckState = {
   status: 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'error';
@@ -9,9 +11,12 @@ export type SlugCheckState = {
 };
 
 interface BoardSettingsModalProps {
+  academyName: string;
+  boardTheme: number;
   clearBoardPin: boolean;
   currentSlug: string;
   hasBoardPin: boolean;
+  onBoardThemeChange: (value: number) => void;
   onCheckSlug: () => void;
   onClearBoardPinChange: (value: boolean) => void;
   onClose: () => void;
@@ -26,9 +31,12 @@ interface BoardSettingsModalProps {
 }
 
 export function BoardSettingsModal({
+  academyName,
+  boardTheme,
   clearBoardPin,
   currentSlug,
   hasBoardPin,
+  onBoardThemeChange,
   onCheckSlug,
   onClearBoardPinChange,
   onClose,
@@ -42,9 +50,10 @@ export function BoardSettingsModal({
   setSlugInput,
 }: BoardSettingsModalProps) {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const selectedTheme = BOARD_THEMES.find((theme) => theme.id === boardTheme) ?? BOARD_THEMES[0];
 
   return (
-    <Modal isOpen={open} onClose={onClose} title="전광판 설정">
+    <Modal isOpen={open} onClose={onClose} title="전광판 설정" size="xl">
       <div className="space-y-4">
         <label className="block text-sm font-bold text-secondary-foreground">
           전광판 주소
@@ -75,6 +84,44 @@ export function BoardSettingsModal({
             <p className="mt-1">{origin}/board/{currentSlug}/scores</p>
           </div>
         )}
+        <div className="rounded-lg border border-border p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-black text-foreground">전광판 테마</p>
+            {currentSlug && (
+              <a
+                className="text-xs font-bold text-primary"
+                href={`/board/${currentSlug}?theme=${boardTheme}`}
+                rel="noreferrer"
+                target="_blank"
+              >
+                실제 전광판으로 미리보기
+              </a>
+            )}
+          </div>
+          <BoardThemePreview
+            academyName={academyName}
+            className="mt-3 aspect-video w-full rounded-lg"
+            theme={boardTheme}
+          />
+          <p className="mt-2 text-xs font-semibold text-muted-foreground">
+            {selectedTheme.name} · {selectedTheme.description} (학생 이름은 예시)
+          </p>
+          <div className="mt-3 grid grid-cols-5 gap-2" role="radiogroup" aria-label="전광판 테마">
+            {BOARD_THEMES.map((theme) => (
+              <button
+                aria-checked={theme.id === boardTheme}
+                className={`flex flex-col items-stretch gap-1 rounded-lg border p-1 text-left ${theme.id === boardTheme ? 'border-primary ring-2 ring-primary' : 'border-border'}`}
+                key={theme.id}
+                onClick={() => onBoardThemeChange(theme.id)}
+                role="radio"
+                type="button"
+              >
+                <BoardThemePreview academyName={academyName} className="pointer-events-none aspect-video w-full rounded" theme={theme.id} />
+                <span className="px-0.5 text-[11px] font-bold leading-tight text-secondary-foreground">{theme.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="rounded-lg border border-border p-3">
           <div className="flex items-center justify-between gap-3">
             <div>

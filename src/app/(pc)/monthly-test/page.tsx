@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import { Modal } from '@/components/ui/Modal';
 import { getMonthlyErrorMessage } from './[testId]/monthly-detail-model';
 import { BoardSettingsModal, type SlugCheckState } from './board-settings-modal';
+import { DEFAULT_BOARD_THEME, normalizeBoardTheme } from '@/app/board/[slug]/board-model';
 import { PageHeader, StatTile, toolbarButtonClass } from '@/components/ui/page';
 
 interface MonthlyTest {
@@ -60,6 +61,9 @@ export default function MonthlyTestListPage() {
   const [hasBoardPin, setHasBoardPin] = useState(false);
   const [boardPinInput, setBoardPinInput] = useState('');
   const [clearBoardPin, setClearBoardPin] = useState(false);
+  const [academyName, setAcademyName] = useState('');
+  const [savedBoardTheme, setSavedBoardTheme] = useState(DEFAULT_BOARD_THEME);
+  const [boardTheme, setBoardTheme] = useState(DEFAULT_BOARD_THEME);
   const [slugCheck, setSlugCheck] = useState<SlugCheckState>({ status: 'idle', message: '' });
 
   const fetchData = async () => {
@@ -76,6 +80,10 @@ export default function MonthlyTestListPage() {
       setCurrentSlug(slug);
       setSlugInput(slug);
       setHasBoardPin(Boolean(settingsRes.data.settings?.has_board_pin));
+      setAcademyName(settingsRes.data.settings?.academy_name || '');
+      const theme = normalizeBoardTheme(settingsRes.data.settings?.board_theme);
+      setSavedBoardTheme(theme);
+      setBoardTheme(theme);
     } catch {
       toast.error('월말테스트 정보를 불러오지 못했습니다.');
     } finally {
@@ -186,6 +194,10 @@ export default function MonthlyTestListPage() {
         await apiClient.patch('/settings/board-pin', { board_pin: boardPinInput });
         setHasBoardPin(true);
       }
+      if (boardTheme !== savedBoardTheme) {
+        await apiClient.patch('/settings/board-theme', { board_theme: boardTheme });
+        setSavedBoardTheme(boardTheme);
+      }
       setCurrentSlug(slug);
       setShowSlugModal(false);
       setBoardPinInput('');
@@ -291,12 +303,15 @@ export default function MonthlyTestListPage() {
       />
 
       <BoardSettingsModal
+        academyName={academyName}
+        boardTheme={boardTheme}
         clearBoardPin={clearBoardPin}
         currentSlug={currentSlug}
         hasBoardPin={hasBoardPin}
+        onBoardThemeChange={setBoardTheme}
         onCheckSlug={checkBoardSlug}
         onClearBoardPinChange={setClearBoardPin}
-        onClose={() => setShowSlugModal(false)}
+        onClose={() => { setShowSlugModal(false); setBoardTheme(savedBoardTheme); }}
         onPinChange={setBoardPinInput}
         onSave={saveBoardSettings}
         open={showSlugModal}

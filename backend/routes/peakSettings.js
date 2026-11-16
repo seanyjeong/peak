@@ -8,6 +8,7 @@ const {
 } = require('../utils/board-access');
 const { requireFeaturePermission } = require('../utils/feature-permissions');
 const {
+  BOARD_THEMES,
   findPeakSettingsByAcademy,
   isMissingBoardPinColumn,
   saveBoardSlug,
@@ -161,6 +162,39 @@ router.patch('/board-pin', requireMeasurementSettings, async (req, res) => {
     });
   } catch (error) {
     return handleSettingsError(res, error, '전광판 PIN 저장 오류:');
+  }
+});
+
+// 전광판 테마 저장 (1~5)
+router.patch('/board-theme', requireMeasurementSettings, async (req, res) => {
+  try {
+    const academyId = req.user.academyId;
+    const theme = Number(req.body?.board_theme);
+    if (!BOARD_THEMES.includes(theme)) {
+      return res.status(400).json({ success: false, message: '전광판 테마를 다시 골라주세요.' });
+    }
+
+    const settings = await findPeakSettingsByAcademy(pool, academyId);
+    if (!settings?.slug) {
+      return res.status(400).json({
+        success: false,
+        message: '전광판 주소를 먼저 저장해주세요.',
+      });
+    }
+
+    await pool.query(
+      // PIN 과 같이 updated_at 은 그대로 둬서 대표 행 순서가 흐트러지지 않게 한다
+      'UPDATE peak_settings SET board_theme = ?, updated_at = updated_at WHERE academy_id = ?',
+      [theme, academyId]
+    );
+
+    return res.json({
+      success: true,
+      message: '전광판 테마를 저장했습니다.',
+      board_theme: theme,
+    });
+  } catch (error) {
+    return handleSettingsError(res, error, '전광판 테마 저장 오류:');
   }
 });
 

@@ -7,9 +7,9 @@ import {
   storeBoardToken,
   submitBoardPin,
 } from './board-access';
-import type { BoardData, EventRecord, ViewMode } from './board-model';
+import { normalizeBoardTheme, type BoardData, type BoardRow, type EventRecord, type ViewMode } from './board-model';
 import { BoardPinGate } from './board-pin-gate';
-import { Card3D, EventRow3D, GenderColumn, RankRow3D, SportyBackground } from './board-ui';
+import { BoardScreen, type BoardChip } from './board-ui';
 
 type BoardResponse = BoardData & { success?: boolean; message?: string };
 
@@ -24,8 +24,15 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
     if (typeof window === 'undefined') return null;
     return Number(new URLSearchParams(window.location.search).get('branch')) || null;
   });
+  // 테마 미리보기: 주소의 ?theme=<1~5> 가 있으면 저장된 테마 대신 그 테마로 보여 준다
+  const [previewTheme] = useState<number | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const value = new URLSearchParams(window.location.search).get('theme');
+    return value ? normalizeBoardTheme(value) : null;
+  });
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [controlsVisible, setControlsVisible] = useState(true);
   const [pinRequired, setPinRequired] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
@@ -61,7 +68,11 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   const handleBranchChange = (nextBranchId: number | null) => {
     setBranchId(nextBranchId);
-    window.history.replaceState(null, '', nextBranchId ? `?branch=${nextBranchId}` : window.location.pathname);
+    const search = new URLSearchParams(window.location.search);
+    if (nextBranchId) search.set('branch', String(nextBranchId));
+    else search.delete('branch');
+    const query = search.toString();
+    window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
   };
 
   useEffect(() => {
@@ -102,6 +113,23 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
     }, 10000);
     return () => clearInterval(interval);
   }, [data, viewMode, currentEventIndex]);
+
+  // 지점·전체화면 버튼은 마우스를 움직일 때만 3초 동안 보인다(TV 화면에는 순위만)
+  useEffect(() => {
+    let timer = window.setTimeout(() => setControlsVisible(false), 3000);
+    const show = () => {
+      setControlsVisible(true);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setControlsVisible(false), 3000);
+    };
+    window.addEventListener('mousemove', show);
+    window.addEventListener('touchstart', show);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('mousemove', show);
+      window.removeEventListener('touchstart', show);
+    };
+  }, []);
 
   const handleFullscreen = () => {
     if (document.documentElement.requestFullscreen) {
@@ -184,164 +212,63 @@ export default function BoardPage({ params }: { params: Promise<{ slug: string }
 
   const hasRankings = data.ranking.male.length > 0 || data.ranking.female.length > 0;
   const hasNoData = !hasRankings && eventsWithRecords.length === 0;
+  const theme = previewTheme ?? normalizeBoardTheme(data.academy.theme);
+  const showEvent = viewMode === 'event' && Boolean(currentEvent);
+
+  const toRankingRows = (items: BoardData['ranking']['male']): BoardRow[] => items.slice(0, 10).map((item) => ({
+    rank: item.rank, name: item.name, school: item.school, main: item.total, unit: '점',
+  }));
+  const toEventRows = (gender: 'M' | 'F'): BoardRow[] => (currentEvent ? getEventRecordsByGender(currentEvent.records, gender) : []).map((record) => ({
+    rank: record.rank, name: record.name, school: record.school, main: record.value, unit: currentEvent?.unit || '', sub: `${record.score}점`,
+  }));
+
+  const chips: BoardChip[] = [
+    ...(hasRankings ? [{ key: 'ranking', label: '종합순위', active: viewMode === 'ranking', onClick: () => setViewMode('ranking') }] : []),
+    ...eventsWithRecords.map((event, index) => ({
+      key: `event-${event.id}`,
+      label: event.shortName || event.name,
+      active: viewMode === 'event' && index === currentEventIndex,
+      onClick: () => { setViewMode('event'); setCurrentEventIndex(index); },
+    })),
+  ];
 
   return (
-    <div className="h-screen overflow-hidden text-white">
-      <SportyBackground />
-      <div className="relative z-10 h-full flex flex-col p-4">
-        <header className="flex-shrink-0 mb-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-white">{data.academy.name}</h1>
-              <p className="text-base text-white/40">{data.test.name}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.06] rounded-full">
-                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                <span className="text-sm text-white/60">LIVE</span>
-                <span className="text-sm text-white/30">{lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-              <button onClick={handleFullscreen} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-medium transition-all border border-white/10">
-                전체화면
+    <div className="relative h-screen overflow-hidden" style={{ cursor: controlsVisible ? 'auto' : 'none' }}>
+      <BoardScreen
+        theme={theme}
+        academyName={data.academy.name}
+        testName={data.test.name}
+        chips={chips}
+        clock={lastUpdated.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+        columnLabel={showEvent ? `${currentEvent?.name} TOP 10 · ${currentEvent?.unit}` : '종합 TOP 10'}
+        male={showEvent ? toEventRows('M') : toRankingRows(data.ranking.male)}
+        female={showEvent ? toEventRows('F') : toRankingRows(data.ranking.female)}
+        noData={hasNoData}
+        viewKey={`view-${viewMode}-${currentEventIndex}`}
+        className="h-full w-full"
+      />
+      <div
+        className={`fixed bottom-6 left-1/2 z-10 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-2xl bg-black/70 p-2 text-white shadow-lg backdrop-blur transition-opacity duration-300 ${controlsVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+      >
+        {data.branches && data.branches.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="지점">
+            {[{ id: null, name: '전체' }, ...data.branches].map((branch) => (
+              <button
+                key={branch.id ?? 'all'}
+                type="button"
+                onClick={() => handleBranchChange(branch.id)}
+                className={`rounded-xl px-4 py-2 text-sm font-bold ${branchId === branch.id ? 'bg-white text-black' : 'text-white/70 hover:bg-white/10'}`}
+              >
+                {branch.name}
               </button>
-            </div>
+            ))}
+            <div className="mx-1 h-6 w-px bg-white/20" />
           </div>
-          {data.branches && data.branches.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 mt-2" role="group" aria-label="지점">
-              {[{ id: null, name: '전체' }, ...data.branches].map((branch) => (
-                <ModeButton
-                  key={branch.id ?? 'all'}
-                  active={branchId === branch.id}
-                  onClick={() => handleBranchChange(branch.id)}
-                  label={branch.name}
-                />
-              ))}
-            </div>
-          ) : null}
-          <div className="flex items-center gap-2 mt-2">
-            {hasRankings && <ModeButton active={viewMode === 'ranking'} onClick={() => setViewMode('ranking')} label="종합순위" />}
-            {eventsWithRecords.length > 0 && (
-              <>
-                <ModeButton active={viewMode === 'event'} onClick={() => setViewMode('event')} label="종목별" />
-                {viewMode === 'event' && (
-                  <>
-                    <div className="w-px h-6 bg-white/20 mx-1" />
-                    {eventsWithRecords.map((event, idx) => (
-                      <button
-                        key={event.id}
-                        onClick={() => setCurrentEventIndex(idx)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${idx === currentEventIndex ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
-                      >
-                        {event.shortName || event.name}
-                      </button>
-                    ))}
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </header>
-
-        <div className="flex-shrink-0 mb-2">
-          <Card3D glowColor="rgba(139, 92, 246, 0.3)">
-            <div className="py-2 px-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">{viewMode === 'ranking' ? '종합순위' : currentEvent?.shortName || currentEvent?.name}</h2>
-              {viewMode === 'event' && currentEvent && <span className="text-white/50 text-sm">단위: {currentEvent.unit}</span>}
-            </div>
-          </Card3D>
-        </div>
-
-        <div className="flex-1 overflow-hidden">
-          {hasNoData ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-6xl mb-4">🏋️</div>
-                <p className="text-xl text-white/40">아직 기록이 없습니다</p>
-              </div>
-            </div>
-          ) : (
-            <div key={`view-${viewMode}-${currentEventIndex}`} className="h-full flex gap-6">
-              <RankingColumn
-                color="blue"
-                currentEvent={currentEvent}
-                gender="M"
-                getEventRecordsByGender={getEventRecordsByGender}
-                ranking={data.ranking.male}
-                viewMode={viewMode}
-              />
-              <RankingColumn
-                color="pink"
-                currentEvent={currentEvent}
-                gender="F"
-                getEventRecordsByGender={getEventRecordsByGender}
-                ranking={data.ranking.female}
-                viewMode={viewMode}
-              />
-            </div>
-          )}
-        </div>
+        ) : null}
+        <button type="button" onClick={handleFullscreen} className="rounded-xl px-4 py-2 text-sm font-bold text-white/80 hover:bg-white/10">
+          전체화면
+        </button>
       </div>
     </div>
   );
-}
-
-function ModeButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${active ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function RankingColumn({
-  color,
-  currentEvent,
-  gender,
-  getEventRecordsByGender,
-  ranking,
-  viewMode,
-}: {
-  color: 'blue' | 'pink';
-  currentEvent: BoardData['events'][number] | undefined;
-  gender: 'M' | 'F';
-  getEventRecordsByGender: (records: EventRecord[], gender: 'M' | 'F') => EventRecord[];
-  ranking: BoardData['ranking']['male'];
-  viewMode: ViewMode;
-}) {
-  const title = gender === 'M' ? '남자' : '여자';
-
-  return (
-    <GenderColumn title={title} color={color}>
-      {viewMode === 'ranking' ? (
-        ranking.length > 0 ? (
-          ranking.slice(0, 10).map((item, idx, arr) => (
-            <RankRow3D key={`${gender}-${idx}`} item={item} index={idx} total={arr.length} glowColor={gender === 'M' ? '#3b82f6' : '#ec4899'} />
-          ))
-        ) : <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>
-      ) : currentEvent ? (
-        <EventRecords
-          gender={gender}
-          records={getEventRecordsByGender(currentEvent.records, gender)}
-          unit={currentEvent.unit}
-        />
-      ) : null}
-    </GenderColumn>
-  );
-}
-
-function EventRecords({ gender, records, unit }: { gender: 'M' | 'F'; records: EventRecord[]; unit: string }) {
-  if (records.length === 0) return <div className="flex-1 flex items-center justify-center text-white/30">기록 없음</div>;
-  return records.map((record, idx) => (
-    <EventRow3D
-      key={`${gender}-${idx}`}
-      record={record}
-      index={idx}
-      total={records.length}
-      unit={unit}
-      glowColor={gender === 'M' ? '#3b82f6' : '#ec4899'}
-    />
-  ));
 }

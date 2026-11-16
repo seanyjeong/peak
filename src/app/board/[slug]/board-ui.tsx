@@ -1,249 +1,177 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
-import type { EventRecord, RankingItem } from './board-model';
+import './board-themes.css';
+import { boardFontClassName } from './board-fonts';
+import type { BoardRow } from './board-model';
 
-export function SportyBackground() {
-  return (
-    <div className="fixed inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[#101114]" />
-      <div className="absolute inset-0 opacity-10">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="absolute h-full border-l-2 border-white/30" style={{ left: `${20 + i * 15}%` }} />
-        ))}
-      </div>
-      <div
-        className="absolute w-[800px] h-[800px] rounded-full opacity-20"
-        style={{
-          background: 'radial-gradient(circle, rgba(59,130,246,0.5) 0%, transparent 70%)',
-          top: '-200px',
-          left: '-200px',
-          animation: 'pulse 4s ease-in-out infinite',
-        }}
-      />
-      <div
-        className="absolute w-[600px] h-[600px] rounded-full opacity-15"
-        style={{
-          background: 'radial-gradient(circle, rgba(236,72,153,0.5) 0%, transparent 70%)',
-          bottom: '-150px',
-          right: '-150px',
-          animation: 'pulse 5s ease-in-out infinite reverse',
-        }}
-      />
-      <svg className="absolute inset-0 w-full h-full opacity-20" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="transparent" />
-            <stop offset="50%" stopColor="#3b82f6" />
-            <stop offset="100%" stopColor="transparent" />
-          </linearGradient>
-        </defs>
-        {[...Array(3)].map((_, i) => (
-          <line
-            key={i}
-            x1="0"
-            y1={`${30 + i * 20}%`}
-            x2="100%"
-            y2={`${35 + i * 20}%`}
-            stroke="url(#lineGrad)"
-            strokeWidth="2"
-            style={{
-              animation: `slideLine ${3 + i}s linear infinite`,
-              animationDelay: `${i * 0.5}s`,
-            }}
-          />
-        ))}
-      </svg>
-      <div className="absolute top-10 right-20 text-[200px] opacity-5 select-none">🏆</div>
-      <div className="absolute bottom-20 left-10 text-[150px] opacity-5 select-none rotate-12">🏅</div>
-      <div className="absolute top-1/3 left-1/4 text-[120px] opacity-5 select-none -rotate-6">💪</div>
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.2; }
-          50% { transform: scale(1.1); opacity: 0.3; }
-        }
-        @keyframes slideLine {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
-    </div>
-  );
-}
+const BOARD_WIDTH = 1920;
+const BOARD_HEIGHT = 1080;
 
-export function Card3D({
-  children,
-  className = '',
-  glowColor = '#3b82f6',
-  index = 0,
-  total = 10,
-  isTop3 = false,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  glowColor?: string;
-  index?: number;
-  total?: number;
-  isTop3?: boolean;
-}) {
-  const baseDelay = (total - 1 - index) * 0.18;
-  const top3ExtraDelay = isTop3 ? 0.3 : 0;
-  const delay = baseDelay + top3ExtraDelay;
-  const animationDuration = isTop3 ? '1s' : '0.7s';
+// 1920×1080 판을 담는 칸 크기에 맞춰 줄이거나 늘린다. 남는 곳은 테마 바탕색으로 채운다.
+export function ScaledBoard({ theme, className = '', children }: { theme: number; className?: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState({ scale: 0, x: 0, y: 0 });
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const update = () => {
+      const width = element.clientWidth;
+      const height = element.clientHeight;
+      const scale = Math.min(width / BOARD_WIDTH, height / BOARD_HEIGHT);
+      setFit({ scale, x: (width - BOARD_WIDTH * scale) / 2, y: (height - BOARD_HEIGHT * scale) / 2 });
+    };
+    update();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', update);
+      return () => window.removeEventListener('resize', update);
+    }
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div
-      className={`relative ${className}`}
-      style={{
-        animation: `${isTop3 ? 'cardFlipInTop3' : 'cardFlipIn'} ${animationDuration} cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}s both`,
-        transformStyle: 'preserve-3d',
-      }}
-    >
-      <div className="absolute -inset-1 rounded-2xl opacity-50 blur-xl transition-opacity" style={{ background: glowColor }} />
-      {isTop3 && (
-        <>
-          <div className="absolute inset-0 pointer-events-none" style={{ animation: `sparkBurst 0.8s ease-out ${delay + 0.3}s both` }}>
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-2 h-2 rounded-full"
-                style={{
-                  background: glowColor,
-                  boxShadow: `0 0 10px 3px ${glowColor}`,
-                  left: '50%',
-                  top: '50%',
-                  animation: `sparkParticle 0.6s ease-out ${delay + 0.3 + i * 0.05}s both`,
-                  '--angle': `${i * 45}deg`,
-                } as React.CSSProperties & Record<'--angle', string>}
-              />
-            ))}
-          </div>
-          <div
-            className="absolute inset-0 rounded-xl pointer-events-none"
-            style={{
-              background: `radial-gradient(circle at center, ${glowColor}80 0%, transparent 70%)`,
-              animation: `flashBurst 0.5s ease-out ${delay + 0.2}s both`,
-            }}
-          />
-        </>
-      )}
+    <div ref={ref} className={`pb-fit pb-t${theme} ${boardFontClassName} ${className}`}>
       <div
-        className="relative bg-white/[0.08] rounded-2xl overflow-hidden hover:scale-[1.02] transition-transform duration-200"
-        style={{
-          boxShadow: isTop3
-            ? `0 0 30px ${glowColor}60, 0 20px 40px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3)`
-            : '0 20px 40px -20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.2)',
-        }}
+        className={`pb-board pb-t${theme}`}
+        style={{ transform: `translate(${fit.x}px, ${fit.y}px) scale(${fit.scale})`, visibility: fit.scale ? 'visible' : 'hidden' }}
       >
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
         {children}
       </div>
-      <style jsx>{`
-        @keyframes cardFlipIn {
-          0% { opacity: 0; transform: perspective(1000px) translateY(-100px) rotateX(90deg) scale(0.7); }
-          60% { opacity: 1; transform: perspective(1000px) translateY(8px) rotateX(-8deg) scale(1.02); }
-          80% { transform: perspective(1000px) translateY(-3px) rotateX(3deg) scale(1); }
-          100% { opacity: 1; transform: perspective(1000px) translateY(0) rotateX(0) scale(1); }
-        }
-        @keyframes cardFlipInTop3 {
-          0% { opacity: 0; transform: perspective(1000px) translateY(-150px) rotateX(180deg) scale(0.5); filter: brightness(3); }
-          40% { opacity: 1; transform: perspective(1000px) translateY(20px) rotateX(-15deg) scale(1.1); filter: brightness(2); }
-          60% { transform: perspective(1000px) translateY(-10px) rotateX(10deg) scale(1.05); filter: brightness(1.5); }
-          80% { transform: perspective(1000px) translateY(5px) rotateX(-3deg) scale(1.02); filter: brightness(1.2); }
-          100% { opacity: 1; transform: perspective(1000px) translateY(0) rotateX(0) scale(1); filter: brightness(1); }
-        }
-        @keyframes sparkParticle {
-          0% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(1); }
-          100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--angle)) translateX(80px) scale(0); }
-        }
-        @keyframes flashBurst {
-          0% { opacity: 0; transform: scale(0.5); }
-          50% { opacity: 1; transform: scale(1.2); }
-          100% { opacity: 0; transform: scale(1.5); }
-        }
-      `}</style>
     </div>
   );
 }
 
-export function RankRow3D({ item, index, total, glowColor }: { item: RankingItem; index: number; total: number; glowColor: string }) {
-  const isTop3 = item.rank <= 3;
-  const rankColors = ['#fbbf24', '#9ca3af', '#cd7f32'];
-  const rankBg = isTop3 ? rankColors[item.rank - 1] : 'rgba(255,255,255,0.1)';
+export interface BoardChip {
+  key: string;
+  label: string;
+  active: boolean;
+  onClick?: () => void;
+}
 
+export interface BoardScreenProps {
+  theme: number;
+  academyName: string;
+  testName: string;
+  chips: BoardChip[];
+  clock: string;
+  columnLabel: string;
+  male: BoardRow[];
+  female: BoardRow[];
+  noData?: boolean;
+  viewKey?: string;
+  className?: string;
+}
+
+export function BoardScreen({ theme, academyName, testName, chips, clock, columnLabel, male, female, noData = false, viewKey, className }: BoardScreenProps) {
+  const podium = theme === 4;
   return (
-    <Card3D glowColor={isTop3 ? rankColors[item.rank - 1] : glowColor + '20'} className="mb-1.5" index={index} total={total} isTop3={isTop3}>
-      <div className="flex items-center gap-3 px-3 py-2">
-        <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center font-extrabold text-lg shadow-lg flex-shrink-0"
-          style={{
-            background: isTop3 ? `linear-gradient(135deg, ${rankBg}, ${rankBg}cc)` : 'rgba(255,255,255,0.1)',
-            color: isTop3 ? '#000' : '#fff',
-            boxShadow: isTop3 ? `0 4px 15px ${rankBg}60` : 'none',
-          }}
-        >
-          {item.rank}
+    <ScaledBoard theme={theme} className={className}>
+      <header className="pb-hd">
+        <div className="pb-hd-l">
+          <div className="pb-acad">{academyName}</div>
+          {testName ? <div className="pb-test">{testName}</div> : null}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className={`font-bold truncate ${isTop3 ? 'text-white text-lg' : 'text-white/90 text-base'}`}>{item.name}</div>
-          {item.school && <div className="text-xs text-white/50 truncate">{item.school}</div>}
+        <div className="pb-chips">
+          {chips.map((chip) => chip.onClick ? (
+            <button key={chip.key} type="button" className={`pb-chip${chip.active ? ' on' : ''}`} onClick={chip.onClick}>{chip.label}</button>
+          ) : (
+            <span key={chip.key} className={`pb-chip${chip.active ? ' on' : ''}`}>{chip.label}</span>
+          ))}
         </div>
-        <div className="text-right font-extrabold text-xl flex-shrink-0" style={{ color: isTop3 ? rankBg : '#fff' }}>
-          {item.total}
-          <span className="text-xs font-normal text-white/40 ml-0.5">점</span>
+        <div className="pb-hd-r">
+          <span className="pb-live">실시간</span>
+          <span className="pb-clock">{clock}</span>
         </div>
+      </header>
+      <div key={viewKey} className="pb-cols">
+        {noData ? (
+          <div className="pb-nodata">아직 기록이 없습니다</div>
+        ) : (
+          <>
+            <BoardColumn gender="m" label={columnLabel} rows={male} podium={podium} />
+            <BoardColumn gender="f" label={columnLabel} rows={female} podium={podium} />
+          </>
+        )}
       </div>
-    </Card3D>
+    </ScaledBoard>
   );
 }
 
-export function EventRow3D({ record, index, total, unit, glowColor }: { record: EventRecord; index: number; total: number; unit: string; glowColor: string }) {
-  const isTop3 = record.rank <= 3;
-  const rankColors = ['#fbbf24', '#9ca3af', '#cd7f32'];
-  const rankBg = isTop3 ? rankColors[record.rank - 1] : 'rgba(255,255,255,0.1)';
-
+function BoardColumn({ gender, label, rows, podium }: { gender: 'm' | 'f'; label: string; rows: BoardRow[]; podium: boolean }) {
+  const head = <div className="pb-ch">{gender === 'm' ? '남자' : '여자'}<small>{label}</small></div>;
+  if (rows.length === 0) {
+    return <section className={`pb-col pb-${gender}`}>{head}<div className="pb-empty">기록 없음</div></section>;
+  }
+  const top10 = rows.slice(0, 10);
+  const listRows = podium ? top10.slice(3) : top10;
   return (
-    <Card3D glowColor={isTop3 ? rankColors[record.rank - 1] : glowColor + '20'} className="mb-1.5" index={index} total={total} isTop3={isTop3}>
-      <div className="flex items-center gap-3 px-3 py-2">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center font-extrabold text-base flex-shrink-0"
-          style={{
-            background: isTop3 ? `linear-gradient(135deg, ${rankBg}, ${rankBg}cc)` : 'rgba(255,255,255,0.1)',
-            color: isTop3 ? '#000' : '#fff',
-            boxShadow: isTop3 ? `0 4px 15px ${rankBg}60` : 'none',
-          }}
-        >
-          {record.rank}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className={`font-bold truncate ${isTop3 ? 'text-white text-base' : 'text-white/90 text-sm'}`}>{record.name}</div>
-          {record.school && <div className="text-xs text-white/50 truncate">{record.school}</div>}
-        </div>
-        <div className="text-right flex-shrink-0">
-          <div className="font-extrabold text-lg text-white">
-            {record.value}
-            <span className="text-xs font-normal text-white/40 ml-0.5">{unit}</span>
+    <section className={`pb-col pb-${gender}`}>
+      {head}
+      {podium ? <Podium rows={top10.slice(0, 3)} /> : null}
+      <ol className="pb-list" style={{ gridTemplateRows: `repeat(${podium ? 7 : 10}, minmax(0, 1fr))` }}>
+        {listRows.map((row, index) => (
+          <li key={`${gender}-${index}`} className={`pb-row pb-r${row.rank}${row.rank <= 3 ? ' pb-top' : ''}`}>
+            <span className="pb-rk">{row.rank}</span>
+            <span className="pb-nm"><b>{row.name}</b>{row.school ? <small>{row.school}</small> : null}</span>
+            <span className="pb-sc"><b>{row.main}</b><i>{row.unit}</i>{row.sub ? <em>{row.sub}</em> : null}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+// 시상대: 가운데 1등, 왼쪽 2등, 오른쪽 3등 자리
+function Podium({ rows }: { rows: BoardRow[] }) {
+  return (
+    <div className="pb-pod">
+      {[1, 0, 2].map((place) => {
+        const row = rows[place];
+        if (!row) return <div key={place} />;
+        return (
+          <div key={place} className={`pb-pd pb-p${place + 1}`}>
+            <div className="pb-pd-who"><b>{row.name}</b>{row.school ? <small>{row.school}</small> : null}</div>
+            <div className="pb-pd-blk">
+              <span className="pb-pd-rk">{row.rank}</span>
+              <span className="pb-pd-sc">{row.main}<i>{row.unit}</i>{row.sub ? <em>{row.sub}</em> : null}</span>
+            </div>
           </div>
-          <div className="text-xs" style={{ color: isTop3 ? rankBg : 'rgba(255,255,255,0.5)' }}>{record.score}점</div>
-        </div>
-      </div>
-    </Card3D>
+        );
+      })}
+    </div>
   );
 }
 
-export function GenderColumn({ title, color, children }: { title: string; color: 'blue' | 'pink'; children: React.ReactNode }) {
-  const colors = {
-    blue: { main: '#3b82f6', glow: 'rgba(59, 130, 246, 0.3)' },
-    pink: { main: '#ec4899', glow: 'rgba(236, 72, 153, 0.3)' },
-  };
+// 테마 고르기 미리보기: 예시 자료로 그린 작은 전광판
+const SAMPLE_MALE: BoardRow[] = [
+  ['김도윤', '가람고', 562], ['이준서', '한빛고', 548], ['박시우', '누리고', 541], ['최하준', '새솔고', 529], ['정우진', '바름고', 517],
+  ['강민재', '다온고', 506], ['윤지호', '솔빛고', 498], ['장현우', '하람고', 487], ['임건우', '미르고', 476], ['한서진', '온새고', 463],
+].map(([name, school, total], index) => ({ rank: index + 1, name: String(name), school: String(school), main: Number(total), unit: '점' }));
 
+const SAMPLE_FEMALE: BoardRow[] = [
+  ['김서연', '한빛고', 518], ['이하은', '가람고', 505], ['박지민', '다온고', 497], ['최수아', '누리고', 486], ['정예린', '새솔고', 474],
+  ['강다은', '바름고', 465], ['윤채원', '미르고', 452], ['장유나', '솔빛고', 441], ['임소율', '하람고', 430], ['한지아', '온새고', 418],
+].map(([name, school, total], index) => ({ rank: index + 1, name: String(name), school: String(school), main: Number(total), unit: '점' }));
+
+const SAMPLE_CHIPS: BoardChip[] = ['종합순위', '제멀', '메디신볼', '10m왕복', '좌전굴', '배근력']
+  .map((label, index) => ({ key: label, label, active: index === 0 }));
+
+export function BoardThemePreview({ theme, academyName, className }: { theme: number; academyName: string; className?: string }) {
   return (
-    <div className="flex-1 flex flex-col min-w-0">
-      <div className="flex-shrink-0 py-2 px-4 rounded-t-xl border-b border-white/10" style={{ background: `linear-gradient(135deg, ${colors[color].glow}, transparent)` }}>
-        <h3 className="text-2xl font-extrabold" style={{ color: colors[color].main, textShadow: `0 0 30px ${colors[color].main}` }}>{title}</h3>
-      </div>
-      <div className="flex-1 p-2 overflow-y-auto">{children}</div>
-    </div>
+    <BoardScreen
+      theme={theme}
+      academyName={academyName || '우리 학원'}
+      testName="월말테스트 (예시)"
+      chips={SAMPLE_CHIPS}
+      clock="14:30"
+      columnLabel="종합 TOP 10"
+      male={SAMPLE_MALE}
+      female={SAMPLE_FEMALE}
+      className={className}
+    />
   );
 }

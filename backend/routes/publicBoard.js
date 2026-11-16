@@ -127,7 +127,7 @@ router.get('/:slug', async (req, res) => {
     if (tests.length === 0) {
       return res.json({
         success: true,
-        academy: { name: academy.name, slug: academy.slug },
+        academy: { name: academy.name, slug: academy.slug, theme: academy.theme },
         test: null,
         message: '현재 진행 중인 테스트가 없습니다.'
       });
@@ -188,7 +188,7 @@ router.get('/:slug', async (req, res) => {
     if (sessionIds.length === 0) {
       return res.json({
         success: true,
-        academy: { name: academy.name, slug: academy.slug },
+        academy: { name: academy.name, slug: academy.slug, theme: academy.theme },
         test: { name: test.test_name, month: test.test_month },
         ranking: { male: [], female: [] },
         events: []
@@ -369,7 +369,7 @@ router.get('/:slug', async (req, res) => {
 
     res.json({
       success: true,
-      academy: { name: academy.name, slug: academy.slug },
+      academy: { name: academy.name, slug: academy.slug, theme: academy.theme },
       test: { name: test.test_name, month: test.test_month },
       branches,
       ranking: { male: maleRanking, female: femaleRanking },

@@ -58,6 +58,8 @@ MySQL `peak` (n100 primary, vultr sync 복제). **36 테이블**. user=`paca` (e
 
 `peak_settings.board_pin_hash`는 전광판 PIN 해시만 저장한다. 운영 DB에는 `database/peak-board-pin.sql`을 적용해 컬럼을 추가한다.
 
+`peak_settings.board_theme`는 전광판 테마 번호(1 스포츠 중계, 2 경기장 LED, 3 밝고 깔끔, 4 시상대, 5 육상 트랙, 기본 1)다. 운영 DB에는 `database/peak-board-theme.sql`을 적용해 컬럼을 추가한다.
+
 ## Cross-DB (paca)
 peak 백엔드가 **paca DB 읽기** (users 인증/학원 정보):
 ```js

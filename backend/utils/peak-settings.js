@@ -2,12 +2,22 @@ function isMissingBoardPinColumn(error) {
   return error?.code === 'ER_BAD_FIELD_ERROR' && String(error.message || '').includes('board_pin');
 }
 
+// 전광판 테마: 1 스포츠 중계, 2 경기장 LED, 3 밝고 깔끔, 4 시상대, 5 육상 트랙
+const BOARD_THEMES = [1, 2, 3, 4, 5];
+const DEFAULT_BOARD_THEME = 1;
+
+function normalizeBoardTheme(value) {
+  const theme = Number(value);
+  return BOARD_THEMES.includes(theme) ? theme : DEFAULT_BOARD_THEME;
+}
+
 function withBoardPinDefault(row) {
   if (!row) return null;
   return {
     ...row,
     board_pin_hash: row.board_pin_hash || null,
     board_pin_updated_at: row.board_pin_updated_at || null,
+    board_theme: normalizeBoardTheme(row.board_theme),
   };
 }
 
@@ -19,7 +29,7 @@ const CANONICAL_ORDER = 'ORDER BY updated_at DESC, id DESC';
 async function findPeakSettingsByAcademy(db, academyId) {
   try {
     const [settings] = await db.query(`
-      SELECT id, academy_id, slug, academy_name, board_pin_hash, board_pin_updated_at, created_at, updated_at
+      SELECT id, academy_id, slug, academy_name, board_pin_hash, board_pin_updated_at, board_theme, created_at, updated_at
       FROM peak_settings
       WHERE academy_id = ?
       ${CANONICAL_ORDER}
@@ -88,7 +98,7 @@ async function saveBoardSlug(db, { academyId, slug, academyName = null, fallback
 async function findBoardSettingsBySlug(db, slug) {
   try {
     const [settings] = await db.query(`
-      SELECT academy_id, slug, academy_name, board_pin_hash
+      SELECT academy_id, slug, academy_name, board_pin_hash, board_theme
       FROM peak_settings
       WHERE slug = ?
     `, [slug]);
@@ -111,6 +121,7 @@ function serializePeakSettings(row, academyId) {
       slug: '',
       academy_name: '',
       has_board_pin: false,
+      board_theme: DEFAULT_BOARD_THEME,
     };
   }
 
@@ -127,15 +138,18 @@ function toBoardAcademy(row) {
     name: row.academy_name,
     slug: row.slug,
     boardPinHash: row.board_pin_hash,
+    theme: normalizeBoardTheme(row.board_theme),
   };
 }
 
 module.exports = {
+  BOARD_THEMES,
   CANONICAL_ORDER,
   findBoardSettingsBySlug,
   findPeakSettingsByAcademy,
   saveBoardSlug,
   isMissingBoardPinColumn,
+  normalizeBoardTheme,
   serializePeakSettings,
   toBoardAcademy,
 };
